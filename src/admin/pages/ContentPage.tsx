@@ -28,6 +28,7 @@ import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import PublishOutlinedIcon from "@mui/icons-material/PublishOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import ContentWorkflowGuide from "../components/ContentWorkflowGuide";
+import { loadContentEditorDialog, preloadContentEditorModules } from "../components/contentEditorModuleLoader";
 import AdminPagination from "../components/AdminPagination";
 import PageHeader from "../components/PageHeader";
 import StatusChip from "../components/StatusChip";
@@ -73,7 +74,7 @@ import { contentStatusLabels, contentTypeLabels } from "../../utils/thaiLabels";
 import { ADMIN_READ_ONLY_NOTICE, canManageContent } from "../utils/rbac";
 import ActionBar from "../../design-system/components/ActionBar";
 
-const ContentEditorDialog = lazy(() => import("../components/ContentEditorDialog"));
+const ContentEditorDialog = lazy(loadContentEditorDialog);
 
 type FilterStatus = ContentStatus | "all";
 type ContentFilterKey = "status";
@@ -201,6 +202,7 @@ export default function ContentPage() {
         return;
       }
 
+      preloadContentEditorModules();
       setSaveError("");
       setLoadingEditorItem(true);
 
@@ -469,6 +471,7 @@ export default function ContentPage() {
       return;
     }
 
+    preloadContentEditorModules();
     setSaveError("");
     setEditorMode("create");
     setRestoredRecovery(false);
@@ -549,6 +552,7 @@ export default function ContentPage() {
       return;
     }
 
+    preloadContentEditorModules();
     setSaveError("");
     setEditorMode(draftRecovery.mode);
     setRestoredRecovery(true);

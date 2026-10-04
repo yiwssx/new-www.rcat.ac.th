@@ -3,8 +3,9 @@ import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import type { RichTextDocument } from "../../utils/contentBlocks";
 import type { RichTextExternalInsertRequest } from "./richTextInsert";
+import { loadRichTextEditorImpl } from "./contentEditorModuleLoader";
 
-const RichTextEditorImpl = lazy(() => import("./RichTextEditorImpl"));
+const RichTextEditorImpl = lazy(loadRichTextEditorImpl);
 
 interface RichTextEditorProps {
   value: RichTextDocument;
