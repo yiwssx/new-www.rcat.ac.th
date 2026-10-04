@@ -1,10 +1,10 @@
 # RCAT Public API Worker
 
-Updated: 2026-10-03.
+Updated: 2026-10-04.
 
 This Cloudflare Worker is the D1-backed public-read, public analytics, structured-admin, CMS authentication, and B2 Runtime Incident Feed API. Apps Script remains only for the server-side media/file bridge to Google Drive. The dedicated complaint Apps Script is a separate isolated endpoint behind the Vercel complaint proxy.
 
-Current project status is the **v3.3.1 production-governance and governed-maintenance baseline**. Reliability Roadmap v2 Phase 0, Phase A, Phase B (B1/B2/B3), and Phase C are complete. There is no active migration, release, M20/M21 stabilization, P6 feature-development, or Reliability Roadmap v2 implementation workstream. Use `docs/architecture/current-project-state.md` for current project status.
+Current project status is the **v3.3.2 production-governance and governed-maintenance baseline**. The v3.3.2 Content Editor Performance release is complete, production-verified, tagged, and published and required no Worker or D1 production mutation. Reliability Roadmap v2 Phase 0, Phase A, Phase B (B1/B2/B3), and Phase C are complete. There is no active migration, release, M20/M21 stabilization, P6 feature-development, or Reliability Roadmap v2 implementation workstream. Use `docs/architecture/current-project-state.md` for current project status.
 
 ## Current Environment Model
 
@@ -110,7 +110,7 @@ Ordered migration files currently committed in `migrations/` are:
 
 The duplicate numeric prefix `0007` is a legacy repository fact. Do not rename already-applied migration files. New migrations remain append-only and must use a unique new numeric prefix.
 
-Production release tooling applies only pending migrations before deploying a compatible Worker. The approved v3.3.1 release applied migrations `0018` and `0019` and completed the matching Worker release and Production Verification on 2026-10-03. Do not repeat those migrations or that release solely because an older document described a pre-release checkpoint.
+The approved v3.3.1 release applied migrations `0018` and `0019` and completed the matching Worker release and Production Verification on 2026-10-03. v3.3.2 introduced no D1 migration and no production Worker deployment. Do not repeat the v3.3.1 migrations or Worker release solely because an older document described a pre-release checkpoint.
 
 ## Retention
 
@@ -146,4 +146,4 @@ pnpm build
 pnpm quality
 ```
 
-Historical M19/M20 readiness scripts remain useful as repository/evidence guards but must not be treated as the current runtime ownership source. Historical M4-M6 Preview documents record earlier migration work only. Use `docs/architecture/current-project-state.md`, `docs/architecture/current-runtime-ownership.md`, and `docs/deployment/runtime-deployment-guide.md` for current production boundaries.
+Historical M19/M20 readiness scripts remain useful as repository/evidence guards but must not be treated as the current runtime ownership source. Historical M4-M6 Preview documents record earlier migration work only. Use `docs/architecture/current-project-state.md`, `docs/architecture/current-runtime-ownership.md`, `docs/releases/v3.3.2-release-baseline.md`, and `docs/deployment/runtime-deployment-guide.md` for current production boundaries.
