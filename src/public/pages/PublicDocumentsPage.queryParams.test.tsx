@@ -88,13 +88,30 @@ vi.mock("../../features/public-documents", () => ({
   )
 }));
 
-function getLatestNavigation() {
-  const calls = routerMocks.navigate.mock.calls;
-  return calls[calls.length - 1]?.[0] as {
-    search: (previous: Record<string, unknown>) => Record<string, unknown>;
-    replace?: boolean;
-    resetScroll?: boolean;
-  };
+interface NavigationCall {
+  search: (previous: Record<string, unknown>) => Record<string, unknown>;
+  replace?: boolean;
+  resetScroll?: boolean;
+}
+
+function findNavigation(
+  previous: Record<string, unknown>,
+  predicate: (nextSearch: Record<string, unknown>) => boolean
+) {
+  for (const call of routerMocks.navigate.mock.calls) {
+    const navigation = call[0] as NavigationCall | undefined;
+
+    if (!navigation || typeof navigation.search !== "function") {
+      continue;
+    }
+
+    const nextSearch = navigation.search(previous);
+    if (predicate(nextSearch)) {
+      return { navigation, nextSearch };
+    }
+  }
+
+  throw new Error("Expected a matching navigation call.");
 }
 
 describe("PublicDocumentsPage query filters", () => {
@@ -114,7 +131,8 @@ describe("PublicDocumentsPage query filters", () => {
   });
 
   it("writes search changes to q and removes page while preserving other search state", () => {
-    routerMocks.search = { page: 2, category: "คู่มือ" };
+    const previousSearch = { page: 2, category: "คู่มือ" };
+    routerMocks.search = previousSearch;
 
     render(<PublicDocumentsPage />);
     routerMocks.navigate.mockClear();
@@ -123,9 +141,9 @@ describe("PublicDocumentsPage query filters", () => {
       target: { value: "student" }
     });
 
-    const navigation = getLatestNavigation();
+    const { navigation, nextSearch } = findNavigation(previousSearch, (candidate) => candidate.q === "student");
 
-    expect(navigation.search({ page: 2, category: "คู่มือ" })).toEqual({
+    expect(nextSearch).toEqual({
       category: "คู่มือ",
       q: "student"
     });
@@ -134,15 +152,19 @@ describe("PublicDocumentsPage query filters", () => {
   });
 
   it("clears q, category, and page together", () => {
-    routerMocks.search = { q: "student", category: "แบบฟอร์ม", page: 2 };
+    const previousSearch = { q: "student", category: "แบบฟอร์ม", page: 2 };
+    routerMocks.search = previousSearch;
 
     render(<PublicDocumentsPage />);
     routerMocks.navigate.mockClear();
 
     fireEvent.click(screen.getByRole("button", { name: "ล้างตัวกรอง" }));
 
-    const navigation = getLatestNavigation();
+    const { nextSearch } = findNavigation(
+      previousSearch,
+      (candidate) => !("q" in candidate) && !("category" in candidate) && !("page" in candidate)
+    );
 
-    expect(navigation.search({ q: "student", category: "แบบฟอร์ม", page: 2 })).toEqual({});
+    expect(nextSearch).toEqual({});
   });
 });
