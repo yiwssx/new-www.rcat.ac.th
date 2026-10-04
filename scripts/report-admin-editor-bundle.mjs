@@ -78,9 +78,7 @@ function reportEntry(manifest, label, sourcePath, { optional = false } = {}) {
   const staticGraphMetrics = measureFiles(manifest, collectStaticGraph(manifest, entryKey));
 
   console.log(`- ${label}: ${chunk.file}`);
-  console.log(
-    `  own raw ${formatBytes(ownMetrics.rawBytes)}; own gzip ${formatBytes(ownMetrics.gzipBytes)}`
-  );
+  console.log(`  own raw ${formatBytes(ownMetrics.rawBytes)}; own gzip ${formatBytes(ownMetrics.gzipBytes)}`);
   console.log(
     `  static graph raw ${formatBytes(staticGraphMetrics.rawBytes)}; static graph gzip ${formatBytes(staticGraphMetrics.gzipBytes)}; files ${staticGraphMetrics.files.length}`
   );
