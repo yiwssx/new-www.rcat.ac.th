@@ -84,9 +84,30 @@ afterEach(() => {
 
 describe("v3.3.2 rich-text editor behavior parity", () => {
   it("keeps the production implementation on the explicit lean extension set and editor commands", () => {
-    const source = readFileSync(resolve(process.cwd(), "src/admin/components/RichTextEditorImpl.tsx"), "utf8");
+    const wrapperSource = readFileSync(resolve(process.cwd(), "src/admin/components/RichTextEditorImpl.tsx"), "utf8");
+    const coreSource = readFileSync(resolve(process.cwd(), "src/admin/components/RichTextEditorCore.tsx"), "utf8");
+    const optionalModeSource = readFileSync(
+      resolve(process.cwd(), "src/admin/components/RichTextEditorOptionalMode.tsx"),
+      "utf8"
+    );
 
-    expect(source).not.toContain("@tiptap/starter-kit");
+    expect(wrapperSource).toContain('lazy(() => import("./RichTextEditorOptionalMode"))');
+    expect(coreSource).not.toContain("@tiptap/starter-kit");
+    for (const deferredPackage of [
+      "@tiptap/extension-blockquote",
+      "@tiptap/extension-highlight",
+      "@tiptap/extension-horizontal-rule",
+      "@tiptap/extension-link",
+      "@tiptap/extension-list",
+      "@tiptap/extension-strike",
+      "@tiptap/extension-table",
+      "@tiptap/extension-text-align",
+      "@tiptap/extension-text-style",
+      "@tiptap/extension-underline"
+    ]) {
+      expect(coreSource).not.toContain(deferredPackage);
+      expect(optionalModeSource).toContain(deferredPackage);
+    }
     for (const requiredToken of [
       "Bold,",
       "Blockquote,",
@@ -111,7 +132,7 @@ describe("v3.3.2 rich-text editor behavior parity", () => {
       "insertTable({ rows: 3, cols: 3, withHeaderRow: true })",
       "setLink({ href: normalizedHref })"
     ]) {
-      expect(source).toContain(requiredToken);
+      expect(`${coreSource}\n${optionalModeSource}`).toContain(requiredToken);
     }
   });
 
