@@ -107,7 +107,7 @@ describe("v3.3.2 rich-text editor behavior parity", () => {
       "toggleStrike()",
       "setColor(event.target.value)",
       "setHighlight({ color: event.target.value })",
-      "setTextAlign(\"center\")",
+      'setTextAlign("center")',
       "insertTable({ rows: 3, cols: 3, withHeaderRow: true })",
       "setLink({ href: normalizedHref })"
     ]) {
@@ -164,7 +164,11 @@ describe("v3.3.2 rich-text editor behavior parity", () => {
     );
 
     expect(
-      listEditor.chain().setTextSelection({ from: 1, to: listText.length + 1 }).toggleBulletList().run()
+      listEditor
+        .chain()
+        .setTextSelection({ from: 1, to: listText.length + 1 })
+        .toggleBulletList()
+        .run()
     ).toBe(true);
     expect(normalizeRichTextDocument(listEditor.getJSON()).content?.[0]).toMatchObject({
       type: "bulletList",
@@ -185,9 +189,9 @@ describe("v3.3.2 rich-text editor behavior parity", () => {
 
     const ruleEditor = track(createParityEditor({ type: "doc", content: [{ type: "paragraph" }] }));
     expect(ruleEditor.chain().focus().setHorizontalRule().run()).toBe(true);
-    expect(normalizeRichTextDocument(ruleEditor.getJSON()).content?.some((node) => node.type === "horizontalRule")).toBe(
-      true
-    );
+    expect(
+      normalizeRichTextDocument(ruleEditor.getJSON()).content?.some((node) => node.type === "horizontalRule")
+    ).toBe(true);
   });
 
   it("round-trips command-produced rich text through the unchanged RCAT_BLOCKS_V1 save representation", () => {
