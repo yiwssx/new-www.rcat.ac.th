@@ -78,7 +78,9 @@ function reportEntry(manifest, label, sourcePath, { optional = false } = {}) {
   const staticGraphMetrics = measureFiles(manifest, collectStaticGraph(manifest, entryKey));
 
   console.log(`- ${label}: ${chunk.file}`);
-  console.log(`  own raw ${formatBytes(ownMetrics.rawBytes)}; own gzip ${formatBytes(ownMetrics.gzipBytes)}`);
+  console.log(
+    `  own raw ${formatBytes(ownMetrics.rawBytes)}; own gzip ${formatBytes(ownMetrics.gzipBytes)}`
+  );
   console.log(
     `  static graph raw ${formatBytes(staticGraphMetrics.rawBytes)}; static graph gzip ${formatBytes(staticGraphMetrics.gzipBytes)}; files ${staticGraphMetrics.files.length}`
   );
@@ -91,4 +93,6 @@ const manifest = loadManifest();
 console.log("Admin editor bundle evidence:");
 reportEntry(manifest, "ContentEditorDialog", "src/admin/components/ContentEditorDialog.tsx");
 reportEntry(manifest, "RichTextEditor", "src/admin/components/RichTextEditor.tsx", { optional: true });
-reportEntry(manifest, "RichTextMediaPickerDialog", "src/admin/components/RichTextMediaPickerDialog.tsx", { optional: true });
+reportEntry(manifest, "RichTextMediaPickerDialog", "src/admin/components/RichTextMediaPickerDialog.tsx", {
+  optional: true
+});
