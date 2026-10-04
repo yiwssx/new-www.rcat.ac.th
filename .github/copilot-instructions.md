@@ -4,13 +4,15 @@ This repository is a React/Vite public website and CMS with Cloudflare Worker/D1
 
 ## Current Project Status
 
-Current status: **v3.3.1 production-governance and governed-maintenance baseline on `main`**. The v3.3.1 Content Operations release is complete, production-released, production-verified, tagged, and published. Do not repeat its D1 migrations, Worker release, or production verification merely because an older tracker or dated record describes a pre-release checkpoint.
+Current status: **v3.3.2 production-governance and governed-maintenance baseline on `main`**. The v3.3.2 Content Editor Performance release is complete, production-released, production-verified, tagged, and published. Do not repeat its Vercel deployment or production verification merely because an older tracker or dated record describes a pre-release checkpoint. The preceding v3.3.1 Content Operations D1 migrations and Worker production release are also complete and must not be repeated as later reconciliation.
 
-Production Observability is configured as a manual-only guard behind the protected `production` Environment reviewer gate. P6B Security Enforcement, P6C Recovery & Reliability, P6D Product/UX Improvements, Admin UX 00-10, and Reliability Roadmap v2 are complete. There is no active P6 feature-development, Reliability Roadmap v2 implementation, migration, or release workstream.
+Production Observability is configured as a manual-only guard behind the protected `production` Environment reviewer gate. P6B Security Enforcement, P6C Recovery & Reliability, P6D Product/UX Improvements, Admin UX 00-10, and Reliability Roadmap v2 are complete. There is no active P6 feature-development, Reliability Roadmap v2 implementation, migration, release, or Content Editor Performance workstream.
 
 Reliability Roadmap v2 Phase 0 Development Quality Gate, Phase A Field QA Foundation, Phase B Operational Visibility, and Phase C Deep Field Verification are complete. Within Phase B, B1 System Health Dashboard, B2 Runtime Incident Feed, and B3 Health Aggregation are complete and production-verified. C3 authenticated CMS verification remains a deliberate manual protected operation and must not be coupled back into normal Worker production releases without new explicit scope.
 
 Production environment retirement follow-ups are complete and operator-verified as of 2026-09-11. Live Vercel Production uses server-only `COMPLAINT_API_URI`; retired `VITE_COMPLAINT_API_URI` is absent from the live Vercel environment; and legacy-only CMS-auth environment values are retired from the applicable Vercel/Cloudflare environments. Compatibility parsing in server source is not evidence that a retired value is still configured.
+
+The v3.3.2 Admin editor bundle and Tiptap/ProseMirror dependency-isolation checks are current regression gates. Do not weaken their thresholds merely to make CI green.
 
 M13-M21 and the previous post-P5H project-state note are historical migration/stabilization snapshots. Do not report them as the current active phase or canonical current status.
 
@@ -19,6 +21,8 @@ M13-M21 and the previous post-P5H project-state note are historical migration/st
 Use these files as current references:
 
 - `docs/architecture/current-project-state.md` — canonical current project/release state.
+- `docs/releases/v3.3.2-release-baseline.md` — v3.3.2 released performance baseline and verification evidence.
+- `docs/workstreams/v3.3.2-content-editor-performance-tracker.md` — closed v3.3.2 workstream execution record.
 - `docs/architecture/current-runtime-ownership.md` — current runtime ownership and branch/deployment boundaries.
 - `docs/deployment/runtime-deployment-guide.md` — current deployment behavior.
 - `docs/development/environment-variables.md` — current environment-variable ownership.
