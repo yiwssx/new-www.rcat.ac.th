@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { Editor } from "@tiptap/core";
+import { Editor, type Content } from "@tiptap/core";
 import { Blockquote } from "@tiptap/extension-blockquote";
 import { Bold } from "@tiptap/extension-bold";
 import { Document } from "@tiptap/extension-document";
@@ -26,7 +26,7 @@ import {
   normalizeRichTextDocument
 } from "../../utils/contentBlocks";
 
-function createParityEditor(content: unknown) {
+function createParityEditor(content: Content) {
   return new Editor({
     element: document.createElement("div"),
     extensions: [
