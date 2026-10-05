@@ -1,6 +1,6 @@
 import Box from "@mui/material/Box";
 
-const MOURNING_RIBBON_ASSET = "/mourning-ribbon.svg";
+const MOURNING_RIBBON_ASSET = "/mourning-ribbon.png";
 
 export default function PublicMourningRibbon() {
   return (
