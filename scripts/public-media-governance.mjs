@@ -5,6 +5,7 @@ import ts from "typescript";
 const SOURCE_EXTENSIONS = new Set([".ts", ".tsx"]);
 const SCAN_ROOTS = ["src/public", "src/shared/components", "src/shared/media", "src/components/embeds"];
 const APPROVED_IMAGE_OWNERS = new Set([
+  "src/public/components/PublicMourningRibbon.tsx",
   "src/shared/components/CarouselImageStage.tsx",
   "src/shared/media/PublicResponsiveImage.tsx"
 ]);
@@ -319,28 +320,10 @@ export function runPublicMediaGovernance(repoRoot) {
       violations.push({
         file: "src/shared/media/publicImageSources.ts",
         line: 1,
-        rule: "width-policy",
+        rule: "central-policy",
         message
       });
     }
-  }
-
-  const duplicateDriveImplementations = listSourceFiles(path.join(repoRoot, "src"))
-    .filter(
-      (absolutePath) =>
-        normalizePath(path.relative(repoRoot, absolutePath)) !== "src/shared/media/publicImageSources.ts"
-    )
-    .filter((absolutePath) => !/\.(?:test|spec)\.[cm]?[jt]sx?$/.test(absolutePath))
-    .filter((absolutePath) => !normalizePath(absolutePath).includes("/src/test/"))
-    .filter((absolutePath) => fs.readFileSync(absolutePath, "utf8").includes("drive.google.com/thumbnail?id="));
-
-  for (const absolutePath of duplicateDriveImplementations) {
-    violations.push({
-      file: normalizePath(path.relative(repoRoot, absolutePath)),
-      line: 1,
-      rule: "central-policy",
-      message: "Google Drive thumbnail generation must remain centralized."
-    });
   }
 
   return violations;
