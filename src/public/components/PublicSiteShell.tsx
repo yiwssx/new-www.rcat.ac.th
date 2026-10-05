@@ -25,6 +25,7 @@ import PublicErrorState from "./PublicErrorState";
 import PublicFooterDirectory from "./PublicFooterDirectory";
 import FloatingMessengerButton from "./FloatingMessengerButton";
 import PublicIntroGate from "./PublicIntroGate";
+import PublicMourningRibbon from "./PublicMourningRibbon";
 import { getInitialPublicIntroGateVisibility, getPublicIntroGateStorageKey } from "./publicIntroGateState";
 import { UrgentMarqueeSection } from "./home/UrgentMarqueeSection";
 import SocialIconLink from "./SocialIconLink";
@@ -555,6 +556,9 @@ function PublicSiteShellFrame({
   const siteSettings = normalizeSiteSettings(shellSiteSettings);
   const homepageSettings = normalizeHomepageSettings(shellHomepageSettings);
   const siteName = siteSettings.siteName;
+  const mourningRibbonEnabled = Boolean(siteSettings.mourningRibbonEnabled);
+  const mourningActive = siteSettings.mourningModeEnabled || mourningRibbonEnabled;
+  const mourningRibbonHeaderPadding = mourningRibbonEnabled ? { xs: 8, sm: 10, md: 13, lg: 14 } : undefined;
   const introGateStorageKey = getPublicIntroGateStorageKey(homepageSettings.introGate);
   const introGateVisible =
     pathname === "/" &&
@@ -613,8 +617,9 @@ function PublicSiteShellFrame({
         <Box
           id="top"
           sx={{ minHeight: "100vh", bgcolor: "background.default" }}
-          className={`rcat-page${siteSettings.mourningModeEnabled ? " rcat-mourning-mode" : ""}`}
+          className={`rcat-page${siteSettings.mourningModeEnabled ? " rcat-mourning-mode" : ""}${mourningRibbonEnabled ? " rcat-mourning-ribbon-mode" : ""}`}
           data-mourning-mode={siteSettings.mourningModeEnabled ? "true" : "false"}
+          data-mourning-ribbon-mode={mourningRibbonEnabled ? "true" : "false"}
           data-cls-region="public-shell"
         >
           <PublicIntroGate
@@ -624,6 +629,7 @@ function PublicSiteShellFrame({
               setDismissedIntroGateKeys((current) => new Set(current).add(introGateStorageKey));
             }}
           />
+          {mourningRibbonEnabled && <PublicMourningRibbon />}
           <Box
             sx={{
               bgcolor: "primary.dark",
@@ -632,7 +638,7 @@ function PublicSiteShellFrame({
               borderColor: "secondary.main"
             }}
           >
-            <Container maxWidth="xl">
+            <Container maxWidth="xl" sx={{ pl: mourningRibbonHeaderPadding }}>
               <MobileTopBar
                 campus={siteSettings.campus || siteName}
                 phone={siteSettings.phone}
@@ -650,7 +656,7 @@ function PublicSiteShellFrame({
           </Box>
 
           <Box sx={{ bgcolor: "white", borderBottom: "1px solid", borderColor: "divider" }}>
-            <Container maxWidth="xl">
+            <Container maxWidth="xl" sx={{ pl: mourningRibbonHeaderPadding }}>
               <Stack
                 direction={{ xs: "column", lg: "row" }}
                 spacing={{ xs: 1.2, md: 2 }}
@@ -825,7 +831,7 @@ function PublicSiteShellFrame({
 
           <UrgentMarqueeSection settings={homepageSettings.marquee} />
 
-          {siteSettings.mourningModeEnabled && siteSettings.mourningModeNotice && (
+          {mourningActive && siteSettings.mourningModeNotice && (
             <Box
               role="status"
               sx={{ bgcolor: "grey.900", color: "common.white", py: 1, px: 2, textAlign: "center", fontWeight: 800 }}
