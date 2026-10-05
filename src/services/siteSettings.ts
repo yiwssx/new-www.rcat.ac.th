@@ -56,6 +56,7 @@ export const defaultSiteSettings: SiteSettings = {
   messengerLabel: "แชทกับเจ้าหน้าที่",
   messengerEnabled: false,
   mourningModeEnabled: false,
+  mourningRibbonEnabled: false,
   mourningModeLabel: "โหมดไว้อาลัย",
   mourningModeNotice: ""
 };
@@ -250,7 +251,7 @@ export function normalizeSiteSettings(input: unknown): SiteSettings {
       return;
     }
 
-    if (key === "messengerEnabled" || key === "mourningModeEnabled") {
+    if (key === "messengerEnabled" || key === "mourningModeEnabled" || key === "mourningRibbonEnabled") {
       normalized[key] = normalizeBoolean(source[key]);
       return;
     }
@@ -277,6 +278,11 @@ export function normalizeSiteSettings(input: unknown): SiteSettings {
 
     normalized[key] = normalizeText(source[key], longTextFields.has(key) ? longTextMaxLength : shortTextMaxLength);
   });
+
+  // Grayscale is the existing mode, so it wins defensively if malformed legacy data enables both modes.
+  if (normalized.mourningModeEnabled && normalized.mourningRibbonEnabled) {
+    normalized.mourningRibbonEnabled = false;
+  }
 
   if (!normalized.siteName) {
     normalized.siteName = defaultSiteSettings.siteName;
