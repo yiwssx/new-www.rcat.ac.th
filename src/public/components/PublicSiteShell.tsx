@@ -1,4 +1,14 @@
-import { createContext, MouseEvent, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  MouseEvent,
+  ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore
+} from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Container from "@mui/material/Container";
@@ -86,6 +96,25 @@ const fallbackPublicShellSettings: Partial<SiteSettings> = {
   heroTitle: projectSettings.site.name,
   footerTitle: projectSettings.site.name
 };
+
+type PreviewMourningMode = "ribbon" | "grayscale" | null;
+
+function subscribePreviewMourningMode() {
+  return () => undefined;
+}
+
+function getPreviewMourningMode(): PreviewMourningMode {
+  if (typeof window === "undefined" || !window.location.hostname.endsWith(".vercel.app")) {
+    return null;
+  }
+
+  const mode = new URLSearchParams(window.location.search).get("mourningPreview");
+  return mode === "ribbon" || mode === "grayscale" ? mode : null;
+}
+
+function getServerPreviewMourningMode(): PreviewMourningMode {
+  return null;
+}
 
 function normalizeDepartmentMenuLabels(items: PublicMenuItem[]): PublicMenuItem[] {
   return items.map((item) => ({
@@ -545,6 +574,11 @@ function PublicSiteShellFrame({
     enabled: shouldFetchShellData
   });
   const [searchQuery, setSearchQuery] = useState("");
+  const previewMourningMode = useSyncExternalStore(
+    subscribePreviewMourningMode,
+    getPreviewMourningMode,
+    getServerPreviewMourningMode
+  );
   const [dismissedIntroGateKeys, setDismissedIntroGateKeys] = useState<ReadonlySet<string>>(() => new Set());
   const shellSiteSettings = preloadedSiteSettings ?? data?.siteSettings ?? fallbackPublicShellSettings;
   const shellHomepageSettings = preloadedHomepageSettings ?? data?.homepageSettings;
@@ -556,8 +590,19 @@ function PublicSiteShellFrame({
   const siteSettings = normalizeSiteSettings(shellSiteSettings);
   const homepageSettings = normalizeHomepageSettings(shellHomepageSettings);
   const siteName = siteSettings.siteName;
-  const mourningRibbonEnabled = Boolean(siteSettings.mourningRibbonEnabled);
-  const mourningActive = siteSettings.mourningModeEnabled || mourningRibbonEnabled;
+  const mourningGrayscaleEnabled =
+    previewMourningMode === "grayscale"
+      ? true
+      : previewMourningMode === "ribbon"
+        ? false
+        : siteSettings.mourningModeEnabled;
+  const mourningRibbonEnabled =
+    previewMourningMode === "ribbon"
+      ? true
+      : previewMourningMode === "grayscale"
+        ? false
+        : Boolean(siteSettings.mourningRibbonEnabled);
+  const mourningActive = mourningGrayscaleEnabled || mourningRibbonEnabled;
   const mourningRibbonHeaderPadding = mourningRibbonEnabled ? { xs: 8, sm: 10, md: 13, lg: 14 } : undefined;
   const introGateStorageKey = getPublicIntroGateStorageKey(homepageSettings.introGate);
   const introGateVisible =
@@ -617,8 +662,8 @@ function PublicSiteShellFrame({
         <Box
           id="top"
           sx={{ minHeight: "100vh", bgcolor: "background.default" }}
-          className={`rcat-page${siteSettings.mourningModeEnabled ? " rcat-mourning-mode" : ""}${mourningRibbonEnabled ? " rcat-mourning-ribbon-mode" : ""}`}
-          data-mourning-mode={siteSettings.mourningModeEnabled ? "true" : "false"}
+          className={`rcat-page${mourningGrayscaleEnabled ? " rcat-mourning-mode" : ""}${mourningRibbonEnabled ? " rcat-mourning-ribbon-mode" : ""}`}
+          data-mourning-mode={mourningGrayscaleEnabled ? "true" : "false"}
           data-mourning-ribbon-mode={mourningRibbonEnabled ? "true" : "false"}
           data-cls-region="public-shell"
         >

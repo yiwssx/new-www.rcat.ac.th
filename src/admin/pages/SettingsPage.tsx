@@ -256,7 +256,7 @@ const siteSettingFields: Array<{
     key: "mapUrl",
     label: "Google Maps URL",
     helperText:
-      "ลิงก์เปิด Google Maps จริงของสถานศึกษา เช่น https://maps.app.goo.gl/... หรือเว้นว่างเพื่อไม่แสดงปุ่มแผนที่"
+      "ลิงก์เปิด Google Maps จริงของสถานศึกษา เช่น https://maps.app.goo.gl/... หรือเว้นว่างเพื่อซ่อนปุ่มแผนที่"
   },
   {
     key: "mapEmbedUrl",
@@ -700,7 +700,7 @@ export default function SettingsPage() {
                   <FormControl fullWidth size="small">
                     <InputLabel id="date-format-preset-label">รูปแบบวันที่สำเร็จรูป</InputLabel>
                     <Select
-                      labelId="time-mode-label"
+                      labelId="date-format-preset-label"
                       label="รูปแบบวันที่สำเร็จรูป"
                       value={
                         dateFormatPresets.some((item) => item.value === displaySettings.dateFormat)
@@ -905,7 +905,8 @@ export default function SettingsPage() {
                                 label="เปิดริบบิ้นดำมุมซ้ายบน"
                               />
                               <Typography variant="caption" sx={{ display: "block", color: "text.secondary", mt: 0.5 }}>
-                                แสดงริบบิ้นโดยคงสีเว็บไซต์ตามปกติ และเว้นพื้นที่ส่วนหัวทุกขนาดหน้าจอไม่ให้ริบบิ้นบังเนื้อหา
+                                แสดงริบบิ้นโดยคงสีเว็บไซต์ตามปกติ
+                                และเว้นพื้นที่ส่วนหัวทุกขนาดหน้าจอไม่ให้ริบบิ้นบังเนื้อหา
                               </Typography>
                             </Box>
                           </Grid>
