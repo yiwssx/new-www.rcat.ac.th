@@ -23,7 +23,7 @@ export default function PublicMourningRibbon() {
         width: { xs: 80, sm: 96, md: 112, lg: 128 },
         height: "auto",
         maxWidth: "none",
-        zIndex: theme.zIndex.tooltip - 1,
+        zIndex: theme.zIndex.modal + 10,
         pointerEvents: "none",
         objectFit: "contain",
         objectPosition: "top left"
