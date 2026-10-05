@@ -19,13 +19,17 @@ export default function PublicMourningRibbon() {
         filter: "drop-shadow(0 3px 5px rgba(0, 0, 0, 0.28))"
       })}
     >
-      <path
-        d="M42 8c20 0 35 13 35 30 0 11-6 20-16 29L49 53c7-6 11-11 11-16 0-8-7-14-18-14-10 0-18 6-18 14 0 7 6 14 15 22L29 74C15 63 7 51 7 38 7 21 22 8 42 8Z"
-        fill="#111111"
-      />
-      <path d="M35 55 18 112h20l15-43-10-13-8-1Z" fill="#090909" />
-      <path d="m56 55 38 57H73L45 72l11-17Z" fill="#171717" />
-      <path d="m38 56 11 15 13-15-8-10-16 10Z" fill="#2b2b2b" />
+      <defs>
+        <linearGradient id="rcat-mourning-ribbon-fill" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#242424" />
+          <stop offset="0.48" stopColor="#101010" />
+          <stop offset="1" stopColor="#282828" />
+        </linearGradient>
+      </defs>
+      <path d="M0 0h36L120 84v36h-36L0 36Z" fill="url(#rcat-mourning-ribbon-fill)" />
+      <path d="M36 0 52 16 35 16 20 0Z" fill="#050505" opacity="0.92" />
+      <path d="M0 36 16 52 16 35 0 20Z" fill="#050505" opacity="0.92" />
+      <path d="M5 29 91 115" stroke="#353535" strokeWidth="1.5" opacity="0.55" />
     </Box>
   );
 }
