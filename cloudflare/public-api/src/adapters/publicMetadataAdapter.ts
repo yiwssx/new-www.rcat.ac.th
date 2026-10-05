@@ -43,6 +43,7 @@ const emptySiteSettings: PublicSiteSettingsContract = {
   messengerLabel: "",
   messengerEnabled: false,
   mourningModeEnabled: false,
+  mourningRibbonEnabled: false,
   mourningModeLabel: "",
   mourningModeNotice: ""
 };
