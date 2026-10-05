@@ -147,7 +147,7 @@ function getSiteSettingsValidationMessage(settings: SiteSettings): { title: stri
   if (mapUrl === "#") {
     return {
       title: "ไม่ควรใช้ลิงก์ #",
-      text: "กรุณาใช้ลิงก์ Google Maps จริงของสถานศึกษา หรือเว้นว่างเพื่อซ่อนปุ่มแผนที่"
+      text: "กรุณาใช้ลิงก์ Google Maps จริงของสถานศึกษา หรือเว้นว่างเพื่อไม่แสดงปุ่มแผนที่"
     };
   }
 
@@ -216,6 +216,7 @@ type SiteSettingTextKey = Exclude<
   | "messengerUrl"
   | "messengerLabel"
   | "mourningModeEnabled"
+  | "mourningRibbonEnabled"
   | "mourningModeLabel"
   | "mourningModeNotice"
 >;
@@ -401,6 +402,17 @@ export default function SettingsPage() {
     setSiteSettings((current) => ({
       ...current,
       mourningModeEnabled: value
+    }));
+  }
+
+  function handleMourningRibbonEnabledChange(value: boolean) {
+    if (!canManage) {
+      return;
+    }
+
+    setSiteSettings((current) => ({
+      ...current,
+      mourningRibbonEnabled: value
     }));
   }
 
@@ -688,7 +700,7 @@ export default function SettingsPage() {
                   <FormControl fullWidth size="small">
                     <InputLabel id="date-format-preset-label">รูปแบบวันที่สำเร็จรูป</InputLabel>
                     <Select
-                      labelId="date-format-preset-label"
+                      labelId="time-mode-label"
                       label="รูปแบบวันที่สำเร็จรูป"
                       value={
                         dateFormatPresets.some((item) => item.value === displaySettings.dateFormat)
@@ -867,7 +879,7 @@ export default function SettingsPage() {
                               fontWeight: 900
                             }}
                           >
-                            โหมดไว้อาลัย / Black-white theme
+                            โหมดไว้อาลัย
                           </Typography>
                           <Typography
                             variant="body2"
@@ -876,18 +888,48 @@ export default function SettingsPage() {
                               mt: 0.5
                             }}
                           >
-                            เมื่อเปิดใช้งาน เว็บไซต์สาธารณะจะแสดงผลแบบขาวดำเพื่อการไว้อาลัย
+                            เลือกเปิดได้เพียงหนึ่งรูปแบบ: ริบบิ้นดำมุมซ้ายบน หรือขาวดำทั้งเว็บไซต์
                           </Typography>
                         </Box>
-                        <FormControlLabel
-                          control={
-                            <Switch
-                              checked={siteSettings.mourningModeEnabled}
-                              onChange={(event) => handleMourningModeEnabledChange(event.target.checked)}
-                            />
-                          }
-                          label="เปิดโหมดไว้อาลัย"
-                        />
+                        <Grid container spacing={1.5}>
+                          <Grid size={{ xs: 12, md: 6 }}>
+                            <Box sx={{ ...staticSurfaceSx, p: 1.5, bgcolor: "background.paper", height: "100%" }}>
+                              <FormControlLabel
+                                control={
+                                  <Switch
+                                    checked={Boolean(siteSettings.mourningRibbonEnabled)}
+                                    disabled={!canManage || siteSettings.mourningModeEnabled}
+                                    onChange={(event) => handleMourningRibbonEnabledChange(event.target.checked)}
+                                  />
+                                }
+                                label="เปิดริบบิ้นดำมุมซ้ายบน"
+                              />
+                              <Typography variant="caption" sx={{ display: "block", color: "text.secondary", mt: 0.5 }}>
+                                แสดงริบบิ้นโดยคงสีเว็บไซต์ตามปกติ และเว้นพื้นที่ส่วนหัวทุกขนาดหน้าจอไม่ให้ริบบิ้นบังเนื้อหา
+                              </Typography>
+                            </Box>
+                          </Grid>
+                          <Grid size={{ xs: 12, md: 6 }}>
+                            <Box sx={{ ...staticSurfaceSx, p: 1.5, bgcolor: "background.paper", height: "100%" }}>
+                              <FormControlLabel
+                                control={
+                                  <Switch
+                                    checked={siteSettings.mourningModeEnabled}
+                                    disabled={!canManage || Boolean(siteSettings.mourningRibbonEnabled)}
+                                    onChange={(event) => handleMourningModeEnabledChange(event.target.checked)}
+                                  />
+                                }
+                                label="เปิดโหมดขาวดำ (Grayscale)"
+                              />
+                              <Typography variant="caption" sx={{ display: "block", color: "text.secondary", mt: 0.5 }}>
+                                ใช้โหมดขาวดำเดิมกับเว็บไซต์สาธารณะทั้งหมด
+                              </Typography>
+                            </Box>
+                          </Grid>
+                        </Grid>
+                        <Typography variant="caption" sx={{ color: "warning.dark", fontWeight: 700 }}>
+                          หากต้องการสลับรูปแบบ ให้ปิดโหมดที่กำลังใช้งานก่อน แล้วจึงเปิดอีกโหมด
+                        </Typography>
                         <Grid container spacing={1.5}>
                           <Grid size={{ xs: 12, md: 5 }}>
                             <TextField
