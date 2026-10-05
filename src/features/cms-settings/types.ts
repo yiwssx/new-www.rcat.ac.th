@@ -86,6 +86,7 @@ export interface SiteSettings {
   messengerLabel: string;
   messengerEnabled: boolean;
   mourningModeEnabled: boolean;
+  mourningRibbonEnabled?: boolean;
   mourningModeLabel: string;
   mourningModeNotice: string;
 }

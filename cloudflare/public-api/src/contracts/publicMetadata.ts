@@ -28,6 +28,7 @@ export interface PublicSiteSettingsContract {
   messengerLabel: string;
   messengerEnabled: boolean;
   mourningModeEnabled: boolean;
+  mourningRibbonEnabled?: boolean;
   mourningModeLabel: string;
   mourningModeNotice: string;
 }

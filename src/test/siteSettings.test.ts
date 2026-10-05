@@ -26,6 +26,7 @@ describe("siteSettings", () => {
     expect(settings.messengerLabel).toBe("แชทกับเจ้าหน้าที่");
     expect(settings.messengerEnabled).toBe(false);
     expect(settings.mourningModeEnabled).toBe(false);
+    expect(settings.mourningRibbonEnabled).toBe(false);
     expect(settings.mourningModeLabel).toBe("โหมดไว้อาลัย");
     expect(settings.mourningModeNotice).toBe("");
   });
@@ -38,8 +39,25 @@ describe("siteSettings", () => {
     });
 
     expect(settings.mourningModeEnabled).toBe(true);
+    expect(settings.mourningRibbonEnabled).toBe(false);
     expect(settings.mourningModeLabel).toBe("ไว้อาลัย");
     expect(settings.mourningModeNotice).toBe("ร่วมแสดงความอาลัย");
+  });
+
+  it("normalizes ribbon mode and prevents ribbon plus grayscale from being active together", () => {
+    const ribbonSettings = normalizeSiteSettings({
+      mourningModeEnabled: false,
+      mourningRibbonEnabled: true
+    });
+    const malformedCombinedSettings = normalizeSiteSettings({
+      mourningModeEnabled: true,
+      mourningRibbonEnabled: true
+    });
+
+    expect(ribbonSettings.mourningModeEnabled).toBe(false);
+    expect(ribbonSettings.mourningRibbonEnabled).toBe(true);
+    expect(malformedCombinedSettings.mourningModeEnabled).toBe(true);
+    expect(malformedCombinedSettings.mourningRibbonEnabled).toBe(false);
   });
 
   it("normalizes footer directory groups and Messenger settings", () => {

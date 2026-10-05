@@ -4,6 +4,7 @@ import { buildGoogleDriveThumbnailUrl, extractGoogleDriveFileId } from "../share
 const shortTextMaxLength = 120;
 const longTextMaxLength = 500;
 const neutralSiteName = "เว็บไซต์สถานศึกษา";
+const mourningPreviewMode = import.meta.env.VITE_MOURNING_PREVIEW_MODE?.trim().toLowerCase();
 export const legacyDefaultMapUrl = "https://maps.app.goo.gl/yhCsgrkLgd1pekM28";
 const urlFields = new Set<keyof SiteSettings>([
   "admissionUrl",
@@ -56,6 +57,7 @@ export const defaultSiteSettings: SiteSettings = {
   messengerLabel: "แชทกับเจ้าหน้าที่",
   messengerEnabled: false,
   mourningModeEnabled: false,
+  mourningRibbonEnabled: false,
   mourningModeLabel: "โหมดไว้อาลัย",
   mourningModeNotice: ""
 };
@@ -250,7 +252,7 @@ export function normalizeSiteSettings(input: unknown): SiteSettings {
       return;
     }
 
-    if (key === "messengerEnabled" || key === "mourningModeEnabled") {
+    if (key === "messengerEnabled" || key === "mourningModeEnabled" || key === "mourningRibbonEnabled") {
       normalized[key] = normalizeBoolean(source[key]);
       return;
     }
@@ -277,6 +279,21 @@ export function normalizeSiteSettings(input: unknown): SiteSettings {
 
     normalized[key] = normalizeText(source[key], longTextFields.has(key) ? longTextMaxLength : shortTextMaxLength);
   });
+
+  // Branch-scoped Vercel preview builds can force one mourning presentation at build time.
+  // Production does not define this variable, so persisted CMS settings remain authoritative there.
+  if (mourningPreviewMode === "ribbon") {
+    normalized.mourningModeEnabled = false;
+    normalized.mourningRibbonEnabled = true;
+  } else if (mourningPreviewMode === "grayscale") {
+    normalized.mourningModeEnabled = true;
+    normalized.mourningRibbonEnabled = false;
+  }
+
+  // Grayscale is the existing mode, so it wins defensively if malformed persisted data enables both modes.
+  if (normalized.mourningModeEnabled && normalized.mourningRibbonEnabled) {
+    normalized.mourningRibbonEnabled = false;
+  }
 
   if (!normalized.siteName) {
     normalized.siteName = defaultSiteSettings.siteName;
