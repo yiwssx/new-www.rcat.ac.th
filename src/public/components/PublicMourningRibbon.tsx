@@ -12,6 +12,7 @@ export default function PublicMourningRibbon() {
       data-mourning-ribbon="true"
       width={128}
       height={128}
+      loading="eager"
       decoding="sync"
       fetchPriority="high"
       sx={(theme) => ({
