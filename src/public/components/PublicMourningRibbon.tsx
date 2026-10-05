@@ -16,20 +16,20 @@ export default function PublicMourningRibbon() {
         height: { xs: 52, sm: 64, md: 84, lg: 96 },
         zIndex: theme.zIndex.appBar + 1,
         pointerEvents: "none",
-        filter: "drop-shadow(0 3px 5px rgba(0, 0, 0, 0.28))"
+        color: "grey.900"
       })}
     >
       <defs>
         <linearGradient id="rcat-mourning-ribbon-fill" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#242424" />
-          <stop offset="0.48" stopColor="#101010" />
-          <stop offset="1" stopColor="#282828" />
+          <stop offset="0" stopColor="currentColor" stopOpacity="0.82" />
+          <stop offset="0.48" stopColor="currentColor" />
+          <stop offset="1" stopColor="currentColor" stopOpacity="0.86" />
         </linearGradient>
       </defs>
       <path d="M0 0h36L120 84v36h-36L0 36Z" fill="url(#rcat-mourning-ribbon-fill)" />
-      <path d="M36 0 52 16 35 16 20 0Z" fill="#050505" opacity="0.92" />
-      <path d="M0 36 16 52 16 35 0 20Z" fill="#050505" opacity="0.92" />
-      <path d="M5 29 91 115" stroke="#353535" strokeWidth="1.5" opacity="0.55" />
+      <path d="M36 0 52 16 35 16 20 0Z" fill="currentColor" opacity="0.96" />
+      <path d="M0 36 16 52 16 35 0 20Z" fill="currentColor" opacity="0.96" />
+      <path d="M5 29 91 115" stroke="currentColor" strokeWidth="1.5" opacity="0.45" />
     </Box>
   );
 }
