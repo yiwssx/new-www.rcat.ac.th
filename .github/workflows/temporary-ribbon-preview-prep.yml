@@ -1,0 +1,78 @@
+name: Temporary Ribbon Preview Prep
+
+on:
+  push:
+    branches:
+      - feat/mourning-ribbon-mode
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: feat/mourning-ribbon-mode
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.32.1
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Apply preview-only adjustments
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          settings = Path('src/admin/pages/SettingsPage.tsx')
+          text = settings.read_text()
+          old_map = 'ลิงก์เปิด Google Maps จริงของสถานศึกษา เช่น https://maps.app.goo.gl/... หรือเว้นว่างเพื่อไม่แสดงปุ่มแผนที่'
+          new_map = 'ลิงก์เปิด Google Maps จริงของสถานศึกษา เช่น https://maps.app.goo.gl/... หรือเว้นว่างเพื่อซ่อนปุ่มแผนที่'
+          assert old_map in text, 'map helper text target not found'
+          text = text.replace(old_map, new_map, 1)
+          old_label = '''<InputLabel id="date-format-preset-label">รูปแบบวันที่สำเร็จรูป</InputLabel>\n                    <Select\n                      labelId="time-mode-label"'''
+          new_label = '''<InputLabel id="date-format-preset-label">รูปแบบวันที่สำเร็จรูป</InputLabel>\n                    <Select\n                      labelId="date-format-preset-label"'''
+          assert old_label in text, 'date format label target not found'
+          text = text.replace(old_label, new_label, 1)
+          settings.write_text(text)
+
+          shell = Path('src/public/components/PublicSiteShell.tsx')
+          text = shell.read_text()
+          old_state = '''  const [searchQuery, setSearchQuery] = useState("");\n  const [dismissedIntroGateKeys, setDismissedIntroGateKeys] = useState<ReadonlySet<string>>(() => new Set());'''
+          new_state = '''  const [searchQuery, setSearchQuery] = useState("");\n  const [previewMourningMode, setPreviewMourningMode] = useState<"ribbon" | "grayscale" | null>(null);\n  const [dismissedIntroGateKeys, setDismissedIntroGateKeys] = useState<ReadonlySet<string>>(() => new Set());\n\n  useEffect(() => {\n    if (typeof window === "undefined" || !window.location.hostname.endsWith(".vercel.app")) {\n      return;\n    }\n\n    const mode = new URLSearchParams(window.location.search).get("mourningPreview");\n    setPreviewMourningMode(mode === "ribbon" || mode === "grayscale" ? mode : null);\n  }, [pathname]);'''
+          assert old_state in text, 'public shell state target not found'
+          text = text.replace(old_state, new_state, 1)
+
+          old_modes = '''  const mourningRibbonEnabled = Boolean(siteSettings.mourningRibbonEnabled);\n  const mourningActive = siteSettings.mourningModeEnabled || mourningRibbonEnabled;'''
+          new_modes = '''  const mourningGrayscaleEnabled =\n    previewMourningMode === "grayscale"\n      ? true\n      : previewMourningMode === "ribbon"\n        ? false\n        : siteSettings.mourningModeEnabled;\n  const mourningRibbonEnabled =\n    previewMourningMode === "ribbon"\n      ? true\n      : previewMourningMode === "grayscale"\n        ? false\n        : Boolean(siteSettings.mourningRibbonEnabled);\n  const mourningActive = mourningGrayscaleEnabled || mourningRibbonEnabled;'''
+          assert old_modes in text, 'public shell mode target not found'
+          text = text.replace(old_modes, new_modes, 1)
+          text = text.replace('className={`rcat-page${siteSettings.mourningModeEnabled ? " rcat-mourning-mode" : ""}${mourningRibbonEnabled ? " rcat-mourning-ribbon-mode" : ""}`}', 'className={`rcat-page${mourningGrayscaleEnabled ? " rcat-mourning-mode" : ""}${mourningRibbonEnabled ? " rcat-mourning-ribbon-mode" : ""}`}')
+          text = text.replace('data-mourning-mode={siteSettings.mourningModeEnabled ? "true" : "false"}', 'data-mourning-mode={mourningGrayscaleEnabled ? "true" : "false"}')
+          shell.write_text(text)
+          PY
+
+      - name: Format touched files
+        run: pnpm exec prettier src/admin/pages/SettingsPage.tsx src/public/components/PublicSiteShell.tsx --write
+
+      - name: Commit prepared preview
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/admin/pages/SettingsPage.tsx src/public/components/PublicSiteShell.tsx
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "chore: prepare mourning ribbon preview"
+          git push origin HEAD:feat/mourning-ribbon-mode
