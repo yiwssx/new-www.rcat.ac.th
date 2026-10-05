@@ -1,17 +1,29 @@
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import Box from "@mui/material/Box";
 
 const MOURNING_RIBBON_ASSET = "/mourning-ribbon.png";
 
+function subscribeClientAvailability() {
+  return () => undefined;
+}
+
+function getClientAvailability() {
+  return true;
+}
+
+function getServerClientAvailability() {
+  return false;
+}
+
 export default function PublicMourningRibbon() {
-  const [mounted, setMounted] = useState(false);
+  const clientAvailable = useSyncExternalStore(
+    subscribeClientAvailability,
+    getClientAvailability,
+    getServerClientAvailability
+  );
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted || typeof document === "undefined") {
+  if (!clientAvailable || typeof document === "undefined") {
     return null;
   }
 
