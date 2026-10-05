@@ -14,7 +14,6 @@ export default function PublicMourningRibbon() {
       height={128}
       loading="eager"
       decoding="sync"
-      fetchPriority="high"
       sx={(theme) => ({
         position: "fixed",
         top: 0,
