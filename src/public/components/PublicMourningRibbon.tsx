@@ -1,25 +1,45 @@
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Box from "@mui/material/Box";
 
 const MOURNING_RIBBON_ASSET = "/mourning-ribbon.png";
 
 export default function PublicMourningRibbon() {
-  return (
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted || typeof document === "undefined") {
+    return null;
+  }
+
+  return createPortal(
     <Box
+      component="img"
+      src={MOURNING_RIBBON_ASSET}
+      alt=""
       aria-hidden="true"
       data-mourning-ribbon="true"
+      width={128}
+      height={128}
+      loading="eager"
+      decoding="sync"
       sx={(theme) => ({
         position: "fixed",
         top: 0,
         left: 0,
+        display: "block",
         width: { xs: 80, sm: 96, md: 112, lg: 128 },
-        height: { xs: 80, sm: 96, md: 112, lg: 128 },
-        zIndex: theme.zIndex.appBar + 1,
+        height: "auto",
+        maxWidth: "none",
+        zIndex: theme.zIndex.modal - 1,
         pointerEvents: "none",
-        backgroundImage: `url("${MOURNING_RIBBON_ASSET}")`,
-        backgroundRepeat: "no-repeat",
-        backgroundPosition: "top left",
-        backgroundSize: "contain"
+        objectFit: "contain",
+        objectPosition: "top left"
       })}
-    />
+    />,
+    document.body
   );
 }
