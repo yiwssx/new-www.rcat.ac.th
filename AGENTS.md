@@ -178,6 +178,54 @@ Use the vendored `.agents/skills/material-ui-tailwind` guidance, subject to repo
 - cascade changes must preserve critical CSS extraction, CSP nonce behavior, hydration, accessibility/focus policy, portals, and theme overrides;
 - repository architecture/security/accessibility/design rules override generic skill examples.
 
+## Repository Agent Skills
+
+Repository-scoped skills live under `.agents/skills/`. Load the relevant skill
+before substantial work in its area, while treating this root `AGENTS.md` and
+the current repository state as authoritative when generic guidance conflicts.
+
+- `workers-best-practices`: use for Cloudflare Worker implementation, review,
+  bindings, runtime behavior, and Wrangler configuration. Preserve this
+  repository's Worker/D1 ownership, production resource identity, deployment
+  gates, and append-only migration policy.
+- `router-query`: use when changing TanStack Router + TanStack Query
+  integration, route loaders, preloading, SSR request isolation, dehydration,
+  or hydration. Its vendored `router-core` and `react-router` skills are
+  support dependencies.
+- `codebase-design` and `improve-codebase-architecture`: use for architecture
+  analysis and approved refactoring. Do not use them as permission for
+  repository-wide speculative rewrites; preserve explicit runtime ownership and
+  feature boundaries unless the task intentionally redesigns them.
+- `vite`: use for Vite configuration, build behavior, SSR, plugins, asset
+  handling, environment behavior, Rolldown migration concerns, and bundling.
+- `vitest`: use for Vitest configuration, mocking, environments, coverage,
+  concurrency, fixtures, and test isolation.
+- `security-guidance`: use automatically for work involving user input,
+  authentication, authorization, persistence, network boundaries, file
+  handling, cryptography, browser security, or other security-sensitive
+  behavior. Repository security policy and existing production controls take
+  precedence over generic recommendations that would recreate retired paths.
+- `frontend-accessibility-best-practices`: use for new or changed UI,
+  interaction, forms, navigation, responsive controls, focus/keyboard behavior,
+  announcements, reduced motion, and touch targets.
+- `rcat-workstream-governance`: use for multi-step, multi-PR, resumed,
+  CI-gated, release-adjacent, or cross-session repository work. It owns tracker
+  semantics, state reconciliation, bounded external waits, and completion
+  evidence.
+- `rcat-cloudflare-d1`: use for Worker/D1 routes, schema, repositories,
+  migrations, RBAC, Wrangler bindings, production resource identity, protected
+  release, rollback, and recovery behavior. Combine it with
+  `workers-best-practices` and `security-guidance`.
+- `rcat-admin-ui`: use for Admin pages, dialogs, forms, tables, row actions,
+  responsive overflow, operation feedback, loading/error/empty states,
+  MUI/Tailwind ownership, accessibility, icons, and Admin bundle governance.
+- `rcat-public-routing-ssr`: use for Public routes, the shared route registry,
+  TanStack Router/Query integration, SSR/hydration, Vercel routing, metadata,
+  sitemap, canonical URLs, permalinks, and slug behavior.
+
+The vendored source pins and update notes are recorded in
+`.agents/skills/README.md`.
+
 ## Dependency maintenance
 
 Governed Renovate maintenance is expected and does not by itself reopen completed feature/reliability phases. Dependency PRs must still satisfy repository dependency policy and required CI/governance gates.
