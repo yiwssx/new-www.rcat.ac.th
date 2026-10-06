@@ -3,7 +3,7 @@ name: rcat-public-routing-ssr
 description: RCAT-specific Public route, TanStack Router/Query, SSR, hydration, Vercel rewrite, SEO/head, sitemap, permalink, slug, canonical URL, and public-route registry guidance. Use whenever adding/changing Public routes or SSR behavior.
 metadata:
   owner: rcat
-  version: '1.0.0'
+  version: "1.0.0"
 ---
 
 # RCAT Public Routing + SSR
