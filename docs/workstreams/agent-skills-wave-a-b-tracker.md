@@ -57,7 +57,9 @@ Wave A and Wave B implementation are complete on PR #525. The inherited `source-
 
 ## Waiting state
 
-- Resolve the live PR #525 head and its matching CI run from GitHub; do not rely on a previously recorded SHA/run after another tracker checkpoint commit.
-- PR #525: mergeable with auto-merge enabled.
+- Final candidate head: `b3d709ecca4cfac2510e6d8c3d6b3a455a2fde46`
+- CI: run #3312 / `37483532692`, currently in progress on that exact head.
+- PR #525: open, mergeable, auto-merge enabled.
+- Fixed before this run: RCAT skill Markdown formatting metadata, tracker formatting/duplication, and removal of the temporary `minimumReleaseAgeExclude` so dependency and Unit Test policy remain unchanged.
 - No required gate has been bypassed.
-- Exact next check: read PR #525 and the CI run for its current head. If merged with required CI green, update this tracker to `COMPLETE` on `main`; if CI failed, fix the failing current-head gate without weakening repository policy.
+- Exact next check: read PR #525 and CI run #3312. If green/merged, mark this tracker `COMPLETE` on `main`; if failed, fix the failing current-head gate.
