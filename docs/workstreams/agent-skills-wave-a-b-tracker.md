@@ -48,9 +48,18 @@ Wave A CI initially failed only because a newly disclosed high-severity `source-
 
 ## Current checkpoint
 
-Wave A and Wave B implementation are complete on PR #525. The inherited `source-map-js` high-severity audit blocker is remediated without lowering audit policy. The remaining acceptance boundary is authoritative CI on the final combined head and merge of PR #525.
+Wave A and Wave B implementation are complete on PR #525. The inherited `source-map-js` high-severity audit blocker is remediated without lowering audit policy. The final combined head is `2c12b66a8e3b7f5b08f5a4df4aec0de390e18e8f`. CI run #3307 (`37463325651`) is queued for that exact head. PR #525 is mergeable and auto-merge is enabled, so branch protection remains the final acceptance boundary.
 
 ## Out of scope
 
 - Organization content feature implementation remains paused.
 - No architecture redesign or production mutation.
+
+
+## Waiting state
+
+- Final head: `2c12b66a8e3b7f5b08f5a4df4aec0de390e18e8f`
+- CI: run #3307 / `37463325651`, queued on the final head
+- PR #525: open, mergeable, auto-merge enabled
+- No required gate has been bypassed.
+- Exact next check: read PR #525 and CI run #3307. If merged with required CI green, update this tracker to `COMPLETE` on `main`; if CI failed, fix the failing final-head gate without weakening repository policy.
