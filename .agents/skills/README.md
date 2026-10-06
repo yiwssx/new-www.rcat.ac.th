@@ -24,12 +24,12 @@ These skills are maintained in this repository rather than vendored from an
 upstream project. They encode RCAT-specific execution and architecture
 constraints while pointing to canonical repository files for mutable details.
 
-| Skill | Ownership | Purpose |
-| --- | --- | --- |
-| `rcat-workstream-governance` | RCAT | Durable tracker/branch/PR/CI/merge and cross-session execution rules |
-| `rcat-cloudflare-d1` | RCAT | Worker/D1 ownership, migrations, protected production identity, release, rollback, and recovery |
-| `rcat-admin-ui` | RCAT | Admin MUI/Tailwind boundary, responsive UX, feedback, accessibility, states, and bundle governance |
-| `rcat-public-routing-ssr` | RCAT | Shared Public route registry, TanStack Router/Query, SSR/hydration, Vercel routing, SEO, sitemap, and slug contracts |
+| Skill                          | Ownership | Purpose                                                                                                       |
+| ------------------------------ | --------- | ------------------------------------------------------------------------------------------------------------- |
+| `rcat-workstream-governance`  | RCAT      | Durable tracker/branch/PR/CI/merge and cross-session execution rules                                         |
+| `rcat-cloudflare-d1`           | RCAT      | Worker/D1 ownership, migrations, protected production identity, release, rollback, and recovery               |
+| `rcat-admin-ui`                | RCAT      | Admin MUI/Tailwind boundary, responsive UX, feedback, accessibility, states, and bundle governance            |
+| `rcat-public-routing-ssr`      | RCAT      | Shared Public route registry, TanStack Router/Query, SSR/hydration, Vercel routing, SEO, sitemap, and slugs   |
 
 RCAT-owned skills should avoid copying fast-changing PR, deployment, or release
 status. They should reference root `AGENTS.md`, current project-state documents,
