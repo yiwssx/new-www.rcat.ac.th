@@ -75,20 +75,20 @@ Add a dedicated CMS content type for organizational units and personnel structur
 
 ## Status tracker
 
-| Phase | Scope | State | Exit criteria |
-| --- | --- | --- | --- |
-| 0 | Discovery, pnpman review, domain model, tracker | **COMPLETE** | Architecture decisions above are recorded and no implementation has started |
-| 1 | Schema + shared contracts | PLANNED | Append-only D1 migration, types, validation, indexes, hierarchy/assignment integrity tests |
-| 2 | Worker repositories + public/admin APIs | PLANNED | CRUD/read contracts, recursive unit reads, personnel/position/assignment operations, safe public sanitizer |
-| 3 | RBAC + Admin routing/service layer | PLANNED | Dedicated capabilities, route policy, API facade/query keys, Admin navigation entry |
-| 4 | Organization list/editor | PLANNED | Dedicated `/admin/organization` list, title/slug/type/parent/status workflow, revision-safe writes |
-| 5 | Personnel directory | PLANNED | Canonical personnel CRUD, Media Library photo selection, reuse across organization pages |
-| 6 | Organization builder | PLANNED | Unit positions, assignment/reassignment, ordering, multiple duties, occupant limits, accessible non-drag controls; drag/drop only if justified |
-| 7 | Public renderer + permalink/SSR/SEO | PLANNED | Published organization slugs resolve through public routing, hierarchy/breadcrumbs render, draft/private fields remain inaccessible |
-| 8 | Menu/search/sitemap integration | PLANNED | Menu can link to organization pages; search/sitemap behavior is deliberate and tested; generic content lists do not leak organization records unintentionally |
-| 9 | Quality, accessibility, performance, backup coverage | PLANNED | Unit/integration/functional tests, format/lint/build/worker checks, responsive/mobile verification, backup counts/download include new tables where required |
-| 10 | Production migration + release verification | PLANNED | Protected migration/deploy sequence completed once, browser verification passes, tracker records release evidence |
-| 11 | RCAT content population | PLANNED | Real divisions, works, departments, personnel, positions, and assignments entered only after runtime feature verification |
+| Phase | Scope                                                | State        | Exit criteria                                                                                                                                                 |
+| ----- | ---------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0     | Discovery, pnpman review, domain model, tracker      | **COMPLETE** | Architecture decisions above are recorded and no implementation has started                                                                                   |
+| 1     | Schema + shared contracts                            | PLANNED      | Append-only D1 migration, types, validation, indexes, hierarchy/assignment integrity tests                                                                    |
+| 2     | Worker repositories + public/admin APIs              | PLANNED      | CRUD/read contracts, recursive unit reads, personnel/position/assignment operations, safe public sanitizer                                                    |
+| 3     | RBAC + Admin routing/service layer                   | PLANNED      | Dedicated capabilities, route policy, API facade/query keys, Admin navigation entry                                                                           |
+| 4     | Organization list/editor                             | PLANNED      | Dedicated `/admin/organization` list, title/slug/type/parent/status workflow, revision-safe writes                                                            |
+| 5     | Personnel directory                                  | PLANNED      | Canonical personnel CRUD, Media Library photo selection, reuse across organization pages                                                                      |
+| 6     | Organization builder                                 | PLANNED      | Unit positions, assignment/reassignment, ordering, multiple duties, occupant limits, accessible non-drag controls; drag/drop only if justified                |
+| 7     | Public renderer + permalink/SSR/SEO                  | PLANNED      | Published organization slugs resolve through public routing, hierarchy/breadcrumbs render, draft/private fields remain inaccessible                           |
+| 8     | Menu/search/sitemap integration                      | PLANNED      | Menu can link to organization pages; search/sitemap behavior is deliberate and tested; generic content lists do not leak organization records unintentionally |
+| 9     | Quality, accessibility, performance, backup coverage | PLANNED      | Unit/integration/functional tests, format/lint/build/worker checks, responsive/mobile verification, backup counts/download include new tables where required  |
+| 10    | Production migration + release verification          | PLANNED      | Protected migration/deploy sequence completed once, browser verification passes, tracker records release evidence                                             |
+| 11    | RCAT content population                              | PLANNED      | Real divisions, works, departments, personnel, positions, and assignments entered only after runtime feature verification                                     |
 
 ## Implementation sequence
 
