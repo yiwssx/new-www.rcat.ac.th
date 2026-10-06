@@ -3,7 +3,7 @@ name: rcat-admin-ui
 description: RCAT-specific Admin UI/UX guidance for React, Material UI, Tailwind, responsive layouts, dialogs, tables, row actions, forms, operation feedback, loading/error/empty states, accessibility, design tokens, icons, and Admin bundle governance.
 metadata:
   owner: rcat
-  version: '1.0.0'
+  version: "1.0.0"
 ---
 
 # RCAT Admin UI
