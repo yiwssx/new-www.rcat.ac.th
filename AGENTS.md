@@ -208,6 +208,20 @@ the current repository state as authoritative when generic guidance conflicts.
 - `frontend-accessibility-best-practices`: use for new or changed UI,
   interaction, forms, navigation, responsive controls, focus/keyboard behavior,
   announcements, reduced motion, and touch targets.
+- `rcat-workstream-governance`: use for multi-step, multi-PR, resumed,
+  CI-gated, release-adjacent, or cross-session repository work. It owns tracker
+  semantics, state reconciliation, bounded external waits, and completion
+  evidence.
+- `rcat-cloudflare-d1`: use for Worker/D1 routes, schema, repositories,
+  migrations, RBAC, Wrangler bindings, production resource identity, protected
+  release, rollback, and recovery behavior. Combine it with
+  `workers-best-practices` and `security-guidance`.
+- `rcat-admin-ui`: use for Admin pages, dialogs, forms, tables, row actions,
+  responsive overflow, operation feedback, loading/error/empty states,
+  MUI/Tailwind ownership, accessibility, icons, and Admin bundle governance.
+- `rcat-public-routing-ssr`: use for Public routes, the shared route registry,
+  TanStack Router/Query integration, SSR/hydration, Vercel routing, metadata,
+  sitemap, canonical URLs, permalinks, and slug behavior.
 
 The vendored source pins and update notes are recorded in
 `.agents/skills/README.md`.
