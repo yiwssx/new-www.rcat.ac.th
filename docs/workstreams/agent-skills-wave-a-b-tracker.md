@@ -4,9 +4,9 @@ Status: **ACTIVE**
 
 Updated: 2026-10-06
 
-Branch sequence:
-- Wave A: `agent/wave-a-agent-skills` / PR #525
-- Wave B: create from current `main` after Wave A merges
+Execution branch: `agent/wave-a-agent-skills` / PR #525
+
+Decision: Wave B is integrated into the same Agent Skills PR so both waves share one final CI/merge boundary and do not create an unnecessary stacked-branch wait.
 
 ## Scope
 
@@ -30,13 +30,13 @@ Wave A CI initially failed only because a newly disclosed high-severity `source-
 
 ### Wave B — RCAT-owned skills
 
-- [ ] `rcat-workstream-governance`
-- [ ] `rcat-cloudflare-d1`
-- [ ] `rcat-admin-ui`
-- [ ] `rcat-public-routing-ssr`
-- [ ] root `AGENTS.md` routing/selection rules updated
-- [ ] `.agents/skills/README.md` documents Wave B ownership and maintenance
-- [ ] required CI passes and Wave B PR merges
+- [x] `rcat-workstream-governance`
+- [x] `rcat-cloudflare-d1`
+- [x] `rcat-admin-ui`
+- [x] `rcat-public-routing-ssr`
+- [x] root `AGENTS.md` routing/selection rules updated
+- [x] `.agents/skills/README.md` documents Wave B ownership and maintenance
+- [ ] required CI passes and PR #525 merges
 
 ## Acceptance
 
@@ -48,7 +48,7 @@ Wave A CI initially failed only because a newly disclosed high-severity `source-
 
 ## Current checkpoint
 
-Wave A implementation is complete. Security remediation for the inherited `source-map-js` CI blocker has been committed to the Wave A branch. Await the authoritative CI result, merge Wave A, then create and complete Wave B from the resulting `main`.
+Wave A and Wave B implementation are complete on PR #525. The inherited `source-map-js` high-severity audit blocker is remediated without lowering audit policy. The remaining acceptance boundary is authoritative CI on the final combined head and merge of PR #525.
 
 ## Out of scope
 
