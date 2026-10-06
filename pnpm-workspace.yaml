@@ -3,9 +3,6 @@ packages:
 
 minimumReleaseAge: 4320
 
-minimumReleaseAgeExclude:
-  - source-map-js@1.2.2
-
 onlyBuiltDependencies:
   - esbuild
   - sharp
