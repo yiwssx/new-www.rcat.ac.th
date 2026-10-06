@@ -3,7 +3,7 @@ name: rcat-cloudflare-d1
 description: RCAT-specific Cloudflare Worker and D1 guidance. Use for Worker routes, D1 schema/repositories/migrations, Admin/Public structured data, RBAC, Wrangler bindings, production identity, release preflight, rollback, recovery, imports, or Cloudflare runtime safety.
 metadata:
   owner: rcat
-  version: '1.0.0'
+  version: "1.0.0"
 ---
 
 # RCAT Cloudflare Worker + D1
