@@ -18,6 +18,23 @@ release, or production constraints.
 | `security-guidance` | `OWASP/secure-agent-playbook` | `1b5fd4cff76075feb56d61ee2985e82516f8c53b` |
 | `frontend-accessibility-best-practices` | `sergiodxa/agent-skills` | `40e21b46189d5c7de6610b68a25280af863f8775` |
 
+## Wave B RCAT-owned skills
+
+These skills are maintained in this repository rather than vendored from an
+upstream project. They encode RCAT-specific execution and architecture
+constraints while pointing to canonical repository files for mutable details.
+
+| Skill | Ownership | Purpose |
+| --- | --- | --- |
+| `rcat-workstream-governance` | RCAT | Durable tracker/branch/PR/CI/merge and cross-session execution rules |
+| `rcat-cloudflare-d1` | RCAT | Worker/D1 ownership, migrations, protected production identity, release, rollback, and recovery |
+| `rcat-admin-ui` | RCAT | Admin MUI/Tailwind boundary, responsive UX, feedback, accessibility, states, and bundle governance |
+| `rcat-public-routing-ssr` | RCAT | Shared Public route registry, TanStack Router/Query, SSR/hydration, Vercel routing, SEO, sitemap, and slug contracts |
+
+RCAT-owned skills should avoid copying fast-changing PR, deployment, or release
+status. They should reference root `AGENTS.md`, current project-state documents,
+current workflows, and implementation files instead.
+
 ## TanStack support skills
 
 `router-query` declares Router prerequisites. The upstream `router-core` and
@@ -35,6 +52,7 @@ repository.
 ## Maintenance
 
 - Update a vendored skill deliberately and record the new upstream commit here.
+- Review RCAT-owned skills when their canonical architecture or governance contract changes.
 - Do not float skill content automatically from an upstream default branch.
 - Skill updates are repository-maintenance changes and must pass the normal PR
   and CI/governance process.
