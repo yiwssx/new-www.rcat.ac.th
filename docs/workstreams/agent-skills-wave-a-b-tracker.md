@@ -48,7 +48,7 @@ Wave A CI initially failed only because a newly disclosed high-severity `source-
 
 ## Current checkpoint
 
-Wave A and Wave B implementation are complete on PR #525. The inherited `source-map-js` high-severity audit blocker is remediated without lowering audit policy. The final combined head is `2c12b66a8e3b7f5b08f5a4df4aec0de390e18e8f`. CI run #3307 (`37463325651`) is queued for that exact head. PR #525 is mergeable and auto-merge is enabled, so branch protection remains the final acceptance boundary.
+Wave A and Wave B implementation are complete on PR #525. The inherited `source-map-js` high-severity audit blocker is remediated without lowering audit policy. Wave A and Wave B implementation are complete on PR #525. The inherited `source-map-js` high-severity audit blocker is remediated without lowering audit policy. PR #525 is mergeable and auto-merge is enabled; the required CI/governance result for the live PR head remains the final acceptance boundary.
 
 ## Out of scope
 
@@ -58,8 +58,7 @@ Wave A and Wave B implementation are complete on PR #525. The inherited `source-
 
 ## Waiting state
 
-- Final head: `2c12b66a8e3b7f5b08f5a4df4aec0de390e18e8f`
-- CI: run #3307 / `37463325651`, queued on the final head
-- PR #525: open, mergeable, auto-merge enabled
+- Resolve the live PR #525 head and its matching CI run from GitHub; do not rely on a previously recorded SHA/run after another tracker checkpoint commit.
+- PR #525: mergeable with auto-merge enabled.
 - No required gate has been bypassed.
-- Exact next check: read PR #525 and CI run #3307. If merged with required CI green, update this tracker to `COMPLETE` on `main`; if CI failed, fix the failing final-head gate without weakening repository policy.
+- Exact next check: read PR #525 and the CI run for its current head. If merged with required CI green, update this tracker to `COMPLETE` on `main`; if CI failed, fix the failing current-head gate without weakening repository policy.
