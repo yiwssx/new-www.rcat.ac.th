@@ -11,3 +11,14 @@ pnpm-lock.yaml
 .agents/skills/material-ui-tailwind/SKILL.md
 .agents/skills/material-ui-tailwind/metadata.json
 .agents/skills/material-ui-tailwind/reference.md
+.agents/skills/README.md
+.agents/skills/workers-best-practices/**
+.agents/skills/router-query/**
+.agents/skills/router-core/**
+.agents/skills/react-router/**
+.agents/skills/codebase-design/**
+.agents/skills/improve-codebase-architecture/**
+.agents/skills/vite/**
+.agents/skills/vitest/**
+.agents/skills/security-guidance/**
+.agents/skills/frontend-accessibility-best-practices/**
