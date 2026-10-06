@@ -3,7 +3,7 @@ name: rcat-workstream-governance
 description: RCAT-specific execution governance for multi-step, multi-PR, resumed, CI-gated, release-adjacent, or long-running repository work. Use when continuing phases/waves/tasks, creating or updating workstream trackers, reconciling branch/PR/CI state, deciding whether work is actually complete, or handing work across sessions.
 metadata:
   owner: rcat
-  version: '1.0.0'
+  version: "1.0.0"
 ---
 
 # RCAT Workstream Governance
