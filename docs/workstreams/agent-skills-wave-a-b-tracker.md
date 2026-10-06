@@ -26,7 +26,7 @@ Complete the repository Agent Skills plan without reopening the paused Organizat
 - [x] keep third-party vendored skill trees outside repository Prettier rewrites
 - [ ] required CI passes and PR #525 merges
 
-Wave A CI initially failed only because a newly disclosed high-severity `source-map-js@1.2.1` advisory was present in the inherited dependency graph. The remediation floors the vulnerable range at `1.2.2` and adds a narrowly scoped minimum-release-age exception for that security-fix version; audit thresholds remain unchanged.
+Wave A CI initially failed because a newly disclosed high-severity `source-map-js@1.2.1` advisory was present in the inherited dependency graph. The remediation floors the vulnerable range at `1.2.2`. The temporary install-time minimum-release-age exception used to refresh the lockfile was removed before merge, so the repository's three-day release-age policy and audit thresholds remain unchanged.
 
 ### Wave B — RCAT-owned skills
 
@@ -48,13 +48,12 @@ Wave A CI initially failed only because a newly disclosed high-severity `source-
 
 ## Current checkpoint
 
-Wave A and Wave B implementation are complete on PR #525. The inherited `source-map-js` high-severity audit blocker is remediated without lowering audit policy. Wave A and Wave B implementation are complete on PR #525. The inherited `source-map-js` high-severity audit blocker is remediated without lowering audit policy. PR #525 is mergeable and auto-merge is enabled; the required CI/governance result for the live PR head remains the final acceptance boundary.
+Wave A and Wave B implementation are complete on PR #525. The inherited `source-map-js` high-severity audit blocker is remediated without lowering dependency or release-age policy. PR #525 is mergeable and auto-merge is enabled; the required CI/governance result for the live PR head remains the final acceptance boundary.
 
 ## Out of scope
 
 - Organization content feature implementation remains paused.
 - No architecture redesign or production mutation.
-
 
 ## Waiting state
 
