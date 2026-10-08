@@ -28,19 +28,19 @@ Eliminate confirmed weaknesses without changing expected website behavior, break
 
 ## Execution tracker
 
-| Task | Alerts | Priority | Status | Acceptance / next action |
-| --- | --- | --- | --- | --- |
-| S00 Baseline and inventory | #1–18 | P0 | DONE | 18 open alerts at baseline SHA; JSON provides location, rule and severity |
-| S01 GitHub Actions threat model | #1–3 | P0 | DONE | Provenance and cache boundary analyzed; see S01 findings below |
-| S02 Secure Production Verification | #1–3 | P0 | IN_PROGRESS | PR-A changes proposed; require exact-head CI and Actions CodeQL evidence; not merged |
-| S03 Facebook double-decoding | #4–5 | P1 | PENDING | Nested-entity tests + image-host restrictions |
-| S04 API stack trace exposure | #7 | P1 | PENDING | Confirm all response data paths and safe diagnostics |
-| S05 URL sanitization | #11–18 | P1 | PENDING | Test protocol, exact hostname, userinfo, deceptive URL, allowed paths |
-| S06 Date literal escaping | #6 | P2 | PENDING | Verify WordPress/Day.js tokens, Thai year, literal brackets |
-| S07 Contextual security alerts | #8–10 | P1 | REVIEW | Confirm aggregate counters, HMAC rate-limit keys and SHA-384 + bcrypt, do not rush cryptography changes |
-| S08 Cross-cutting regression | all | Gate | PENDING | CI, dependencies, format/lint, worker, governance, E2E, build |
-| S09 Main re-scan and disposition | all | Gate | PENDING | After approved merges, re-scan current main and reconcile IDs |
-| S10 Closure | all | Gate | PENDING | Record merged SHAs, actual alert status, follow-ups, residual risk |
+| Task                               | Alerts | Priority | Status      | Acceptance / next action                                                                                |
+| ---------------------------------- | ------ | -------- | ----------- | ------------------------------------------------------------------------------------------------------- |
+| S00 Baseline and inventory         | #1–18  | P0       | DONE        | 18 open alerts at baseline SHA; JSON provides location, rule and severity                               |
+| S01 GitHub Actions threat model    | #1–3   | P0       | DONE        | Provenance and cache boundary analyzed; see S01 findings below                                          |
+| S02 Secure Production Verification | #1–3   | P0       | IN_PROGRESS | PR-A changes proposed; require exact-head CI and Actions CodeQL evidence; not merged                    |
+| S03 Facebook double-decoding       | #4–5   | P1       | PENDING     | Nested-entity tests + image-host restrictions                                                           |
+| S04 API stack trace exposure       | #7     | P1       | PENDING     | Confirm all response data paths and safe diagnostics                                                    |
+| S05 URL sanitization               | #11–18 | P1       | PENDING     | Test protocol, exact hostname, userinfo, deceptive URL, allowed paths                                   |
+| S06 Date literal escaping          | #6     | P2       | PENDING     | Verify WordPress/Day.js tokens, Thai year, literal brackets                                             |
+| S07 Contextual security alerts     | #8–10  | P1       | REVIEW      | Confirm aggregate counters, HMAC rate-limit keys and SHA-384 + bcrypt, do not rush cryptography changes |
+| S08 Cross-cutting regression       | all    | Gate     | PENDING     | CI, dependencies, format/lint, worker, governance, E2E, build                                           |
+| S09 Main re-scan and disposition   | all    | Gate     | PENDING     | After approved merges, re-scan current main and reconcile IDs                                           |
+| S10 Closure                        | all    | Gate     | PENDING     | Record merged SHAs, actual alert status, follow-ups, residual risk                                      |
 
 **Scope complete for this session:** S00 + S01.  
 **Implementation pending verification:** S02.  
@@ -62,27 +62,27 @@ Eliminate confirmed weaknesses without changing expected website behavior, break
 
 ## Baseline alert mapping
 
-| IDs | CodeQL rule | Paths | Planned treatment |
-| --- | --- | --- | --- |
-| #1–3 | `actions/cache-poisoning/poisonable-step` | `.github/workflows/production-verification.yml:160–170` | PR-A — trusted code/CI SHA boundary |
-| #4–5 | `js/double-escaping` | `server/appsScriptProxy/handler.mjs:376–380` | PR-B — decoding tests |
-| #6 | `js/incomplete-sanitization` | `src/utils/dateDisplay.ts:43` | PR-C — literal escape behavior |
-| #7 | `js/stack-trace-exposure` | `cloudflare/public-api/src/responses.ts:11` | PR-B — response flow review |
-| #8 | `js/clear-text-logging` | `scripts/check-production-auth-security-events.mjs:61` | Evidence first |
-| #9 | `js/insufficient-password-hash` | `scripts/phase-c3-disposable-fixture.mjs:106` | Confirm SHA-384 + bcrypt |
-| #10 | `js/insufficient-password-hash` | `server/cmsAuth/rateLimiters.mjs:10` | Confirm HMAC-only key derivation |
-| #11 | `js/incomplete-url-substring-sanitization` | `src/admin/pages/ExternalServicesPage.tsx:158` | PR-C — URL validation |
-| #12–15 | Same URL rule | `src/admin/pages/SettingsPage.tsx` | PR-C — URL validation |
-| #16–18 | Same URL rule | `src/utils/facebookEmbed.ts` | PR-C — URL validation |
+| IDs    | CodeQL rule                                | Paths                                                   | Planned treatment                   |
+| ------ | ------------------------------------------ | ------------------------------------------------------- | ----------------------------------- |
+| #1–3   | `actions/cache-poisoning/poisonable-step`  | `.github/workflows/production-verification.yml:160–170` | PR-A — trusted code/CI SHA boundary |
+| #4–5   | `js/double-escaping`                       | `server/appsScriptProxy/handler.mjs:376–380`            | PR-B — decoding tests               |
+| #6     | `js/incomplete-sanitization`               | `src/utils/dateDisplay.ts:43`                           | PR-C — literal escape behavior      |
+| #7     | `js/stack-trace-exposure`                  | `cloudflare/public-api/src/responses.ts:11`             | PR-B — response flow review         |
+| #8     | `js/clear-text-logging`                    | `scripts/check-production-auth-security-events.mjs:61`  | Evidence first                      |
+| #9     | `js/insufficient-password-hash`            | `scripts/phase-c3-disposable-fixture.mjs:106`           | Confirm SHA-384 + bcrypt            |
+| #10    | `js/insufficient-password-hash`            | `server/cmsAuth/rateLimiters.mjs:10`                    | Confirm HMAC-only key derivation    |
+| #11    | `js/incomplete-url-substring-sanitization` | `src/admin/pages/ExternalServicesPage.tsx:158`          | PR-C — URL validation               |
+| #12–15 | Same URL rule                              | `src/admin/pages/SettingsPage.tsx`                      | PR-C — URL validation               |
+| #16–18 | Same URL rule                              | `src/utils/facebookEmbed.ts`                            | PR-C — URL validation               |
 
 ## PR integration plan
 
-| PR | Scope | State |
-| --- | --- | --- |
-| PR-A | #1–3; workflow + contract tests + Phase A runbook + tracker | IN_PROGRESS |
-| PR-B | #4–5 and #7 | NOT STARTED |
-| PR-C | #6 and #11–18 | NOT STARTED |
-| PR-D (conditional) | #8–10 security-context findings | REVIEW ONLY |
+| PR                 | Scope                                                       | State       |
+| ------------------ | ----------------------------------------------------------- | ----------- |
+| PR-A               | #1–3; workflow + contract tests + Phase A runbook + tracker | IN_PROGRESS |
+| PR-B               | #4–5 and #7                                                 | NOT STARTED |
+| PR-C               | #6 and #11–18                                               | NOT STARTED |
+| PR-D (conditional) | #8–10 security-context findings                             | REVIEW ONLY |
 
 ## PR-A acceptance and stopping boundary
 
@@ -94,4 +94,4 @@ Eliminate confirmed weaknesses without changing expected website behavior, break
 
 ## Checkpoint
 
-PR-A #530 exists as Draft. S01 is complete; S02 remains IN_PROGRESS pending current-head CI/CodeQL checks. Initial run IDs `37754351542` (CI) and `37754347398` (CodeQL) correspond to the preceding PR head and must **not** be used as final verification after this tracker-only checkpoint commit. Re-read the latest PR head SHA and its runs before changing S02 status. No `main` merge, production deployment, D1 change, alert dismissal or subsequent phase has been initiated.
+PR-A #530 exists as Draft. Initial CI run 37754405142 failed only at `pnpm format:check` on this tracker (other eight CI lanes passed); the table formatting has been normalized without weakening the quality gate. CodeQL run 37754400282 passed both analyzers. S01 is complete; S02 remains IN_PROGRESS pending current-head CI/CodeQL checks. Initial run IDs `37754351542` (CI) and `37754347398` (CodeQL) correspond to the preceding PR head and must **not** be used as final verification after this tracker-only checkpoint commit. Re-read the latest PR head SHA and its runs before changing S02 status. No `main` merge, production deployment, D1 change, alert dismissal or subsequent phase has been initiated.
