@@ -1,14 +1,14 @@
 # CodeQL Security Remediation — Execution Tracker
 
 **Repository:** `yiwssx/new-www.rcat.ac.th`  
-**Status:** **ACTIVE — PR-A merged; PR-B S03 in progress, S04 under review**  
+**Status:** **PAUSED AFTER S03 — PR-A merged; PR-B validated; S04 deferred**  
 **Updated:** 2026-10-08 (Asia/Bangkok)  
 **Baseline branch:** `main`  
 **Baseline SHA:** `f793a608528a6986c8105bad69f27e5e7fdf6ce3`  
 **Evidence:** user-supplied `codeql-alerts.json`, CodeQL 2.27.1, 18 open alerts (17 high / 1 medium), 7 rule types.  
 **Implementation branch:** `security/codeql-facebook-response-pr-b`  
 **PR-A:** [#530](https://github.com/yiwssx/new-www.rcat.ac.th/pull/530) (MERGED; `14c88c317a6f1f02f127a2055fa29ba91a664c2e`)  
-**Execution scope:** PR-A complete in `main`; proceed through PR-B S03–S04 with exact-head CI, no direct production mutation. S05–S10 remain pending.
+**Execution scope:** PR-A complete in `main`; S03 implementation validated on PR #532. Pause after merging PR #532; S04 and all later tasks require a new instruction. No direct production mutation.
 
 ## Objective
 
@@ -31,7 +31,7 @@ Eliminate confirmed weaknesses without changing expected website behavior, break
 - **S00 Baseline and inventory**; Alerts: #1–18; Priority: P0; Status: DONE; Acceptance / next action: 18 open alerts at baseline SHA; JSON provides location, rule and severity
 - **S01 GitHub Actions threat model**; Alerts: #1–3; Priority: P0; Status: DONE; Acceptance / next action: Provenance and cache boundary analyzed; see S01 findings below
 - **S02 Secure Production Verification**; Alerts: #1–3; Priority: P0; Status: DONE; Acceptance / next action: PR #530 merged at `14c88c3`; CI #3336 and PR CodeQL passed; post-merge main alert statuses deferred to S09
-- **S03 Facebook double-decoding**; Alerts: #4–5; Priority: P1; Status: IN_PROGRESS; Acceptance / next action: PR-B single-pass decode; 8/8 focused tests PASS and Prettier 3.9.9 PASS; await PR-head CI/CodeQL
+- **S03 Facebook double-decoding**; Alerts: #4–5; Priority: P1; Status: DONE; Acceptance / next action: PR-B #532 passes CI #3339, CodeQL and focused tests; verify main Code Scanning alerts separately at S09
 - **S04 API stack trace exposure**; Alerts: #7; Priority: P1; Status: REVIEW; Acceptance / next action: Audit `jsonError` and Worker handlers; do not change generic serialization without a proven exposure
 - **S05 URL sanitization**; Alerts: #11–18; Priority: P1; Status: PENDING; Acceptance / next action: Test protocol, exact hostname, userinfo, deceptive URL, allowed paths
 - **S06 Date literal escaping**; Alerts: #6; Priority: P2; Status: PENDING; Acceptance / next action: Verify WordPress/Day.js tokens, Thai year, literal brackets
@@ -41,7 +41,7 @@ Eliminate confirmed weaknesses without changing expected website behavior, break
 - **S10 Closure**; Alerts: all; Priority: Gate; Status: PENDING; Acceptance / next action: Record merged SHAs, actual alert status, follow-ups, residual risk
 
 **Completed in `main`:** S00–S02; CI #3336 and CodeQL PR #530 succeeded.  
-**Implementation pending verification:** S03; S04 review.  
+**S03 accepted on PR #532:** CI #3339 and CodeQL PASS. S04 remains REVIEW; stop here.  
 **Alerts confirmed fixed by rescanning main:** 0/18 (baseline only).
 
 ## S01 — GitHub Actions threat model and remediation rationale
@@ -74,7 +74,7 @@ Eliminate confirmed weaknesses without changing expected website behavior, break
 ## PR integration plan
 
 - **PR-A**; Scope: #1–3; workflow + contract tests + Phase A runbook + tracker; State: MERGED #530
-- **PR-B**; Scope: #4–5 remediation and #7 contextual review; State: DRAFT PR #532 — `security/codeql-facebook-response-pr-b`
+- **PR-B**; Scope: #4–5 remediation with #7 review deferred; State: PR #532 GREEN / READY FOR MERGE — `security/codeql-facebook-response-pr-b`
 - **PR-C**; Scope: #6 and #11–18; State: NOT STARTED
 - **PR-D (conditional)**; Scope: #8–10 security-context findings; State: REVIEW ONLY
 
@@ -111,3 +111,11 @@ PR-A #530 exists as Draft. CI runs `37754405142` and `37755328975` failed only a
 - `server/appsScriptProxy/facebookThumbnail.test.mjs`: 8 of 8 focused Vitest tests pass (including nested HTML entity and JSON-escaped ampersand cases).
 - Prettier 3.9.9 `--check` passed on both touched files and this tracker.
 - S04 review: Worker top-level unhandled-error path emits a generic 500 via `jsonError("internal server error", 500)`. `responses.ts` is a generic serializer; verify downstream route exceptions and preview diagnostics before treating CodeQL #7 as an exploitable leak or changing API response contracts. No broad Error serialization rewrite is authorized by this checkpoint.
+
+## S03 acceptance checkpoint — PR #532
+
+- Exact-head CI #3339 / `37759554783`: SUCCESS (all mandatory lanes including aggregate `quality`).
+- CodeQL PR analysis / `37759551597`: SUCCESS for Actions and JavaScript/TypeScript.
+- Tested 8 of 8 Facebook thumbnail scenarios and Prettier 3.9.9 formatting.
+- PR #532 is clean against `main` with zero commits behind at acceptance.
+- After GitHub merges PR #532, this workstream is paused after S03. S04 remains REVIEW; S05–S10 remain pending. No production deployment, alert dismissal or other security implementation is authorized by this checkpoint.
