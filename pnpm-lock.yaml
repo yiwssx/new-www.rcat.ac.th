@@ -217,7 +217,7 @@ importers:
         version: 3.9.9
       sigmap:
         specifier: ^8.62.0
-        version: 8.62.0
+        version: 8.65.3
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -2991,8 +2991,8 @@ packages:
     resolution: {integrity: sha512-7++dFhtcx3353uBaq8DDR4NuxBetBzC7ZQOhmTQInHEd6bSrXdiEyzCvG07Z44UYdLShWUyXt5M/yhz8ekcb1A==}
     engines: {node: '>=8'}
 
-  sigmap@8.62.0:
-    resolution: {integrity: sha512-RTNF3fjvlmgZIdR8aFTcVolwYJpKknJfOBlZopsHiWbDKEKX6iroO0NfUPsHsKYNPOhANEe64XhRrXVBH5eqlw==}
+  sigmap@8.65.3:
+    resolution: {integrity: sha512-iZMT+Us8pZ7/eY33kuEKaZRcQHcaJlBDWIzaypcCd/YGvmKUdwEM2shb355D7spAegx6L35yYea4bPgrbT1xPg==}
     engines: {node: '>=18.0.0'}
     hasBin: true
 
@@ -5892,7 +5892,7 @@ snapshots:
 
   shebang-regex@3.0.0: {}
 
-  sigmap@8.62.0: {}
+  sigmap@8.65.3: {}
 
   signal-exit@3.0.7: {}
 
