@@ -71,17 +71,40 @@ jobs:
        (inputs.operation == 'all' || inputs.operation == 'browser-smoke')) ||
       (github.event_name == 'workflow_run' &&
        github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.head_branch == 'main')
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
       TARGET_URL: ${{ github.event_name == 'workflow_dispatch' && inputs.base_url || 'https://www.rcat.ac.th' }}
       TARGET_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
     steps:
+      # workflow_run.head_sha is target metadata, not executable code.
+      # github.sha resolves to the trusted default-branch revision for this event.
       - uses: actions/checkout@v7
         with:
-          ref: ${{ env.TARGET_SHA }}
-          fetch-depth: 2
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify browser target is a trusted main CI push
+        if: ${{ github.event_name == 'workflow_run' }}
+        env:
+          TRUSTED_MAIN_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Invalid main CI target SHA" >&2
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "$TARGET_SHA" "$TRUSTED_MAIN_SHA"; then
+            echo "CI target is not an ancestor of the trusted main revision" >&2
+            exit 1
+          fi
+          echo "Trusted code revision: $TRUSTED_MAIN_SHA"
+          echo "Verified main CI target: $TARGET_SHA"
 
       - name: Classify Vercel runtime impact
         id: runtime_impact
@@ -91,8 +114,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git diff --name-only -z HEAD^ HEAD > "$CHANGED_PATHS_FILE"
-          git diff --name-only HEAD^ HEAD
+          # Classify the CI target commit, not the checked-out verification code.
+          git diff --name-only -z "${TARGET_SHA}^" "$TARGET_SHA" > "$CHANGED_PATHS_FILE"
+          git diff --name-only "${TARGET_SHA}^" "$TARGET_SHA"
           node --input-type=module <<'NODE'
           import fs from "node:fs";
           import { shouldIgnoreVercelBuild } from "./scripts/vercel-ignore-build.mjs";
