@@ -81,7 +81,7 @@ Eliminate confirmed weaknesses without changing expected website behavior, break
 ## PR-A acceptance and stopping boundary
 
 - Verify PR targets current `main`, no unrelated files, no production mutations.
-- `quality` and all mandatory CI checks pass at *exact PR head SHA*.
+- `quality` and all mandatory CI checks pass at _exact PR head SHA_.
 - Confirm Actions CodeQL re-scan for PR head; if alert status cannot be queried with GitHub connector, record this explicitly instead of claiming #1–3 closed.
 - Recheck branch trust, SHA ancestry, target-specific Vercel matching and ignored-build cases.
 - **Stop after reporting PR-A/CI state. Do not merge PR-A or commence S03 without next instruction.**
