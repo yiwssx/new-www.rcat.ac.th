@@ -24,6 +24,18 @@ describe("Phase A automation contract", () => {
     expect(normalized).toContain("github.event.workflow_run.head_branch == 'main'");
   });
 
+  it("runs trusted main verification code and treats the triggering SHA only as target metadata", () => {
+    const browserSmoke = workflow.split("\n  browser-smoke:")[1]?.split("\n  edge-waf:")[0] ?? "";
+    expect(browserSmoke).toContain("github.event.workflow_run.event == 'push'");
+    expect(browserSmoke).toContain("github.event.workflow_run.head_repository.full_name == github.repository");
+    expect(browserSmoke).toContain("ref: ${{ github.sha }}");
+    expect(browserSmoke).toContain("persist-credentials: false");
+    expect(browserSmoke).toContain("fetch-depth: 0");
+    expect(browserSmoke).not.toContain("ref: ${{ env.TARGET_SHA }}");
+    expect(browserSmoke).toContain('git merge-base --is-ancestor "$TARGET_SHA" "$TRUSTED_MAIN_SHA"');
+    expect(browserSmoke).toContain('git diff --name-only -z "${TARGET_SHA}^" "$TARGET_SHA"');
+  });
+
   it("isolates concurrency across verification trigger sources", () => {
     const normalized = compact(workflow);
     expect(normalized).toContain(

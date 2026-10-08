@@ -18,6 +18,12 @@ The normal path is automation-first:
 
 For documentation and test-contract purposes, an expected ignored build is a non-runtime-only change that the shared classifier intentionally permits Vercel to skip. A runtime-impacting change that is ignored remains a fail-closed condition.
 
+### CodeQL Actions trust boundary (2026-10-08)
+
+For post-CI `workflow_run` events, browser smoke accepts only a successful `push` CI on `main` from this repository (not a same-named branch from a fork). The checked-out and executed verification scripts always come from the trusted default-branch `github.sha`, with persisted checkout credentials disabled. The triggering CI `head_sha` is **data only**: it must be a 40-hex commit reachable from the trusted `main` revision, and it remains the target for change classification and the exact-SHA Vercel deployment status gate. Untrusted revisions are never checked out and executed in the cache-capable browser job.
+
+The full-history checkout enables the ancestry check and a diff of `TARGET_SHA^..TARGET_SHA`, rather than accidentally classifying a newer verification-code commit. A commit that is no longer reachable from the event's trusted default-branch revision fails closed. Tests can come from a newer trusted `main` revision while deployment matching remains tied to the original CI SHA; this is intentional and recorded in logs.
+
 `workflow_dispatch` remains available as an operational fallback for reruns, controlled alternative-URL verification, or recovery checks. It is not the primary operating path.
 
 ## Production safety boundary
