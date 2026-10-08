@@ -1,10 +1,10 @@
 # Agent Skills Wave A-B Workstream
 
-Status: **ACTIVE**
+Status: **COMPLETE**
 
-Updated: 2026-10-06
+Updated: 2026-10-08
 
-Execution branch: `agent/wave-a-agent-skills` / PR #525
+Execution branch (merged): `agent/wave-a-agent-skills` / [PR #525](https://github.com/yiwssx/new-www.rcat.ac.th/pull/525)
 
 Decision: Wave B is integrated into the same Agent Skills PR so both waves share one final CI/merge boundary and do not create an unnecessary stacked-branch wait.
 
@@ -24,7 +24,7 @@ Complete the repository Agent Skills plan without reopening the paused Organizat
 - [x] `frontend-accessibility-best-practices`
 - [x] provenance/readme and root `AGENTS.md` selection rules
 - [x] keep third-party vendored skill trees outside repository Prettier rewrites
-- [ ] required CI passes and PR #525 merges
+- [x] required CI passed and PR #525 merged
 
 Wave A CI initially failed because a newly disclosed high-severity `source-map-js@1.2.1` advisory was present in the inherited dependency graph. The remediation floors the vulnerable range at `1.2.2`. The temporary install-time minimum-release-age exception used to refresh the lockfile was removed before merge, so the repository's three-day release-age policy and audit thresholds remain unchanged.
 
@@ -36,7 +36,7 @@ Wave A CI initially failed because a newly disclosed high-severity `source-map-j
 - [x] `rcat-public-routing-ssr`
 - [x] root `AGENTS.md` routing/selection rules updated
 - [x] `.agents/skills/README.md` documents Wave B ownership and maintenance
-- [ ] required CI passes and PR #525 merges
+- [x] required CI passed and PR #525 merged
 
 ## Acceptance
 
@@ -48,18 +48,18 @@ Wave A CI initially failed because a newly disclosed high-severity `source-map-j
 
 ## Current checkpoint
 
-Wave A and Wave B implementation are complete on PR #525. The inherited `source-map-js` high-severity audit blocker is remediated without lowering dependency or release-age policy. PR #525 is mergeable and auto-merge is enabled; the required CI/governance result for the live PR head remains the final acceptance boundary.
+Wave A and Wave B implementation is complete in `main` via PR #525, merged on 2026-10-06 at 15:05 UTC. The inherited `source-map-js` high-severity audit blocker was remediated without lowering dependency or release-age policy. All ten required CI jobs passed for the final PR head before merge.
 
 ## Out of scope
 
 - Organization content feature implementation remains paused.
 - No architecture redesign or production mutation.
 
-## Waiting state
+## Completion evidence
 
-- Final candidate head: `b3d709ecca4cfac2510e6d8c3d6b3a455a2fde46`
-- CI: run #3312 / `37483532692`, currently in progress on that exact head.
-- PR #525: open, mergeable, auto-merge enabled.
-- Fixed before this run: RCAT skill Markdown formatting metadata, tracker formatting/duplication, and removal of the temporary `minimumReleaseAgeExclude` so dependency and Unit Test policy remain unchanged.
-- No required gate has been bypassed.
-- Exact next check: read PR #525 and CI run #3312. If green/merged, mark this tracker `COMPLETE` on `main`; if failed, fix the failing current-head gate.
+- PR #525: MERGED into `main` on 2026-10-06 15:05:51 UTC.
+- Final PR head: `a20a87c7c618eec1aefc75b9050a432b7109d515`.
+- Merge commit: `11d59a89246b0159b61f164717a95e53175e74c9`.
+- Required CI: [run #3313](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/37483729855), all ten jobs SUCCESS, including aggregate `quality`, Governance, Dependencies, Unit Tests, Integration Tests, Functional E2E, Worker, Build, Static Quality, and Dependency Preflight.
+- Wave A and Wave B skills remain present under `.agents/skills/`; no production action or Organization Content implementation was part of this PR.
+- No further Agent Skills Wave A/B implementation is pending. Reopen only under a new, explicitly authorized scope.
