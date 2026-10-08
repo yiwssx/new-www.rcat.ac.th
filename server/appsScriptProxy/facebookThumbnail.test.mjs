@@ -308,6 +308,59 @@ describe("Facebook thumbnail media ingestion", () => {
     expect(response.bodyJson.thumbnailUrl).toContain("drive.google.com/thumbnail");
   });
 
+  it.each([
+    {
+      label: "single HTML entity",
+      imageUrl: "https://scontent.fbcdn.net/preview.jpg?x=1&amp;y=2",
+      expectedUrl: "https://scontent.fbcdn.net/preview.jpg?x=1&y=2"
+    },
+    {
+      label: "nested HTML entity",
+      imageUrl: "https://scontent.fbcdn.net/preview.jpg?x=1&amp;quot;y=2",
+      expectedUrl: "https://scontent.fbcdn.net/preview.jpg?x=1&quot;y=2"
+    },
+    {
+      label: "JSON escaped ampersand",
+      imageUrl: "https://scontent.fbcdn.net/preview.jpg?x=1\\u0026y=2",
+      expectedUrl: "https://scontent.fbcdn.net/preview.jpg?x=1&y=2"
+    }
+  ])("decodes $label exactly once before fetching a trusted Facebook image", async ({ imageUrl, expectedUrl }) => {
+    const fetchImpl = vi.fn(async (url, init = {}) => {
+      const value = String(url);
+      if (value === WORKER_ORIGIN + "/api/admin/media-bridge-authorization") {
+        return authorizationSuccess();
+      }
+      if (value.startsWith("https://www.facebook.com/example/posts/123")) {
+        return new Response('<meta property="og:image" content="' + imageUrl + '">');
+      }
+      if (value === expectedUrl) {
+        return new Response(Uint8Array.from([1, 2, 3, 4]), { headers: { "Content-Type": "image/jpeg" } });
+      }
+      if (value.startsWith(APPS_SCRIPT_URL)) {
+        const resource = resourceFromUrl(value);
+        const payload = JSON.parse(init.body);
+        if (resource === "media-upload-start") {
+          return Response.json({
+            uploadComplete: false,
+            uploadUrl: UPLOAD_URL,
+            totalBytes: 4,
+            chunkSizeBytes: CHUNK_SIZE,
+            nextByte: 0,
+            statusCode: 200
+          });
+        }
+        if (resource === "media-upload-chunk") {
+          return Response.json({ uploadComplete: true, asset: completedAsset(payload.id), statusCode: 200 });
+        }
+      }
+      throw new Error("Unexpected URL: " + value);
+    });
+
+    const response = await callFacebookThumbnail(fetchImpl);
+    expect(response.statusCode).toBe(200);
+    expect(fetchImpl.mock.calls.some(([url]) => String(url) === expectedUrl)).toBe(true);
+  });
+
   it("rejects non-Facebook source URLs before attempting a remote preview fetch", async () => {
     const fetchImpl = vi.fn(async (url) => {
       if (String(url) === `${WORKER_ORIGIN}/api/admin/media-bridge-authorization`) {

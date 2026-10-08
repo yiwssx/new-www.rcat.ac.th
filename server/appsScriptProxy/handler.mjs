@@ -373,13 +373,25 @@ function normalizeFacebookSourceUrl(value) {
 }
 
 function decodeFacebookHtmlValue(value) {
+  // Decode only one layer of URL/HTML escaping. Sequential entity replacements
+  // can accidentally turn &amp;quot; into a quote on the same pass.
   return String(value || "")
     .replace(/\\\//g, "/")
-    .replace(/\\u0025/gi, "%")
-    .replace(/\\u0026/gi, "&")
-    .replace(/&amp;/gi, "&")
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'")
+    .replace(/\\u0025|\\u0026|&amp;|&quot;|&#39;/gi, (encoded) => {
+      switch (encoded.toLowerCase()) {
+        case "\\u0025":
+          return "%";
+        case "\\u0026":
+        case "&amp;":
+          return "&";
+        case "&quot;":
+          return '"';
+        case "&#39;":
+          return "'";
+        default:
+          return encoded;
+      }
+    })
     .trim();
 }
 
