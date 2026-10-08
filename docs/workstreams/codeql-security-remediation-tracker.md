@@ -74,7 +74,7 @@ Eliminate confirmed weaknesses without changing expected website behavior, break
 ## PR integration plan
 
 - **PR-A**; Scope: #1–3; workflow + contract tests + Phase A runbook + tracker; State: MERGED #530
-- **PR-B**; Scope: #4–5 remediation and #7 contextual review; State: ACTIVE — `security/codeql-facebook-response-pr-b`
+- **PR-B**; Scope: #4–5 remediation and #7 contextual review; State: DRAFT PR #532 — `security/codeql-facebook-response-pr-b`
 - **PR-C**; Scope: #6 and #11–18; State: NOT STARTED
 - **PR-D (conditional)**; Scope: #8–10 security-context findings; State: REVIEW ONLY
 
