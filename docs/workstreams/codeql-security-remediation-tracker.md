@@ -89,3 +89,9 @@ Eliminate confirmed weaknesses without changing expected website behavior, break
 ## Checkpoint
 
 PR-A #530 exists as Draft. CI runs `37754405142` and `37755328975` failed only at `pnpm format:check` on this tracker; all other functional and governance lanes passed. CodeQL passed both analyzers. The tracker now uses plain lists instead of manually aligned Markdown tables. S01 is complete; S02 remains IN_PROGRESS pending current-head CI/CodeQL checks. Initial run IDs `37754351542` (CI) and `37754347398` (CodeQL) correspond to the preceding PR head and must **not** be used as final verification after this tracker-only checkpoint commit. Re-read the latest PR head SHA and its runs before changing S02 status. No `main` merge, production deployment, D1 change, alert dismissal or subsequent phase has been initiated.
+
+## Main synchronization checkpoint (2026-10-08)
+
+- PR-A #530 synchronizes with `main` at `9639467c1265a0cc609c7ba4e6e1a16673dfc558` through an ancestry-preserving merge commit.
+- Both branches changed disjoint files: main added the Organization Content tracker; PR-A contains only five security workstream files.
+- S02 remains `IN_PROGRESS` until fresh CI and CodeQL on the merge head pass. PR-A stays Draft, and no deploy or merge into `main` is authorized in this step.
