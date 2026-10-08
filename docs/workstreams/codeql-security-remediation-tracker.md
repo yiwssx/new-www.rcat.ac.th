@@ -1,13 +1,13 @@
 # CodeQL Security Remediation — Execution Tracker
 
 **Repository:** `yiwssx/new-www.rcat.ac.th`  
-**Status:** **ACTIVE — PR-A pending verification; STOP before S03**  
+**Status:** **ACTIVE — PR-A #530 submitted; waiting for exact-head CI/CodeQL; STOP before S03**  
 **Updated:** 2026-10-08 (Asia/Bangkok)  
 **Baseline branch:** `main`  
 **Baseline SHA:** `f793a608528a6986c8105bad69f27e5e7fdf6ce3`  
 **Evidence:** user-supplied `codeql-alerts.json`, CodeQL 2.27.1, 18 open alerts (17 high / 1 medium), 7 rule types.  
 **Implementation branch:** `security/codeql-actions-pr-a`  
-**PR-A:** to be recorded when opened  
+**PR-A:** [#530](https://github.com/yiwssx/new-www.rcat.ac.th/pull/530) (Draft, base `main`; no merge authorized)  
 **Execution authorization:** tracker adoption and S01–S02 only. Do **not** start S03–S10 in this turn.
 
 ## Objective
@@ -94,4 +94,4 @@ Eliminate confirmed weaknesses without changing expected website behavior, break
 
 ## Checkpoint
 
-Code change exists on the isolated branch. S01 complete, S02 awaits PR / CI / CodeQL evidence. No `main` merge, production deployment, D1 change, alert dismissal or subsequent phase has been initiated.
+PR-A #530 exists as Draft. S01 is complete; S02 remains IN_PROGRESS pending current-head CI/CodeQL checks. Initial run IDs `37754351542` (CI) and `37754347398` (CodeQL) correspond to the preceding PR head and must **not** be used as final verification after this tracker-only checkpoint commit. Re-read the latest PR head SHA and its runs before changing S02 status. No `main` merge, production deployment, D1 change, alert dismissal or subsequent phase has been initiated.
