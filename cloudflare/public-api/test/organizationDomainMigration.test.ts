@@ -70,7 +70,10 @@ describe("Organization Chart phase 1 D1 foundation", () => {
 
     for (const [name, expected] of Object.entries(contracts)) {
       const columns = db.prepare(`PRAGMA table_info(${name})`).all() as Array<{ name: string }>;
-      expect(columns.map((column) => column.name), name).toEqual(expected);
+      expect(
+        columns.map((column) => column.name),
+        name
+      ).toEqual(expected);
       expect(db.prepare(`SELECT COUNT(*) AS total FROM ${name}`).get()).toMatchObject({ total: 0 });
     }
     expect(db.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
