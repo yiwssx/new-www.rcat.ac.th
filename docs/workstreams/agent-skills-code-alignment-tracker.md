@@ -1,6 +1,6 @@
 # Agent Skills Wave A/B — Code Alignment Execution Tracker
 
-Status: **ACTIVE — P01 IMPLEMENTED / CI VERIFICATION PENDING**
+Status: **COMPLETE — P00–P08 CODE ALIGNMENT (EFFECTIVE ON GREEN PR #550 MAIN MERGE)**
 
 Updated: 2026-10-09 (Asia/Bangkok)
 
@@ -12,7 +12,7 @@ Planning branch: `docs/agent-skills-code-alignment-plan`
 
 Planning PR: [#538](https://github.com/yiwssx/new-www.rcat.ac.th/pull/538) (documentation-only)
 
-Implementation branch/PR: `agent/skills-align-p01-accessibility-links` / [#545](https://github.com/yiwssx/new-www.rcat.ac.th/pull/545)
+Implementation PRs: [#545](https://github.com/yiwssx/new-www.rcat.ac.th/pull/545) (P01 merged); [#546](https://github.com/yiwssx/new-www.rcat.ac.th/pull/546) (P02 merged); [#547](https://github.com/yiwssx/new-www.rcat.ac.th/pull/547) (P03 merged); [#548](https://github.com/yiwssx/new-www.rcat.ac.th/pull/548) (P04 merged); [#549](https://github.com/yiwssx/new-www.rcat.ac.th/pull/549) (P05 merged); [#550](https://github.com/yiwssx/new-www.rcat.ac.th/pull/550) (P06/P07/P08 assessment and closure)
 
 ## Goal
 
@@ -66,15 +66,15 @@ Acceptance: this document exists on `main` from a green, scoped documentation PR
 
 ### P01 — Accessible actions and shared URL validation (P1)
 
-Status: **IN PROGRESS — PR #545 AWAITING EXACT-HEAD CI**
+Status: **COMPLETE — PR #545 MERGED, CI GREEN**
 
 Implementation checkpoint (2026-10-09):
 
 - Added item-specific `aria-label` to the focusable file-link `IconButton` in pinned and ordinary Document rows, with React Testing Library role/name assertions.
 - Verified nearby ordering, edit/delete, and E-Service icon controls already provide labels; no unrelated Admin behavior changed.
 - Verified current E-Service frontend already uses shared Worker URL validation after PR #539; added positive form-submission tests and shared URL-contract adversarial tests.
-- Open PR: [#545](https://github.com/yiwssx/new-www.rcat.ac.th/pull/545), based on `main` `3bf559fcdb77d3c317e035af9fdecc105565409b` (CI result not yet established).
-- Acceptance pending: formatting, focus tests, all required CI/governance, and merge confirmation.
+- PR [#545](https://github.com/yiwssx/new-www.rcat.ac.th/pull/545) merged on 2026-10-09 at `743874bd93baae531cf4bd24e3edb2b548150b5b`.
+- Exact PR-head required CI [#37877500829](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/37877500829) succeeded.
 
 Scope:
 
@@ -91,7 +91,11 @@ Acceptance:
 
 ### P02 — TanStack Router + Query cache integration (P1)
 
-Status: **PENDING**
+Status: **COMPLETE — PR #546 MERGED / EXACT-HEAD CI GREEN**
+
+- PR [#546](https://github.com/yiwssx/new-www.rcat.ac.th/pull/546) sets Router `defaultPreloadStaleTime: 0`; adds request-local Router options and QueryClient cache-key regression tests.
+- Original PR-head CI [#37877839102](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/37877839102) passed. After fast-forward alignment with merged P01/P04, final PR-head CI [#37878607552](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/37878607552) passed and PR #546 merged to `main` at `3859b5080a0df98f310f9b7c02486dbf4baa76e6`.
+- No route, SSR hydration, QueryClient ownership or deployment changes beyond the cache-option correction.
 
 Scope:
 
@@ -106,7 +110,11 @@ Acceptance:
 
 ### P03 — Wrangler bindings and Worker Env types (P1)
 
-Status: **PENDING**
+Status: **COMPLETE — PR #547 MERGED / REBASED EXACT-HEAD CI GREEN**
+
+- PR [#547](https://github.com/yiwssx/new-www.rcat.ac.th/pull/547) adds Wrangler-to-Env binding drift tests and [binding matrix](../architecture/worker-bindings-type-boundary.md).
+- Initial CI [#37878029454](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/37878029454) failed only on the test harness's Vitest non-file URL; fixed and reran. Corrected-head [CI #37878668092](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/37878668092) and rebased exact-head [CI #37891684088](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/37891684088) passed all required lanes. PR [#547](https://github.com/yiwssx/new-www.rcat.ac.th/pull/547) merged into protected `main` at `d20a8de7f398e60875c40543333212f6f12da999`.
+- Scoped type decision: retain optional secret/binding Env typing for partial test/failure contexts; do not falsely infer dashboard secrets from committed TOML.
 
 Scope:
 
@@ -121,7 +129,11 @@ Acceptance:
 
 ### P04 — Admin responsive reachability and accessibility (P1)
 
-Status: **PENDING — BROWSER EVIDENCE REQUIRED**
+Status: **COMPLETE — PR #548 MERGED / PLAYWRIGHT GREEN**
+
+- Existing Content sticky action coverage was extended to 320/375 CSS px; added Document accessible file/edit/delete reachability and focus tests at 320, 375, 768, 1024, 1440 CSS px using authenticated mock fixtures.
+- Browser-based Functional E2E and all required PR-head CI [#37878193784](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/37878193784) succeeded. PR [#548](https://github.com/yiwssx/new-www.rcat.ac.th/pull/548) merged at `f63ca4f7b782feb62137abfbbea424306836e2a0`.
+- No new visual defect was confirmed that warranted changing the intentional scrollable-table presentation. This is fixture-based CI evidence, not an authenticated production field audit.
 
 Scope:
 
@@ -137,7 +149,11 @@ Acceptance:
 
 ### P05 — Deepen Worker/D1 data-access seams (P2)
 
-Status: **PENDING — ARCHITECTURE REVIEW REQUIRED**
+Status: **COMPLETE — PR #549 MERGED / REQUIRED CI GREEN**
+
+- PR [#549](https://github.com/yiwssx/new-www.rcat.ac.th/pull/549) moves the Documents D1 read/write SQL behind a domain repository, deletes route-level query duplicates, and adds parameter/revision tests and a [seam map](../architecture/admin-document-write-seam.md).
+- Rebased-head required [CI #37878998109](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/37878998109) passed; PR [#549](https://github.com/yiwssx/new-www.rcat.ac.th/pull/549) merged into protected `main` at `4e6e17c338279e62a1dc21d5506965bd29513050`.
+- P05 is closed for the identified, evidenced **Documents** domain seam. Extracting Content/other domains without targeted proof would violate the incremental architecture rule; such work is not required or implicitly approved by this bounded alignment task.
 
 Scope:
 
@@ -153,7 +169,10 @@ Acceptance:
 
 ### P06 — Cloudflare observability configuration assessment (P2)
 
-Status: **REVIEW — READ-ONLY DISCOVERY**
+Status: **COMPLETE — ASSESSMENT RETAIN / NO CONFIGURATION CHANGE**
+
+- Read-only code/operations decision recorded in [P06/P07 assessment](../architecture/agent-skills-observability-ssr-decisions.md). No speculative Worker Logs/Traces enablement or duplicate paid monitors.
+- Decision: **RETAIN**, without enabling new trace/log ingestion, paying for duplicate monitoring or weakening privacy. Cloudflare Dashboard deployed settings, sampling/retention and cost remain **UNVERIFIED**; code-alignment decision closure is **not** production observability certification. A provider-side read-only check belongs to normal operations when access becomes available.
 
 Scope:
 
@@ -165,7 +184,10 @@ Acceptance: decision documented as **implement** or **retain with rationale**, w
 
 ### P07 — Emotion SSR streaming trade-off assessment (P3)
 
-Status: **REVIEW — MEASURE FIRST**
+Status: **COMPLETE — ASSESSMENT RETAIN / NO SSR REWRITE**
+
+- Added in-process synthetic 503 HTML size/latency/heap measurements for representative routes in `src/test/emotionSsrBaseline.test.ts`; all four measured results and limitations are recorded in the [P06/P07 decision record](../architecture/agent-skills-observability-ssr-decisions.md). Exact-head [CI #37879206231](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/37879206231) succeeded.
+- [P06/P07 decision](../architecture/agent-skills-observability-ssr-decisions.md) retains Emotion buffering, critical CSS, CSP and SSR integrity; synthetic process timing is not network TTFB or production-load proof. A successful-path production A/B performance investigation would be a separate performance change, not justification to rewrite now.
 
 Scope:
 
@@ -177,7 +199,11 @@ Acceptance: benchmark-backed decision/ADR and regression-test proposal; implemen
 
 ### P08 — Regression and drift prevention (P2)
 
-Status: **PENDING — AFTER RELEVANT FIXES**
+Status: **COMPLETE UPON PR #550 QUALITY-GATED MERGE — NO GATE WAIVERS**
+
+- P01–P05 add focused a11y, URL, Router/Query, binding drift, responsive Playwright and D1 repository tests; no new duplicate workflow or weakened gate.
+- Cross-cutting [P08 final regression audit](./agent-skills-code-alignment-final-audit.md) maps each implementation to a deterministic guard/CI run and records the remaining operational unknowns; no new quality bypass or duplicate workflow was introduced.
+- PR #547 now merged after green current-head CI. The **last remaining gate** is the closure PR [#550](https://github.com/yiwssx/new-www.rcat.ac.th/pull/550): all exact-head required CI must be green and the branch must merge to protected `main`. Earlier successful `main` [CI #37879344098](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/37879344098) and read-only [Production Verification #37890962217](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/37890962217) are baseline-only, not post-closure evidence.
 
 Scope:
 
@@ -211,6 +237,6 @@ Suggested implementation branches (future only): `agent/skills-align-p01-accessi
 
 ## Current checkpoint
 
-P00 remains complete through merged PR #538. P01 implementation has been submitted as PR #545; its exact-head CI/governance and merge remain pending. E-Service validation drift is already corrected in the CodeQL security workstream; Document link accessible names and focused regression tests are the actual P01 changes. Wave A/B skills installation remains complete; CodeQL S10 completed on main through PR #544; Organization Content stays paused.
+Resumed under explicit user authority on 2026-10-09. P01–P05 implementation/assessment PRs [#545](https://github.com/yiwssx/new-www.rcat.ac.th/pull/545), [#546](https://github.com/yiwssx/new-www.rcat.ac.th/pull/546), [#547](https://github.com/yiwssx/new-www.rcat.ac.th/pull/547), [#548](https://github.com/yiwssx/new-www.rcat.ac.th/pull/548), [#549](https://github.com/yiwssx/new-www.rcat.ac.th/pull/549) merged into protected `main`, all with green exact-head required CI; P03 last merger was `d20a8de7f398e60875c40543333212f6f12da999`. P06/P07 closed **as no-change code-assessment decisions**, explicitly excluding unverified provider settings/production performance. P08 completed the [regression evidence matrix](./agent-skills-code-alignment-final-audit.md) and retained all required quality/security gates.
 
-Next action: inspect PR #545 checks on its latest head; repair concrete failures without bypasses; merge only after all required gates pass; record the final merge SHA and advance P02. Do not deploy or mutate production.
+**Closure gate:** the `COMPLETE` status in this proposed PR #550 becomes authoritative **only after** its exact commit passes all required CI/governance and GitHub confirms merge to protected `main`; the unmerged PR branch is not closure. No production deployment, D1 migration or external provider settings were changed. External Cloudflare/dashboard and successful SSR field-performance observations remain **unverified normal-operations follow-ups**, not assertions of production compliance. Organization Chart stays paused; CodeQL S10 remains independently closed.
