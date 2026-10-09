@@ -46,7 +46,7 @@ Existing CI lanes include Dependencies, Static Quality, Unit Tests, Integration 
 
 - No `pnpm` major upgrade, CI/CodeQL suppression, production deployment, D1 migration/schema mutation, Cloudflare binding or credential modification, release tag or DNS update.
 - Original Wave A/B tracker remains COMPLETE; the CodeQL S10 tracker remains separate and closed. Organization Chart remains PAUSED.
-- For operationally unverified subjects P06/P07, the code-alignment disposition is **no change justified from available evidence**. Explicitly carry forward only the external *observation* tasks into normal operations; do not silently claim production inspection.
+- For operationally unverified subjects P06/P07, the code-alignment disposition is **no change justified from available evidence**. Explicitly carry forward only the external _observation_ tasks into normal operations; do not silently claim production inspection.
 - Closure means the bounded source-code alignment and documented architecture decisions are complete. It does not promise a system-wide proof that every Agent Skill was followed by every possible code path.
 
 ## Final acceptance recording
