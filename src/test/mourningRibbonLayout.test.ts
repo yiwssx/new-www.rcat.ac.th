@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import ribbonSource from "../public/components/PublicMourningRibbon.tsx?raw";
 import publicShellSource from "../public/components/PublicSiteShell.tsx?raw";
@@ -9,8 +10,8 @@ import {
 } from "../public/components/mourningRibbonLayout";
 
 const breakpoints = ["xs", "sm", "md", "lg"] as const;
-const ribbonVectorSource = readFileSync(new URL("../../public/mourning-ribbon.svg", import.meta.url), "utf8");
-const indexHtmlSource = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
+const ribbonVectorSource = readFileSync(join(process.cwd(), "public/mourning-ribbon.svg"), "utf8");
+const indexHtmlSource = readFileSync(join(process.cwd(), "index.html"), "utf8");
 
 describe("mourning ribbon responsive layout", () => {
   it("keeps the ribbon prominent on mobile and increases its size on larger screens", () => {
