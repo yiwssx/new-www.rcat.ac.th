@@ -38,14 +38,17 @@ dayjs.extend(buddhistEra);
 dayjs.locale("th");
 
 const THAI_TIME_ZONE = "Asia/Bangkok";
-
-function escapeLiteral(value: string) {
-  return value.replace(/\]/g, "\\]");
-}
+const SAFE_DAYJS_DATE_FORMAT = "D MMMM BBBB";
 
 export function convertWordPressFormatToDayjs(format: string) {
   const rawFormat = String(format || "").trim();
   const source = /YYYY|MMMM|MM|DD/.test(rawFormat) ? normalizeDateFormat(rawFormat) : rawFormat || "j F Y";
+
+  // ASVS 1.1.2: do not interpret caller-supplied Day.js literal delimiters as syntax.
+  // Public/Admin settings already use five canonical presets; reject ambiguous custom brackets.
+  if (source.includes("[") || source.includes("]")) {
+    return SAFE_DAYJS_DATE_FORMAT;
+  }
 
   let result = "";
   let escaped = false;
@@ -54,7 +57,7 @@ export function convertWordPressFormatToDayjs(format: string) {
     const character = source[index];
 
     if (escaped) {
-      result += `[${escapeLiteral(character)}]`;
+      result += `[${character}]`;
       escaped = false;
       continue;
     }
@@ -71,14 +74,14 @@ export function convertWordPressFormatToDayjs(format: string) {
     }
 
     if (/[A-Za-z]/.test(character)) {
-      result += `[${escapeLiteral(character)}]`;
+      result += `[${character}]`;
       continue;
     }
 
     result += character;
   }
 
-  return result || "D MMMM YYYY";
+  return result || SAFE_DAYJS_DATE_FORMAT;
 }
 
 function getTimeWordPressFormat(timeMode: DisplaySettings["timeMode"]) {

@@ -33,6 +33,13 @@ describe("Thai display date normalization", () => {
     expect(convertWordPressFormatToDayjs("j F Y \\a\\t H:i")).toBe("D MMMM BBBB [a][t] HH:mm");
   });
 
+  it.each(["Y \\[", "Y \\]", "Y [BBBB]", "Y ]BBBB["])(
+    "rejects unsafe Day.js bracket delimiters in WordPress formats: %s",
+    (untrustedFormat) => {
+      expect(convertWordPressFormatToDayjs(untrustedFormat)).toBe("D MMMM BBBB");
+    }
+  );
+
   it("formats WordPress date tokens once in Bangkok time with a Buddhist year and 24-hour clock", () => {
     expect(formatDisplayDateTime(bangkokDate, { dateFormat: "j F Y", timeMode: "24h" })).toBe("5 มิถุนายน 2569 10:50");
   });
