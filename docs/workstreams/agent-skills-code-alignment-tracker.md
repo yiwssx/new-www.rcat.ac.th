@@ -10,7 +10,7 @@ Baseline branch: `main`
 
 Planning branch: `docs/agent-skills-code-alignment-plan`
 
-Planning PR: **PENDING NUMBER** (documentation-only)
+Planning PR: [#538](https://github.com/yiwssx/new-www.rcat.ac.th/pull/538) (documentation-only)
 
 Implementation branch/PR: **NONE**
 
