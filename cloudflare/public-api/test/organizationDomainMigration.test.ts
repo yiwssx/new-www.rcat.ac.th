@@ -58,8 +58,8 @@ afterEach(() => {
 
 describe("Organization Chart phase 1 D1 foundation", () => {
   it("is append-only, creates four empty tables, and declares matching row columns", () => {
-    expect(migrationSql).not.toMatch(/\\b(?:DROP|ALTER)\\s+TABLE\\b/i);
-    expect(migrationSql).not.toMatch(/\\b(?:INSERT|UPDATE|DELETE)\\s+(?:INTO\\s+|FROM\\s+)?contents\\b/i);
+    expect(migrationSql).not.toMatch(/\b(?:DROP|ALTER)\s+TABLE\b/i);
+    expect(migrationSql).not.toMatch(/\b(?:INSERT|UPDATE|DELETE)\s+(?:INTO\s+|FROM\s+)?contents\b/i);
 
     const contracts = {
       organization_units: ORGANIZATION_UNIT_ROW_COLUMNS,
@@ -89,14 +89,17 @@ describe("Organization Chart phase 1 D1 foundation", () => {
     unit("child", "root");
     unit("leaf", "child");
 
-    expect(() => db.prepare("UPDATE organization_units SET parent_content_id = 'leaf', revision = 1 WHERE content_id = 'root'").run()).toThrow(
-      /organization hierarchy cycle/
+    const cycleWrite = db.prepare(
+      "UPDATE organization_units SET parent_content_id = 'leaf', revision = 1 WHERE content_id = 'root'"
     );
-    expect(() => db.prepare("UPDATE organization_units SET parent_content_id = 'leaf', revision = 1 WHERE content_id = 'leaf'").run()).toThrow();
+    const selfLinkWrite = db.prepare(
+      "UPDATE organization_units SET parent_content_id = 'leaf', revision = 1 WHERE content_id = 'leaf'"
+    );
+    expect(() => cycleWrite.run()).toThrow(/organization hierarchy cycle/);
+    expect(() => selfLinkWrite.run()).toThrow();
 
-    expect(db.prepare("SELECT parent_content_id FROM organization_units WHERE content_id = 'root'").get()).toMatchObject({
-      parent_content_id: null
-    });
+    const root = db.prepare("SELECT parent_content_id FROM organization_units WHERE content_id = 'root'").get();
+    expect(root).toMatchObject({ parent_content_id: null });
   });
 
   it("protects organization content and referenced parent, person, and position", () => {
@@ -143,7 +146,8 @@ describe("Organization Chart phase 1 D1 foundation", () => {
     assignment("a1", "p1", "post1", "Head");
     assignment("a2", "p1", "post1", "Advisor");
     expect(() => assignment("a3", "p2", "post1")).toThrow(/organization position at occupant limit/);
-    expect(() => db.prepare("UPDATE organization_positions SET occupant_limit = 0, revision = 1 WHERE id = 'post1'").run()).toThrow();
+    const belowLimit = db.prepare("UPDATE organization_positions SET occupant_limit = 0, revision = 1 WHERE id = 'post1'");
+    expect(() => belowLimit.run()).toThrow();
     db.prepare("UPDATE organization_assignments SET enabled = 0, revision = 1 WHERE id = 'a1'").run();
     db.prepare("UPDATE organization_assignments SET enabled = 0, revision = 1 WHERE id = 'a2'").run();
     assignment("a3", "p2", "post1");
@@ -159,11 +163,17 @@ describe("Organization Chart phase 1 D1 foundation", () => {
     expect(() => db.prepare("UPDATE organization_units SET sort_order = 1 WHERE content_id = 'root'").run()).toThrow(
       /organization revision must advance/
     );
-    expect(() => db.prepare("UPDATE organization_units SET settings_json = '{oops', revision = 1 WHERE content_id = 'root'").run()).toThrow();
-    expect(() => db.prepare("INSERT INTO organization_assignments (id, personnel_id, position_id, starts_at, ends_at) VALUES ('a1', 'p1', 'post1', '2026-12-01', '2026-11-01')").run()).toThrow();
+    const invalidSettings = db.prepare(
+      "UPDATE organization_units SET settings_json = '{oops', revision = 1 WHERE content_id = 'root'"
+    );
+    const invalidPeriod = db.prepare(
+      "INSERT INTO organization_assignments (id, personnel_id, position_id, starts_at, ends_at) " +
+        "VALUES ('a1', 'p1', 'post1', '2026-12-01', '2026-11-01')"
+    );
+    expect(() => invalidSettings.run()).toThrow();
+    expect(() => invalidPeriod.run()).toThrow();
     db.prepare("UPDATE organization_units SET sort_order = 1, revision = 1 WHERE content_id = 'root'").run();
-    expect(db.prepare("SELECT revision FROM organization_units WHERE content_id = 'root'").get()).toMatchObject({
-      revision: 1
-    });
+    const current = db.prepare("SELECT revision FROM organization_units WHERE content_id = 'root'").get();
+    expect(current).toMatchObject({ revision: 1 });
   });
 });
