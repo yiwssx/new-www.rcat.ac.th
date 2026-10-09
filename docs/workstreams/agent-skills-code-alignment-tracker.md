@@ -1,6 +1,6 @@
 # Agent Skills Wave A/B — Code Alignment Execution Tracker
 
-Status: **PAUSED — PLANNING COMPLETE / IMPLEMENTATION NOT STARTED**
+Status: **ACTIVE — P01 IMPLEMENTED / CI VERIFICATION PENDING**
 
 Updated: 2026-10-09 (Asia/Bangkok)
 
@@ -12,7 +12,7 @@ Planning branch: `docs/agent-skills-code-alignment-plan`
 
 Planning PR: [#538](https://github.com/yiwssx/new-www.rcat.ac.th/pull/538) (documentation-only)
 
-Implementation branch/PR: **NONE**
+Implementation branch/PR: `agent/skills-align-p01-accessibility-links` / [#545](https://github.com/yiwssx/new-www.rcat.ac.th/pull/545)
 
 ## Goal
 
@@ -25,7 +25,7 @@ An installed skill, passing CI, or a completed tracker alone does not prove that
 - Root `AGENTS.md`, current `main`, current workflows, and current architecture/runtime ownership are authoritative.
 - The existing `docs/workstreams/agent-skills-wave-a-b-tracker.md` stays **COMPLETE** and untouched.
 - The Organization Content workstream stays **PAUSED**; do not begin organization schema, feature code, or content population.
-- The separate `docs/workstreams/codeql-security-remediation-tracker.md` stays **PAUSED AFTER S03**. Findings relevant to that tracker are cross-referenced, never silently reopened or duplicated here.
+- The separate CodeQL workstream reached S10 and was closed on `main` through PR #544 (14 fixed / 4 documented dismissals / 0 open, audited 2026-10-09). Preserve its independent ownership; do not reopen or duplicate its remediation here.
 - Do not alter protected production environments, D1 data/migrations, Vercel/Worker/App Script deployments, DNS, credentials, or release tags during planning.
 - Preserve pnpm v10, Cloudflare/Vercel ownership boundaries, production identity, read-only verification, authentication/RBAC/MFA/CSRF, revision-safe writes, CSP/SSR, dependency policy, and all required quality gates.
 - Documentation planning is authorized now; **implementation begins only after an explicit new user instruction**. A merge of this tracker does not authorize any remediation phase.
@@ -37,7 +37,7 @@ The findings below arise from a **read-only, sampled static-code audit** of `mai
 - **Confirmed code gap:** `src/routes.tsx` creates the TanStack Router without `defaultPreloadStaleTime: 0`, despite the vendored `router-query` recommendation. First verify installed-version semantics and refetch/hydration behavior.
 - **Confirmed code gap:** `cloudflare/public-api/src/env.ts` maintains a handwritten `Env` interface. Compare it with current `wrangler.toml` and Wrangler-generated binding types before choosing migration.
 - **Confirmed accessibility issue to test:** icon-only document file links in `src/admin/pages/DocumentsPage.tsx` use a tooltip on a wrapper but do not give the actionable anchor an explicit accessible name.
-- **Confirmed validation divergence:** `src/admin/pages/ExternalServicesPage.tsx` uses a prefix regex, whereas the Worker uses `shared/cmsLinkValidation.ts`. Inputs such as `//evil.example` can pass the frontend's check but be rejected by the backend.
+- **Reconciled on resumption:** `src/admin/pages/ExternalServicesPage.tsx` already uses `isValidCmsLink(..., "navigation", false)` from `shared/cmsLinkValidation.ts` (security PR #539). The earlier prefix-regex finding is resolved on current `main`; P01 adds missing positive/shared-edge regression coverage rather than duplicating this fix.
 - **Confirmed architectural friction:** `cloudflare/public-api/src/routes/adminWrite.ts` owns significant SQL and business logic inside a large route module even though repository/data-access modules exist. This is a refactoring candidate, **not** proof of a security vulnerability.
 - **Evidence needed:** `src/admin/pages/ContentPage.tsx` deliberately uses a wide, scrollable table. The RCAT Admin UI skill permits intentional table scrolling, but critical row actions must remain discoverable/reachable without browser zoom. Verify actual supported viewport behavior before classifying a defect.
 - **Evidence needed:** `cloudflare/public-api/wrangler.toml` does not explicitly enable `observability.enabled` / `observability.traces.enabled`. Determine the real deployment/dashboard configuration and operational costs before proposing a change.
@@ -66,7 +66,15 @@ Acceptance: this document exists on `main` from a green, scoped documentation PR
 
 ### P01 — Accessible actions and shared URL validation (P1)
 
-Status: **PENDING**
+Status: **IN PROGRESS — PR #545 AWAITING EXACT-HEAD CI**
+
+Implementation checkpoint (2026-10-09):
+
+- Added item-specific `aria-label` to the focusable file-link `IconButton` in pinned and ordinary Document rows, with React Testing Library role/name assertions.
+- Verified nearby ordering, edit/delete, and E-Service icon controls already provide labels; no unrelated Admin behavior changed.
+- Verified current E-Service frontend already uses shared Worker URL validation after PR #539; added positive form-submission tests and shared URL-contract adversarial tests.
+- Open PR: [#545](https://github.com/yiwssx/new-www.rcat.ac.th/pull/545), based on `main` `3bf559fcdb77d3c317e035af9fdecc105565409b` (CI result not yet established).
+- Acceptance pending: formatting, focus tests, all required CI/governance, and merge confirmation.
 
 Scope:
 
@@ -176,7 +184,7 @@ Scope:
 - Add only deterministic tests/guards with a demonstrated regression risk (e.g. URL contract parity, icon-link accessible names, preload behavior, generated binding drift, responsive critical actions).
 - Preserve existing CI lane ownership, `quality` aggregate context, production approvals, security thresholds, pnpm v10 and bounded CI polling.
 - Do **not** claim that CI can verify an AI agent actually read every Skill; enforce observable code/runtime contracts instead.
-- Cross-reference residual CodeQL issues to the **separate paused tracker**; do not close or modify its alerts in this workstream.
+- Keep completed CodeQL S10 closure independent. If new CodeQL regressions appear, handle under the separate security ownership without weakening scanning gates.
 
 Acceptance: every new guard has a focused failing-before/passing-after case where applicable; no weakening/duplication of workflows; required CI passes on exact PR heads.
 
@@ -198,11 +206,11 @@ Suggested implementation branches (future only): `agent/skills-align-p01-accessi
 - Verify impacted feature contracts using the relevant Wave A/B skills, not merely passing generic lint/build.
 - No production release, protected environment change, schema migration, data mutation or security alert dismissal without a separate authorized operation.
 - If CI is still pending after the repository's bounded-wait limit, write the exact pending run and next check, then stop; do not infer success.
-- After the **planning PR** merges, **stop immediately** with this tracker `PAUSED` and P01–P08 unstarted.
-- On future explicit resumption, use live GitHub state plus this tracker; never resume from historical chat assumptions.
+- Planning-only stop requirement was satisfied by merged PR #538. Explicit implementation resumption was granted on 2026-10-09; continue with the ordered phases and current tracker.
+- On subsequent resumptions, use live GitHub state plus this tracker; never resume from historical chat assumptions.
 
 ## Current checkpoint
 
-Planning-only work. No code remediation has started. Existing Wave A/B installation remains complete, Organization Content remains paused, and CodeQL S04 onward remains governed by its own separate paused tracker.
+P00 remains complete through merged PR #538. P01 implementation has been submitted as PR #545; its exact-head CI/governance and merge remain pending. E-Service validation drift is already corrected in the CodeQL security workstream; Document link accessible names and focused regression tests are the actual P01 changes. Wave A/B skills installation remains complete; CodeQL S10 completed on main through PR #544; Organization Content stays paused.
 
-Next authorized action after planning merge: **none**. Await explicit instruction to begin P01 or another named phase.
+Next action: inspect PR #545 checks on its latest head; repair concrete failures without bypasses; merge only after all required gates pass; record the final merge SHA and advance P02. Do not deploy or mutate production.

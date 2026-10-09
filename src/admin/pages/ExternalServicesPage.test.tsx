@@ -217,6 +217,28 @@ describe("ExternalServicesPage paginated and compact ordering workflows", () => 
   });
 
   it.each([
+    "/student-services",
+    "https://portal.rcat.ac.th",
+    "http://intranet.rcat.ac.th",
+    "mailto:contact@rcat.ac.th",
+    "tel:+66123456789"
+  ])("accepts supported E-Service navigation URL formats: %s", async (href) => {
+    renderPage();
+
+    await screen.findByText("Student portal");
+    fireEvent.click(screen.getByRole("button", { name: "แก้ไขลิงก์ E-Service Student portal" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "URL บริการ" }), { target: { value: href } });
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกลิงก์ E-Service" }));
+
+    await waitFor(() =>
+      expect(externalServicesMock.saveOne).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "service-1", href }),
+        expect.anything()
+      )
+    );
+  });
+
+  it.each([
     "//evil.invalid/portal",
     "javascript:alert(1)",
     "#fragment",
