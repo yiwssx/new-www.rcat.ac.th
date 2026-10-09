@@ -434,6 +434,7 @@ export function createAppRouter({ queryClient, documentMode = false, cspNonce }:
     context: { queryClient, documentMode },
     ssr: cspNonce ? { nonce: cspNonce } : undefined,
     defaultPreload: "intent",
+    defaultPreloadStaleTime: 0,
     dehydrate: () => dehydrateAppQueryClient(queryClient),
     hydrate: (dehydrated) => {
       hydrateAppQueryClient(queryClient, dehydrated);
