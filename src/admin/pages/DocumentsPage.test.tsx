@@ -174,9 +174,7 @@ beforeEach(() => {
 
 describe("DocumentsPage server pagination", () => {
   it("gives pinned and ordinary file links distinct accessible names", async () => {
-    paginationMock.getAdminDocumentList.mockResolvedValue(
-      paginatedDocuments([pinnedDocumentItem, documentItem])
-    );
+    paginationMock.getAdminDocumentList.mockResolvedValue(paginatedDocuments([pinnedDocumentItem, documentItem]));
 
     renderDocumentsPage();
 
