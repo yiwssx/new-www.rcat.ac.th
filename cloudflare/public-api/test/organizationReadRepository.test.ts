@@ -2,10 +2,7 @@
 import { DatabaseSync } from "node:sqlite";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import migrationSql from "../migrations/0020_organization_content_foundation.sql?raw";
-import {
-  PUBLIC_ORGANIZATION_HIERARCHY_SQL,
-  mapPublicOrganizationUnit
-} from "../src/db/organizationReadRepository";
+import { PUBLIC_ORGANIZATION_HIERARCHY_SQL, mapPublicOrganizationUnit } from "../src/db/organizationReadRepository";
 
 let db: DatabaseSync;
 
