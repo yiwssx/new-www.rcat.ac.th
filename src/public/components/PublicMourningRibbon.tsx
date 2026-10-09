@@ -1,7 +1,7 @@
 import Box from "@mui/material/Box";
 import { MOURNING_RIBBON_SIZE } from "./mourningRibbonLayout";
 
-const MOURNING_RIBBON_ASSET = "/mourning-ribbon.png";
+const MOURNING_RIBBON_ASSET = "/mourning-ribbon.svg";
 const MOURNING_RIBBON_Z_INDEX = 9999;
 
 export default function PublicMourningRibbon() {
