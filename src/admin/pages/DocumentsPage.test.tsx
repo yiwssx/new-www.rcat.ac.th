@@ -173,6 +173,22 @@ beforeEach(() => {
 });
 
 describe("DocumentsPage server pagination", () => {
+  it("gives pinned and ordinary file links distinct accessible names", async () => {
+    paginationMock.getAdminDocumentList.mockResolvedValue(
+      paginatedDocuments([pinnedDocumentItem, documentItem])
+    );
+
+    renderDocumentsPage();
+
+    const pinnedLink = await screen.findByRole("link", { name: `เปิดไฟล์ ${pinnedDocumentItem.title}` });
+    const ordinaryLink = screen.getByRole("link", { name: `เปิดไฟล์ ${documentItem.title}` });
+
+    expect(pinnedLink).toHaveAttribute("href", pinnedDocumentItem.fileUrl);
+    expect(ordinaryLink).toHaveAttribute("href", documentItem.fileUrl);
+    expect(pinnedLink).toHaveAttribute("target", "_blank");
+    expect(ordinaryLink).toHaveAttribute("target", "_blank");
+  });
+
   it("renders only the requested server page and preserves URL list state", async () => {
     window.history.replaceState({}, "", "/admin/documents?page=2&pageSize=25&status=draft&pinned=unpinned");
     paginationMock.getAdminDocumentList.mockResolvedValue(
