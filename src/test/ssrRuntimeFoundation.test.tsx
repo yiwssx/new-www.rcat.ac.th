@@ -25,6 +25,9 @@ describe("SSR runtime foundation", () => {
     expect(first.router).not.toBe(second.router);
     expect(first.router.options.context.queryClient).toBe(first.queryClient);
     expect(second.router.options.context.queryClient).toBe(second.queryClient);
+    expect(first.router.options.defaultPreload).toBe("intent");
+    expect(first.router.options.defaultPreloadStaleTime).toBe(0);
+    expect(second.router.options.defaultPreloadStaleTime).toBe(0);
   });
 
   it("renders route-aware HTML while preserving Phase 6 upstream HTTP semantics", async () => {

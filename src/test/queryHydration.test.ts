@@ -20,6 +20,25 @@ describe("SSR query hydration", () => {
     });
   });
 
+  it("reuses QueryClient cache for identical loader keys without duplicate requests", async () => {
+    const queryClient = createAppQueryClient();
+    let networkRequests = 0;
+    const queryOptions = {
+      queryKey: ["public-shell", "router-preload-regression"],
+      queryFn: async () => {
+        networkRequests += 1;
+        return { version: networkRequests };
+      }
+    };
+
+    const first = await queryClient.ensureQueryData(queryOptions);
+    const second = await queryClient.ensureQueryData(queryOptions);
+
+    expect(first).toEqual({ version: 1 });
+    expect(second).toEqual(first);
+    expect(networkRequests).toBe(1);
+  });
+
   it("does not serialize query roots outside the Public SSR allowlist", () => {
     const serverClient = createAppQueryClient();
     serverClient.setQueryData(["public-shell"], { safe: true });
