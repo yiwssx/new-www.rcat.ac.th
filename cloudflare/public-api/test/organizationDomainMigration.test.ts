@@ -146,7 +146,9 @@ describe("Organization Chart phase 1 D1 foundation", () => {
     assignment("a1", "p1", "post1", "Head");
     assignment("a2", "p1", "post1", "Advisor");
     expect(() => assignment("a3", "p2", "post1")).toThrow(/organization position at occupant limit/);
-    const belowLimit = db.prepare("UPDATE organization_positions SET occupant_limit = 0, revision = 1 WHERE id = 'post1'");
+    const belowLimit = db.prepare(
+      "UPDATE organization_positions SET occupant_limit = 0, revision = 1 WHERE id = 'post1'"
+    );
     expect(() => belowLimit.run()).toThrow();
     db.prepare("UPDATE organization_assignments SET enabled = 0, revision = 1 WHERE id = 'a1'").run();
     db.prepare("UPDATE organization_assignments SET enabled = 0, revision = 1 WHERE id = 'a2'").run();
