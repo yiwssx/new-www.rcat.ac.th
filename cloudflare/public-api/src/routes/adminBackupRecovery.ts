@@ -178,7 +178,14 @@ async function recoverBackup(request: Request, env: Env, identity: AdminIdentity
   } catch (error) {
     const status = error instanceof RangeError ? 413 : 400;
     return noStore(
-      jsonError(error instanceof Error ? error.message : "backup payload is invalid", status, {
+      jsonError(
+        error instanceof RangeError
+          ? "backup payload is too large"
+          : error instanceof SyntaxError
+            ? "backup payload is not valid JSON"
+            : "backup payload is invalid",
+        status,
+        {
         resource: "system-backup-recovery"
       })
     );
@@ -235,7 +242,7 @@ async function recoverBackup(request: Request, env: Env, identity: AdminIdentity
     return noStore(
       jsonError("backup validation failed", 400, {
         resource: "system-backup-recovery",
-        detail: error instanceof Error ? error.message : "invalid backup row"
+        detail: "invalid backup row"
       })
     );
   }
@@ -256,7 +263,7 @@ async function recoverBackup(request: Request, env: Env, identity: AdminIdentity
     return noStore(
       jsonError("backup recovery conflict", 409, {
         resource: "system-backup-recovery",
-        detail: error instanceof Error ? error.message : "database constraint rejected recovery"
+        detail: "database constraint rejected recovery"
       })
     );
   }
