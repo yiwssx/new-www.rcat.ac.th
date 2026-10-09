@@ -69,7 +69,7 @@ function addAssignment(
 }
 
 function visiblePositions() {
-  const rows = db.prepare(PUBLIC_ORGANIZATION_POSITIONS_SQL).all(NOW) as PublicOrganizationPositionRow[];
+  const rows = db.prepare(PUBLIC_ORGANIZATION_POSITIONS_SQL).all(NOW) as unknown as PublicOrganizationPositionRow[];
   return mapPublicOrganizationPositions(rows);
 }
 
@@ -128,7 +128,10 @@ describe("Organization Chart public positions and assignments", () => {
     addAssignment("a-disabled-person", "disabled", "pos-1");
     addAssignment("a-disabled-assignment", "enabled", "pos-1", { enabled: 0 });
     addAssignment("a-future", "enabled", "pos-1", { startsAt: "2026-10-10T14:00:00.000Z" });
-    addAssignment("a-expired", "enabled", "pos-1", { endsAt: "2026-10-09T12:00:00.000Z", startsAt: "2026-10-01T00:00:00.000Z" });
+    addAssignment("a-expired", "enabled", "pos-1", {
+      endsAt: "2026-10-09T12:00:00.000Z",
+      startsAt: "2026-10-01T00:00:00.000Z"
+    });
 
     const positions = visiblePositions();
     expect(positions).toHaveLength(1);
