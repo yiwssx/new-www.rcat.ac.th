@@ -24,12 +24,12 @@ The current `src/emotionSsr.ts` calls `response.text()` before critical CSS extr
 
 `src/test/emotionSsrBaseline.test.ts` provides a bounded **synthetic** read-only profile for `/`, `/news`, `/documents`, and `/contact` under controlled upstream HTTP 503 failure. Exact PR-head [CI run 37879206231](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/37879206231) succeeded on commit `c7759b5eeafe11b19ed0bf0092f3bbfbec7620b6`; its Unit Tests log reports (one run, non-warm/non-isolated):
 
-| Route | Status | HTML bytes | In-process response-ready time (ms) | Heap delta (bytes) |
-| --- | ---: | ---: | ---: | ---: |
-| `/` | 503 | 73,859 | 896.4 | +101,843,992 |
-| `/news` | 503 | 123,452 | 262.7 | +20,984,352 |
-| `/documents` | 503 | 123,397 | 332.6 | −103,173,320 |
-| `/contact` | 503 | 73,685 | 82.0 | +6,802,232 |
+Representative CI metrics (HTTP 503 in every case):
+
+- Home (`/`): HTML 73,859 bytes; response-ready 896.4 ms; process heap delta +101,843,992 bytes.
+- News (`/news`): HTML 123,452 bytes; response-ready 262.7 ms; process heap delta +20,984,352 bytes.
+- Documents (`/documents`): HTML 123,397 bytes; response-ready 332.6 ms; process heap delta -103,173,320 bytes.
+- Contact (`/contact`): HTML 73,685 bytes; response-ready 82.0 ms; process heap delta +6,802,232 bytes.
 
 These values are synthetic **failure-path** measurements, not network TTFB, production latency, representative success-route latency, or stable heap allocations (the negative delta demonstrates garbage-collector noise). This is sufficient to document present buffering cost and retain it conservatively; it does not justify a performance improvement claim.
 
