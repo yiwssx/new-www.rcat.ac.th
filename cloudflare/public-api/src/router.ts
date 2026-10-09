@@ -14,6 +14,7 @@ import { publicDocuments } from "./routes/publicDocuments";
 import { publicEvents } from "./routes/publicEvents";
 import { publicHome } from "./routes/publicHome";
 import { publicPrograms } from "./routes/publicPrograms";
+import { publicOrganization } from "./routes/publicOrganization";
 import { publicSearch } from "./routes/publicSearch";
 import { publicShell } from "./routes/publicShell";
 import { publicVisitorStats } from "./routes/publicVisitorStats";
@@ -177,6 +178,10 @@ export async function routeRequest(request: Request, env: Env) {
 
   if (pathname === "/api/public/programs") {
     return publicPrograms(env);
+  }
+
+  if (pathname === "/api/public/organization") {
+    return publicOrganization(env);
   }
 
   if (pathname === "/api/public/visitor-stats") {
