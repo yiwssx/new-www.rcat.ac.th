@@ -807,6 +807,7 @@ export default function DocumentsPage() {
                         <Tooltip title="เปิดไฟล์">
                           <span>
                             <IconButton
+                              aria-label={`เปิดไฟล์ ${document.title || document.fileName || `เอกสาร ${document.id}`}`}
                               component="a"
                               href={normalizeSafeHref(document.fileUrl)}
                               target="_blank"
@@ -968,6 +969,7 @@ export default function DocumentsPage() {
                         <Tooltip title="เปิดไฟล์">
                           <span>
                             <IconButton
+                              aria-label={`เปิดไฟล์ ${document.title || document.fileName || `เอกสาร ${document.id}`}`}
                               component="a"
                               href={normalizeSafeHref(document.fileUrl)}
                               target="_blank"
