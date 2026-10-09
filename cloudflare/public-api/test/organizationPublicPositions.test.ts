@@ -19,24 +19,26 @@ function addContent(id: string, status = "published") {
 }
 
 function addUnit(id: string, parent: string | null = null) {
-  db.prepare(
+  const statement = db.prepare(
     "INSERT INTO organization_units (content_id, parent_content_id, unit_kind) VALUES (?, ?, 'work')"
-  ).run(id, parent);
+  );
+  statement.run(id, parent);
 }
 
 function addPosition(id: string, unitId: string) {
-  db.prepare("INSERT INTO organization_positions (id, unit_content_id, title) VALUES (?, ?, 'Manager')").run(
-    id,
-    unitId
+  const statement = db.prepare(
+    "INSERT INTO organization_positions (id, unit_content_id, title) VALUES (?, ?, 'Manager')"
   );
+  statement.run(id, unitId);
 }
 
 function addPerson(id: string, options: { active?: number; showEmail?: number; showPhone?: number } = {}) {
-  db.prepare(
+  const statement = db.prepare(
     "INSERT INTO personnel (id, display_name, personnel_type, employment_position, " +
       "public_email, public_phone, show_public_email, show_public_phone, active) " +
       "VALUES (?, ?, 'teacher', 'Instructor', ?, ?, ?, ?, ?)"
-  ).run(
+  );
+  statement.run(
     id,
     `Sample ${id}`,
     `${id}@example.invalid`,
@@ -53,11 +55,12 @@ function addAssignment(
   positionId: string,
   options: { enabled?: number; startsAt?: string; endsAt?: string; duty?: string } = {}
 ) {
-  db.prepare(
+  const statement = db.prepare(
     "INSERT INTO organization_assignments " +
       "(id, personnel_id, position_id, duty_detail, starts_at, ends_at, enabled) " +
       "VALUES (?, ?, ?, ?, ?, ?, ?)"
-  ).run(
+  );
+  statement.run(
     id,
     personId,
     positionId,
