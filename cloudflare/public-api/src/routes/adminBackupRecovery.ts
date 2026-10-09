@@ -186,8 +186,9 @@ async function recoverBackup(request: Request, env: Env, identity: AdminIdentity
             : "backup payload is invalid",
         status,
         {
-        resource: "system-backup-recovery"
-      })
+          resource: "system-backup-recovery"
+        }
+      )
     );
   }
 
