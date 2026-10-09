@@ -1,8 +1,8 @@
 # Organization Content Workstream Tracker
 
-Status: **PAUSED / PLANNING COMPLETE / IMPLEMENTATION NOT STARTED**
+Status: **ACTIVE / PHASE 1 IMPLEMENTATION IN PROGRESS**
 
-Updated: 2026-10-08 Asia/Bangkok
+Updated: 2026-10-09 Asia/Bangkok
 
 Repository: `yiwssx/new-www.rcat.ac.th`
 
@@ -13,8 +13,8 @@ Recovery source: closed, unmerged [PR #524](https://github.com/yiwssx/new-www.rc
 ## Recovery checkpoint
 
 - Restored onto current `main` through a documentation-only PR on 2026-10-08.
-- Phase 0 planning is complete; Phases 1-11 have **not** started.
-- The Organization feature workstream remains deliberately **PAUSED** until explicitly resumed.
+- Phase 0 planning is complete; Phase 1 resumed on 2026-10-09; Phases 2-11 have **not** started.
+- The Organization workstream was explicitly resumed on 2026-10-09. Implementation is scoped to non-production PRs.
 - This tracker restoration does not authorize feature code, D1 migration, deployment, production data population, or other production changes.
 
 ## Goal
@@ -85,7 +85,7 @@ Add a dedicated CMS content type for organizational units and personnel structur
 | Phase | Scope                                                | State        | Exit criteria                                                                                                                                                 |
 | ----- | ---------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 0     | Discovery, pnpman review, domain model, tracker      | **COMPLETE** | Architecture decisions above are recorded and no implementation has started                                                                                   |
-| 1     | Schema + shared contracts                            | PLANNED      | Append-only D1 migration, types, validation, indexes, hierarchy/assignment integrity tests                                                                    |
+| 1     | Schema + shared contracts                            | IN_PROGRESS  | Append-only D1 migration, types, validation, indexes, hierarchy/assignment integrity tests                                                                    |
 | 2     | Worker repositories + public/admin APIs              | PLANNED      | CRUD/read contracts, recursive unit reads, personnel/position/assignment operations, safe public sanitizer                                                    |
 | 3     | RBAC + Admin routing/service layer                   | PLANNED      | Dedicated capabilities, route policy, API facade/query keys, Admin navigation entry                                                                           |
 | 4     | Organization list/editor                             | PLANNED      | Dedicated `/admin/organization` list, title/slug/type/parent/status workflow, revision-safe writes                                                            |
@@ -132,10 +132,20 @@ Suggested branch sequence:
 - Public organization pages must reflow responsively rather than scaling a desktop chart down.
 - Reuse the existing Media Library; do not create a separate personnel upload filesystem.
 
+## Execution checkpoint (2026-10-09 Asia/Bangkok)
+
+- Authorized: user explicitly requested current-state analysis and implementation of Organization Chart.
+- Baseline: `main` at `ae262072f4c7fe0640a60f8a2dc8db318963be5c`; no open PRs at resumption.
+- Active implementation branch: `agent/org-01-domain-schema`.
+- Phase 1 work staged: append-only migration `0020_organization_content_foundation.sql`, shared domain/privacy contracts, Worker row columns, SQLite and contract regression tests.
+- Phase 1 **not complete** pending CI verification on its final head and all required gates; Phases 2-11 remain PLANNED.
+- Safety: no protected D1 migration, Cloudflare/Vercel deployment, live data, GitHub gate suppression, or pnpm major upgrade.
+- Carry forward: Worker CRUD/repository/authorization in Phases 2-3; public rendering and navigation in Phases 7-8. Do not expose Organization content through generic lists prematurely.
+
 ## Current blockers
 
-- Deliberate workstream pause: await an explicit instruction to resume implementation.
+- No product/design blockers identified. Phase 1 implementation requires exact-head CI results before merge.
 
 ## Next action
 
-Keep this tracker in `main` as the durable paused-workstream record. **Do not start Phase 1** without an explicit instruction to resume the Organization feature. When implementation is authorized, re-read current `main`, active PRs, and this tracker; reconcile the plan against current architecture and CI, then create the Phase 1 branch from the latest baseline.
+Check the Phase 1 pull request's head SHA and required CI/governance gates, fix any source-backed failures, then merge only when green. Update this tracker with commit/PR and verification evidence before proceeding to Phase 2. Do not apply the schema to production during PR development.
