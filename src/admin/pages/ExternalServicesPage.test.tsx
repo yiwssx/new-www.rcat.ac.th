@@ -216,6 +216,23 @@ describe("ExternalServicesPage paginated and compact ordering workflows", () => 
     expect(externalServicesMock.saveBatch).not.toHaveBeenCalled();
   });
 
+  it.each([
+    "//evil.invalid/portal",
+    "javascript:alert(1)",
+    "https://actor@service.invalid/path",
+    "https://example.com/sample"
+  ])("rejects an unsafe E-Service URL before submitting: %s", async (href) => {
+    renderPage();
+
+    await screen.findByText("Student portal");
+    fireEvent.click(screen.getByRole("button", { name: "แก้ไขลิงก์ E-Service Student portal" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "URL บริการ" }), { target: { value: href } });
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกลิงก์ E-Service" }));
+
+    await waitFor(() => expect(swalInstance.fire).toHaveBeenCalled());
+    expect(externalServicesMock.saveOne).not.toHaveBeenCalled();
+  });
+
   it("deletes an individual item after confirmation", async () => {
     renderPage();
 

@@ -23,6 +23,31 @@ function hasUnsafeUrlCharacter(value: string) {
 /**
  * Checks if a Facebook URL is supported by the embedded post plugin.
  */
+function parseAllowedFacebookUrl(value: string): URL | null {
+  const input = String(value || "").trim();
+  if (!input || input === "#" || hasUnsafeUrlCharacter(input)) {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(input);
+    // ASVS 1.2.2: require HTTPS, exact host membership, no userinfo or non-default port.
+    if (
+      parsed.protocol !== "https:" ||
+      !allowedFacebookHosts.has(parsed.hostname.toLowerCase()) ||
+      parsed.username ||
+      parsed.password ||
+      parsed.port
+    ) {
+      return null;
+    }
+
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
 function isSupportedFacebookPostPath(pathname: string, searchParams: URLSearchParams) {
   const normalizedPath = pathname.toLowerCase();
   const segments = normalizedPath.split("/").filter(Boolean);
@@ -110,23 +135,8 @@ function isValidButUnsupportedFacebookPath(pathname: string, searchParams: URLSe
  * It accepts public post permalinks and direct /reel/{id} permalinks.
  */
 export function normalizeFacebookPostUrl(value: string): string {
-  const url = String(value || "").trim();
-
-  if (!url || url === "#" || hasUnsafeUrlCharacter(url) || url.toLowerCase().includes("example.com")) {
-    return "";
-  }
-
-  try {
-    const parsed = new URL(url);
-
-    if (parsed.protocol !== "https:" || !allowedFacebookHosts.has(parsed.hostname.toLowerCase())) {
-      return "";
-    }
-
-    return getSupportedFacebookEmbedKind(parsed.pathname, parsed.searchParams) ? parsed.toString() : "";
-  } catch {
-    return "";
-  }
+  const parsed = parseAllowedFacebookUrl(value);
+  return parsed && getSupportedFacebookEmbedKind(parsed.pathname, parsed.searchParams) ? parsed.toString() : "";
 }
 
 export function getFacebookEmbedKind(value: string): FacebookEmbedKind | "" {
@@ -153,39 +163,12 @@ export function isFacebookReelUrl(value: string): boolean {
  * These URLs should render a fallback message instead of an embed.
  */
 export function isUnsupportedFacebookUrl(value: string): boolean {
-  const url = String(value || "").trim();
-
-  if (!url || url === "#" || hasUnsafeUrlCharacter(url) || url.toLowerCase().includes("example.com")) {
-    return false;
-  }
-
-  try {
-    const parsed = new URL(url);
-
-    if (parsed.protocol !== "https:" || !allowedFacebookHosts.has(parsed.hostname.toLowerCase())) {
-      return false;
-    }
-
-    return isValidButUnsupportedFacebookPath(parsed.pathname, parsed.searchParams);
-  } catch {
-    return false;
-  }
+  const parsed = parseAllowedFacebookUrl(value);
+  return parsed ? isValidButUnsupportedFacebookPath(parsed.pathname, parsed.searchParams) : false;
 }
 
 export function isFacebookUrl(value: string): boolean {
-  const url = String(value || "").trim();
-
-  if (!url || url === "#" || hasUnsafeUrlCharacter(url) || url.toLowerCase().includes("example.com")) {
-    return false;
-  }
-
-  try {
-    const parsed = new URL(url);
-
-    return parsed.protocol === "https:" && allowedFacebookHosts.has(parsed.hostname.toLowerCase());
-  } catch {
-    return false;
-  }
+  return parseAllowedFacebookUrl(value) !== null;
 }
 
 export function isValidFacebookPostUrl(value: string): boolean {

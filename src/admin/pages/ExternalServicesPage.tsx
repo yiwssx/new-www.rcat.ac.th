@@ -65,6 +65,7 @@ import { ExternalServiceLink, ExternalServiceTone, MediaAsset } from "../../type
 import { getExternalServiceIconSurfaceStyle } from "../../utils/externalServiceTheme";
 import { resolvePublicImageSource } from "../../shared/media/publicImageSources";
 import { normalizeSafeHref } from "../../utils/safeUrl";
+import { isExampleHostname, isValidCmsLink } from "../../../shared/cmsLinkValidation";
 import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 import { ADMIN_READ_ONLY_NOTICE, canManageExternalServices } from "../utils/rbac";
 
@@ -151,11 +152,8 @@ function getIconLabel(iconKey: ExternalServiceLink["iconKey"], mediaAsset?: Medi
 }
 
 function isAllowedExternalServiceHref(href: string) {
-  return /^(https?:\/\/|mailto:|tel:|\/)/i.test(href);
-}
-
-function isExampleHref(href: string) {
-  return href.toLowerCase().includes("example.com");
+  // ASVS 1.2.2: use the same protocol, credential and relative-path policy as the Worker.
+  return href !== "#" && isValidCmsLink(href, "navigation", false);
 }
 
 function getExternalServiceValidationMessage(service: ExternalServiceDraft) {
@@ -173,7 +171,7 @@ function getExternalServiceValidationMessage(service: ExternalServiceDraft) {
     };
   }
 
-  if (isExampleHref(service.href)) {
+  if (isExampleHostname(service.href)) {
     return {
       title: "ไม่ควรใช้ลิงก์ตัวอย่าง",
       text: "กรุณาใช้ URL จริงของระบบบริการ"

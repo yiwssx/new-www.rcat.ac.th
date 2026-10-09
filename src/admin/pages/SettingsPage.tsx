@@ -59,6 +59,7 @@ import {
 import { formatDisplayDate, formatDisplayDateTime, formatDisplayTime } from "../../utils/dateDisplay";
 import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 import { ADMIN_READ_ONLY_NOTICE, canManageAdminData } from "../utils/rbac";
+import { isExampleHostname } from "../../../shared/cmsLinkValidation";
 
 function toNonNegativeInteger(value: unknown): number {
   const numeric = Number(value);
@@ -88,7 +89,7 @@ function isProbablyGoogleMapsUrl(value: string) {
     const parsed = new URL(input);
     const hostname = parsed.hostname.toLowerCase();
 
-    if (parsed.protocol !== "https:") {
+    if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.port) {
       return false;
     }
 
@@ -98,7 +99,7 @@ function isProbablyGoogleMapsUrl(value: string) {
 
     return (
       (hostname === "www.google.com" || hostname === "google.com" || hostname === "maps.google.com") &&
-      parsed.pathname.startsWith("/maps")
+      (parsed.pathname === "/maps" || parsed.pathname.startsWith("/maps/"))
     );
   } catch {
     return false;
@@ -117,6 +118,9 @@ function isProbablyGoogleMapsEmbedUrl(value: string) {
 
     return (
       parsed.protocol === "https:" &&
+      !parsed.username &&
+      !parsed.password &&
+      !parsed.port &&
       parsed.hostname.toLowerCase() === "www.google.com" &&
       parsed.pathname === "/maps/embed"
     );
@@ -130,7 +134,7 @@ function getSiteSettingsValidationMessage(settings: SiteSettings): { title: stri
   const mapUrl = settings.mapUrl.trim();
   const mapEmbedUrl = settings.mapEmbedUrl.trim();
 
-  if (messengerUrl.toLowerCase().includes("example.com")) {
+  if (isExampleHostname(messengerUrl)) {
     return {
       title: "ไม่ควรใช้ลิงก์ตัวอย่าง",
       text: "กรุณาใช้ Messenger URL จริง หรือเว้นว่างเพื่อซ่อนปุ่ม"
@@ -151,7 +155,7 @@ function getSiteSettingsValidationMessage(settings: SiteSettings): { title: stri
     };
   }
 
-  if (mapUrl.toLowerCase().includes("example.com")) {
+  if (isExampleHostname(mapUrl)) {
     return {
       title: "ไม่ควรใช้ลิงก์ตัวอย่าง",
       text: "กรุณาใช้ลิงก์ Google Maps จริงของสถานศึกษา"
@@ -165,7 +169,7 @@ function getSiteSettingsValidationMessage(settings: SiteSettings): { title: stri
     };
   }
 
-  if (mapEmbedUrl.toLowerCase().includes("example.com")) {
+  if (isExampleHostname(extractIframeSrcForValidation(mapEmbedUrl))) {
     return {
       title: "ไม่ควรใช้ลิงก์ตัวอย่าง",
       text: "กรุณาใช้ Google Maps Embed URL จริง หรือโค้ด iframe จาก Google Maps"
@@ -190,7 +194,7 @@ function getSiteSettingsValidationMessage(settings: SiteSettings): { title: stri
         };
       }
 
-      if (href.toLowerCase().includes("example.com")) {
+      if (isExampleHostname(href)) {
         return {
           title: "ไม่ควรใช้ลิงก์ตัวอย่าง",
           text: "กรุณาใช้ URL จริงสำหรับลิงก์ส่วนท้ายเว็บไซต์"

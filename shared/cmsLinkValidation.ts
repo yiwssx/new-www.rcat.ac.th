@@ -37,12 +37,29 @@ function isValidAbsoluteUrl(value: string, allowedProtocols: Set<string>) {
   }
 }
 
+// ASVS 1.2.2: decide placeholder-host policy from the parsed hostname, not a URL substring.
+export function isExampleHostname(value: unknown) {
+  const link = normalizedString(value);
+  if (!link || link.length > MAX_LINK_LENGTH || hasUnsafeCharacter(link)) return false;
+
+  try {
+    const url = new URL(link);
+    const hostname = url.hostname.toLowerCase();
+    return (
+      (url.protocol === "http:" || url.protocol === "https:") &&
+      (hostname === "example.com" || hostname.endsWith(".example.com"))
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function isValidFacebookEmbedPermalink(value: unknown) {
   const link = normalizedString(value);
   if (!link || link.length > MAX_LINK_LENGTH || hasUnsafeCharacter(link)) return false;
   try {
     const url = new URL(link);
-    if (url.protocol !== "https:" || !FACEBOOK_HOSTS.has(url.hostname.toLowerCase()) || url.username || url.password) {
+    if (url.protocol !== "https:" || !FACEBOOK_HOSTS.has(url.hostname.toLowerCase()) || url.username || url.password || url.port) {
       return false;
     }
     const normalizedPath = url.pathname.toLowerCase();

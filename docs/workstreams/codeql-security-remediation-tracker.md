@@ -1,15 +1,15 @@
 # CodeQL Security Remediation — Execution Tracker
 
 **Repository:** `yiwssx/new-www.rcat.ac.th`  
-**Status:** **PAUSED AFTER S03 — PR-A #530 and PR-B #532 merged; S04 deferred**  
-**Updated:** 2026-10-08 (Asia/Bangkok)  
+**Status:** **ACTIVE — S04 evidence review recorded; S05 URL hardening in PR-C (CI pending)**  
+**Updated:** 2026-10-09 (Asia/Bangkok)  
 **Baseline branch:** `main`  
 **Baseline SHA:** `f793a608528a6986c8105bad69f27e5e7fdf6ce3`  
 **Evidence:** user-supplied `codeql-alerts.json`, CodeQL 2.27.1, 18 open alerts (17 high / 1 medium), 7 rule types.  
-**Last implementation branch (merged):** `security/codeql-facebook-response-pr-b`  
+**Current implementation branch:** `security/codeql-url-validation-pr-c` (PR-C; unmerged)  
 **PR-A:** [#530](https://github.com/yiwssx/new-www.rcat.ac.th/pull/530) (MERGED; `14c88c317a6f1f02f127a2055fa29ba91a664c2e`)  
 **PR-B:** [#532](https://github.com/yiwssx/new-www.rcat.ac.th/pull/532) (MERGED; `42840c138c4d82d697801dc6b2217a0b4a5201f6`)  
-**Execution scope:** S00–S03 implementation merged into `main`; paused after S03. S04 is REVIEW and S05–S10 remain pending; no further implementation or production mutation without a new instruction.
+**Execution scope:** S00–S03 merged into `main`; resumed 2026-10-09 with explicit user instruction. S04 stays REVIEW pending independent Code Scanning disposition. S05 changes under review on a separate branch; S06–S10 remain pending. No production mutation.
 
 ## Objective
 
@@ -34,7 +34,7 @@ Eliminate confirmed weaknesses without changing expected website behavior, break
 - **S02 Secure Production Verification**; Alerts: #1–3; Priority: P0; Status: DONE; Acceptance / next action: PR #530 merged at `14c88c3`; CI #3336 and PR CodeQL passed; post-merge main alert statuses deferred to S09
 - **S03 Facebook double-decoding**; Alerts: #4–5; Priority: P1; Status: DONE; Acceptance / next action: PR #532 merged as `42840c1`; final PR-head CI #3340 and CodeQL passed; verify main Code Scanning alert closures separately at S09
 - **S04 API stack trace exposure**; Alerts: #7; Priority: P1; Status: REVIEW; Acceptance / next action: Audit `jsonError` and Worker handlers; do not change generic serialization without a proven exposure
-- **S05 URL sanitization**; Alerts: #11–18; Priority: P1; Status: PENDING; Acceptance / next action: Test protocol, exact hostname, userinfo, deceptive URL, allowed paths
+- **S05 URL sanitization**; Alerts: #11–18; Priority: P1; Status: IN_PROGRESS; Acceptance / next action: PR-C uses Worker-shared link validation, parsed example host and exact Facebook host; targeted tests plus exact-head CI/CodeQL required before merge
 - **S06 Date literal escaping**; Alerts: #6; Priority: P2; Status: PENDING; Acceptance / next action: Verify WordPress/Day.js tokens, Thai year, literal brackets
 - **S07 Contextual security alerts**; Alerts: #8–10; Priority: P1; Status: REVIEW; Acceptance / next action: Confirm aggregate counters, HMAC rate-limit keys and SHA-384 + bcrypt, do not rush cryptography changes
 - **S08 Cross-cutting regression**; Alerts: all; Priority: Gate; Status: PENDING; Acceptance / next action: CI, dependencies, format/lint, worker, governance, E2E, build
@@ -42,7 +42,7 @@ Eliminate confirmed weaknesses without changing expected website behavior, break
 - **S10 Closure**; Alerts: all; Priority: Gate; Status: PENDING; Acceptance / next action: Record merged SHAs, actual alert status, follow-ups, residual risk
 
 **Completed in `main`:** S00–S03; PR #530 and PR #532 merged after exact-head CI and CodeQL passed.  
-**Pause boundary:** S04 remains REVIEW and S05–S10 remain pending.  
+**Current boundary:** S04 is reviewed but alert disposition is unverified; S05 is IN_PROGRESS in PR-C; S06–S10 are pending.  
 **Code Scanning alert closures:** NOT VERIFIED via alert API; the historical baseline was 18 open alerts. A successful CodeQL workflow is not proof that those alerts are closed.
 
 ## S01 — GitHub Actions threat model and remediation rationale
@@ -76,7 +76,7 @@ Eliminate confirmed weaknesses without changing expected website behavior, break
 
 - **PR-A**; Scope: #1–3; workflow + contract tests + Phase A runbook + tracker; State: MERGED #530
 - **PR-B**; Scope: #4–5 remediation with #7 review deferred; State: MERGED #532 at `42840c1` — `security/codeql-facebook-response-pr-b`
-- **PR-C**; Scope: #6 and #11–18; State: NOT STARTED
+- **PR-C**; Scope: #11–18 URL hardening (S05 only); State: IN_PROGRESS — `security/codeql-url-validation-pr-c`; defer #6 date-literal handling to a subsequent focused S06 review rather than combining unrelated changes
 - **PR-D (conditional)**; Scope: #8–10 security-context findings; State: REVIEW ONLY
 
 ## PR-A acceptance and stopping boundary (historical)
@@ -120,3 +120,12 @@ PR-A #530 existed as Draft. CI runs `37754405142` and `37755328975` failed only 
 - Tested 8 of 8 Facebook thumbnail scenarios and Prettier 3.9.9 formatting.
 - PR #532 is clean against `main` with zero commits behind at acceptance.
 - PR #532 was merged into `main` on 2026-10-08 at 10:05:30 UTC as `42840c138c4d82d697801dc6b2217a0b4a5201f6`. This workstream is PAUSED after S03; S04 remains REVIEW and S05–S10 remain pending. No further security implementation, production operation, or alert dismissal was authorized by this checkpoint.
+
+## Resumption checkpoint — 2026-10-09 (S04 review / S05 PR-C)
+
+- Reconciled current `main` at `df722a403b4f1d4180c78894aeb17e607a49851e`: main CI run `37868970586` PASS, CodeQL run `37868970151` PASS for Actions and JavaScript/TypeScript, and Production Verification `37869276628` PASS. These results establish analysis success, **not alert closure**.
+- **S04 evidence review:** `cloudflare/public-api/src/index.ts` catches unhandled errors, logs only a bounded error name/request context via `logUnhandledWorkerError`, and responds with the constant `jsonError("internal server error", 500)`. `responses.ts` serializes its explicit arguments; reviewed call sites primarily send static messages and non-sensitive resource/status fields. No trace string has been shown to reach a public HTTP response. Keep #7 in REVIEW until alert API data and a focused negative contract are available; do not rewrite generic serialization or dismiss #7 on this inference alone.
+- **S05 scope:** replace E-Service prefix regex with Worker-shared `isValidCmsLink`, check example placeholders by **parsed hostname** rather than substring, harden Google Maps host/port/userinfo validation, consolidate Facebook URL parsing with exact-host HTTPS/no-userinfo/no-non-default-port checks. Add shared/React/Facebook regression tests for protocol-relative links, deceptive authorities, credentials, ports, and valid links.
+- **S06:** display settings are constrained to five canonical date formats by `normalizeDateFormat`, so ordinary settings cannot provide arbitrary Day.js tokens. The exported converter still merits a dedicated escaped-literal test and review; it is not declared resolved.
+- **S07:** contextual alerts #8–10 not changed: auth diagnostic reads aggregate counters; rate limiter uses HMAC-SHA256 keyed identifiers; disposable C3 fixture uses SHA-384 prehash followed by bcrypt cost 12. Reconcile with alert API before any disposition or cryptographic change.
+- PR-C is review-only until its **exact-head CI and CodeQL** pass. No worker deployment, D1 write, release, credential, protected-environment operation, or unrelated work is authorized.
