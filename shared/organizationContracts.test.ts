@@ -41,13 +41,9 @@ describe("Organization Chart shared contracts", () => {
   it("requires canonical UTC dates and chronological assignment intervals", () => {
     expect(isValidOrganizationAssignmentPeriod("", "")).toBe(true);
     expect(isValidOrganizationAssignmentPeriod("2026-10-09T00:00:00.000Z", "")).toBe(true);
-    expect(
-      isValidOrganizationAssignmentPeriod("2026-10-09T00:00:00.000Z", "2026-10-10T00:00:00.000Z")
-    ).toBe(true);
+    expect(isValidOrganizationAssignmentPeriod("2026-10-09T00:00:00.000Z", "2026-10-10T00:00:00.000Z")).toBe(true);
     expect(isValidOrganizationAssignmentPeriod("", "2026-10-10T00:00:00.000Z")).toBe(false);
-    expect(isValidOrganizationAssignmentPeriod("2026-10-10T00:00:00.000Z", "2026-10-09T00:00:00.000Z")).toBe(
-      false
-    );
+    expect(isValidOrganizationAssignmentPeriod("2026-10-10T00:00:00.000Z", "2026-10-09T00:00:00.000Z")).toBe(false);
     expect(isValidOrganizationAssignmentPeriod("tomorrow", "")).toBe(false);
   });
 
