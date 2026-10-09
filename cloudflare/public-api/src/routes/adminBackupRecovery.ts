@@ -178,9 +178,17 @@ async function recoverBackup(request: Request, env: Env, identity: AdminIdentity
   } catch (error) {
     const status = error instanceof RangeError ? 413 : 400;
     return noStore(
-      jsonError(error instanceof Error ? error.message : "backup payload is invalid", status, {
-        resource: "system-backup-recovery"
-      })
+      jsonError(
+        error instanceof RangeError
+          ? "backup payload is too large"
+          : error instanceof SyntaxError
+            ? "backup payload is not valid JSON"
+            : "backup payload is invalid",
+        status,
+        {
+          resource: "system-backup-recovery"
+        }
+      )
     );
   }
 
@@ -231,11 +239,11 @@ async function recoverBackup(request: Request, env: Env, identity: AdminIdentity
       }
       restoredCounts[table] = accepted;
     }
-  } catch (error) {
+  } catch {
     return noStore(
       jsonError("backup validation failed", 400, {
         resource: "system-backup-recovery",
-        detail: error instanceof Error ? error.message : "invalid backup row"
+        detail: "invalid backup row"
       })
     );
   }
@@ -252,11 +260,11 @@ async function recoverBackup(request: Request, env: Env, identity: AdminIdentity
             OR new_slug NOT IN (SELECT slug FROM contents WHERE COALESCE(deleted_at, '') = '')`
       )
       .run();
-  } catch (error) {
+  } catch {
     return noStore(
       jsonError("backup recovery conflict", 409, {
         resource: "system-backup-recovery",
-        detail: error instanceof Error ? error.message : "database constraint rejected recovery"
+        detail: "database constraint rejected recovery"
       })
     );
   }
