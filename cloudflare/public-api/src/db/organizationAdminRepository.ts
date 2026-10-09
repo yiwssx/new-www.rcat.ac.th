@@ -45,7 +45,11 @@ const MODELS = {
 } as const;
 
 export type OrganizationTableKind = keyof typeof MODELS;
-export type OrganizationWritableRow = OrganizationUnitRow | PersonnelRow | OrganizationPositionRow | OrganizationAssignmentRow;
+export type OrganizationWritableRow =
+  | OrganizationUnitRow
+  | PersonnelRow
+  | OrganizationPositionRow
+  | OrganizationAssignmentRow;
 
 function toRecord(row: OrganizationWritableRow): Record<string, unknown> {
   return row as unknown as Record<string, unknown>;
@@ -76,7 +80,12 @@ async function insertRow(env: Env, kind: OrganizationTableKind, row: Organizatio
  * Compare-and-swap at D1, not in a prior JavaScript read. Unaffected rows mean
  * stale revision or missing item. No nullable/unconditional bypass.
  */
-async function updateRow(env: Env, kind: OrganizationTableKind, row: OrganizationWritableRow, expectedRevision: number) {
+async function updateRow(
+  env: Env,
+  kind: OrganizationTableKind,
+  row: OrganizationWritableRow,
+  expectedRevision: number
+) {
   validateExpectedRevision(expectedRevision);
   const model = MODELS[kind];
   const columns: readonly string[] = model.columns;
