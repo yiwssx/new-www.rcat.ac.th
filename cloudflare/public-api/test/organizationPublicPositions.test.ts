@@ -1,0 +1,164 @@
+// @vitest-environment node
+import { DatabaseSync } from "node:sqlite";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import migrationSql from "../migrations/0020_organization_content_foundation.sql?raw";
+import {
+  mapPublicOrganizationPositions,
+  PUBLIC_ORGANIZATION_POSITIONS_SQL,
+  type PublicOrganizationPositionRow
+} from "../src/db/organizationReadRepository";
+
+const NOW = "2026-10-09T14:00:00.000Z";
+let db: DatabaseSync;
+
+function addContent(id: string, status = "published") {
+  db.prepare(
+    "INSERT INTO contents (id, type, status, slug, title, publish_at, unpublish_at) " +
+      "VALUES (?, 'organization', ?, ?, ?, '', '')"
+  ).run(id, status, id, id);
+}
+
+function addUnit(id: string, parent: string | null = null) {
+  db.prepare(
+    "INSERT INTO organization_units (content_id, parent_content_id, unit_kind) VALUES (?, ?, 'work')"
+  ).run(id, parent);
+}
+
+function addPosition(id: string, unitId: string) {
+  db.prepare("INSERT INTO organization_positions (id, unit_content_id, title) VALUES (?, ?, 'Manager')").run(
+    id,
+    unitId
+  );
+}
+
+function addPerson(id: string, options: { active?: number; showEmail?: number; showPhone?: number } = {}) {
+  db.prepare(
+    "INSERT INTO personnel (id, display_name, personnel_type, employment_position, " +
+      "public_email, public_phone, show_public_email, show_public_phone, active) " +
+      "VALUES (?, ?, 'teacher', 'Instructor', ?, ?, ?, ?, ?)"
+  ).run(
+    id,
+    `Sample ${id}`,
+    `${id}@example.invalid`,
+    "0123456789",
+    options.showEmail ?? 0,
+    options.showPhone ?? 0,
+    options.active ?? 1
+  );
+}
+
+function addAssignment(
+  id: string,
+  personId: string,
+  positionId: string,
+  options: { enabled?: number; startsAt?: string; endsAt?: string; duty?: string } = {}
+) {
+  db.prepare(
+    "INSERT INTO organization_assignments " +
+      "(id, personnel_id, position_id, duty_detail, starts_at, ends_at, enabled) " +
+      "VALUES (?, ?, ?, ?, ?, ?, ?)"
+  ).run(
+    id,
+    personId,
+    positionId,
+    options.duty ?? "",
+    options.startsAt ?? "",
+    options.endsAt ?? "",
+    options.enabled ?? 1
+  );
+}
+
+function visiblePositions() {
+  const rows = db.prepare(PUBLIC_ORGANIZATION_POSITIONS_SQL).all(NOW) as PublicOrganizationPositionRow[];
+  return mapPublicOrganizationPositions(rows);
+}
+
+beforeEach(() => {
+  db = new DatabaseSync(":memory:");
+  db.exec("PRAGMA foreign_keys = ON;");
+  db.exec(`
+    CREATE TABLE contents (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL,
+      status TEXT NOT NULL,
+      slug TEXT NOT NULL,
+      title TEXT NOT NULL,
+      deleted_at TEXT NOT NULL DEFAULT '',
+      publish_at TEXT NOT NULL DEFAULT '',
+      unpublish_at TEXT NOT NULL DEFAULT ''
+    );
+    CREATE TABLE media_assets (id TEXT PRIMARY KEY);
+  `);
+  db.exec(migrationSql);
+});
+
+afterEach(() => {
+  db.close();
+});
+
+describe("Organization Chart public positions and assignments", () => {
+  it("excludes positions under a draft ancestor and its published descendants", () => {
+    addContent("division", "draft");
+    addContent("work");
+    addUnit("division");
+    addUnit("work", "division");
+    addPosition("pos-work", "work");
+    addPerson("person-1");
+    addAssignment("assignment-1", "person-1", "pos-work");
+
+    expect(visiblePositions()).toEqual([]);
+  });
+
+  it("never exposes unpublished units or positions", () => {
+    addContent("division");
+    addContent("work", "draft");
+    addUnit("division");
+    addUnit("work", "division");
+    addPosition("pos-work", "work");
+
+    expect(visiblePositions()).toEqual([]);
+  });
+
+  it("omits disabled, inactive, future and expired assignments, preserving empty positions", () => {
+    addContent("division");
+    addUnit("division");
+    addPosition("pos-1", "division");
+    addPerson("disabled", { active: 0 });
+    addPerson("enabled");
+    addAssignment("a-disabled-person", "disabled", "pos-1");
+    addAssignment("a-disabled-assignment", "enabled", "pos-1", { enabled: 0 });
+    addAssignment("a-future", "enabled", "pos-1", { startsAt: "2026-10-10T14:00:00.000Z" });
+    addAssignment("a-expired", "enabled", "pos-1", { endsAt: "2026-10-09T12:00:00.000Z", startsAt: "2026-10-01T00:00:00.000Z" });
+
+    const positions = visiblePositions();
+    expect(positions).toHaveLength(1);
+    expect(positions[0]?.assignments).toEqual([]);
+  });
+
+  it("redacts default-private contact details, permits explicit opt-in, and allows multiple duties", () => {
+    addContent("division");
+    addUnit("division");
+    addPosition("pos-1", "division");
+    addPerson("private");
+    addPerson("public", { showEmail: 1, showPhone: 1 });
+    addAssignment("a1", "private", "pos-1", { duty: "Coordinator" });
+    addAssignment("a2", "public", "pos-1", { duty: "Manager" });
+    addAssignment("a3", "public", "pos-1", { duty: "Assistant" });
+
+    const positions = visiblePositions();
+    expect(positions).toHaveLength(1);
+    expect(positions[0]?.assignments).toHaveLength(3);
+    expect(positions[0]?.assignments[0]?.person).toMatchObject({
+      id: "private",
+      publicEmail: "",
+      publicPhone: ""
+    });
+    expect(positions[0]?.assignments[1]?.person).toMatchObject({
+      id: "public",
+      publicEmail: "public@example.invalid",
+      publicPhone: "0123456789"
+    });
+    expect(positions[0]?.assignments[2]?.person.id).toBe("public");
+    expect(JSON.stringify(positions)).not.toContain("private@example.invalid");
+  });
+});
