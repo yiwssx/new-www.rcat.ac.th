@@ -60,6 +60,25 @@ describe("facebookEmbed", () => {
     expect(isValidFacebookPostUrl("https://example.com/rcat/posts/12345")).toBe(false);
   });
 
+  it.each([
+    "https://www.facebook.com.evil.invalid/rcat/posts/123",
+    "https://www.facebook.com@evil.invalid/rcat/posts/123",
+    "https://actor@www.facebook.com/rcat/posts/123",
+    "https://www.facebook.com:8443/rcat/posts/123",
+    "//www.facebook.com/rcat/posts/123",
+    "https://www.facebook.com/rcat/posts/123\\evil"
+  ])("rejects deceptive Facebook URLs for both embeds and fallback links: %s", (url) => {
+    expect(normalizeFacebookPostUrl(url)).toBe("");
+    expect(isFacebookUrl(url)).toBe(false);
+    expect(isValidFacebookPostUrl(url)).toBe(false);
+  });
+
+  it("does not reject legitimate Facebook permalinks based on example.com in query text", () => {
+    const url = "https://www.facebook.com/rcat/posts/123?tracking=example.com";
+    expect(normalizeFacebookPostUrl(url)).toBe(url);
+    expect(isFacebookUrl(url)).toBe(true);
+  });
+
   it("identifies safe Facebook URLs even when they are not plugin-compatible post URLs", () => {
     expect(isFacebookUrl("https://www.facebook.com/settings")).toBe(true);
     expect(isValidFacebookPostUrl("https://www.facebook.com/settings")).toBe(false);
