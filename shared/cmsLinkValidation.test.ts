@@ -28,6 +28,21 @@ describe("shared CMS link validation", () => {
     expect(isValidCmsLink("https://service.invalid/path", "navigation", false)).toBe(true);
   });
 
+  it.each([
+    ["relative internal", "/services", true],
+    ["external HTTPS", "https://portal.rcat.ac.th/path", true],
+    ["external HTTP", "http://intranet.rcat.ac.th/path", true],
+    ["email", "mailto:contact@rcat.ac.th", true],
+    ["telephone", "tel:+66123456789", true],
+    ["network path", "//evil.invalid/path", false],
+    ["embedded credentials", "https://user:pass@portal.rcat.ac.th/path", false],
+    ["unsafe scheme", "data:text/html,hello", false],
+    ["malformed host", "https:///path", false],
+    ["control character", "https://portal.rcat.ac.th/\\nnext", false]
+  ])("enforces the shared navigation URL contract for %s", (_label, href, accepted) => {
+    expect(isValidCmsLink(href, "navigation", false)).toBe(accepted);
+  });
+
   it("uses one Facebook permalink contract for post and Reel URLs", () => {
     expect(isValidFacebookEmbedPermalink("https://www.facebook.com/page/posts/123")).toBe(true);
     expect(isValidFacebookEmbedPermalink("https://www.facebook.com/reel/123")).toBe(true);
