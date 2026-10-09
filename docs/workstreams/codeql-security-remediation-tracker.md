@@ -1,12 +1,12 @@
 # CodeQL Security Remediation — Execution Tracker
 
 **Repository:** `yiwssx/new-www.rcat.ac.th`  
-**Status:** **ACTIVE — implementation S00–S06 merged; S04/S07 context reviews, S08 regression review, S09 alert API gate pending**  
+**Status:** **ACTIVE — S04/S07 contextual alerts under evidence review; S09 live inventory obtained (14 fixed / 4 open); S10 awaiting disposition**  
 **Updated:** 2026-10-09 (Asia/Bangkok)  
 **Baseline branch:** `main`  
 **Baseline SHA:** `f793a608528a6986c8105bad69f27e5e7fdf6ce3`  
 **Evidence:** user-supplied `codeql-alerts.json`, CodeQL 2.27.1, 18 open alerts (17 high / 1 medium), 7 rule types.  
-**Current evidence branch:** `security/codeql-context-review-regressions` (S04/S07 invariants; S08); pending PR  
+**Current evidence branch:** `security/codeql-context-review-regressions` — [PR #541](https://github.com/yiwssx/new-www.rcat.ac.th/pull/541) (S04/S07 invariants; S08)  
 **PR-C:** [#539](https://github.com/yiwssx/new-www.rcat.ac.th/pull/539) (MERGED; `478ced6570ad49f03221ac4c6bf222867be755e4`)  
 **PR-D:** [#540](https://github.com/yiwssx/new-www.rcat.ac.th/pull/540) (MERGED; `6e7a857a969158e9a8f3ed30e184e5ac545e1084`)  
 **PR-A:** [#530](https://github.com/yiwssx/new-www.rcat.ac.th/pull/530) (MERGED; `14c88c317a6f1f02f127a2055fa29ba91a664c2e`)  
@@ -40,11 +40,11 @@ Eliminate confirmed weaknesses without changing expected website behavior, break
 - **S06 Date literal escaping**; Alerts: #6; Priority: P2; Status: DONE; Acceptance / next action: PR #540 merged after exact-head CI / CodeQL PASS; alert closure pending S09
 - **S07 Contextual security alerts**; Alerts: #8–10; Priority: P1; Status: REVIEW; Acceptance / next action: Confirm aggregate counters, HMAC rate-limit keys and SHA-384 + bcrypt, do not rush cryptography changes
 - **S08 Cross-cutting regression**; Alerts: all; Priority: Gate; Status: IN_PROGRESS; Acceptance / next action: PR #540 exact-head CI PASS; require post-merge main checks and new S04/S07 invariant regression tests
-- **S09 Main re-scan and disposition**; Alerts: all; Priority: Gate; Status: BLOCKED; Acceptance / next action: Query current main Code Scanning Alerts API; GitHub connector rejects `/code-scanning/alerts` as unsupported (INVALID_ARGUMENT). CodeQL run success is not evidence that alerts closed
+- **S09 Main re-scan and disposition**; Alerts: all; Priority: Gate; Status: IN_PROGRESS; Acceptance / next action: GitHub Actions authenticated read-only audit #37872363049 obtained all 18 states on current main (14 fixed; #7–10 open). Investigate and evidence-triage remaining four alerts before closure
 - **S10 Closure**; Alerts: all; Priority: Gate; Status: PENDING; Acceptance / next action: Record merged SHAs, actual alert status, follow-ups, residual risk
 
 **Completed in `main`:** S00–S03 and S05–S06; PR #530, #532, #539 and #540 merged after exact-head CI and CodeQL passed.  
-**Current boundary:** S04/S07 REVIEW (evidence-backed but alerts untriaged); S05/S06 implementation DONE; S08 IN_PROGRESS; S09 BLOCKED on alert state retrieval; S10 PENDING.  
+**Current boundary:** S04/S07 REVIEW (four alerts open, test validation in PR #541); S05/S06 implementation DONE; S08 IN_PROGRESS; S09 IN_PROGRESS with authenticated inventory; S10 PENDING.  
 **Code Scanning alert closures:** NOT VERIFIED via alert API; the historical baseline was 18 open alerts. A successful CodeQL workflow is not proof that those alerts are closed.
 
 ## S01 — GitHub Actions threat model and remediation rationale
@@ -80,7 +80,7 @@ Eliminate confirmed weaknesses without changing expected website behavior, break
 - **PR-B**; Scope: #4–5 remediation with #7 review deferred; State: MERGED #532 at `42840c1` — `security/codeql-facebook-response-pr-b`
 - **PR-C**; Scope: #11–18 URL hardening (S05 only); State: MERGED #539 at `478ced6570ad49f03221ac4c6bf222867be755e4`
 - **PR-D (S06)**; Scope: #6 Day.js/WordPress escaping; State: MERGED PR #540 at `6e7a857a969158e9a8f3ed30e184e5ac545e1084`
-- **PR-E (S04/S07 evidence)**; Scope: top-level generic Worker error boundary and HMAC key regression tests; State: IN_PROGRESS — `security/codeql-context-review-regressions`
+- **PR-E (S04/S07 evidence)**; Scope: top-level generic Worker error boundary and HMAC key regression tests; State: IN_PROGRESS — Draft #541 `security/codeql-context-review-regressions`
 
 ## PR-A acceptance and stopping boundary (historical)
 
@@ -161,3 +161,11 @@ PR-A #530 existed as Draft. CI runs `37754405142` and `37755328975` failed only 
 - S07 #8–10: authentication diagnostic prints aggregate counters/severity, not identifiers or secrets; rate-limit key derivation uses secret-keyed HMAC-SHA256 for internal map indexes, not passwords; disposable QA credential generation is domain-separated SHA-384 followed by bcrypt cost 12 with a compare check. Add a direct HMAC derivation test. These are **contextual reviews**, not evidence of the alerts' GitHub state.
 - S09 hard blocker: The connected GitHub `fetch` capability rejects `GET /repos/yiwssx/new-www.rcat.ac.th/code-scanning/alerts?state=open` as an unsupported API URL (INVALID_ARGUMENT), independent of repository security settings. There is no live alert state available to this tracker. Never mark open counts zero, resolved, fixed, or dismissed based solely on a green CodeQL analysis. S10 cannot be accepted as fully closed until current alert IDs #1–18 are reconciled with a supported read-only export/API access.
 - Explicitly avoid changing production environments, D1 schema/data, credentials, Workstream Agent Skills and Organization Chart. CI and CodeQL must pass on any new evidence PR head before it can merge.
+
+## Authenticated main Code Scanning inventory — 2026-10-09
+
+- The GitHub connector directly cannot read Code Scanning Alerts, so a **temporary, no-checkout, read-only GitHub Actions workflow** queried the official GitHub Code Scanning REST API from this repository with `security-events: read`. Audit run: [37872363049](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/37872363049), SUCCESS. The temporary workflow was subsequently removed from the PR branch, without merging into `main`.
+- Explicitly verified **fixed** on `refs/heads/main`: #1, #2, #3, #4, #5, #6, #11, #12, #13, #14, #15, #16, #17, #18 (14/18).
+- Explicitly verified **open** on `refs/heads/main`: #7 (`js/stack-trace-exposure`), #8 (`js/clear-text-logging`), #9 and #10 (`js/insufficient-password-hash`) — 4/18. No dismissals were performed by the audit.
+- Disposition requires supporting evidence: #7 public Worker 500 response regression (PR #541); #8 numeric-only auth anomaly summary; #9 SHA-384 prehash immediately followed by bcrypt cost 12 for a disposable fixture; #10 HMAC-SHA256 rate-limit bucket derivation rather than password hashing. If evidence proves current paths non-exploitable, prefer a documented per-alert false-positive disposition to weakening security controls or hiding scanners; do not claim zero open until a fresh read confirms it.
+- The S09 API-access blocker is **resolved for read-only inventory**. S09 remains IN_PROGRESS until the four residual alerts have an evidence-backed disposition and a final main re-scan validates all 18.
