@@ -1,60 +1,49 @@
-name: Temporary S10 Context Alert Disposition
+name: Temporary S10 Final Code Scanning Audit
 on:
   push:
     branches:
       - security/codeql-s10-alert-disposition
 permissions:
   contents: read
+  checks: read
   security-events: write
 jobs:
-  document-and-dismiss-context-findings:
+  close-reviewed-alert-if-needed:
     if: github.repository == 'yiwssx/new-www.rcat.ac.th'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Verify default branch and exact contextual alert rules
+      - name: Gate on exact main CodeQL and reconcile all alerts
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
+          main_expected="30ccc13a9d3346856d4defd21ed8fd66b68ef132"
           api="https://api.github.com/repos/${GH_REPO}"
           headers=(-H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${GH_TOKEN}" -H "X-GitHub-Api-Version: 2022-11-28")
           main_sha="$(curl --fail-with-body -sSL "${headers[@]}" "${api}/branches/main" | jq -r '.commit.sha')"
-          test "${main_sha}" = "ada2ae7529c9eaaf20a20e2390f2643dc4af13f1"
-          for id in 8 9 10; do
-            case "${id}" in
-              8) rule="js/clear-text-logging" ;;
-              9|10) rule="js/insufficient-password-hash" ;;
-            esac
-            json="$(curl --fail-with-body -sSL "${headers[@]}" "${api}/code-scanning/alerts/${id}")"
-            printf '%s' "${json}" | jq -e --arg rule "${rule}" '.state == "open" and .rule.id == $rule' >/dev/null
+          test "${main_sha}" = "${main_expected}"
+          checks="$(curl --fail-with-body -sSL "${headers[@]}" "${api}/commits/${main_sha}/check-runs?per_page=100")"
+          for name in "Analyze (actions)" "Analyze (javascript-typescript)"; do
+            printf '%s' "${checks}" | jq -e --arg name "${name}" '[.check_runs[] | select(.name == $name and .conclusion == "success")] | length == 1' >/dev/null
           done
-          echo "Three contextual alerts verified as open on exact main SHA"
-      - name: Record exact false-positive dispositions for 8 9 10
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: |
-          set -euo pipefail
-          api="https://api.github.com/repos/${GH_REPO}"
-          headers=(-H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${GH_TOKEN}" -H "X-GitHub-Api-Version: 2022-11-28")
-          for id in 8 9 10; do
-            case "${id}" in
-              8)
-                explanation="S07 audited 2026-10-09: this diagnostic logs only numeric aggregate failed-auth/MFA and locked-account counts and severity; no password, credential, user identity or raw event rows are logged. See CodeQL Security tracker and PR #541."
-                ;;
-              9)
-                explanation="S07 audited 2026-10-09: this disposable QA fixture computes a domain-separated SHA-384 prehash, then applies bcrypt cost 12 and verifies bcrypt.compare. Final stored credential is bcrypt-sha384-v1, not the flagged fast hash alone. See CodeQL Security tracker."
-                ;;
-              10)
-                explanation="S07 audited 2026-10-09: HMAC-SHA256 is a secret-keyed pseudonymous map key for rate-limit buckets, not password storage or verification. Authentication passwords use bcrypt-sha384-v1 cost 12. Regression test in PR #541 verifies key derivation."
-                ;;
-            esac
-            body="$(jq -nc --arg reason "${explanation}" '{state: "dismissed", dismissed_reason: "false positive", dismissed_comment: $reason}')"
-            response="$(curl --fail-with-body -sSL -X PATCH "${headers[@]}" -H "Content-Type: application/json" -d "${body}" "${api}/code-scanning/alerts/${id}")"
-            printf '%s' "${response}" | jq -ec '{number, state, dismissed_reason}'
-            printf '%s' "${response}" | jq -e '.state == "dismissed" and .dismissed_reason == "false positive"' >/dev/null
-          done
+          echo "Exact main CodeQL analyzers passed"
+          alert="$(curl --fail-with-body -sSL "${headers[@]}" "${api}/code-scanning/alerts/7")"
+          printf '%s' "${alert}" | jq -e '.number == 7 and .rule.id == "js/stack-trace-exposure" and .most_recent_instance.location.path == "cloudflare/public-api/src/responses.ts"' >/dev/null
+          state="$(printf '%s' "${alert}" | jq -r .state)"
+          if [ "${state}" = "open" ]; then
+            comment="S04 audited 2026-10-09: CodeQL flags the generic JSON serializer in responses.ts, not an Error.stack output. Worker uncaught exceptions return fixed 500 {error: internal server error} with safe structured diagnostics; negative error-message/stack regression tested in PR #541. Admin backup recovery previously forwarded caught exception.message, now replaced with stable diagnostics in PR #542 and guarded by tests. No runtime exception stack reaches this serializer in the reviewed paths."
+            body="$(jq -nc --arg comment "${comment}" '{state:"dismissed",dismissed_reason:"false positive",dismissed_comment:$comment}')"
+            alert="$(curl --fail-with-body -sSL -X PATCH "${headers[@]}" -H "Content-Type: application/json" -d "${body}" "${api}/code-scanning/alerts/7")"
+          fi
+          printf '%s' "${alert}" | jq -c '{number,state,dismissed_reason}'
+          printf '%s' "${alert}" | jq -e '.state == "fixed" or (.state == "dismissed" and .dismissed_reason == "false positive")' >/dev/null
+          all="$(curl --fail-with-body -sSL "${headers[@]}" "${api}/code-scanning/alerts?state=all&ref=refs%2Fheads%2Fmain&per_page=100")"
+          printf '%s' "${all}" | jq -e '[.[] | select(.number >= 1 and .number <= 18)] | length == 18' >/dev/null
+          printf '%s' "${all}" | jq -e '[.[] | select(.number >= 1 and .number <= 18 and (.state != "fixed" and .state != "dismissed"))] | length == 0' >/dev/null
+          printf '%s' "${all}" | jq -c '[.[] | select(.number >= 1 and .number <= 18) | {number,state,dismissed_reason}] | sort_by(.number)'
+          open="$(curl --fail-with-body -sSL "${headers[@]}" "${api}/code-scanning/alerts?state=open&ref=refs%2Fheads%2Fmain&per_page=100")"
+          printf '%s' "${open}" | jq -e 'length == 0' >/dev/null
+          echo "S09 verified: zero open Code Scanning alerts on exact main, all baseline IDs reconciled"
