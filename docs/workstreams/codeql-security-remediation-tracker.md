@@ -6,7 +6,7 @@
 **Baseline branch:** `main`  
 **Baseline SHA:** `f793a608528a6986c8105bad69f27e5e7fdf6ce3`  
 **Evidence:** user-supplied `codeql-alerts.json`, CodeQL 2.27.1, 18 open alerts (17 high / 1 medium), 7 rule types.  
-**Current implementation branch:** `security/codeql-date-literal-pr-d` (S06; PR pending)  
+**Current implementation branch:** `security/codeql-date-literal-pr-d` — [PR #540](https://github.com/yiwssx/new-www.rcat.ac.th/pull/540) (S06; Draft / CI pending)  
 **PR-C:** [#539](https://github.com/yiwssx/new-www.rcat.ac.th/pull/539) (MERGED; `478ced6570ad49f03221ac4c6bf222867be755e4`)  
 **PR-A:** [#530](https://github.com/yiwssx/new-www.rcat.ac.th/pull/530) (MERGED; `14c88c317a6f1f02f127a2055fa29ba91a664c2e`)  
 **PR-B:** [#532](https://github.com/yiwssx/new-www.rcat.ac.th/pull/532) (MERGED; `42840c138c4d82d697801dc6b2217a0b4a5201f6`)  
@@ -78,7 +78,7 @@ Eliminate confirmed weaknesses without changing expected website behavior, break
 - **PR-A**; Scope: #1–3; workflow + contract tests + Phase A runbook + tracker; State: MERGED #530
 - **PR-B**; Scope: #4–5 remediation with #7 review deferred; State: MERGED #532 at `42840c1` — `security/codeql-facebook-response-pr-b`
 - **PR-C**; Scope: #11–18 URL hardening (S05 only); State: MERGED #539 at `478ced6570ad49f03221ac4c6bf222867be755e4`
-- **PR-D (S06)**; Scope: #6 Day.js/WordPress escaping; State: IN_PROGRESS — `security/codeql-date-literal-pr-d`
+- **PR-D (S06)**; Scope: #6 Day.js/WordPress escaping; State: IN_PROGRESS — Draft PR #540 `security/codeql-date-literal-pr-d`
 - **PR-E (conditional)**; Scope: #8–10 security-context findings; State: REVIEW ONLY
 
 ## PR-A acceptance and stopping boundary (historical)
@@ -145,3 +145,10 @@ PR-A #530 existed as Draft. CI runs `37754405142` and `37755328975` failed only 
 - S06 scope: `src/services/displaySettings.ts` already normalizes stored/public/Admin date formats to five supported WordPress presets. `convertWordPressFormatToDayjs` is exported and additionally supports WordPress escaped letters; the previous bracket sanitizer attempted to backslash-escape `]` in Day.js literal delimiters, which does not establish a reliable Day.js escaping contract. Instead fail closed to the Buddhist-year fallback `D MMMM BBBB` when either Day.js bracket delimiter appears; retain `\\Y`, `\\a`, `\\t` escaped-letter behavior and test suspicious delimiter formats.
 - S07 evidence: `scripts/check-production-auth-security-events.mjs` logs aggregate failure/lockout counts only and emits `GITHUB_OUTPUT` counts; `server/cmsAuth/rateLimiters.mjs` uses HMAC-SHA256 to derive bounded rate-limit map keys (not password storage); `scripts/phase-c3-disposable-fixture.mjs` derives a SHA-384 domain-separated prehash then bcrypt cost 12 and performs a comparison before using a disposable QA credential. These are contextual findings requiring Code Scanning API dispositions and no auth migration; S07 remains REVIEW.
 - S06 PR must pass exact-head CI and CodeQL before merging. Never weaken auth, D1, release gates or production controls.
+
+### PR #540 CI waiting checkpoint (2026-10-09)
+
+- Draft PR #540 opened on `security/codeql-date-literal-pr-d`, targeting `main` at `478ced6570ad49f03221ac4c6bf222867be755e4`; implementation head before this documentation checkpoint: `553e848563d0144ba20c9720cde6b4b1684eeb7f`.
+- First PR-head CI run `37871654880` and CodeQL run `37871652824` started. Dependency Preflight passed; other required CI lanes were queued and CodeQL analyzers were running at the latest read. No exact-head green result yet.
+- This tracker checkpoint changes the PR head, so **prior runs do not qualify as the final acceptance evidence**. Next session: re-read PR #540 current SHA, inspect its latest CI/CodeQL checks, fix any failure, then merge only if all mandatory lanes pass.
+- Main post-#539 CI and CodeQL were still processing at this checkpoint; do not infer #11–18 Code Scanning alert closure. No live services or data were modified by this branch.
