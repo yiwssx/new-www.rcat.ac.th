@@ -35,6 +35,15 @@ import {
 } from "../db/adminUserLifecycleRepository";
 import { listPublishedDocumentRows } from "../db/documentsRepository";
 import {
+  getDocumentById,
+  getDocumentByIdAny,
+  insertDocumentRow,
+  listAdminDocumentRows,
+  softDeleteDocumentRow,
+  updateDocumentPublicationRow,
+  updateDocumentRow
+} from "../db/adminDocumentsWriteRepository";
+import {
   CONTENT_ADMIN_ROW_COLUMNS,
   DOCUMENT_ADMIN_ROW_COLUMNS,
   PUBLIC_HOME_SECTION_ADMIN_ROW_COLUMNS,
@@ -853,58 +862,6 @@ async function updateContentRow(env: Env, row: ContentRow, expectedRevision: num
   }
 }
 
-async function insertDocumentRow(env: Env, row: DocumentRow) {
-  await run(
-    env,
-    `INSERT INTO documents (${DOCUMENT_ADMIN_ROW_COLUMNS.join(", ")})
-     VALUES (${DOCUMENT_ADMIN_ROW_COLUMNS.map(() => "?").join(", ")})`,
-    ...DOCUMENT_ADMIN_ROW_COLUMNS.map((column) => row[column])
-  );
-}
-
-async function updateDocumentRow(env: Env, row: DocumentRow, expectedRevision: number | null) {
-  const result = await run(
-    env,
-    `UPDATE documents
-     SET
-       title = ?,
-       description = ?,
-       category = ?,
-       file_url = ?,
-       file_name = ?,
-       media_id = ?,
-       published_at = ?,
-       status = ?,
-       sort_order = ?,
-       pinned = ?,
-       updated_at = ?,
-       deleted_at = ?,
-       updated_by = ?,
-       revision = ?
-     WHERE id = ?
-       AND COALESCE(deleted_at, '') = ''
-       AND (? IS NULL OR revision = ?)`,
-    row.title,
-    row.description,
-    row.category,
-    row.file_url,
-    row.file_name,
-    row.media_id,
-    row.published_at,
-    row.status,
-    row.sort_order,
-    row.pinned,
-    row.updated_at,
-    row.deleted_at,
-    row.updated_by,
-    row.revision,
-    row.id,
-    expectedRevision,
-    expectedRevision
-  );
-  assertMutationChanged(result);
-}
-
 async function insertHomeSectionRow(env: Env, row: PublicHomeSectionRow) {
   await run(
     env,
@@ -982,29 +939,6 @@ async function getContentByIdAny(env: Env, id: string) {
     env,
     `SELECT ${CONTENT_ADMIN_ROW_COLUMNS.join(", ")}
      FROM contents
-     WHERE id = ?
-     LIMIT 1`,
-    id
-  );
-}
-
-async function getDocumentById(env: Env, id: string) {
-  return getFirst<DocumentRow>(
-    env,
-    `SELECT ${DOCUMENT_ADMIN_ROW_COLUMNS.join(", ")}
-     FROM documents
-     WHERE id = ?
-       AND COALESCE(deleted_at, '') = ''
-     LIMIT 1`,
-    id
-  );
-}
-
-async function getDocumentByIdAny(env: Env, id: string) {
-  return getFirst<DocumentRow>(
-    env,
-    `SELECT ${DOCUMENT_ADMIN_ROW_COLUMNS.join(", ")}
-     FROM documents
      WHERE id = ?
      LIMIT 1`,
     id
@@ -1182,13 +1116,7 @@ async function handleDocuments(request: Request, env: Env, segments: string[], i
   const now = new Date().toISOString();
 
   if (segments.length === 1 && request.method === "GET") {
-    const rows = await getAll<DocumentRow>(
-      env,
-      `SELECT ${DOCUMENT_ADMIN_ROW_COLUMNS.join(", ")}
-       FROM documents
-       WHERE COALESCE(deleted_at, '') = ''
-       ORDER BY pinned DESC, sort_order ASC, published_at DESC, updated_at DESC`
-    );
+    const rows = await listAdminDocumentRows(env);
     return json({ items: rows.map(mapDocumentRowToAdminItem), generatedAt: now });
   }
 
@@ -1234,7 +1162,7 @@ async function handleDocuments(request: Request, env: Env, segments: string[], i
     const expectedRevision = getExpectedRevisionFromRequest(request, body);
     const row = createDocumentRow({ ...mapDocumentRowToAdminItem(existing), ...body, id }, existing, actor, now);
 
-    await updateDocumentRow(env, row, expectedRevision);
+    assertMutationChanged(await updateDocumentRow(env, row, expectedRevision));
     return json({ item: mapDocumentRowToAdminItem(row) });
   }
 
@@ -1246,20 +1174,7 @@ async function handleDocuments(request: Request, env: Env, segments: string[], i
     }
 
     const expectedRevision = getExpectedRevisionFromRequest(request);
-    const result = await run(
-      env,
-      `UPDATE documents
-       SET deleted_at = ?, updated_at = ?, updated_by = ?, revision = revision + 1
-       WHERE id = ?
-         AND COALESCE(deleted_at, '') = ''
-         AND (? IS NULL OR revision = ?)`,
-      now,
-      now,
-      actor,
-      id,
-      expectedRevision,
-      expectedRevision
-    );
+    const result = await softDeleteDocumentRow(env, id, actor, now, expectedRevision);
     assertMutationChanged(result);
     return json({ id, deleted: true });
   }
@@ -1274,19 +1189,13 @@ async function handleDocuments(request: Request, env: Env, segments: string[], i
     const status = action === "publish" ? "published" : "draft";
     const body = await parseJsonBody(request);
     const expectedRevision = getExpectedRevisionFromRequest(request, body);
-    const result = await run(
+    const result = await updateDocumentPublicationRow(
       env,
-      `UPDATE documents
-       SET status = ?, published_at = ?, updated_at = ?, updated_by = ?, revision = revision + 1
-       WHERE id = ?
-         AND COALESCE(deleted_at, '') = ''
-         AND (? IS NULL OR revision = ?)`,
+      id,
       status,
       action === "publish" ? existing.published_at || now : existing.published_at || "",
-      now,
       actor,
-      id,
-      expectedRevision,
+      now,
       expectedRevision
     );
     assertMutationChanged(result);
