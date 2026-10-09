@@ -1,6 +1,6 @@
 # Organization Content Workstream Tracker
 
-Status: **ACTIVE / PHASE 1 IMPLEMENTATION IN PROGRESS**
+Status: **ACTIVE / PHASE 1 IN PROGRESS / FEATURE BRANCH ONLY — NO MERGE UNTIL FEATURE COMPLETE**
 
 Updated: 2026-10-09 Asia/Bangkok
 
@@ -15,7 +15,7 @@ Recovery source: closed, unmerged [PR #524](https://github.com/yiwssx/new-www.rc
 - Restored onto current `main` through a documentation-only PR on 2026-10-08.
 - Phase 0 planning is complete; Phase 1 resumed on 2026-10-09; Phases 2-11 have **not** started.
 - The Organization workstream was explicitly resumed on 2026-10-09. Implementation is scoped to non-production PRs.
-- This tracker restoration does not authorize feature code, D1 migration, deployment, production data population, or other production changes.
+- The original tracker restoration was documentation-only. The later 2026-10-09 implementation authorization covers non-production feature development, not production database changes, deployments, or real-data population.
 
 ## Goal
 
@@ -97,20 +97,25 @@ Add a dedicated CMS content type for organizational units and personnel structur
 | 10    | Production migration + release verification          | PLANNED      | Protected migration/deploy sequence completed once, browser verification passes, tracker records release evidence                                             |
 | 11    | RCAT content population                              | PLANNED      | Real divisions, works, departments, personnel, positions, and assignments entered only after runtime feature verification                                     |
 
+## Branch and merge policy — user direction 2026-10-09
+
+- **Keep ALL development for Phases 1-9 in one long-lived Organization feature branch**: `agent/org-01-domain-schema`. The original Phase 1-oriented name is retained to preserve [draft PR #553](https://github.com/yiwssx/new-www.rcat.ac.th/pull/553), its reviews, and CI history. It is the Organization feature branch for the entire implementation, not a Phase 1-only branch.
+- Keep PR #553 **Draft**, targeting `main`, until every pre-merge feature phase is implemented, the complete feature is reviewed, and all required CI/security/governance/functional tests pass on its exact final head.
+- **Do not merge intermediate phases into `main`**. Each phase is an internal checkpoint/commit series on the same branch; preserve clear phase-level commits, tracker evidence and test coverage.
+- Do not auto-merge, mark the PR ready for review prematurely, close/replace the PR just to advance phases, force-push main, or bypass any quality/protected-environment gate.
+- As `main` evolves, reconcile upstream changes into the feature branch with an ancestry-preserving integration and rerun the required checks. Never rewrite published feature-branch history unnecessarily.
+- **Single final merge gate**: Phases 1-9 complete, production migration/release procedure prepared and rehearsed without changing production, content-population plan ready, no known blockers, and full PR checks/review green. Only then merge the complete feature once into `main`.
+- Phases 10 (production migration and deployment) and 11 (real RCAT data population) inherently require the protected production release path **after** this final merge. Do not execute them from a WIP branch or claim they are completed before the feature is merged. They remain tracked as post-merge release/rollout phases.
+
 ## Implementation sequence
 
-Use one narrow implementation branch/PR per phase or tightly coupled phase pair. Do not combine schema, Admin UI, public rendering, and production content population into one large PR.
-
-Suggested branch sequence:
-
-- `agent/org-01-domain-schema`
-- `agent/org-02-worker-api-rbac`
-- `agent/org-03-admin-organization`
-- `agent/org-04-personnel-directory`
-- `agent/org-05-organization-builder`
-- `agent/org-06-public-renderer`
-- `agent/org-07-integration-quality`
-- release/data-population branches only after all implementation PRs are green on `main`.
+1. Phase 1 — complete D1 schema/contracts, local migration tests, and revision/integrity gates on the feature branch.
+2. Phases 2-3 — Worker repositories, public/admin APIs, RBAC and Admin route/service boundary on the same branch.
+3. Phases 4-6 — Organization editor, Personnel directory and hierarchical Organization builder on the same branch.
+4. Phases 7-8 — public permalink/SSR/SEO and existing Menu/search/sitemap integration on the same branch.
+5. Phase 9 — full automated QA, accessibility, responsive and backup coverage; final regression and release-readiness review on the same branch.
+6. After all pre-merge gates pass — change Draft PR #553 to ready, obtain required approvals, **merge exactly once to `main`**.
+7. Only after merge and separate protected-environment approval — Phase 10 production release/verification, then Phase 11 real content population.
 
 ## Required integrity rules
 
@@ -136,7 +141,7 @@ Suggested branch sequence:
 
 - Authorized: user explicitly requested current-state analysis and implementation of Organization Chart.
 - Baseline: `main` at `ae262072f4c7fe0640a60f8a2dc8db318963be5c`; no open PRs at resumption.
-- Active implementation branch: `agent/org-01-domain-schema`; [PR #553](https://github.com/yiwssx/new-www.rcat.ac.th/pull/553).
+- Single long-lived feature branch: `agent/org-01-domain-schema`; [Draft PR #553](https://github.com/yiwssx/new-www.rcat.ac.th/pull/553). **Do not merge until all pre-merge phases and final gates complete.**
 - Phase 1 work staged: append-only migration `0020_organization_content_foundation.sql`, shared domain/privacy contracts, Worker row columns, SQLite and contract regression tests.
 - Phase 1 **not complete** pending CI verification on its final head and all required gates; Phases 2-11 remain PLANNED.
 - First PR CI attempt passed Build, Worker, Dependencies, Integration Tests and Governance but failed Prettier in two new test files; formatting corrections have been committed. Rerun verification required on the resulting head.
@@ -145,8 +150,8 @@ Suggested branch sequence:
 
 ## Current blockers
 
-- No product/design blockers identified. Phase 1 implementation requires exact-head CI results before merge.
+- No product/design blockers identified. Phase 1 needs exact-head CI verification before beginning Phase 2. Merging is intentionally held until Phases 1-9 and final acceptance gates are complete.
 
 ## Next action
 
-Check the Phase 1 pull request's head SHA and required CI/governance gates, fix any source-backed failures, then merge only when green. Update this tracker with commit/PR and verification evidence before proceeding to Phase 2. Do not apply the schema to production during PR development.
+Check Draft PR #553's current head and required CI/governance gates; correct real failures and record evidence. Continue Phase 2 on the **same** feature branch once Phase 1 passes its exit criteria. Do not merge after Phase 1 or any subsequent intermediate phase. No production D1 apply/deploy/real-data population until the single approved final merge and protected release.
