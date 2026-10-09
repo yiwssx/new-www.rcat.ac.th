@@ -13,7 +13,7 @@ Recovery source: closed, unmerged [PR #524](https://github.com/yiwssx/new-www.rc
 ## Recovery checkpoint
 
 - Restored onto current `main` through a documentation-only PR on 2026-10-08.
-- Phase 0 planning is complete; Phase 1 resumed on 2026-10-09; Phases 2-11 have **not** started.
+- Phase 0 planning is complete; Phase 1 passed CI on 2026-10-09; Phase 2 is **IN_PROGRESS** and Phases 3-11 are not started.
 - The Organization workstream was explicitly resumed on 2026-10-09. Implementation is scoped to non-production PRs.
 - The original tracker restoration was documentation-only. The later 2026-10-09 implementation authorization covers non-production feature development, not production database changes, deployments, or real-data population.
 
@@ -156,10 +156,21 @@ Add a dedicated CMS content type for organizational units and personnel structur
 - Phase 1 exit gate **COMPLETE**: exact-head [CI run 37948555195](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/37948555195) on commit `925f7c9a` passed Dependency Preflight, Static Quality, Unit Tests, Build, Worker, Integration Tests, Governance, Dependencies, Functional E2E and the aggregate Quality Gate. Phase 2 exit gate remains open.
 - The PR remains Draft; **do not merge**, deploy, apply production migration or populate RCAT data.
 
+## Further Phase 2 checkpoint: 2026-10-09 (same feature branch)
+
+- Expanded the read-only `GET /api/public/organization` contract to include ordered organization positions and their current enabled assignments. The shared recursive visible-unit CTE still excludes draft, expired, scheduled, and unpublished-ancestor content.
+- Current public person projection includes only active personnel and contact fields whose specific public-visibility flag is enabled. Assignment validity windows are checked at read time; disabled personnel/assignments never populate public positions. No new HTTP write endpoint is exposed.
+- Added `organizationPublicPositions.test.ts` with SQLite fixtures for ancestor visibility, inactive/disabled/date-filtered assignments, and contact privacy/duplicate duties.
+- Added internal `organizationAdminRepository.ts` with bounded Admin reads and revision-compare-and-swap insert/update primitives for units, personnel, positions and assignments; added `organizationAdminRepository.test.ts` with real SQLite data-integrity, revision-conflict and SQL-binding checks.
+- These repository primitives are **not authorized API endpoints**. They require Phase 2/3 server-owned input validation, session/RBAC/CSRF/step-up boundaries, immutable audit evidence and dedicated Admin routes before being exposed.
+- New code has not yet earned a completed CI gate; latest workflow was queued/in progress during the checkpoint (CI run 37951304214 for commit `2b06a3a`). The tracker-only commit will start a newer exact-head CI run. Diagnose it before closing Phase 2.
+- No production D1 migration, Worker/Vercel deploy, public site release, data population or merge was performed.
+
 ## Current blockers
 
-- No current Phase 1 blockers. Phase 2 is only partially implemented; complete Admin CRUD, personnel/position/assignment operations and public sanitizer tests before advancing its gate. Merging is intentionally held until Phases 1-9 and final acceptance gates are complete.
+- No Phase 1 blockers. Phase 2 remains **IN_PROGRESS**: required work includes protected Admin endpoints, complete CRUD/delete/archive workflows, server-side validations, revision conflict mapping, audit logs, route and privacy regression tests, and final exact-head CI.
+- Deployment and final merge intentionally remain blocked until completion and acceptance of every pre-merge Phase 1-9 deliverable.
 
 ## Next action
 
-Continue Phase 2 on the **same** feature branch: add revision-safe organization/personnel/position/assignment Worker repositories and protected Admin APIs, with permission and public-privacy tests. Phase 1's full CI gate passed on `925f7c9a`; re-run mandatory CI on every subsequent feature head. Do not merge until Phases 1-9 and the final review pass. No production D1 apply/deploy/real-data population until the single approved final merge and protected release.
+On the **same** branch, check CI for the current head after this checkpoint; fix any failing static quality, unit/integration, Worker and security gates before further implementation. Then continue Phase 2 with dedicated authenticated Admin CRUD routes, server-owned validation, revision conflict and audited writes. Do not merge until Phases 1-9 and final review pass. Protected production migration/deployment/real-data population remain post-merge operations.
