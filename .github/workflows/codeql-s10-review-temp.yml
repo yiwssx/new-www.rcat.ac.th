@@ -34,7 +34,7 @@ jobs:
           printf '%s' "${alert}" | jq -e '.number == 7 and .rule.id == "js/stack-trace-exposure" and .most_recent_instance.location.path == "cloudflare/public-api/src/responses.ts"' >/dev/null
           state="$(printf '%s' "${alert}" | jq -r .state)"
           if [ "${state}" = "open" ]; then
-            comment="S04 audited 2026-10-09: CodeQL flags the generic JSON serializer in responses.ts, not an Error.stack output. Worker uncaught exceptions return fixed 500 {error: internal server error} with safe structured diagnostics; negative error-message/stack regression tested in PR #541. Admin backup recovery previously forwarded caught exception.message, now replaced with stable diagnostics in PR #542 and guarded by tests. No runtime exception stack reaches this serializer in the reviewed paths."
+            comment="S04 reviewed: CodeQL flags generic JSON serialization, not a reachable stack leak. Worker returns constant 500 and PR #541 tests stack redaction; PR #542 removes raw Admin recovery exception messages."
             body="$(jq -nc --arg comment "${comment}" '{state:"dismissed",dismissed_reason:"false positive",dismissed_comment:$comment}')"
             alert="$(curl --fail-with-body -sSL -X PATCH "${headers[@]}" -H "Content-Type: application/json" -d "${body}" "${api}/code-scanning/alerts/7")"
           fi
