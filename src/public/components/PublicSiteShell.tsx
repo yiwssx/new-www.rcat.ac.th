@@ -36,6 +36,7 @@ import PublicFooterDirectory from "./PublicFooterDirectory";
 import FloatingMessengerButton from "./FloatingMessengerButton";
 import PublicIntroGate from "./PublicIntroGate";
 import PublicMourningRibbon from "./PublicMourningRibbon";
+import { MOURNING_RIBBON_IDENTITY_PADDING, MOURNING_RIBBON_TOP_BAR_PADDING } from "./mourningRibbonLayout";
 import { getInitialPublicIntroGateVisibility, getPublicIntroGateStorageKey } from "./publicIntroGateState";
 import { UrgentMarqueeSection } from "./home/UrgentMarqueeSection";
 import SocialIconLink from "./SocialIconLink";
@@ -603,7 +604,8 @@ function PublicSiteShellFrame({
         ? false
         : Boolean(siteSettings.mourningRibbonEnabled);
   const mourningActive = mourningGrayscaleEnabled || mourningRibbonEnabled;
-  const mourningRibbonHeaderPadding = mourningRibbonEnabled ? { xs: 8, sm: 10, md: 13, lg: 14 } : undefined;
+  const mourningRibbonTopBarPadding = mourningRibbonEnabled ? MOURNING_RIBBON_TOP_BAR_PADDING : undefined;
+  const mourningRibbonIdentityPadding = mourningRibbonEnabled ? MOURNING_RIBBON_IDENTITY_PADDING : undefined;
   const introGateStorageKey = getPublicIntroGateStorageKey(homepageSettings.introGate);
   const introGateVisible =
     pathname === "/" &&
@@ -683,7 +685,7 @@ function PublicSiteShellFrame({
               borderColor: "secondary.main"
             }}
           >
-            <Container maxWidth="xl" sx={{ pl: mourningRibbonHeaderPadding }}>
+            <Container maxWidth="xl" sx={{ pl: mourningRibbonTopBarPadding }}>
               <MobileTopBar
                 campus={siteSettings.campus || siteName}
                 phone={siteSettings.phone}
@@ -701,7 +703,7 @@ function PublicSiteShellFrame({
           </Box>
 
           <Box sx={{ bgcolor: "white", borderBottom: "1px solid", borderColor: "divider" }}>
-            <Container maxWidth="xl" sx={{ pl: mourningRibbonHeaderPadding }}>
+            <Container maxWidth="xl" sx={{ pl: mourningRibbonIdentityPadding }}>
               <Stack
                 direction={{ xs: "column", lg: "row" }}
                 spacing={{ xs: 1.2, md: 2 }}
