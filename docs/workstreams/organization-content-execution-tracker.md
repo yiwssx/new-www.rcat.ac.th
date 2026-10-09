@@ -136,9 +136,10 @@ Suggested branch sequence:
 
 - Authorized: user explicitly requested current-state analysis and implementation of Organization Chart.
 - Baseline: `main` at `ae262072f4c7fe0640a60f8a2dc8db318963be5c`; no open PRs at resumption.
-- Active implementation branch: `agent/org-01-domain-schema`.
+- Active implementation branch: `agent/org-01-domain-schema`; [PR #553](https://github.com/yiwssx/new-www.rcat.ac.th/pull/553).
 - Phase 1 work staged: append-only migration `0020_organization_content_foundation.sql`, shared domain/privacy contracts, Worker row columns, SQLite and contract regression tests.
 - Phase 1 **not complete** pending CI verification on its final head and all required gates; Phases 2-11 remain PLANNED.
+- First PR CI attempt passed Build, Worker, Dependencies, Integration Tests and Governance but failed Prettier in two new test files; formatting corrections have been committed. Rerun verification required on the resulting head.
 - Safety: no protected D1 migration, Cloudflare/Vercel deployment, live data, GitHub gate suppression, or pnpm major upgrade.
 - Carry forward: Worker CRUD/repository/authorization in Phases 2-3; public rendering and navigation in Phases 7-8. Do not expose Organization content through generic lists prematurely.
 
