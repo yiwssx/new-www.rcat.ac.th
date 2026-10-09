@@ -16,10 +16,10 @@ function content(id: string, type = "organization") {
 }
 
 function unit(id: string, parentId: string | null = null) {
-  db.prepare("INSERT INTO organization_units (content_id, parent_content_id, unit_kind) VALUES (?, ?, 'work')").run(
-    id,
-    parentId
+  const insert = db.prepare(
+    "INSERT INTO organization_units (content_id, parent_content_id, unit_kind) VALUES (?, ?, 'work')"
   );
+  insert.run(id, parentId);
 }
 
 function person(id: string) {
