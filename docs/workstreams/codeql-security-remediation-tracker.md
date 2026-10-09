@@ -1,15 +1,16 @@
 # CodeQL Security Remediation — Execution Tracker
 
 **Repository:** `yiwssx/new-www.rcat.ac.th`  
-**Status:** **ACTIVE — S04 evidence review recorded; S05 URL hardening in PR-C (CI pending)**  
+**Status:** **ACTIVE — S05 merged; S06 date-format hardening in PR-D (CI pending)**  
 **Updated:** 2026-10-09 (Asia/Bangkok)  
 **Baseline branch:** `main`  
 **Baseline SHA:** `f793a608528a6986c8105bad69f27e5e7fdf6ce3`  
 **Evidence:** user-supplied `codeql-alerts.json`, CodeQL 2.27.1, 18 open alerts (17 high / 1 medium), 7 rule types.  
-**Current implementation branch:** `security/codeql-url-validation-pr-c` — [PR #539](https://github.com/yiwssx/new-www.rcat.ac.th/pull/539) (Draft; unmerged)  
+**Current implementation branch:** `security/codeql-date-literal-pr-d` — [PR #540](https://github.com/yiwssx/new-www.rcat.ac.th/pull/540) (S06; Draft / CI pending)  
+**PR-C:** [#539](https://github.com/yiwssx/new-www.rcat.ac.th/pull/539) (MERGED; `478ced6570ad49f03221ac4c6bf222867be755e4`)  
 **PR-A:** [#530](https://github.com/yiwssx/new-www.rcat.ac.th/pull/530) (MERGED; `14c88c317a6f1f02f127a2055fa29ba91a664c2e`)  
 **PR-B:** [#532](https://github.com/yiwssx/new-www.rcat.ac.th/pull/532) (MERGED; `42840c138c4d82d697801dc6b2217a0b4a5201f6`)  
-**Execution scope:** S00–S03 merged into `main`; resumed 2026-10-09 with explicit user instruction. S04 stays REVIEW pending independent Code Scanning disposition. S05 changes under review on a separate branch; S06–S10 remain pending. No production mutation.
+**Execution scope:** S00–S03 and S05 merged into `main`; S04 remains REVIEW pending independent Code Scanning disposition. S06 is IN_PROGRESS in a separate branch; S07 remains REVIEW and S08–S10 pending. No production mutation.
 
 ## Objective
 
@@ -34,15 +35,15 @@ Eliminate confirmed weaknesses without changing expected website behavior, break
 - **S02 Secure Production Verification**; Alerts: #1–3; Priority: P0; Status: DONE; Acceptance / next action: PR #530 merged at `14c88c3`; CI #3336 and PR CodeQL passed; post-merge main alert statuses deferred to S09
 - **S03 Facebook double-decoding**; Alerts: #4–5; Priority: P1; Status: DONE; Acceptance / next action: PR #532 merged as `42840c1`; final PR-head CI #3340 and CodeQL passed; verify main Code Scanning alert closures separately at S09
 - **S04 API stack trace exposure**; Alerts: #7; Priority: P1; Status: REVIEW; Acceptance / next action: Audit `jsonError` and Worker handlers; do not change generic serialization without a proven exposure
-- **S05 URL sanitization**; Alerts: #11–18; Priority: P1; Status: IN_PROGRESS; Acceptance / next action: PR-C uses Worker-shared link validation, parsed example host and exact Facebook host; targeted tests plus exact-head CI/CodeQL required before merge
-- **S06 Date literal escaping**; Alerts: #6; Priority: P2; Status: PENDING; Acceptance / next action: Verify WordPress/Day.js tokens, Thai year, literal brackets
+- **S05 URL sanitization**; Alerts: #11–18; Priority: P1; Status: DONE; Acceptance / next action: PR #539 merged after exact-head CI and CodeQL PASS; main Code Scanning alert closures pending S09
+- **S06 Date literal escaping**; Alerts: #6; Priority: P2; Status: IN_PROGRESS; Acceptance / next action: Reject custom Day.js bracket delimiters in WordPress format converter, preserve Buddhist-year presets and escaped letter tokens; exact-head CI/CodeQL required
 - **S07 Contextual security alerts**; Alerts: #8–10; Priority: P1; Status: REVIEW; Acceptance / next action: Confirm aggregate counters, HMAC rate-limit keys and SHA-384 + bcrypt, do not rush cryptography changes
 - **S08 Cross-cutting regression**; Alerts: all; Priority: Gate; Status: PENDING; Acceptance / next action: CI, dependencies, format/lint, worker, governance, E2E, build
 - **S09 Main re-scan and disposition**; Alerts: all; Priority: Gate; Status: PENDING; Acceptance / next action: After approved merges, re-scan current main and reconcile IDs
 - **S10 Closure**; Alerts: all; Priority: Gate; Status: PENDING; Acceptance / next action: Record merged SHAs, actual alert status, follow-ups, residual risk
 
-**Completed in `main`:** S00–S03; PR #530 and PR #532 merged after exact-head CI and CodeQL passed.  
-**Current boundary:** S04 is reviewed but alert disposition is unverified; S05 is IN_PROGRESS in PR-C; S06–S10 are pending.  
+**Completed in `main`:** S00–S03 and S05; PR #530, #532 and #539 merged after exact-head CI and CodeQL passed.  
+**Current boundary:** S04 remains REVIEW; S05 is DONE (implementation); S06 is IN_PROGRESS in PR-D; S07 REVIEW; S08–S10 PENDING.  
 **Code Scanning alert closures:** NOT VERIFIED via alert API; the historical baseline was 18 open alerts. A successful CodeQL workflow is not proof that those alerts are closed.
 
 ## S01 — GitHub Actions threat model and remediation rationale
@@ -76,8 +77,9 @@ Eliminate confirmed weaknesses without changing expected website behavior, break
 
 - **PR-A**; Scope: #1–3; workflow + contract tests + Phase A runbook + tracker; State: MERGED #530
 - **PR-B**; Scope: #4–5 remediation with #7 review deferred; State: MERGED #532 at `42840c1` — `security/codeql-facebook-response-pr-b`
-- **PR-C**; Scope: #11–18 URL hardening (S05 only); State: IN_PROGRESS — `security/codeql-url-validation-pr-c`; defer #6 date-literal handling to a subsequent focused S06 review rather than combining unrelated changes
-- **PR-D (conditional)**; Scope: #8–10 security-context findings; State: REVIEW ONLY
+- **PR-C**; Scope: #11–18 URL hardening (S05 only); State: MERGED #539 at `478ced6570ad49f03221ac4c6bf222867be755e4`
+- **PR-D (S06)**; Scope: #6 Day.js/WordPress escaping; State: IN_PROGRESS — Draft PR #540 `security/codeql-date-literal-pr-d`
+- **PR-E (conditional)**; Scope: #8–10 security-context findings; State: REVIEW ONLY
 
 ## PR-A acceptance and stopping boundary (historical)
 
@@ -135,3 +137,18 @@ PR-A #530 existed as Draft. CI runs `37754405142` and `37755328975` failed only 
 - Draft [PR #539](https://github.com/yiwssx/new-www.rcat.ac.th/pull/539) targets `main`, branch `security/codeql-url-validation-pr-c`.
 - First implementation commit `a3978706e510bf51d97d063823347ec536fb6b14` opened CI run `37870614792` and CodeQL run `37870612051`; both were still IN_PROGRESS at review. Those checks **do not qualify** as final evidence after this tracker/format checkpoint commit.
 - The new PR-head SHA must be re-read and its full required CI / CodeQL suite checked before any ready-for-review or merge decision. S05 remains IN_PROGRESS; no production change.
+
+## S05 acceptance / S06 implementation checkpoint — 2026-10-09
+
+- PR #539 final exact head `98988d61fce0566a8e7afb9ad4893339b73b83d4`: CI `37870773017` SUCCESS (all lanes and aggregate quality), CodeQL `37870770324` SUCCESS (Actions and JavaScript/TypeScript). PR had no merge conflict and merged into `main` as `478ced6570ad49f03221ac4c6bf222867be755e4`.
+- S05 implementation is DONE; do not claim Code Scanning alert #11–18 closure without the alert API. Post-merge `main` CI/CodeQL needs separate confirmation for S09.
+- S06 scope: `src/services/displaySettings.ts` already normalizes stored/public/Admin date formats to five supported WordPress presets. `convertWordPressFormatToDayjs` is exported and additionally supports WordPress escaped letters; the previous bracket sanitizer attempted to backslash-escape `]` in Day.js literal delimiters, which does not establish a reliable Day.js escaping contract. Instead fail closed to the Buddhist-year fallback `D MMMM BBBB` when either Day.js bracket delimiter appears; retain `\\Y`, `\\a`, `\\t` escaped-letter behavior and test suspicious delimiter formats.
+- S07 evidence: `scripts/check-production-auth-security-events.mjs` logs aggregate failure/lockout counts only and emits `GITHUB_OUTPUT` counts; `server/cmsAuth/rateLimiters.mjs` uses HMAC-SHA256 to derive bounded rate-limit map keys (not password storage); `scripts/phase-c3-disposable-fixture.mjs` derives a SHA-384 domain-separated prehash then bcrypt cost 12 and performs a comparison before using a disposable QA credential. These are contextual findings requiring Code Scanning API dispositions and no auth migration; S07 remains REVIEW.
+- S06 PR must pass exact-head CI and CodeQL before merging. Never weaken auth, D1, release gates or production controls.
+
+### PR #540 CI waiting checkpoint (2026-10-09)
+
+- Draft PR #540 opened on `security/codeql-date-literal-pr-d`, targeting `main` at `478ced6570ad49f03221ac4c6bf222867be755e4`; implementation head before this documentation checkpoint: `553e848563d0144ba20c9720cde6b4b1684eeb7f`.
+- First PR-head CI run `37871654880` and CodeQL run `37871652824` started. Dependency Preflight passed; other required CI lanes were queued and CodeQL analyzers were running at the latest read. No exact-head green result yet.
+- This tracker checkpoint changes the PR head, so **prior runs do not qualify as the final acceptance evidence**. Next session: re-read PR #540 current SHA, inspect its latest CI/CodeQL checks, fix any failure, then merge only if all mandatory lanes pass.
+- Main post-#539 CI and CodeQL were still processing at this checkpoint; do not infer #11–18 Code Scanning alert closure. No live services or data were modified by this branch.
