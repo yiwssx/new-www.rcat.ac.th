@@ -153,7 +153,7 @@ function getIconLabel(iconKey: ExternalServiceLink["iconKey"], mediaAsset?: Medi
 
 function isAllowedExternalServiceHref(href: string) {
   // ASVS 1.2.2: use the same protocol, credential and relative-path policy as the Worker.
-  return href !== "#" && isValidCmsLink(href, "navigation", false);
+  return !href.startsWith("#") && isValidCmsLink(href, "navigation", false);
 }
 
 function getExternalServiceValidationMessage(service: ExternalServiceDraft) {

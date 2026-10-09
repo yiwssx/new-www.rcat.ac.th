@@ -219,6 +219,7 @@ describe("ExternalServicesPage paginated and compact ordering workflows", () => 
   it.each([
     "//evil.invalid/portal",
     "javascript:alert(1)",
+    "#fragment",
     "https://actor@service.invalid/path",
     "https://example.com/sample"
   ])("rejects an unsafe E-Service URL before submitting: %s", async (href) => {
