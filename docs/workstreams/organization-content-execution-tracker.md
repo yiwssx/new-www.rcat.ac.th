@@ -1,6 +1,6 @@
 # Organization Content Workstream Tracker
 
-Status: **ACTIVE / PHASE 1 FINAL CI VERIFICATION / PHASE 2 READ PATH IN PROGRESS / FEATURE BRANCH ONLY — NO MERGE**
+Status: **ACTIVE / PHASE 1 COMPLETE / PHASE 2 IN PROGRESS / FEATURE BRANCH ONLY — NO MERGE**
 
 Updated: 2026-10-09 Asia/Bangkok
 
@@ -85,7 +85,7 @@ Add a dedicated CMS content type for organizational units and personnel structur
 | Phase | Scope                                                | State        | Exit criteria                                                                                                                                                 |
 | ----- | ---------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 0     | Discovery, pnpman review, domain model, tracker      | **COMPLETE** | Architecture decisions above are recorded and no implementation has started                                                                                   |
-| 1     | Schema + shared contracts                            | IN_PROGRESS  | Append-only D1 migration, types, validation, indexes, hierarchy/assignment integrity tests                                                                    |
+| 1     | Schema + shared contracts                            | COMPLETE     | Append-only D1 migration, types, validation, indexes, hierarchy/assignment integrity tests                                                                    |
 | 2     | Worker repositories + public/admin APIs              | IN_PROGRESS  | CRUD/read contracts, recursive unit reads, personnel/position/assignment operations, safe public sanitizer                                                    |
 | 3     | RBAC + Admin routing/service layer                   | PLANNED      | Dedicated capabilities, route policy, API facade/query keys, Admin navigation entry                                                                           |
 | 4     | Organization list/editor                             | PLANNED      | Dedicated `/admin/organization` list, title/slug/type/parent/status workflow, revision-safe writes                                                            |
@@ -153,13 +153,13 @@ Add a dedicated CMS content type for organizational units and personnel structur
 - Phase 1 formatting failure was reproduced in the exact GitHub Action runner and corrected using a temporary read-only Prettier diff workflow; the diagnostic workflow was removed from the branch after use.
 - Phase 2 **in progress**: added `organizationReadRepository.ts` with recursive, ancestor-safe published organization reads, a read-only `GET /api/public/organization` Worker route, and SQLite tests of unpublished ancestors and time-window visibility.
 - The new public endpoint returns only unit-level fields; personnel, assignment, Admin CRUD, navigation, editor and renderer contracts are **not** yet implemented.
-- Full head CI: [run 37948097246](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/37948097246) was under verification at this checkpoint; do not mark either Phase 1 or Phase 2 COMPLETE without satisfying their exit gates.
+- Phase 1 exit gate **COMPLETE**: exact-head [CI run 37948555195](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/37948555195) on commit `925f7c9a` passed Dependency Preflight, Static Quality, Unit Tests, Build, Worker, Integration Tests, Governance, Dependencies, Functional E2E and the aggregate Quality Gate. Phase 2 exit gate remains open.
 - The PR remains Draft; **do not merge**, deploy, apply production migration or populate RCAT data.
 
 ## Current blockers
 
-- No product/design blockers identified. Phase 1 needs exact-head CI verification before beginning Phase 2. Merging is intentionally held until Phases 1-9 and final acceptance gates are complete.
+- No current Phase 1 blockers. Phase 2 is only partially implemented; complete Admin CRUD, personnel/position/assignment operations and public sanitizer tests before advancing its gate. Merging is intentionally held until Phases 1-9 and final acceptance gates are complete.
 
 ## Next action
 
-Check Draft PR #553's current head and required CI/governance gates; correct real failures and record evidence. Continue Phase 2 on the **same** feature branch once Phase 1 passes its exit criteria. Do not merge after Phase 1 or any subsequent intermediate phase. No production D1 apply/deploy/real-data population until the single approved final merge and protected release.
+Continue Phase 2 on the **same** feature branch: add revision-safe organization/personnel/position/assignment Worker repositories and protected Admin APIs, with permission and public-privacy tests. Phase 1's full CI gate passed on `925f7c9a`; re-run mandatory CI on every subsequent feature head. Do not merge until Phases 1-9 and the final review pass. No production D1 apply/deploy/real-data population until the single approved final merge and protected release.
