@@ -239,7 +239,7 @@ async function recoverBackup(request: Request, env: Env, identity: AdminIdentity
       }
       restoredCounts[table] = accepted;
     }
-  } catch (error) {
+  } catch {
     return noStore(
       jsonError("backup validation failed", 400, {
         resource: "system-backup-recovery",
@@ -260,7 +260,7 @@ async function recoverBackup(request: Request, env: Env, identity: AdminIdentity
             OR new_slug NOT IN (SELECT slug FROM contents WHERE COALESCE(deleted_at, '') = '')`
       )
       .run();
-  } catch (error) {
+  } catch {
     return noStore(
       jsonError("backup recovery conflict", 409, {
         resource: "system-backup-recovery",

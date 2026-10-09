@@ -548,7 +548,7 @@ async function recoverBackup(request: Request, env: Env) {
       }
       restoredCounts[table] = accepted;
     }
-  } catch (error) {
+  } catch {
     return noStore(
       jsonError("backup validation failed", 400, {
         resource: "system-backup-recovery",
