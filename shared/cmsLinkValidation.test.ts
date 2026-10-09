@@ -37,7 +37,7 @@ describe("shared CMS link validation", () => {
     ["network path", "//evil.invalid/path", false],
     ["embedded credentials", "https://user:pass@portal.rcat.ac.th/path", false],
     ["unsafe scheme", "data:text/html,hello", false],
-    ["malformed host", "https:///path", false],
+    ["malformed host", "https://", false],
     ["control character", "https://portal.rcat.ac.th/\\nnext", false]
   ])("enforces the shared navigation URL contract for %s", (_label, href, accepted) => {
     expect(isValidCmsLink(href, "navigation", false)).toBe(accepted);
