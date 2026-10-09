@@ -59,7 +59,13 @@ export function isValidFacebookEmbedPermalink(value: unknown) {
   if (!link || link.length > MAX_LINK_LENGTH || hasUnsafeCharacter(link)) return false;
   try {
     const url = new URL(link);
-    if (url.protocol !== "https:" || !FACEBOOK_HOSTS.has(url.hostname.toLowerCase()) || url.username || url.password || url.port) {
+    if (
+      url.protocol !== "https:" ||
+      !FACEBOOK_HOSTS.has(url.hostname.toLowerCase()) ||
+      url.username ||
+      url.password ||
+      url.port
+    ) {
       return false;
     }
     const normalizedPath = url.pathname.toLowerCase();

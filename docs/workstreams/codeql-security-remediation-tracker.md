@@ -6,7 +6,7 @@
 **Baseline branch:** `main`  
 **Baseline SHA:** `f793a608528a6986c8105bad69f27e5e7fdf6ce3`  
 **Evidence:** user-supplied `codeql-alerts.json`, CodeQL 2.27.1, 18 open alerts (17 high / 1 medium), 7 rule types.  
-**Current implementation branch:** `security/codeql-url-validation-pr-c` (PR-C; unmerged)  
+**Current implementation branch:** `security/codeql-url-validation-pr-c` — [PR #539](https://github.com/yiwssx/new-www.rcat.ac.th/pull/539) (Draft; unmerged)  
 **PR-A:** [#530](https://github.com/yiwssx/new-www.rcat.ac.th/pull/530) (MERGED; `14c88c317a6f1f02f127a2055fa29ba91a664c2e`)  
 **PR-B:** [#532](https://github.com/yiwssx/new-www.rcat.ac.th/pull/532) (MERGED; `42840c138c4d82d697801dc6b2217a0b4a5201f6`)  
 **Execution scope:** S00–S03 merged into `main`; resumed 2026-10-09 with explicit user instruction. S04 stays REVIEW pending independent Code Scanning disposition. S05 changes under review on a separate branch; S06–S10 remain pending. No production mutation.
@@ -129,3 +129,9 @@ PR-A #530 existed as Draft. CI runs `37754405142` and `37755328975` failed only 
 - **S06:** display settings are constrained to five canonical date formats by `normalizeDateFormat`, so ordinary settings cannot provide arbitrary Day.js tokens. The exported converter still merits a dedicated escaped-literal test and review; it is not declared resolved.
 - **S07:** contextual alerts #8–10 not changed: auth diagnostic reads aggregate counters; rate limiter uses HMAC-SHA256 keyed identifiers; disposable C3 fixture uses SHA-384 prehash followed by bcrypt cost 12. Reconcile with alert API before any disposition or cryptographic change.
 - PR-C is review-only until its **exact-head CI and CodeQL** pass. No worker deployment, D1 write, release, credential, protected-environment operation, or unrelated work is authorized.
+
+### PR-C durable CI checkpoint (2026-10-09)
+
+- Draft [PR #539](https://github.com/yiwssx/new-www.rcat.ac.th/pull/539) targets `main`, branch `security/codeql-url-validation-pr-c`.
+- First implementation commit `a3978706e510bf51d97d063823347ec536fb6b14` opened CI run `37870614792` and CodeQL run `37870612051`; both were still IN_PROGRESS at review. Those checks **do not qualify** as final evidence after this tracker/format checkpoint commit.
+- The new PR-head SHA must be re-read and its full required CI / CodeQL suite checked before any ready-for-review or merge decision. S05 remains IN_PROGRESS; no production change.
