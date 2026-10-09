@@ -83,6 +83,8 @@ for (const viewport of [
 
 for (const viewport of [
   { name: "tablet", width: 768, height: 1024, minWidth: "984px", hideUpdatedAt: false },
+  { name: "narrow-mobile", width: 320, height: 640, minWidth: "852px", hideUpdatedAt: true },
+  { name: "mobile-375", width: 375, height: 812, minWidth: "852px", hideUpdatedAt: true },
   { name: "mobile", width: 390, height: 844, minWidth: "852px", hideUpdatedAt: true }
 ] as const) {
   test(`${viewport.name} Admin content prioritizes actions over secondary metadata`, async ({ page }) => {
