@@ -150,8 +150,8 @@ describe("Organization unit + CMS content transactional lifecycle", () => {
     expect(Object.keys(rows[0])).not.toContain("public_email");
     expect(await listAdminOrganizationContentUnits(env, 1)).toHaveLength(1);
     expect((await listAdminOrganizationContentUnits(env, 1, 1))[0]?.slug).toBe("division-b");
-    await expect(listAdminOrganizationContentUnits(env, 25, -1)).rejects.toThrow(/offset/);
-    await expect(listAdminOrganizationContentUnits(env, 101)).rejects.toThrow(/page size/);
+    expect(() => listAdminOrganizationContentUnits(env, 25, -1)).toThrow(/offset/);
+    expect(() => listAdminOrganizationContentUnits(env, 101)).toThrow(/page size/);
   });
 
   it("rejects duplicate slugs and rolls back all associated unit changes", async () => {
