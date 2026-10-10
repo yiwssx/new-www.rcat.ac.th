@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   isOrganizationUnitKind,
-  isValidOrganizationAssignmentPeriod,
   ORGANIZATION_CONTENT_TYPE,
   projectOrganizationPersonPublic,
   validateOrganizationParent
@@ -36,15 +35,6 @@ describe("Organization Chart shared contracts", () => {
       ok: false,
       error: "cycle"
     });
-  });
-
-  it("requires canonical UTC dates and chronological assignment intervals", () => {
-    expect(isValidOrganizationAssignmentPeriod("", "")).toBe(true);
-    expect(isValidOrganizationAssignmentPeriod("2026-10-09T00:00:00.000Z", "")).toBe(true);
-    expect(isValidOrganizationAssignmentPeriod("2026-10-09T00:00:00.000Z", "2026-10-10T00:00:00.000Z")).toBe(true);
-    expect(isValidOrganizationAssignmentPeriod("", "2026-10-10T00:00:00.000Z")).toBe(false);
-    expect(isValidOrganizationAssignmentPeriod("2026-10-10T00:00:00.000Z", "2026-10-09T00:00:00.000Z")).toBe(false);
-    expect(isValidOrganizationAssignmentPeriod("tomorrow", "")).toBe(false);
   });
 
   it("redacts personal contact details unless explicitly opted into public display", () => {

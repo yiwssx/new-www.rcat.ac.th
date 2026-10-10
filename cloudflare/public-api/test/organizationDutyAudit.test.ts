@@ -35,8 +35,6 @@ const assignment: OrganizationAssignmentRow = {
   position_id: "pos1",
   duty_detail: "Manager",
   sort_order: 0,
-  starts_at: "",
-  ends_at: "",
   enabled: 1,
   revision: 999,
   created_at: createdAt,

@@ -69,21 +69,11 @@ describe("Organization Chart server-side write validation", () => {
     );
   });
 
-  it("normalizes assignment dates and blocks invalid ordering or temporal ranges", () => {
-    const fields = {
-      personnelId: "p-1",
-      positionId: "pos-1",
-      startsAt: "2026-10-09T00:00:00.000Z",
-      endsAt: "2026-10-10T00:00:00.000Z"
-    };
-    expect(parseOrganizationAssignmentWrite(fields)).toMatchObject({
-      ...fields,
-      enabled: true,
-      sortOrder: 0,
-      dutyDetail: ""
-    });
-    expect(() => parseOrganizationAssignmentWrite({ ...fields, endsAt: "2026-10-08T00:00:00.000Z" })).toThrow(/period/);
-    expect(() => parseOrganizationAssignmentWrite({ ...fields, startsAt: "tomorrow" })).toThrow(/period/);
+  it("accepts manual assignment controls but rejects scheduling and protected fields", () => {
+    const fields = { personnelId: "p-1", positionId: "pos-1" };
+    expect(parseOrganizationAssignmentWrite(fields)).toMatchObject({ ...fields, enabled: true, sortOrder: 0, dutyDetail: "" });
+    expect(() => parseOrganizationAssignmentWrite({ ...fields, startsAt: "2026-10-10T00:00:00Z" })).toThrow(/protected field/);
+    expect(() => parseOrganizationAssignmentWrite({ ...fields, endsAt: "" })).toThrow(/protected field/);
     expect(() => parseOrganizationAssignmentWrite({ ...fields, enabled: "true" })).toThrow(/enabled/);
     expect(() => parseOrganizationAssignmentWrite({ ...fields, createdAt: "forged" })).toThrow(/protected field/);
   });

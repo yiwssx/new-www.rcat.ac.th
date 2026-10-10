@@ -5,7 +5,6 @@ import type {
   OrganizationUnitListRow
 } from "../../features/organization-admin/api";
 import {
-  assignmentDateToUtc,
   enabledDistinctOccupants,
   flattenOrganizationHierarchy,
   positionsForUnit
@@ -68,15 +67,5 @@ describe("Phase 6 Organization builder model", () => {
       { position_id: "p", personnel_id: "c", enabled: 1 }
     ] as OrganizationAssignmentRow[];
     expect(enabledDistinctOccupants(assignments, "p")).toBe(2);
-  });
-  it("converts Thai-local duty dates to UTC and rejects invalid wall-clock dates", () => {
-    expect(assignmentDateToUtc("2026-10-10T09:30")).toBe("2026-10-10T02:30:00.000Z");
-    expect(assignmentDateToUtc("2026-02-30T09:30")).toBeNull();
-    expect(assignmentDateToUtc("")).toBe("");
-  });
-
-  it("preserves stored seconds when an existing date field is unchanged", () => {
-    expect(assignmentDateToUtc("2026-10-10T08:20", "2026-10-10T01:20:23.000Z")).toBe("2026-10-10T01:20:23.000Z");
-    expect(assignmentDateToUtc("2026-10-10T08:21", "2026-10-10T01:20:23.000Z")).toBe("2026-10-10T01:21:00.000Z");
   });
 });

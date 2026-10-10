@@ -43,8 +43,6 @@ const assignment: OrganizationAssignmentRow = {
   position_id: "position-1",
   duty_detail: "Lead",
   sort_order: 0,
-  starts_at: "",
-  ends_at: "",
   enabled: 1,
   revision: 4,
   created_at: "2026-10-10T00:00:00.000Z",
@@ -104,7 +102,7 @@ describe("Organization Chart protected position and assignment writes", () => {
     expect(input?.id).toMatch(/^org-/);
   });
 
-  it("rejects protected fields, invalid dates, and occupant limits without writing", async () => {
+  it("rejects protected fields, scheduling, and occupant limits without writing", async () => {
     const probes: Array<[string, unknown]> = [
       ["positions", { unitContentId: "division-1", title: "Director", revision: 9 }],
       ["positions", { unitContentId: "division-1", title: "Director", occupantLimit: 0 }],

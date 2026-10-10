@@ -159,7 +159,7 @@ describe("Organization Chart phase 1 D1 foundation", () => {
     expect(db.prepare("SELECT COUNT(*) AS total FROM organization_assignments").get()).toMatchObject({ total: 3 });
   });
 
-  it("blocks stale revision writes, malformed settings and invalid assignment ranges", () => {
+  it("blocks stale revision writes and malformed settings", () => {
     content("root");
     unit("root");
     person("p1");
@@ -171,12 +171,7 @@ describe("Organization Chart phase 1 D1 foundation", () => {
     const invalidSettings = db.prepare(
       "UPDATE organization_units SET settings_json = '{oops', revision = 1 WHERE content_id = 'root'"
     );
-    const invalidPeriod = db.prepare(
-      "INSERT INTO organization_assignments (id, personnel_id, position_id, starts_at, ends_at) " +
-        "VALUES ('a1', 'p1', 'post1', '2026-12-01', '2026-11-01')"
-    );
     expect(() => invalidSettings.run()).toThrow();
-    expect(() => invalidPeriod.run()).toThrow();
     db.prepare("UPDATE organization_units SET sort_order = 1, revision = 1 WHERE content_id = 'root'").run();
     const current = db.prepare("SELECT revision FROM organization_units WHERE content_id = 'root'").get();
     expect(current).toMatchObject({ revision: 1 });

@@ -95,8 +95,6 @@ const assignment: OrganizationAssignmentRow = {
   position_id: "post1",
   duty_detail: "Head of work",
   sort_order: 0,
-  starts_at: "",
-  ends_at: "",
   enabled: 1,
   revision: 400,
   created_at: "2026-10-09T00:00:00.000Z",

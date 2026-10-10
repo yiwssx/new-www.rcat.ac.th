@@ -53,20 +53,18 @@ function addAssignment(
   id: string,
   personId: string,
   positionId: string,
-  options: { enabled?: number; startsAt?: string; endsAt?: string; duty?: string } = {}
+  options: { enabled?: number; duty?: string } = {}
 ) {
   const statement = db.prepare(
     "INSERT INTO organization_assignments " +
-      "(id, personnel_id, position_id, duty_detail, starts_at, ends_at, enabled) " +
-      "VALUES (?, ?, ?, ?, ?, ?, ?)"
+      "(id, personnel_id, position_id, duty_detail, enabled) " +
+      "VALUES (?, ?, ?, ?, ?)"
   );
   statement.run(
     id,
     personId,
     positionId,
     options.duty ?? "",
-    options.startsAt ?? "",
-    options.endsAt ?? "",
     options.enabled ?? 1
   );
 }
@@ -123,7 +121,7 @@ describe("Organization Chart public positions and assignments", () => {
     expect(visiblePositions()).toEqual([]);
   });
 
-  it("omits disabled, inactive, future and expired assignments, preserving empty positions", () => {
+  it("uses manual enabled flags and active personnel, preserving empty positions", () => {
     addContent("division");
     addUnit("division");
     addPosition("pos-1", "division");
@@ -131,11 +129,6 @@ describe("Organization Chart public positions and assignments", () => {
     addPerson("enabled");
     addAssignment("a-disabled-person", "disabled", "pos-1");
     addAssignment("a-disabled-assignment", "enabled", "pos-1", { enabled: 0 });
-    addAssignment("a-future", "enabled", "pos-1", { startsAt: "2026-10-10T14:00:00.000Z" });
-    addAssignment("a-expired", "enabled", "pos-1", {
-      endsAt: "2026-10-09T12:00:00.000Z",
-      startsAt: "2026-10-01T00:00:00.000Z"
-    });
 
     const positions = visiblePositions();
     expect(positions).toHaveLength(1);
