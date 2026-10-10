@@ -55,7 +55,7 @@ export function parseOrganizationContentUnitWrite(
   if (protectedKey) throw new OrganizationInputError(`unknown or protected field: ${protectedKey}`);
 
   const slug = optionalText(body.slug, "slug", 160, true).toLowerCase();
-  if (!/^[\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)*$/u.test(slug) || RESERVED.has(slug)) {
+  if (!/^[\p{L}\p{N}][\p{L}\p{N}\p{M}]*(?:-[\p{L}\p{N}][\p{L}\p{N}\p{M}]*)*$/u.test(slug) || RESERVED.has(slug)) {
     throw new OrganizationInputError("invalid or reserved organization slug");
   }
   const status = body.status ?? "draft";
