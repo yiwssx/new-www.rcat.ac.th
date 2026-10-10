@@ -1,6 +1,6 @@
 # Organization Content Workstream Tracker
 
-Status: **PHASE 7 IN PROGRESS / PHASES 0–6 COMPLETE / FEATURE BRANCH ONLY — NO MERGE**
+Status: **PHASE 7 COMPLETE / PHASES 0–7 COMPLETE / PAUSED BEFORE PHASE 8 / FEATURE BRANCH ONLY — NO MERGE**
 
 Updated: 2026-10-10 Asia/Bangkok
 
@@ -91,7 +91,7 @@ Add a dedicated CMS content type for organizational units and personnel structur
 | 4     | Organization list/editor                             | COMPLETE     | Dedicated `/admin/organization` list, title/slug/type/parent/status workflow, revision-safe writes                                                            |
 | 5     | Personnel directory                                  | COMPLETE     | Canonical personnel CRUD, Media Library photo selection, reuse across organization pages                                                                      |
 | 6     | Organization builder                                 | **COMPLETE** | Unit positions, assignment/reassignment, ordering, multiple duties, occupant limits, accessible non-drag controls; drag/drop only if justified                |
-| 7     | Public renderer + permalink/SSR/SEO                  | IN PROGRESS  | Published organization slugs resolve through public routing, hierarchy/breadcrumbs render, draft/private fields remain inaccessible                           |
+| 7     | Public renderer + permalink/SSR/SEO                  | COMPLETE     | Published organization slugs resolve through public routing, hierarchy/breadcrumbs render, draft/private fields remain inaccessible                           |
 | 8     | Menu/search/sitemap integration                      | PLANNED      | Menu can link to organization pages; search/sitemap behavior is deliberate and tested; generic content lists do not leak organization records unintentionally |
 | 9     | Quality, accessibility, performance, backup coverage | PLANNED      | Unit/integration/functional tests, format/lint/build/worker checks, responsive/mobile verification, backup counts/download include new tables where required  |
 | 10    | Production migration + release verification          | PLANNED      | Protected migration/deploy sequence completed once, browser verification passes, tracker records release evidence                                             |
@@ -327,7 +327,7 @@ Add a dedicated CMS content type for organizational units and personnel structur
 
 ## Phase 7 public organization delivery — 2026-10-10 Asia/Bangkok
 
-**Status: IN PROGRESS.** User authorized Phase 7 after the final Phase 6 exact-head CI #38068468945 passed. No Phase 8 or 9 work begins here.
+**Status: COMPLETE / PAUSED BEFORE PHASE 8.** User authorized Phase 7 after final Phase 6 exact-head CI #38068468945 passed. Phase 7 code was validated by exact-head CI #38069911353. No Phase 8 or 9 work begins here.
 
 - Added published-only Worker endpoint `GET /api/public/organization/:slug` alongside the existing list projection. It yields the requested organization unit, published ancestor breadcrumbs, visible descendants, scoped positions/assignments and image-only Media Library assets; missing/draft/scheduled/unpublished ancestor chains return 404 without private record disclosure.
 - Added dedicated React/TanStack Query public organization facade, hydrated SSR loader, and public route `/organization/$slug` with a responsive heading, nested units, position cards, duties, reused canonical people, safely redacted public-contact fields and Media Library portraits. Numeric sorting and manual duty activation remain separate Admin concerns from completed Phase 6.
@@ -335,3 +335,13 @@ Add a dedicated CMS content type for organizational units and personnel structur
 - Reserved the `organization` public route root and ensured generic `/api/public/content/:slug` detail cannot render organization content as an ordinary CMS article. Phase 8 will handle full menu, search and sitemap integration.
 - Slugs can contain Thai/Unicode letters, numbers and hyphen-separated words under the **existing CMS form/Worker slug contract**. Shared validation now covers the Worker public permalink and browser facade as well as Admin.
 - Regression tests cover public scoped projections, unpublished ancestors, private contacts, disabled/inactive assignments, route-head canonical/JSON-LD and API errors. CI must pass against the exact implementation head before Phase 7 may be marked COMPLETE. Do not merge or deploy from this feature branch.
+
+## Phase 7 closure — 2026-10-11 Asia/Bangkok
+
+**Status: COMPLETE on the Organization feature branch; PAUSED BEFORE PHASE 8.** This closure supersedes prior Phase 7 `IN PROGRESS` notes.
+
+- **Verified exact code-head:** `6d3c26ad8b0d68c3a671066f287581f2420bce33`; [CI run #38069911353](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38069911353) **COMPLETED SUCCESS**. All 10 jobs passed: Dependency Preflight, Dependencies, Static Quality (including Prettier/lint), Unit Tests, Integration Tests, Worker, Build, Governance, Functional E2E and the aggregate `quality` gate.
+- Public organization permalinks use the published-only Worker read model with Unicode/Thai slug support, safe ancestor/descendant projections, scoped positions and canonical personnel profiles; private contact fields, draft/hidden ancestors, disabled duties and inactive personnel are excluded.
+- Reused established TanStack Router SSR loader/hydration, MUI responsive rendering, Media Library photos, SEO head/canonical, Open Graph, WebPage and BreadcrumbList JSON-LD. Organization slugs are kept separate from generic content permalinks.
+- Regression coverage includes published/draft 404 behavior, Thai slug round-trip, hierarchy traversal, SSR/SEO metadata, API contract validation, privacy, and the public React renderer. Phase 8 menu, search and sitemap work and Phase 9 deeper mobile/a11y audits remain intentionally unstarted.
+- This final tracker-only documentation commit requires its own exact-head CI confirmation. Keep the existing feature branch and Draft PR unmerged. No production migration, deployment, or real personnel data changes.
