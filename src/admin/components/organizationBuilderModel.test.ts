@@ -4,7 +4,7 @@ import type {
   OrganizationPositionRow,
   OrganizationUnitListRow
 } from "../../features/organization-admin/api";
-import { enabledDistinctOccupants, flattenOrganizationHierarchy, positionsForUnit } from "./organizationBuilderModel";
+import { enabledDistinctOccupants, flattenOrganizationHierarchy, organizationTreeItems, positionsForUnit } from "./organizationBuilderModel";
 
 function unit(id: string, parent: string | null, sort = 0): OrganizationUnitListRow {
   return {
@@ -44,6 +44,14 @@ describe("Phase 6 Organization builder model", () => {
     const tree = flattenOrganizationHierarchy([unit("unloaded", "outside"), unit("a", "b"), unit("b", "a")]);
     expect(tree).toHaveLength(3);
     expect(tree.every((node) => node.detached || node.depth >= 0)).toBe(true);
+  });
+
+  it("creates nested RichTreeView items and marks detached nodes", () => {
+    const tree = organizationTreeItems([unit("work", "division"), unit("division", null), unit("child", "work")]);
+    expect(tree[0]?.id).toBe("division");
+    expect(tree[0]?.children[0]?.id).toBe("work");
+    expect(tree[0]?.children[0]?.children[0]?.id).toBe("child");
+    expect(organizationTreeItems([unit("orphan", "outside")])[0]?.label).toMatch(/ไม่พบหน่วยงานแม่/);
   });
 
   it("sorts only the selected unit positions", () => {

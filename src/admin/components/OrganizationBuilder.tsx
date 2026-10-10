@@ -16,6 +16,7 @@ import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
 import { isAdminStaleRevisionError } from "../../features/admin-write/errors";
 import {
   createOrganizationRecord,
@@ -31,7 +32,7 @@ import {
   type OrganizationUnitListRow
 } from "../../features/organization-admin";
 import { appSwal } from "../../utils/swal";
-import { enabledDistinctOccupants, flattenOrganizationHierarchy, positionsForUnit } from "./organizationBuilderModel";
+import { enabledDistinctOccupants, flattenOrganizationHierarchy, organizationTreeItems, positionsForUnit } from "./organizationBuilderModel";
 
 interface Props {
   units: readonly OrganizationUnitListRow[];
@@ -89,6 +90,7 @@ function pageQuery(collection: "positions" | "assignments" | "personnel") {
 export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, onEditUnit }: Props) {
   const client = useQueryClient();
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
+  const [collapsedUnitIds, setCollapsedUnitIds] = useState<string[]>([]);
   const [positionEditing, setPositionEditing] = useState<OrganizationPositionRow | null>(null);
   const [positionForm, setPositionForm] = useState<PositionForm | null>(null);
   const [assignmentEditing, setAssignmentEditing] = useState<OrganizationAssignmentRow | null>(null);
@@ -114,6 +116,11 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
     [personnelQuery.data]
   );
   const hierarchy = useMemo(() => flattenOrganizationHierarchy(units), [units]);
+  const treeItems = useMemo(() => organizationTreeItems(units), [units]);
+  const expandedTreeIds = useMemo(
+    () => hierarchy.map(({ unit }) => unit.content_id).filter((id) => !collapsedUnitIds.includes(id)),
+    [hierarchy, collapsedUnitIds]
+  );
   const selectedUnit = units.find((unit) => unit.content_id === selectedUnitId) ?? null;
   const visiblePositions = useMemo(
     () => positionsForUnit(positions, selectedUnit?.content_id ?? ""),
@@ -319,31 +326,23 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                 ลำดับชั้นหน่วยงาน
               </Typography>
               <Box component="nav" aria-label="โครงสร้างหน่วยงาน" sx={{ maxHeight: 480, overflowY: "auto" }}>
-                <Stack spacing={0.5}>
-                  {hierarchy.map(({ unit, depth, detached }) => (
-                    <Button
-                      key={unit.content_id}
-                      fullWidth
-                      sx={{
-                        textAlign: "left",
-                        justifyContent: "flex-start",
-                        pl: { xs: Math.min(depth, 3) * 1.5 + 1, md: Math.min(depth, 12) * 2 + 1 },
-                        overflowWrap: "anywhere",
-                        whiteSpace: "normal"
-                      }}
-                      color={unit.content_id === selectedUnitId ? "primary" : "inherit"}
-                      variant={unit.content_id === selectedUnitId ? "contained" : "text"}
-                      aria-current={unit.content_id === selectedUnitId ? "true" : undefined}
-                      onClick={() => {
-                        setSelectedUnitId(unit.content_id);
-                        setError("");
-                      }}
-                    >
-                      {unit.title}
-                      {detached ? " (ไม่พบหน่วยงานแม่ในข้อมูลที่โหลด)" : ""}
-                    </Button>
-                  ))}
-                </Stack>
+                <RichTreeView
+                  items={treeItems}
+                  selectedItems={selectedUnitId}
+                  expandedItems={expandedTreeIds}
+                  aria-label="โครงสร้างหน่วยงาน"
+                  onExpandedItemsChange={(_event, expanded) => {
+                    setCollapsedUnitIds(
+                      hierarchy.map(({ unit }) => unit.content_id).filter((id) => !expanded.includes(id))
+                    );
+                  }}
+                  onSelectedItemsChange={(_event, id) => {
+                    if (typeof id !== "string") return;
+                    setSelectedUnitId(id);
+                    setError("");
+                  }}
+                  sx={{ "& .MuiTreeItem-label": { whiteSpace: "normal", overflowWrap: "anywhere" } }}
+                />
               </Box>
             </Box>
             <Box sx={{ flex: 1, minWidth: 0 }}>

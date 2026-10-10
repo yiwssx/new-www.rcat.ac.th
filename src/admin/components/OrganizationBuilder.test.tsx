@@ -104,9 +104,10 @@ beforeEach(() => {
 describe("Phase 6 accessible Organization builder", () => {
   it("shows a nested unit navigator and position details to read-only editors without writes", async () => {
     setup(false);
-    fireEvent.click(screen.getByRole("button", { name: "งานสารบรรณ" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "งานสารบรรณ" }));
     expect(await screen.findByText("หัวหน้างาน")).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "โครงสร้างหน่วยงาน" })).toBeInTheDocument();
+    expect(screen.getByRole("tree", { name: "โครงสร้างหน่วยงาน" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "เพิ่มตำแหน่ง" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "มอบหมายบุคลากร" })).not.toBeInTheDocument();
     expect(api.create).not.toHaveBeenCalled();
@@ -114,7 +115,7 @@ describe("Phase 6 accessible Organization builder", () => {
 
   it("creates a unit-scoped position through the dedicated audited facade", async () => {
     setup(true);
-    fireEvent.click(screen.getByRole("button", { name: "งานสารบรรณ" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "งานสารบรรณ" }));
     fireEvent.click(await screen.findByRole("button", { name: "เพิ่มตำแหน่ง" }));
     fireEvent.change(screen.getByRole("textbox", { name: "ชื่อตำแหน่ง" }), {
       target: { value: "ผู้ช่วยหัวหน้างาน" }
@@ -134,7 +135,7 @@ describe("Phase 6 accessible Organization builder", () => {
 
   it("assigns an existing canonical person with audited position input and no duplicate profile", async () => {
     setup(true);
-    fireEvent.click(screen.getByRole("button", { name: "งานสารบรรณ" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "งานสารบรรณ" }));
     fireEvent.click(await screen.findByRole("button", { name: "มอบหมายบุคลากร" }));
     fireEvent.mouseDown(screen.getByRole("combobox", { name: "บุคลากรจากทะเบียนกลาง" }));
     fireEvent.click(await screen.findByRole("option", { name: "บุคลากรทดสอบ" }));
@@ -158,7 +159,7 @@ describe("Phase 6 accessible Organization builder", () => {
 
   it("updates a position against the row revision, not an unguarded write", async () => {
     setup(true);
-    fireEvent.click(screen.getByRole("button", { name: "งานสารบรรณ" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "งานสารบรรณ" }));
     fireEvent.click(await screen.findByRole("button", { name: "แก้ไขตำแหน่ง" }));
     fireEvent.change(screen.getByRole("spinbutton", { name: "ลำดับตำแหน่ง" }), {
       target: { value: "2" }
@@ -176,7 +177,7 @@ describe("Phase 6 accessible Organization builder", () => {
 
   it("exposes assignment to canonical personnel rather than creating a second person", async () => {
     setup(true);
-    fireEvent.click(screen.getByRole("button", { name: "งานสารบรรณ" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "งานสารบรรณ" }));
     fireEvent.click(await screen.findByRole("button", { name: "มอบหมายบุคลากร" }));
     expect(screen.getByRole("dialog", { name: "มอบหมายบุคลากร" })).toBeInTheDocument();
     expect(screen.getByText(/บันทึกบุคลากรคนเดิมซ้ำในหลายตำแหน่ง/)).toBeInTheDocument();
@@ -205,7 +206,7 @@ describe("Phase 6 accessible Organization builder", () => {
       generatedAt: ""
     }));
     setup(false);
-    fireEvent.click(screen.getByRole("button", { name: "งานสารบรรณ" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "งานสารบรรณ" }));
     expect(await screen.findByText(/ยังไม่พบตำแหน่งของหน่วยงานนี้ในรายการที่โหลด/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "โหลดตำแหน่งเพิ่มเติม" }));
     expect(await screen.findByText("เจ้าหน้าที่ประสานงาน")).toBeInTheDocument();
@@ -218,7 +219,7 @@ describe("Phase 6 accessible Organization builder", () => {
       return { items: [], nextOffset: null, maximumItems: 100, generatedAt: "" };
     });
     setup(false);
-    fireEvent.click(screen.getByRole("button", { name: "งานสารบรรณ" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "งานสารบรรณ" }));
     expect(await screen.findByText(/โหลดข้อมูลตำแหน่ง\/หน้าที่\/บุคลากรไม่สำเร็จ/)).toBeInTheDocument();
     expect(screen.queryByText("ยังไม่มีตำแหน่งในหน่วยงานนี้")).not.toBeInTheDocument();
   });
@@ -226,7 +227,7 @@ describe("Phase 6 accessible Organization builder", () => {
   it("fails closed on concurrent position changes and refuses an unversioned overwrite", async () => {
     api.update.mockRejectedValueOnce(new AdminStaleRevisionError());
     setup(true);
-    fireEvent.click(screen.getByRole("button", { name: "งานสารบรรณ" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "งานสารบรรณ" }));
     fireEvent.click(await screen.findByRole("button", { name: "แก้ไขตำแหน่ง" }));
     fireEvent.change(screen.getByRole("textbox", { name: "ชื่อตำแหน่ง" }), {
       target: { value: "หัวหน้างาน (แก้ไข)" }

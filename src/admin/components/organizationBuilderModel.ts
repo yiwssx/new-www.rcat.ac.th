@@ -46,6 +46,30 @@ export function flattenOrganizationHierarchy(units: readonly OrganizationUnitLis
   return result;
 }
 
+/** Nested, cycle-tolerant items for MUI X RichTreeView. */
+export interface OrganizationTreeItem {
+  id: string;
+  label: string;
+  children: OrganizationTreeItem[];
+}
+
+export function organizationTreeItems(units: readonly OrganizationUnitListRow[]): OrganizationTreeItem[] {
+  const roots: OrganizationTreeItem[] = [];
+  const ancestors: OrganizationTreeItem[] = [];
+  for (const { unit, depth, detached } of flattenOrganizationHierarchy(units)) {
+    const item: OrganizationTreeItem = {
+      id: unit.content_id,
+      label: unit.title + (detached ? " (ไม่พบหน่วยงานแม่ในข้อมูลที่โหลด)" : ""),
+      children: []
+    };
+    if (depth === 0) roots.push(item);
+    else (ancestors[depth - 1]?.children ?? roots).push(item);
+    ancestors.length = depth;
+    ancestors.push(item);
+  }
+  return roots;
+}
+
 export function positionsForUnit(positions: readonly OrganizationPositionRow[], unitId: string) {
   return positions
     .filter((position) => position.unit_content_id === unitId)
