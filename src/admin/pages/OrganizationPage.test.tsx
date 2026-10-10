@@ -101,6 +101,13 @@ describe("Phase 4 Organization Admin list/editor", () => {
     expect(api.update).not.toHaveBeenCalled();
   });
 
+  it("only deletes units after user confirmation with the exact server revision", async () => {
+    auth.capabilities = ["organization.read", "organization.manage"];
+    renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: "ลบ" }));
+    await waitFor(() => expect(api.remove).toHaveBeenCalledWith("units", "unit-1", 2));
+  });
+
   it("fails closed and requests fresh data when someone else changed a revision", async () => {
     auth.capabilities = ["organization.read", "organization.manage"];
     api.update.mockRejectedValueOnce(new AdminStaleRevisionError());
