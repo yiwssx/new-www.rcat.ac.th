@@ -233,7 +233,7 @@ export async function requestCloudflareAdmin<T>(path: string, init: RequestInit 
 
     if (
       response.status === 409 &&
-      (errorMessage === "duplicate slug" || errorMessage === "organization slug already exists")
+      (/^(?:duplicate slug|organization slug already exists)$/i.test(errorMessage) || errorMessage === "organization slug already exists")
     ) {
       throw new AdminDuplicateSlugError();
     }
