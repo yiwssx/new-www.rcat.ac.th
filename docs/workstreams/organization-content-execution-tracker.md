@@ -1,6 +1,6 @@
 # Organization Content Workstream Tracker
 
-Status: **ACTIVE / PHASES 1–3 COMPLETE / PHASE 4 IN PROGRESS / FEATURE BRANCH ONLY — NO MERGE**
+Status: **PAUSED / PHASES 1–4 COMPLETE / PHASE 5 PLANNED / FEATURE BRANCH ONLY — NO MERGE**
 
 Updated: 2026-10-10 Asia/Bangkok
 
@@ -13,7 +13,7 @@ Recovery source: closed, unmerged [PR #524](https://github.com/yiwssx/new-www.rc
 ## Recovery checkpoint
 
 - Restored onto current `main` through a documentation-only PR on 2026-10-08.
-- Phases 0–3 are **COMPLETE** (Phase 3 exact-code-head CI green on 2026-10-10). Phase 4 was subsequently authorized and is **IN_PROGRESS**; Phases 5–11 remain PLANNED.
+- Phases 0–4 are **COMPLETE** (Phase 4 code-head CI green on 2026-10-10). Phases 5–11 remain PLANNED. Implementation is paused before Phase 5.
 - The Organization workstream was explicitly resumed on 2026-10-09. Implementation is scoped to non-production PRs.
 - The original tracker restoration was documentation-only. The later 2026-10-09 implementation authorization covers non-production feature development, not production database changes, deployments, or real-data population.
 
@@ -88,7 +88,7 @@ Add a dedicated CMS content type for organizational units and personnel structur
 | 1     | Schema + shared contracts                            | COMPLETE     | Append-only D1 migration, types, validation, indexes, hierarchy/assignment integrity tests                                                                    |
 | 2     | Worker repositories + public/admin APIs              | COMPLETE     | CRUD/read contracts, recursive unit reads, personnel/position/assignment operations, safe public sanitizer                                                    |
 | 3     | RBAC + Admin routing/service layer                   | COMPLETE     | Dedicated capabilities, route policy, API facade/query keys, Admin navigation entry                                                                           |
-| 4     | Organization list/editor                             | IN_PROGRESS  | Dedicated `/admin/organization` list, title/slug/type/parent/status workflow, revision-safe writes                                                            |
+| 4     | Organization list/editor                             | COMPLETE     | Dedicated `/admin/organization` list, title/slug/type/parent/status workflow, revision-safe writes                                                            |
 | 5     | Personnel directory                                  | PLANNED      | Canonical personnel CRUD, Media Library photo selection, reuse across organization pages                                                                      |
 | 6     | Organization builder                                 | PLANNED      | Unit positions, assignment/reassignment, ordering, multiple duties, occupant limits, accessible non-drag controls; drag/drop only if justified                |
 | 7     | Public renderer + permalink/SSR/SEO                  | PLANNED      | Published organization slugs resolve through public routing, hierarchy/breadcrumbs render, draft/private fields remain inaccessible                           |
@@ -119,7 +119,7 @@ Add a dedicated CMS content type for organizational units and personnel structur
 
 ## Planned dependencies and tool adoption — decision 2026-10-10
 
-**Status: DEPENDENCY PLAN ONLY / NOT INSTALLED.** The initial approval covered tool planning without installing packages or starting Phase 3. Phase 3 was subsequently authorized separately and completed on 2026-10-10. The remaining tool choices require review during Phases 4–9.
+**Status: Phase 4 form dependencies INSTALLED; Phase 5–9 planned dependencies NOT INSTALLED.** The initial approval covered tool planning without installing packages or starting Phase 3. Phase 3 was subsequently authorized separately and completed on 2026-10-10. Phase 4 subsequently installed React Hook Form, Zod and its resolver. Remaining tool choices require review during Phases 5–9.
 
 | Phase                                         | Planned dependency/tool choice                                                             | Decision                                                                          | Reason and constraints                                                                                                                                                                                                                                                                                                                                                                                 |
 | --------------------------------------------- | ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -253,7 +253,7 @@ Add a dedicated CMS content type for organizational units and personnel structur
 
 ## Next action
 
-**Phase 4 IN_PROGRESS.** Continue exact-head CI verification and close editor/list regressions; do not mark Phase 4 complete until all required checks pass. Keep `agent/org-01-domain-schema` and [Draft PR #553](https://github.com/yiwssx/new-www.rcat.ac.th/pull/553) open and unmerged. Do not start Phase 5, deploy, or populate production data.
+**PAUSE BEFORE PHASE 5.** Phase 4 code-head CI passed on `998317d42b6b0204ecc812617a837e45fc4b390a`. Keep `agent/org-01-domain-schema` and [Draft PR #553](https://github.com/yiwssx/new-www.rcat.ac.th/pull/553) open and unmerged. Do not start Phase 5, deploy, or populate production data until separately authorized.
 
 ## Phase 4 active checkpoint — 2026-10-10 Asia/Bangkok
 
@@ -263,3 +263,15 @@ Add a dedicated CMS content type for organizational units and personnel structur
 - Diagnosed CI regressions: repository invalid-pagination assertions expected Promise rejections from synchronous validation, while the Worker requires UTC `toISOString()` but the form initially sent `+07:00` offsets. Both corrections have landed in the active feature branch. Replaced React Hook Form `watch()` with `useWatch()` to satisfy React compiler lint.
 - **Verification pending:** Await exact-final-head CI (Unit Tests, Static Quality/Prettier, Worker, Build, Integration, Security/Governance and aggregate Quality) and reconcile any further failures. Do not infer success from prior/cancelled runs.
 - **No intermediate merge, production D1 migration, release or real personnel data changes.** Phase 5–11 remain deferred.
+
+
+## Phase 4 closure — 2026-10-10 Asia/Bangkok
+
+**Status: COMPLETE / PAUSED BEFORE PHASE 5.** This section supersedes the preceding Phase 4 in-progress checkpoint.
+
+- Dedicated `/admin/organization` list and editor now support protected create/edit/delete, title/slug, unit kinds, recursive parent choices, display order, publication state/windows and visible validation errors. Read-only roles cannot access write controls.
+- React Hook Form + Zod + resolver adopted under the approved Phase 4 dependency plan; `useWatch` avoids React Compiler lint warnings. Local Thai wall-clock publication times are converted to canonical UTC ISO instants accepted by Worker validation.
+- The units list uses offset-based infinite pagination with an explicit Load More action, error feedback and regression coverage. The former misleading 100-record hard-stop warning was removed. Personnel/positions/assignments counters remain bounded previews until their respective phases.
+- Revision-safe writes, stale-conflict recovery, hierarchy cycle guards, reserved slugs, validation and publication windows have unit/Worker regression coverage. The Worker remains authoritative for RBAC/CSRF/step-up, D1 writes and privacy.
+- **Exact-code-head full CI passed** at `998317d42b6b0204ecc812617a837e45fc4b390a`: [CI run #38038056497](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38038056497). Dependency Preflight, Static Quality/Prettier, Unit Tests, Integration Tests, Worker, Build, Dependencies, Governance, Functional E2E and aggregate Quality all succeeded. Prettier autofix applied formatting-only commit `998317d42b`.
+- This tracker closure is documentation-only after the validated code head; verify its own CI separately. **No merge to `main`, protected D1 migration, production deploy or real RCAT data population occurred.** Draft PR #553 remains WIP for Phases 5–9.
