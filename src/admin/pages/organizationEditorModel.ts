@@ -26,7 +26,10 @@ export const organizationEditorSchema = z
       .trim()
       .min(1, "กรุณาระบุ Slug")
       .max(160)
-      .regex(/^[\p{L}\p{N}][\p{L}\p{N}\p{M}]*(?:-[\p{L}\p{N}][\p{L}\p{N}\p{M}]*)*$/u, "Slug ใช้ตัวอักษร ตัวเลข และขีดกลางระหว่างคำ"),
+      .regex(
+        /^[\p{L}\p{N}][\p{L}\p{N}\p{M}]*(?:-[\p{L}\p{N}][\p{L}\p{N}\p{M}]*)*$/u,
+        "Slug ใช้ตัวอักษร ตัวเลข และขีดกลางระหว่างคำ"
+      ),
     summary: z.string().trim().max(2000),
     unitKind: z.enum(["division", "work", "department", "program", "subunit"]),
     parentContentId: z.string(),
@@ -36,7 +39,22 @@ export const organizationEditorSchema = z
     unpublishAt: z.string()
   })
   .superRefine((value, context) => {
-    if (new Set(["admin", "api", "app", "auth", "documents", "login", "news", "organization", "personnel", "sitemap", "robots", "search"]).has(value.slug.toLowerCase())) {
+    if (
+      new Set([
+        "admin",
+        "api",
+        "app",
+        "auth",
+        "documents",
+        "login",
+        "news",
+        "organization",
+        "personnel",
+        "sitemap",
+        "robots",
+        "search"
+      ]).has(value.slug.toLowerCase())
+    ) {
       context.addIssue({ code: "custom", path: ["slug"], message: "Slug นี้เป็นคำสงวน" });
     }
     const publishAt = fromLocalDateTimeInputValue(value.publishAt);
@@ -50,8 +68,15 @@ export const organizationEditorSchema = z
     if (value.status === "scheduled" && (!publishAt || Date.parse(publishAt) <= Date.now())) {
       context.addIssue({ code: "custom", path: ["publishAt"], message: "ต้องเลือกวันเวลาเผยแพร่ในอนาคต" });
     }
-    if (unpublishAt && (!publishAt && value.status !== "published" || (publishAt && Date.parse(unpublishAt) <= Date.parse(publishAt)))) {
-      context.addIssue({ code: "custom", path: ["unpublishAt"], message: "วันเวลาหยุดเผยแพร่ต้องอยู่หลังวันเวลาเผยแพร่" });
+    if (
+      unpublishAt &&
+      ((!publishAt && value.status !== "published") || (publishAt && Date.parse(unpublishAt) <= Date.parse(publishAt)))
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["unpublishAt"],
+        message: "วันเวลาหยุดเผยแพร่ต้องอยู่หลังวันเวลาเผยแพร่"
+      });
     }
   });
 
@@ -71,17 +96,15 @@ export function editorDefaults(row?: OrganizationUnitListRow | null): Organizati
   };
 }
 
-export function availableOrganizationParents(
-  units: readonly OrganizationUnitListRow[],
-  editingId: string | null
-) {
+export function availableOrganizationParents(units: readonly OrganizationUnitListRow[], editingId: string | null) {
   if (!editingId) return [...units];
-  return units.filter((candidate) =>
-    validateOrganizationParent(
-      units.map((unit) => ({ contentId: unit.content_id, parentContentId: unit.parent_content_id })),
-      editingId,
-      candidate.content_id
-    ).ok
+  return units.filter(
+    (candidate) =>
+      validateOrganizationParent(
+        units.map((unit) => ({ contentId: unit.content_id, parentContentId: unit.parent_content_id })),
+        editingId,
+        candidate.content_id
+      ).ok
   );
 }
 
