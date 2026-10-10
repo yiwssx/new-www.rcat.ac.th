@@ -21,6 +21,29 @@ describe("CMS capability routing", () => {
     authMock.capabilities = [];
   });
 
+  it("denies organization navigation to generic content readers and viewers", () => {
+    authMock.role = "viewer";
+    authMock.capabilities = ["content.read"];
+    render(
+      <CapabilityGuard capability="organization.read">
+        <div>organization private data</div>
+      </CapabilityGuard>
+    );
+    expect(screen.queryByText("organization private data")).not.toBeInTheDocument();
+    expect(screen.getByText("ไม่มีสิทธิ์เข้าถึง")).toBeInTheDocument();
+  });
+
+  it("permits organization access only when the dedicated capability is present", () => {
+    authMock.role = "editor";
+    authMock.capabilities = ["organization.read"];
+    render(
+      <CapabilityGuard capability="organization.read">
+        <div>organization private data</div>
+      </CapabilityGuard>
+    );
+    expect(screen.getByText("organization private data")).toBeInTheDocument();
+  });
+
   it.each(["editor", "viewer"] as const)("does not let a %s reach the all-users view", (role) => {
     authMock.role = role;
     render(
