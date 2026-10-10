@@ -608,6 +608,7 @@ function contentSql(searchParams: URLSearchParams): AdminPageSql {
     from: "contents",
     filters: compactFilters([
       { clause: "COALESCE(deleted_at, '') = ''", bindings: [] },
+      { clause: "type <> 'organization'", bindings: [] },
       searchFilter(searchParams, ["title", "summary", "slug", "category", "owner", "tags_json"]),
       exactFilter(searchParams, "status", "status"),
       exactFilter(searchParams, "type", "type"),
@@ -1310,6 +1311,7 @@ async function handlePublishPending(env: Env, identity: AdminIdentity) {
          updated_by = ?,
          revision = revision + 1
        WHERE COALESCE(deleted_at, '') = ''
+         AND type <> 'organization'
          AND ${PUBLISHABLE_CONTENT_SQL}
        RETURNING id`
     )
