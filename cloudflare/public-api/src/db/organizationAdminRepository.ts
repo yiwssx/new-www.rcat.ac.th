@@ -164,3 +164,83 @@ export function createOrganizationAssignmentRow(env: Env, row: OrganizationAssig
 export function updateOrganizationAssignmentRow(env: Env, row: OrganizationAssignmentRow, expectedRevision: number) {
   return updateRow(env, "assignment", row, expectedRevision);
 }
+
+/** The audit insert and personnel creation run as a single D1 transaction. */
+export async function createAuditedPersonnelRow(env: Env, row: PersonnelRow, actor: string) {
+  const db = requireD1Database(env);
+  const insert = db
+    .prepare(
+      `INSERT INTO personnel (${PERSONNEL_ROW_COLUMNS.join(", ")})
+       VALUES (${PERSONNEL_ROW_COLUMNS.map(() => "?").join(", ")})`
+    )
+    .bind(...PERSONNEL_ROW_COLUMNS.map((column) => (column === "revision" ? 0 : row[column])));
+  const audit = db
+    .prepare(
+      `INSERT INTO admin_audit_log (id, entity_type, entity_id, action, actor, created_at, metadata_json)
+       VALUES (?, 'personnel', ?, 'create', ?, ?, '{}')`
+    )
+    .bind(`audit-${crypto.randomUUID()}`, row.id, actor, row.created_at);
+  await db.batch([insert, audit]);
+}
+
+/**
+ * Audit is gated on the expected revision inside the same D1 transaction.
+ * A stale write neither alters personnel nor inserts a misleading audit event.
+ * No private contact values are stored in the audit metadata.
+ */
+export async function updateAuditedPersonnelRow(
+  env: Env,
+  row: PersonnelRow,
+  expectedRevision: number,
+  actor: string,
+  changedFields: readonly string[]
+): Promise<boolean> {
+  validateExpectedRevision(expectedRevision);
+  const db = requireD1Database(env);
+  const audit = db
+    .prepare(
+      `INSERT INTO admin_audit_log (id, entity_type, entity_id, action, actor, created_at, metadata_json)
+       SELECT ?, 'personnel', ?, 'update', ?, ?, ?
+       WHERE EXISTS (SELECT 1 FROM personnel WHERE id = ? AND revision = ?)`
+    )
+    .bind(
+      `audit-${crypto.randomUUID()}`,
+      row.id,
+      actor,
+      row.updated_at,
+      JSON.stringify({ changedFields, expectedRevision }),
+      row.id,
+      expectedRevision
+    );
+  const update = db
+    .prepare(
+      `UPDATE personnel
+       SET display_name = ?, personnel_type = ?, employment_position = ?, photo_media_id = ?,
+           public_email = ?, public_phone = ?, show_public_email = ?, show_public_phone = ?,
+           active = ?, updated_at = ?, revision = revision + 1
+       WHERE id = ? AND revision = ?`
+    )
+    .bind(
+      row.display_name,
+      row.personnel_type,
+      row.employment_position,
+      row.photo_media_id,
+      row.public_email,
+      row.public_phone,
+      row.show_public_email,
+      row.show_public_phone,
+      row.active,
+      row.updated_at,
+      row.id,
+      expectedRevision
+    );
+  const results = await db.batch([audit, update]);
+  return Number(results[1]?.meta.changes ?? 0) === 1;
+}
+
+export function getAdminPersonnelById(env: Env, id: string) {
+  return requireD1Database(env)
+    .prepare(`SELECT ${PERSONNEL_ROW_COLUMNS.join(", ")} FROM personnel WHERE id = ? LIMIT 1`)
+    .bind(id)
+    .first<PersonnelRow>();
+}
