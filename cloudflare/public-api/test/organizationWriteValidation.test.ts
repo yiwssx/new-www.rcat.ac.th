@@ -54,15 +54,19 @@ describe("Organization Chart server-side write validation", () => {
   });
 
   it("enforces position occupant limits and foreign-reference syntax", () => {
-    expect(parseOrganizationPositionWrite({ unitContentId: "division", title: " Head ", occupantLimit: 2 }))
-      .toMatchObject({ title: "Head", occupantLimit: 2, sortOrder: 0 });
-    expect(() => parseOrganizationPositionWrite({ unitContentId: "division", title: "Head", occupantLimit: 0 }))
-      .toThrow(/occupantLimit/);
-    expect(() => parseOrganizationPositionWrite({ unitContentId: "division", title: "Head", occupantLimit: 2.5 }))
-      .toThrow(/occupantLimit/);
+    expect(
+      parseOrganizationPositionWrite({ unitContentId: "division", title: " Head ", occupantLimit: 2 })
+    ).toMatchObject({ title: "Head", occupantLimit: 2, sortOrder: 0 });
+    expect(() =>
+      parseOrganizationPositionWrite({ unitContentId: "division", title: "Head", occupantLimit: 0 })
+    ).toThrow(/occupantLimit/);
+    expect(() =>
+      parseOrganizationPositionWrite({ unitContentId: "division", title: "Head", occupantLimit: 2.5 })
+    ).toThrow(/occupantLimit/);
     expect(() => parseOrganizationPositionWrite({ title: "Head" })).toThrow(/unitContentId/);
-    expect(() => parseOrganizationPositionWrite({ unitContentId: "division", title: "Head", updatedAt: "" }))
-      .toThrow(/protected field/);
+    expect(() => parseOrganizationPositionWrite({ unitContentId: "division", title: "Head", updatedAt: "" })).toThrow(
+      /protected field/
+    );
   });
 
   it("normalizes assignment dates and blocks invalid ordering or temporal ranges", () => {
@@ -78,11 +82,9 @@ describe("Organization Chart server-side write validation", () => {
       sortOrder: 0,
       dutyDetail: ""
     });
-    expect(() => parseOrganizationAssignmentWrite({ ...fields, endsAt: "2026-10-08T00:00:00.000Z" }))
-      .toThrow(/period/);
+    expect(() => parseOrganizationAssignmentWrite({ ...fields, endsAt: "2026-10-08T00:00:00.000Z" })).toThrow(/period/);
     expect(() => parseOrganizationAssignmentWrite({ ...fields, startsAt: "tomorrow" })).toThrow(/period/);
     expect(() => parseOrganizationAssignmentWrite({ ...fields, enabled: "true" })).toThrow(/enabled/);
-    expect(() => parseOrganizationAssignmentWrite({ ...fields, createdAt: "forged" }))
-      .toThrow(/protected field/);
+    expect(() => parseOrganizationAssignmentWrite({ ...fields, createdAt: "forged" })).toThrow(/protected field/);
   });
 });
