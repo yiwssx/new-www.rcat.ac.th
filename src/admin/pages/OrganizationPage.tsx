@@ -60,14 +60,17 @@ export default function OrganizationPage() {
   const filtered = useMemo(() => {
     const term = search.trim().toLocaleLowerCase("th");
     return rows
-      .filter((unit) => !term || [unit.title, unit.slug, unit.unit_kind].some((s) => s.toLocaleLowerCase("th").includes(term)))
+      .filter(
+        (unit) => !term || [unit.title, unit.slug, unit.unit_kind].some((s) => s.toLocaleLowerCase("th").includes(term))
+      )
       .sort((a, b) => a.sort_order - b.sort_order || a.title.localeCompare(b.title, "th"));
   }, [rows, search]);
 
   const saveMutation = useMutation({
     mutationFn: async (input: OrganizationUnitWrite) => {
       if (editing) {
-        if (editing.content_revision !== editing.unit_revision) throw new Error("Revision ไม่ตรงกัน กรุณาโหลดข้อมูลใหม่");
+        if (editing.content_revision !== editing.unit_revision)
+          throw new Error("Revision ไม่ตรงกัน กรุณาโหลดข้อมูลใหม่");
         await updateOrganizationRecord("units", editing.content_id, editing.content_revision, input);
       } else {
         await createOrganizationRecord("units", input);
@@ -140,9 +143,11 @@ export default function OrganizationPage() {
       await invalidateOrganizationQueries(client);
       setSuccess("ลบหน่วยงานแล้ว");
     } catch (cause) {
-      setError(isAdminStaleRevisionError(cause)
-        ? "ข้อมูลหน่วยงานเปลี่ยนแปลงแล้ว กรุณาตรวจสอบข้อมูลล่าสุดก่อนลบ"
-        : humanError(cause));
+      setError(
+        isAdminStaleRevisionError(cause)
+          ? "ข้อมูลหน่วยงานเปลี่ยนแปลงแล้ว กรุณาตรวจสอบข้อมูลล่าสุดก่อนลบ"
+          : humanError(cause)
+      );
       await invalidateOrganizationQueries(client);
     }
   }
@@ -160,19 +165,33 @@ export default function OrganizationPage() {
           จัดการหน่วยงานแยกจากเนื้อหาทั่วไป โดยระบบตรวจสอบสิทธิ์และ Revision ก่อนบันทึก
         </Typography>
       </Box>
-      {!canManage && <Alert severity="info">บัญชีนี้มีสิทธิ์อ่านข้อมูลผังองค์กร แต่ไม่สามารถเปลี่ยนแปลงข้อมูลได้</Alert>}
-      {error && <Alert severity="error" role="alert">{error}</Alert>}
-      {success && <Alert severity="success" role="status">{success}</Alert>}
+      {!canManage && (
+        <Alert severity="info">บัญชีนี้มีสิทธิ์อ่านข้อมูลผังองค์กร แต่ไม่สามารถเปลี่ยนแปลงข้อมูลได้</Alert>
+      )}
+      {error && (
+        <Alert severity="error" role="alert">
+          {error}
+        </Alert>
+      )}
+      {success && (
+        <Alert severity="success" role="status">
+          {success}
+        </Alert>
+      )}
       <Grid container spacing={2}>
         {collections.map(({ label, query }) => (
           <Grid key={label} size={{ xs: 12, sm: 6, lg: 3 }}>
             <Card variant="outlined" sx={{ height: "100%" }}>
               <CardContent>
-                <Typography color="text.secondary" variant="body2">{label}</Typography>
+                <Typography color="text.secondary" variant="body2">
+                  {label}
+                </Typography>
                 <Typography variant="h3" sx={{ mt: 1, fontWeight: 700 }}>
                   {query.isPending ? "…" : query.isError ? "—" : query.data.items.length}
                 </Typography>
-                <Typography variant="caption" color="text.secondary">จำนวนที่โหลด (สูงสุด 100 รายการ)</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  จำนวนที่โหลด (สูงสุด 100 รายการ)
+                </Typography>
               </CardContent>
             </Card>
           </Grid>
@@ -181,47 +200,102 @@ export default function OrganizationPage() {
       <Card variant="outlined">
         <CardContent>
           <Stack spacing={2}>
-            <Stack direction={{ xs: "column", sm: "row" }} gap={2} sx={{ justifyContent: "space-between", alignItems: { sm: "center" } }}>
-              <Typography variant="h2" sx={{ fontSize: "1.25rem" }}>รายการหน่วยงาน</Typography>
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              gap={2}
+              sx={{ justifyContent: "space-between", alignItems: { sm: "center" } }}
+            >
+              <Typography variant="h2" sx={{ fontSize: "1.25rem" }}>
+                รายการหน่วยงาน
+              </Typography>
               <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }}>
-                <Button startIcon={<RefreshOutlinedIcon />} onClick={() => void units.refetch()} disabled={units.isFetching}>รีเฟรช</Button>
-                {canManage && <Button variant="contained" startIcon={<AddOutlinedIcon />} onClick={startCreate}>เพิ่มหน่วยงาน</Button>}
+                <Button
+                  startIcon={<RefreshOutlinedIcon />}
+                  onClick={() => void units.refetch()}
+                  disabled={units.isFetching}
+                >
+                  รีเฟรช
+                </Button>
+                {canManage && (
+                  <Button variant="contained" startIcon={<AddOutlinedIcon />} onClick={startCreate}>
+                    เพิ่มหน่วยงาน
+                  </Button>
+                )}
               </Stack>
             </Stack>
             <TextField
-              label="ค้นหาชื่อ, Slug หรือประเภทหน่วยงาน" value={search}
-              onChange={(event) => setSearch(event.target.value)} fullWidth
+              label="ค้นหาชื่อ, Slug หรือประเภทหน่วยงาน"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              fullWidth
               slotProps={{ htmlInput: { maxLength: 160 } }}
             />
             {units.isPending && <Typography role="status">กำลังโหลดหน่วยงาน…</Typography>}
             {units.isError && <Alert severity="error">โหลดรายการหน่วยงานไม่สำเร็จ กรุณาลองใหม่</Alert>}
-            {rows.length === 0 && !units.isPending && !units.isError && <Alert severity="info">ยังไม่มีข้อมูลหน่วยงาน</Alert>}
-            {rows.length > 0 && filtered.length === 0 && <Typography color="text.secondary">ไม่พบหน่วยงานที่ตรงกับคำค้น</Typography>}
+            {rows.length === 0 && !units.isPending && !units.isError && (
+              <Alert severity="info">ยังไม่มีข้อมูลหน่วยงาน</Alert>
+            )}
+            {rows.length > 0 && filtered.length === 0 && (
+              <Typography color="text.secondary">ไม่พบหน่วยงานที่ตรงกับคำค้น</Typography>
+            )}
             {filtered.map((unit) => (
               <Box key={unit.content_id} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2 }}>
-                <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ alignItems: { sm: "center" }, justifyContent: "space-between" }}>
+                <Stack
+                  direction={{ xs: "column", sm: "row" }}
+                  spacing={1.5}
+                  sx={{ alignItems: { sm: "center" }, justifyContent: "space-between" }}
+                >
                   <Box sx={{ minWidth: 0 }}>
                     <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap", alignItems: "center" }}>
                       <Typography sx={{ fontWeight: 700, overflowWrap: "anywhere" }}>{unit.title}</Typography>
-                      <Chip size="small" label={ORGANIZATION_KIND_LABELS[unit.unit_kind as keyof typeof ORGANIZATION_KIND_LABELS] ?? unit.unit_kind} variant="outlined" />
-                      <Chip size="small" color={unit.status === "published" ? "success" : "default"}
-                        label={ORGANIZATION_STATUS_LABELS[unit.status] ?? unit.status} />
+                      <Chip
+                        size="small"
+                        label={
+                          ORGANIZATION_KIND_LABELS[unit.unit_kind as keyof typeof ORGANIZATION_KIND_LABELS] ??
+                          unit.unit_kind
+                        }
+                        variant="outlined"
+                      />
+                      <Chip
+                        size="small"
+                        color={unit.status === "published" ? "success" : "default"}
+                        label={ORGANIZATION_STATUS_LABELS[unit.status] ?? unit.status}
+                      />
                     </Stack>
                     <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: "anywhere", mt: 0.5 }}>
                       /{unit.slug} · ลำดับ {unit.sort_order}
-                      {unit.parent_content_id ? ` · อยู่ภายใต้ ${rows.find((item) => item.content_id === unit.parent_content_id)?.title ?? "หน่วยงานอื่น"}` : ""}
+                      {unit.parent_content_id
+                        ? ` · อยู่ภายใต้ ${rows.find((item) => item.content_id === unit.parent_content_id)?.title ?? "หน่วยงานอื่น"}`
+                        : ""}
                     </Typography>
                   </Box>
                   {canManage && (
                     <Stack direction="row" spacing={1}>
-                      <Button startIcon={<EditOutlinedIcon />} onClick={() => startEdit(unit)} disabled={saveMutation.isPending || deleteMutation.isPending}>แก้ไข</Button>
-                      <Button startIcon={<DeleteOutlineOutlinedIcon />} color="error" onClick={() => void handleDelete(unit)} disabled={saveMutation.isPending || deleteMutation.isPending}>ลบ</Button>
+                      <Button
+                        startIcon={<EditOutlinedIcon />}
+                        onClick={() => startEdit(unit)}
+                        disabled={saveMutation.isPending || deleteMutation.isPending}
+                      >
+                        แก้ไข
+                      </Button>
+                      <Button
+                        startIcon={<DeleteOutlineOutlinedIcon />}
+                        color="error"
+                        onClick={() => void handleDelete(unit)}
+                        disabled={saveMutation.isPending || deleteMutation.isPending}
+                      >
+                        ลบ
+                      </Button>
                     </Stack>
                   )}
                 </Stack>
               </Box>
             ))}
-            {rows.length >= 100 && <Alert severity="warning">รายการปัจจุบันแสดงสูงสุด 100 รายการ ต้องเพิ่ม Pagination ก่อนใช้งานกับหน่วยงานจำนวนมาก</Alert>}
+            {rows.length >= 100 && (
+              <Alert severity="warning">
+                รายการปัจจุบันแสดงสูงสุด 100 รายการ ต้องเพิ่ม Pagination ก่อนใช้งานกับหน่วยงานจำนวนมาก
+              </Alert>
+            )}
           </Stack>
         </CardContent>
       </Card>
@@ -232,7 +306,12 @@ export default function OrganizationPage() {
           units={rows}
           busy={saveMutation.isPending}
           error={editorError}
-          onClose={() => { if (!saveMutation.isPending) { setEditorOpen(false); setEditing(null); } }}
+          onClose={() => {
+            if (!saveMutation.isPending) {
+              setEditorOpen(false);
+              setEditing(null);
+            }
+          }}
           onSave={handleSave}
         />
       )}
