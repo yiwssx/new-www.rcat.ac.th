@@ -1511,7 +1511,7 @@ describe("M18 admin structured write routes", () => {
     const paths = [
       makeRequest(`/api/admin/content/${id}`, { headers: cmsHeaders }),
       makeJsonRequest(`/api/admin/content/${id}`, { title: "Bypass", type: "news" }, { method: "PATCH" }),
-      makeRequest(`https://preview-worker.example.test/api/admin/content/${id}`, {
+      makeRequest(`/api/admin/content/${id}`, {
         method: "DELETE",
         headers: cmsHeaders
       }),
