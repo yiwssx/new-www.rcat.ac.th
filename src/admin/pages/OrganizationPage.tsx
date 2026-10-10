@@ -211,7 +211,7 @@ export default function OrganizationPage() {
                   {isPending ? "…" : isError ? "—" : count}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  จำนวนที่โหลด (สูงสุด 100 รายการ)
+                  {label === "หน่วยงาน" ? "จำนวนที่โหลด (100 รายการต่อหน้า)" : "จำนวนที่โหลด (สูงสุด 100 รายการ)"}
                 </Typography>
               </CardContent>
             </Card>
@@ -312,10 +312,17 @@ export default function OrganizationPage() {
                 </Stack>
               </Box>
             ))}
-            {rows.length >= 100 && (
-              <Alert severity="warning">
-                รายการปัจจุบันแสดงสูงสุด 100 รายการ ต้องเพิ่ม Pagination ก่อนใช้งานกับหน่วยงานจำนวนมาก
-              </Alert>
+            {units.hasNextPage && (
+              <Button
+                variant="outlined"
+                onClick={() => void units.fetchNextPage()}
+                disabled={units.isFetchingNextPage}
+              >
+                {units.isFetchingNextPage ? "กำลังโหลดเพิ่มเติม…" : "โหลดหน่วยงานเพิ่มเติม"}
+              </Button>
+            )}
+            {units.isFetchNextPageError && (
+              <Alert severity="error">โหลดหน้าถัดไปไม่สำเร็จ กรุณาลองใหม่</Alert>
             )}
           </Stack>
         </CardContent>
