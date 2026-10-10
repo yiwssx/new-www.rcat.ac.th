@@ -52,9 +52,24 @@ export default function OrganizationPage() {
   const rows = useMemo(() => units.data?.pages.flatMap((page) => page.items) ?? [], [units.data]);
   const collections = [
     { label: "หน่วยงาน", count: rows.length, isPending: units.isPending, isError: units.isError },
-    { label: "บุคลากร", count: personnel.data?.items.length ?? 0, isPending: personnel.isPending, isError: personnel.isError },
-    { label: "ตำแหน่ง", count: positions.data?.items.length ?? 0, isPending: positions.isPending, isError: positions.isError },
-    { label: "การมอบหมายหน้าที่", count: assignments.data?.items.length ?? 0, isPending: assignments.isPending, isError: assignments.isError }
+    {
+      label: "บุคลากร",
+      count: personnel.data?.items.length ?? 0,
+      isPending: personnel.isPending,
+      isError: personnel.isError
+    },
+    {
+      label: "ตำแหน่ง",
+      count: positions.data?.items.length ?? 0,
+      isPending: positions.isPending,
+      isError: positions.isError
+    },
+    {
+      label: "การมอบหมายหน้าที่",
+      count: assignments.data?.items.length ?? 0,
+      isPending: assignments.isPending,
+      isError: assignments.isError
+    }
   ];
 
   const [search, setSearch] = useState("");

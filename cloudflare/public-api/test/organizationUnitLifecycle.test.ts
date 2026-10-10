@@ -123,14 +123,28 @@ describe("Organization unit + CMS content transactional lifecycle", () => {
 
   it("provides a CMS-backed Admin unit list with title, slug, publication state and synchronized revisions", async () => {
     await createAuditedOrganizationUnit(env, "org1", input, "editor", NOW);
-    await createAuditedOrganizationUnit(env, "org2", {
-      ...input, slug: "division-b", title: "Division B", parentContentId: "org1", unitKind: "work"
-    }, "editor", NOW);
+    await createAuditedOrganizationUnit(
+      env,
+      "org2",
+      {
+        ...input,
+        slug: "division-b",
+        title: "Division B",
+        parentContentId: "org1",
+        unitKind: "work"
+      },
+      "editor",
+      NOW
+    );
     const rows = await listAdminOrganizationContentUnits(env, 25);
     expect(rows).toHaveLength(2);
     expect(rows[0]).toMatchObject({
-      content_id: "org1", slug: "division-a", title: "Division A", status: "draft",
-      unit_revision: 0, content_revision: 0
+      content_id: "org1",
+      slug: "division-a",
+      title: "Division A",
+      status: "draft",
+      unit_revision: 0,
+      content_revision: 0
     });
     expect(rows[1]).toMatchObject({ parent_content_id: "org1", slug: "division-b" });
     expect(Object.keys(rows[0])).not.toContain("public_email");

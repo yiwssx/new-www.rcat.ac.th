@@ -151,9 +151,14 @@ function revisionHeaders(revision: number) {
 }
 
 /** Always use the existing same-origin CMS proxy, session cookie, CSRF and password step-up layer. */
-export async function getOrganizationCollection<K extends OrganizationCollection>(collection: K, limit = 100, offset = 0) {
+export async function getOrganizationCollection<K extends OrganizationCollection>(
+  collection: K,
+  limit = 100,
+  offset = 0
+) {
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100) throw new RangeError("invalid organization limit");
-  if (!Number.isSafeInteger(offset) || offset < 0 || offset > 999999) throw new RangeError("invalid organization offset");
+  if (!Number.isSafeInteger(offset) || offset < 0 || offset > 999999)
+    throw new RangeError("invalid organization offset");
   if (collection !== "units" && offset !== 0) throw new RangeError("offset applies to units only");
   return requestCloudflareAdmin<{
     items: OrganizationRecordByCollection[K][];

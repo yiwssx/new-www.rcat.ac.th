@@ -43,10 +43,17 @@ describe("Organization Phase 4 editor model", () => {
     expect(organizationEditorSchema.safeParse({ ...basic, title: "" }).success).toBe(false);
     expect(organizationEditorSchema.safeParse({ ...basic, sortOrder: -1 }).success).toBe(false);
     expect(organizationEditorSchema.safeParse({ ...basic, status: "scheduled" }).success).toBe(false);
-    expect(organizationEditorSchema.safeParse({ ...basic, status: "scheduled", publishAt: "2030-01-01T09:00" }).success).toBe(true);
-    expect(organizationEditorSchema.safeParse({
-      ...basic, status: "scheduled", publishAt: "2030-01-01T09:00", unpublishAt: "2029-12-31T09:00"
-    }).success).toBe(false);
+    expect(
+      organizationEditorSchema.safeParse({ ...basic, status: "scheduled", publishAt: "2030-01-01T09:00" }).success
+    ).toBe(true);
+    expect(
+      organizationEditorSchema.safeParse({
+        ...basic,
+        status: "scheduled",
+        publishAt: "2030-01-01T09:00",
+        unpublishAt: "2029-12-31T09:00"
+      }).success
+    ).toBe(false);
   });
 
   it("converts Thai local time to canonical UTC and null parent identity", () => {

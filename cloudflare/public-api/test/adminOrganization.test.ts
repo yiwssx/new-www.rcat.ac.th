@@ -77,7 +77,15 @@ describe("Organization Chart Admin read boundary", () => {
   });
 
   it("rejects oversized, duplicate, malformed, or unexpected query parameters before D1", async () => {
-    for (const query of ["?limit=0", "?limit=101", "?limit=-2", "?limit=x", "?limit=1&limit=2", "?sort=id", "?offset=3"]) {
+    for (const query of [
+      "?limit=0",
+      "?limit=101",
+      "?limit=-2",
+      "?limit=x",
+      "?limit=1&limit=2",
+      "?sort=id",
+      "?offset=3"
+    ]) {
       const response = await handleAdminOrganizationRead(
         new Request(`https://example.invalid/api/admin/organization/personnel${query}`),
         env,
@@ -94,14 +102,16 @@ describe("Organization Chart Admin read boundary", () => {
     );
     const response = await handleAdminOrganizationRead(
       new Request("https://example.invalid/api/admin/organization/units?limit=2&offset=4"),
-      env, ["organization", "units"]
+      env,
+      ["organization", "units"]
     );
     expect(response?.status).toBe(200);
     expect(await response?.json()).toMatchObject({ nextOffset: 6, maximumItems: 2 });
     expect(listAdminOrganizationContentUnits).toHaveBeenCalledWith(env, 2, 4);
     const bad = await handleAdminOrganizationRead(
       new Request("https://example.invalid/api/admin/organization/units?offset=-1"),
-      env, ["organization", "units"]
+      env,
+      ["organization", "units"]
     );
     expect(bad?.status).toBe(400);
   });
