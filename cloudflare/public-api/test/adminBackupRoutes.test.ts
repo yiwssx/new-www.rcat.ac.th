@@ -275,19 +275,24 @@ describe("M21 admin D1 backup routes", () => {
   it("includes four organization tables with their linked source rows in backup payload", async () => {
     const response = await worker.fetch(
       makeRequest("/api/admin/backup/download", { headers: adminHeaders }),
-      createEnv(createBackupMockDb({
-        contents: [{ id: "root", type: "organization", slug: "root" }],
-        media_assets: [],
-        organization_units: [{ content_id: "root", parent_content_id: null, revision: 0 }],
-        personnel: [{ id: "person-1", display_name: "Example" }],
-        organization_positions: [{ id: "position-1", unit_content_id: "root" }],
-        organization_assignments: [{ id: "assignment-1", personnel_id: "person-1", position_id: "position-1" }]
-      }))
+      createEnv(
+        createBackupMockDb({
+          contents: [{ id: "root", type: "organization", slug: "root" }],
+          media_assets: [],
+          organization_units: [{ content_id: "root", parent_content_id: null, revision: 0 }],
+          personnel: [{ id: "person-1", display_name: "Example" }],
+          organization_positions: [{ id: "position-1", unit_content_id: "root" }],
+          organization_assignments: [{ id: "assignment-1", personnel_id: "person-1", position_id: "position-1" }]
+        })
+      )
     );
     const payload = await readJson(response);
     expect(response.status).toBe(200);
     expect(payload.counts).toMatchObject({
-      organization_units: 1, personnel: 1, organization_positions: 1, organization_assignments: 1
+      organization_units: 1,
+      personnel: 1,
+      organization_positions: 1,
+      organization_assignments: 1
     });
     expect(payload.tables).toMatchObject({
       organization_units: { rows: [expect.objectContaining({ content_id: "root" })] },
