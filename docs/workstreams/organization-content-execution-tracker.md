@@ -117,6 +117,29 @@ Add a dedicated CMS content type for organizational units and personnel structur
 6. After all pre-merge gates pass — change Draft PR #553 to ready, obtain required approvals, **merge exactly once to `main`**.
 7. Only after merge and separate protected-environment approval — Phase 10 production release/verification, then Phase 11 real content population.
 
+## Planned dependencies and tool adoption — decision 2026-10-10
+
+**Status: PLAN ONLY / NOT INSTALLED / PHASE 3 NOT STARTED.** The user approved recording the recommended tool choices, **not** installing packages or starting the next phase. All new dependencies remain subject to a phase-specific implementation review. Phase 1 and 2 remain COMPLETE; Phase 3-9 remain PLANNED.
+
+| Phase | Planned dependency/tool choice | Decision | Reason and constraints |
+| ----- | ------------------------------ | -------- | ---------------------- |
+| 3 — RBAC and Admin routing | Existing TanStack Router, TanStack Query, MUI, CMS session/RBAC | Reuse; no new dependency | Add Admin API facade/query keys/navigation with existing route protection. |
+| 4 — Organization list/editor | `react-hook-form`, `zod`, `@hookform/resolvers` | Add when Phase 4 begins, after compatibility review | Manage MUI form state, nested field validation, slug/parent/status/publish-date form feedback. Browser validation must never replace Worker/D1 authority. |
+| 5 — Personnel directory | Reuse Phase 4 form stack, existing TanStack Table and Media Library | Reuse; no new dependency | Canonical personnel editing, media selection, multi-unit reuse and explicit public-contact opt-ins; never build a duplicate upload service. |
+| 6 — Organization builder | `@mui/x-tree-view`, `@dnd-kit/react`; `@dnd-kit/helpers` if sortable helpers are required | Add when Phase 6 begins, subject to compatibility, licensing and prototype review | Hierarchy navigation plus accessible position/assignment reorder and reassignment. MUI X Tree View Community does **not** automatically provide integrated nested drag/drop; MUI's native tree drag/reorder may require a paid Pro license. Dnd-kit integration needs explicit design/testing. Always provide keyboard/touch-friendly non-drag controls and revision-safe transactional server writes. |
+| 7 — Public renderer, SSR and SEO | Existing React/Router/SSR and MUI; optionally **one of** `d3-hierarchy` or `@xyflow/react` | Default reuse; optional only after renderer prototype | Prefer lightweight semantic, responsive organization output. Consider d3-hierarchy for tree layout or React Flow for truly interactive graph interactions, not both by default. Check SSR/hydration, bundle impact and accessible fallback. |
+| 8 — Menu/search/sitemap | Existing Menu, public search, runtime sitemap and routing | Reuse; no new dependency | Integrate organization slugs and published-only visibility without a parallel menu/search engine. |
+| 9 — QA, accessibility, performance and backup | `@axe-core/playwright` as a devDependency; existing Vitest/Playwright/CI | Add when Phase 9 begins, after compatibility review | Automate accessibility assertions alongside existing keyboard, mobile/responsive, security, performance, backup/restore and regression checks; automation does not replace manual accessibility testing. |
+
+### Dependency adoption gates
+
+- **No blanket installation:** no `package.json` or lockfile changes in this planning checkpoint. Install a dependency only after its Phase starts and the chosen feature requires it.
+- Before installation, verify package availability, maintenance, license/commercial obligations, React **19**, MUI **9**, Node **24**, and pinned pnpm **10.34.5** compatibility and strict peer dependency resolution; do not force or ignore peer conflicts.
+- Evaluate bundle size, performance, supply-chain/security advisories, server-side rendering effects where applicable, and whether existing components can already meet the requirement.
+- Keep each dependency introduction scoped to its Phase with focused regression coverage and unchanged required format/lint/typecheck/unit/integration/build/functional/security gates. Do not weaken CI to make dependency installation pass.
+- For Phase 6, prototype the accessibility and non-drag workflow first; do not assume that adding tree and drag libraries supplies server-atomic multi-record reorder, cycle prevention, occupant-capacity checks or revision conflict handling. These remain application responsibilities.
+- **Governance stays unchanged:** retain the single feature branch `agent/org-01-domain-schema`, Draft PR #553, no intermediate merge, no production migrations/deployments, and no real RCAT personnel data before the approved release path. **Pause after this documentation update; Phase 3 requires separate explicit authorization.**
+
 ## Required integrity rules
 
 - no organization cycle: a unit cannot become its own ancestor;
