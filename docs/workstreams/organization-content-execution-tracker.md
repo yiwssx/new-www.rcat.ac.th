@@ -1,6 +1,6 @@
 # Organization Content Workstream Tracker
 
-Status: **PHASE 7 COMPLETE / PHASES 0–7 COMPLETE / PAUSED BEFORE PHASE 8 / FEATURE BRANCH ONLY — NO MERGE**
+Status: **PHASES 0–9 COMPLETE / PAUSED BEFORE FINAL MERGE AND PHASE 10 / FEATURE BRANCH ONLY — NO MERGE**
 
 Updated: 2026-10-10 Asia/Bangkok
 
@@ -92,8 +92,8 @@ Add a dedicated CMS content type for organizational units and personnel structur
 | 5     | Personnel directory                                  | COMPLETE     | Canonical personnel CRUD, Media Library photo selection, reuse across organization pages                                                                      |
 | 6     | Organization builder                                 | **COMPLETE** | Unit positions, assignment/reassignment, ordering, multiple duties, occupant limits, accessible non-drag controls; drag/drop only if justified                |
 | 7     | Public renderer + permalink/SSR/SEO                  | COMPLETE     | Published organization slugs resolve through public routing, hierarchy/breadcrumbs render, draft/private fields remain inaccessible                           |
-| 8     | Menu/search/sitemap integration                      | PLANNED      | Menu can link to organization pages; search/sitemap behavior is deliberate and tested; generic content lists do not leak organization records unintentionally |
-| 9     | Quality, accessibility, performance, backup coverage | PLANNED      | Unit/integration/functional tests, format/lint/build/worker checks, responsive/mobile verification, backup counts/download include new tables where required  |
+| 8     | Menu/search/sitemap integration                      | COMPLETE      | Menu can link to organization pages; search/sitemap behavior is deliberate and tested; generic content lists do not leak organization records unintentionally |
+| 9     | Quality, accessibility, performance, backup coverage | COMPLETE      | Unit/integration/functional tests, format/lint/build/worker checks, responsive/mobile verification, backup counts/download include new tables where required  |
 | 10    | Production migration + release verification          | PLANNED      | Protected migration/deploy sequence completed once, browser verification passes, tracker records release evidence                                             |
 | 11    | RCAT content population                              | PLANNED      | Real divisions, works, departments, personnel, positions, and assignments entered only after runtime feature verification                                     |
 
@@ -345,3 +345,13 @@ Add a dedicated CMS content type for organizational units and personnel structur
 - Reused established TanStack Router SSR loader/hydration, MUI responsive rendering, Media Library photos, SEO head/canonical, Open Graph, WebPage and BreadcrumbList JSON-LD. Organization slugs are kept separate from generic content permalinks.
 - Regression coverage includes published/draft 404 behavior, Thai slug round-trip, hierarchy traversal, SSR/SEO metadata, API contract validation, privacy, and the public React renderer. Phase 8 menu, search and sitemap work and Phase 9 deeper mobile/a11y audits remain intentionally unstarted.
 - This final tracker-only documentation commit requires its own exact-head CI confirmation. Keep the existing feature branch and Draft PR unmerged. No production migration, deployment, or real personnel data changes.
+
+## Phase 8–9 final closure — 2026-10-11 Asia/Bangkok
+
+**Status: PHASE 8 COMPLETE / PHASE 9 COMPLETE; PAUSED BEFORE FINAL MERGE / PROTECTED PHASE 10.** This checkpoint supersedes the older Phase 7 `PAUSED BEFORE PHASE 8` statement, retained above for audit history. The user approved both phases together.
+
+- **Exact implementation head validated:** `9bb0c6c98419c5abc38923634684d4d0484bdd1b` by [CI #38072202868](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38072202868), `completed/success`, all 10 jobs SUCCESS: Dependency Preflight, Dependencies, Static Quality, Unit Tests, Integration Tests, Worker, Build, Governance, Functional E2E and aggregate `quality`. Functional suite: 83 passed.
+- **Phase 8:** Existing Menu editor now offers published Organization permalinks without adding a parallel navigation system. Public search queries explicitly exclude `type='organization'` in generic content SQL and return separate published-only Organization cards linking to `/organization/<slug>`; runtime sitemap discovers published-only Organization URLs from the authoritative public Worker list, with safe Unicode slug encoding and regression tests. Scheduled units are visible at/after `publishAt` only when their entire ancestor chain is public, and hidden after `unpublishAt`.
+- **Phase 9:** Added `@axe-core/playwright` 4.13.0 in the strict pnpm 10 lockfile (and removed the one-time generator). Synthetic-data Playwright/axe accessibility tests cover Thai-slug public pages at 390px and 1280px, no horizontal overflow, headings, links, and missing/unpublished 404; all functional checks passed in code-head CI. Backup counts/download and MFA-controlled portable Merge recovery now include `organization_units`, `personnel`, `organization_positions`, and `organization_assignments`; recovery enforces parent-first order, primary keys and cycle rejection. Tests cover backup rows, ordering, and publishing/search protection.
+- **Release readiness:** [Acceptance and release gate](./organization-acceptance-and-release-gate.md) documents private backup handling, production D1 Time Travel, the 4 MiB Merge limitations, isolated migration rehearsals and manual preview browser/keyboard checks. These operator checks remain for the protected release path, not claimed as performed against real production.
+- **Final tracker-only SHA CI pending confirmation after this documentation commit.** No merge to `main`, no production D1 migration or deploy, no real RCAT data, and no Phase 10–11 operations. Keep the feature branch, Draft PR, and all production release gates unchanged. The next step is a separate explicit decision on final pre-merge review and protected production cutover.
