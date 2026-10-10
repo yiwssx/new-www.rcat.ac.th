@@ -8,7 +8,14 @@ export interface OrganizationUnitListRow {
   parent_content_id: string | null;
   unit_kind: string;
   sort_order: number;
-  revision: number;
+  slug: string;
+  title: string;
+  summary: string;
+  status: "draft" | "review" | "scheduled" | "published";
+  publish_at: string;
+  unpublish_at: string;
+  content_revision: number;
+  unit_revision: number;
 }
 
 export interface OrganizationPersonnelRow {
