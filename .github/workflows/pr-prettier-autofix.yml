@@ -43,7 +43,22 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add --update
           git commit -m "style: apply pinned Prettier to PR branch"
-          git push origin "HEAD:refs/heads/$BRANCH"
+          REMOTE_SHA="$(git ls-remote origin "refs/heads/$BRANCH" | cut -f1)"
+          if [ "$REMOTE_SHA" != "${{ github.event.pull_request.head.sha }}" ]; then
+            echo "PR branch advanced to $REMOTE_SHA; skip obsolete formatting."
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if ! git push origin "HEAD:refs/heads/$BRANCH"; then
+            REMOTE_SHA="$(git ls-remote origin "refs/heads/$BRANCH" | cut -f1)"
+            if [ "$REMOTE_SHA" != "${{ github.event.pull_request.head.sha }}" ]; then
+              echo "PR branch moved while formatting; newer run will handle it."
+              echo 'changed=false' >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo 'Push failed without branch advancement: check token/branch policies.' >&2
+            exit 1
+          fi
           echo 'changed=true' >> "$GITHUB_OUTPUT"
       - name: Verify exact branch and dispatch fresh CI for formatted commit
         if: steps.push.outputs.changed == 'true'
