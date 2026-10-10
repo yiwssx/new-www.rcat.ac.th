@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -19,6 +19,7 @@ import { useAuth } from "../../context/authSessionContext";
 import { hasCmsCapability } from "../../features/cms-auth";
 import {
   createOrganizationRecord,
+  getOrganizationCollection,
   deleteOrganizationRecord,
   invalidateOrganizationQueries,
   organizationCollectionQueryOptions,
@@ -39,15 +40,21 @@ export default function OrganizationPage() {
   const { capabilities } = useAuth();
   const canManage = hasCmsCapability(capabilities, "organization.manage");
   const client = useQueryClient();
-  const units = useQuery(organizationCollectionQueryOptions("units"));
+  const units = useInfiniteQuery({
+    queryKey: ["admin-organization", "units", "pages"],
+    initialPageParam: 0,
+    queryFn: ({ pageParam }) => getOrganizationCollection("units", 100, pageParam),
+    getNextPageParam: (lastPage) => lastPage.nextOffset ?? undefined
+  });
   const personnel = useQuery(organizationCollectionQueryOptions("personnel"));
   const positions = useQuery(organizationCollectionQueryOptions("positions"));
   const assignments = useQuery(organizationCollectionQueryOptions("assignments"));
+  const rows = useMemo(() => units.data?.pages.flatMap((page) => page.items) ?? [], [units.data]);
   const collections = [
-    { label: "หน่วยงาน", query: units },
-    { label: "บุคลากร", query: personnel },
-    { label: "ตำแหน่ง", query: positions },
-    { label: "การมอบหมายหน้าที่", query: assignments }
+    { label: "หน่วยงาน", count: rows.length, isPending: units.isPending, isError: units.isError },
+    { label: "บุคลากร", count: personnel.data?.items.length ?? 0, isPending: personnel.isPending, isError: personnel.isError },
+    { label: "ตำแหน่ง", count: positions.data?.items.length ?? 0, isPending: positions.isPending, isError: positions.isError },
+    { label: "การมอบหมายหน้าที่", count: assignments.data?.items.length ?? 0, isPending: assignments.isPending, isError: assignments.isError }
   ];
 
   const [search, setSearch] = useState("");
@@ -56,7 +63,6 @@ export default function OrganizationPage() {
   const [error, setError] = useState("");
   const [editorError, setEditorError] = useState("");
   const [success, setSuccess] = useState("");
-  const rows = units.data?.items ?? [];
   const filtered = useMemo(() => {
     const term = search.trim().toLocaleLowerCase("th");
     return rows
@@ -179,7 +185,7 @@ export default function OrganizationPage() {
         </Alert>
       )}
       <Grid container spacing={2}>
-        {collections.map(({ label, query }) => (
+        {collections.map(({ label, count, isPending, isError }) => (
           <Grid key={label} size={{ xs: 12, sm: 6, lg: 3 }}>
             <Card variant="outlined" sx={{ height: "100%" }}>
               <CardContent>
@@ -187,7 +193,7 @@ export default function OrganizationPage() {
                   {label}
                 </Typography>
                 <Typography variant="h3" sx={{ mt: 1, fontWeight: 700 }}>
-                  {query.isPending ? "…" : query.isError ? "—" : query.data.items.length}
+                  {isPending ? "…" : isError ? "—" : count}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
                   จำนวนที่โหลด (สูงสุด 100 รายการ)
