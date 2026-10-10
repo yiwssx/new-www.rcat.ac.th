@@ -69,6 +69,7 @@ import { handleAdminOrganizationRead } from "./adminOrganization";
 import { handleAdminOrganizationWrite } from "./adminOrganizationWrite";
 import { handleAdminOrganizationDutyWrite } from "./adminOrganizationDutyWrite";
 import { handleAdminOrganizationUnitWrite } from "./adminOrganizationUnitWrite";
+import { handleAdminOrganizationDelete } from "./adminOrganizationDelete";
 import { handleAdminPaginatedReads } from "./adminPagination";
 import { handleAdminStructuredParity, readAdminStructuredSnapshot } from "./adminStructuredParity";
 
@@ -2149,6 +2150,9 @@ export async function adminWrite(request: Request, env: Env): Promise<Response |
     if (backupResponse) {
       return backupResponse;
     }
+
+    const organizationDeleteResponse = await handleAdminOrganizationDelete(request, env, segments, authResult.identity);
+    if (organizationDeleteResponse) return organizationDeleteResponse;
 
     const unitWriteResponse = await handleAdminOrganizationUnitWrite(request, env, segments, authResult.identity);
     if (unitWriteResponse) return unitWriteResponse;
