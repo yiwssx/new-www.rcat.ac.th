@@ -72,12 +72,12 @@ describe("Organization Chart Admin read boundary", () => {
       expect(response?.status).toBe(200);
       expect(response?.headers.get("Cache-Control")).toBe("no-store");
       expect(await response?.json()).toMatchObject({ items: [], maximumItems: 25 });
-      expect(read).toHaveBeenCalledWith(env, 25);
+      expect(read).toHaveBeenCalledWith(...(collection === "units" ? [env, 25, 0] : [env, 25]));
     }
   });
 
   it("rejects oversized, duplicate, malformed, or unexpected query parameters before D1", async () => {
-    for (const query of ["?limit=0", "?limit=101", "?limit=-2", "?limit=x", "?limit=1&limit=2", "?sort=id"]) {
+    for (const query of ["?limit=0", "?limit=101", "?limit=-2", "?limit=x", "?limit=1&limit=2", "?sort=id", "?offset=3"]) {
       const response = await handleAdminOrganizationRead(
         new Request(`https://example.invalid/api/admin/organization/personnel${query}`),
         env,
@@ -86,6 +86,24 @@ describe("Organization Chart Admin read boundary", () => {
       expect(response?.status).toBe(400);
     }
     expect(listAdminPersonnel).not.toHaveBeenCalled();
+  });
+
+  it("bounds unit pagination and emits nextOffset only for a full page", async () => {
+    vi.mocked(listAdminOrganizationContentUnits).mockResolvedValueOnce(
+      Array.from({ length: 2 }, (_, index) => ({ content_id: `org-${index}` })) as never
+    );
+    const response = await handleAdminOrganizationRead(
+      new Request("https://example.invalid/api/admin/organization/units?limit=2&offset=4"),
+      env, ["organization", "units"]
+    );
+    expect(response?.status).toBe(200);
+    expect(await response?.json()).toMatchObject({ nextOffset: 6, maximumItems: 2 });
+    expect(listAdminOrganizationContentUnits).toHaveBeenCalledWith(env, 2, 4);
+    const bad = await handleAdminOrganizationRead(
+      new Request("https://example.invalid/api/admin/organization/units?offset=-1"),
+      env, ["organization", "units"]
+    );
+    expect(bad?.status).toBe(400);
   });
 
   it("reads private detail records only on capability-gated routes and returns no-store", async () => {
