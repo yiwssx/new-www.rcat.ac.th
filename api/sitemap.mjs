@@ -160,7 +160,7 @@ export function getPublishedContentSitemapRoute(item, siteUrl) {
 
 export function getPublishedOrganizationSitemapRoute(unit) {
   const slug = String(unit?.slug || "").trim();
-  if (!/^[\\p{L}\\p{N}][\\p{L}\\p{N}\\p{M}]*(?:-[\\p{L}\\p{N}][\\p{L}\\p{N}\\p{M}]*)*$/u.test(slug)) return "";
+  if (!/^[\p{L}\p{N}][\p{L}\p{N}\p{M}]*(?:-[\p{L}\p{N}][\p{L}\p{N}\p{M}]*)*$/u.test(slug)) return "";
   return `/organization/${encodeURIComponent(slug)}`;
 }
 
