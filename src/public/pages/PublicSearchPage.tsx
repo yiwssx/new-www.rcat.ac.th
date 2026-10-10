@@ -233,7 +233,7 @@ export default function PublicSearchPage() {
               <Grid key={unit.contentId} size={{ xs: 12, md: 6 }}>
                 <Card variant="outlined" sx={{ height: "100%" }}>
                   <CardContent>
-                    <Stack direction="row" spacing={1} alignItems="flex-start">
+                    <Stack direction="row" spacing={1} sx={{ alignItems: "flex-start" }}>
                       <AccountTreeOutlinedIcon color="primary" aria-hidden="true" />
                       <Box sx={{ minWidth: 0 }}>
                         <Typography
