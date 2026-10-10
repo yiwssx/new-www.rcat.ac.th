@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import Dialog from "@mui/material/Dialog";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { OrganizationPersonnelRow } from "../../features/organization-admin/api";
@@ -31,14 +32,14 @@ vi.mock("./RichTextMediaPickerDialog", () => ({
     onSelect: (asset: { id: string; name: string }) => void;
     onClose: () => void;
   }) => (
-    <div role="dialog" aria-label="Media Library test picker">
+    <Dialog open aria-label="Media Library test picker">
       <button type="button" onClick={() => onSelect({ id: "media-photo-1", name: "ภาพบุคลากร" })}>
         เลือกไฟล์ทดสอบ
       </button>
       <button type="button" onClick={onClose}>
         ปิดคลังสื่อ
       </button>
-    </div>
+    </Dialog>
   )
 }));
 
