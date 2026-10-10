@@ -76,6 +76,26 @@ describe("Phase 4 Organization Admin list/editor", () => {
     expect(screen.queryByRole("button", { name: "ลบ" })).not.toBeInTheDocument();
   });
 
+  it("loads subsequent unit pages instead of hiding entries after the first 100", async () => {
+    api.getCollection.mockImplementation(async (collection: string, _limit: number, offset = 0) => ({
+      items:
+        collection !== "units"
+          ? []
+          : offset === 0
+            ? [existing]
+            : [{ ...existing, content_id: "unit-2", slug: "work-admin", title: "งานธุรการ" }],
+      nextOffset: collection === "units" && offset === 0 ? 1 : null,
+      maximumItems: 100,
+      generatedAt: ""
+    }));
+    renderPage();
+    expect(await screen.findByText("ฝ่ายบริหารทรัพยากร")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "โหลดหน่วยงานเพิ่มเติม" }));
+    expect(await screen.findByText("งานธุรการ")).toBeInTheDocument();
+    expect(api.getCollection).toHaveBeenCalledWith("units", 100, 1);
+    expect(screen.queryByRole("button", { name: "โหลดหน่วยงานเพิ่มเติม" })).not.toBeInTheDocument();
+  });
+
   it("creates a unit from the isolated form with validated fields", async () => {
     auth.capabilities = ["organization.read", "organization.manage"];
     renderPage();
