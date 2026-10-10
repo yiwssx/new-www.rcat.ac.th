@@ -84,6 +84,8 @@
     "editor:bundle:check": "node scripts/check-admin-editor-bundle.mjs"
   },
   "dependencies": {
+    "@dnd-kit/helpers": "^0.5.0",
+    "@dnd-kit/react": "^0.5.0",
     "@emotion/cache": "^11.14.0",
     "@emotion/react": "^11.14.0",
     "@emotion/server": "^11.11.0",

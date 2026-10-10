@@ -196,3 +196,17 @@ export async function deleteOrganizationRecord(collection: OrganizationCollectio
     headers: revisionHeaders(revision)
   });
 }
+
+/** Atomic sibling reorder through the normal CMS proxy and organization.manage boundary. */
+export async function reorderOrganizationRecords(
+  collection: "positions" | "assignments",
+  scopeId: string,
+  items: readonly { id: string; revision: number }[],
+  groupLabel = "",
+  groupSortOrder = 0
+) {
+  return requestCloudflareAdmin<{ reordered: true; count: number }>("/api/admin/organization/reorder", {
+    method: "POST",
+    body: JSON.stringify({ collection, scopeId, items, groupLabel, groupSortOrder })
+  });
+}

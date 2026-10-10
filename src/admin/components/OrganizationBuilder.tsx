@@ -1,5 +1,8 @@
 import { useMemo, useState } from "react";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { DragDropProvider } from "@dnd-kit/react";
+import { arrayMove } from "@dnd-kit/helpers";
+import { isSortable } from "@dnd-kit/react/sortable";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -23,6 +26,7 @@ import {
   deleteOrganizationRecord,
   getOrganizationCollection,
   invalidateOrganizationQueries,
+  reorderOrganizationRecords,
   updateOrganizationRecord,
   type OrganizationAssignmentRow,
   type OrganizationAssignmentWrite,
@@ -32,6 +36,7 @@ import {
   type OrganizationUnitListRow
 } from "../../features/organization-admin";
 import { appSwal } from "../../utils/swal";
+import { OrganizationSortableRow } from "./OrganizationSortableRow";
 import {
   enabledDistinctOccupants,
   flattenOrganizationHierarchy,
@@ -285,6 +290,41 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
     }
   }
 
+  async function saveReorder(
+    collection: "positions" | "assignments",
+    scopeId: string,
+    rows: readonly (OrganizationPositionRow | OrganizationAssignmentRow)[],
+    groupLabel = "",
+    groupSortOrder = 0
+  ) {
+    if (!canManage || busy || rows.length < 2 || rows.length > 500) return;
+    setBusy(true);
+    setError("");
+    try {
+      await reorderOrganizationRecords(
+        collection,
+        scopeId,
+        rows.map((row) => ({ id: row.id, revision: row.revision })),
+        groupLabel,
+        groupSortOrder
+      );
+      await refresh();
+      setNotice("จัดลำดับและบันทึกเรียบร้อยแล้ว");
+    } catch (cause) {
+      setError(
+        isAdminStaleRevisionError(cause)
+          ? "รายการถูกเปลี่ยนโดยผู้ดูแลอื่น กรุณาโหลดใหม่ก่อนจัดลำดับ"
+          : asMessage(cause)
+      );
+      await refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const positionGroupKey = (position: OrganizationPositionRow) =>
+    JSON.stringify([position.unit_content_id, position.group_sort_order, position.group_label]);
+
   const pageControl = (
     label: string,
     query: typeof positionsQuery | typeof assignmentsQuery | typeof personnelQuery
@@ -380,10 +420,38 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                         : "ยังไม่มีตำแหน่งในหน่วยงานนี้"}
                     </Alert>
                   )}
-                {visiblePositions.map((position) => {
-                  const assigned = assignmentsByPosition.get(position.id) ?? [];
-                  return (
-                    <Box key={position.id} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2 }}>
+                <DragDropProvider
+                  onDragEnd={({ operation, canceled }) => {
+                    if (canceled || !isSortable(operation.source)) return;
+                    const source = operation.source;
+                    if (source.initialGroup !== source.group || source.initialIndex === source.index) return;
+                    const group = visiblePositions.filter((row) => positionGroupKey(row) === source.initialGroup);
+                    if (source.initialIndex < 0 || source.index < 0 || source.index >= group.length) return;
+                    const first = group[0];
+                    if (first) {
+                      void saveReorder(
+                        "positions",
+                        first.unit_content_id,
+                        arrayMove(group, source.initialIndex, source.index),
+                        first.group_label,
+                        first.group_sort_order
+                      );
+                    }
+                  }}
+                >
+                  {visiblePositions.map((position) => {
+                    const assigned = assignmentsByPosition.get(position.id) ?? [];
+                    const siblings = visiblePositions.filter((row) => positionGroupKey(row) === positionGroupKey(position));
+                    return (
+                      <OrganizationSortableRow
+                        key={position.id}
+                        id={position.id}
+                        index={siblings.findIndex((row) => row.id === position.id)}
+                        group={positionGroupKey(position)}
+                        label={position.title}
+                        disabled={!canManage || busy || Boolean(positionsQuery.hasNextPage) || siblings.length < 2}
+                      >
+                        <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2 }}>
                       <Stack spacing={1}>
                         <Stack
                           direction={{ xs: "column", sm: "row" }}
@@ -425,8 +493,28 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                             </Stack>
                           )}
                         </Stack>
-                        {assigned.map((assignment) => (
-                          <Box key={assignment.id} sx={{ bgcolor: "action.hover", borderRadius: 1, p: 1 }}>
+                        <DragDropProvider
+                          onDragEnd={({ operation, canceled }) => {
+                            if (canceled || !isSortable(operation.source)) return;
+                            const source = operation.source;
+                            if (source.initialIndex === source.index || source.index < 0 || source.index >= assigned.length) return;
+                            void saveReorder(
+                              "assignments",
+                              position.id,
+                              arrayMove(assigned, source.initialIndex, source.index)
+                            );
+                          }}
+                        >
+                          {assigned.map((assignment, index) => (
+                            <OrganizationSortableRow
+                              key={assignment.id}
+                              id={assignment.id}
+                              index={index}
+                              group={position.id}
+                              label={byPerson.get(assignment.personnel_id)?.display_name ?? assignment.id}
+                              disabled={!canManage || busy || Boolean(assignmentsQuery.hasNextPage) || assigned.length < 2}
+                            >
+                              <Box sx={{ bgcolor: "action.hover", borderRadius: 1, p: 1 }}>
                             <Stack
                               direction={{ xs: "column", sm: "row" }}
                               spacing={1}
@@ -457,17 +545,21 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                                 </Stack>
                               )}
                             </Stack>
-                          </Box>
-                        ))}
+                              </Box>
+                            </OrganizationSortableRow>
+                          ))}
+                        </DragDropProvider>
                         {canManage && (
                           <Button variant="outlined" disabled={busy} onClick={() => openAssignment(null, position.id)}>
                             มอบหมายบุคลากร
                           </Button>
                         )}
                       </Stack>
-                    </Box>
-                  );
-                })}
+                        </Box>
+                      </OrganizationSortableRow>
+                    );
+                  })}
+                </DragDropProvider>
               </Stack>
             </Box>
           </Stack>
@@ -544,7 +636,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                     }
                   />
                   <Alert severity="info">
-                    เปลี่ยนลำดับได้ด้วยแป้นพิมพ์หรือปุ่มตัวเลข โดยระบบตรวจสอบ Revision ก่อนบันทึก
+                    ลากการ์ดเพื่อจัดลำดับ หรือกรอกตัวเลขผ่านคีย์บอร์ดได้ ระบบตรวจสอบ Revision ก่อนบันทึก
                   </Alert>
                 </Stack>
               )}
