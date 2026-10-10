@@ -85,6 +85,9 @@ describe("published organization permalink", () => {
     addContent("division");
     addContent("work", "division");
     addContent("section", "work");
+    addContent("leaf", "section");
+    addContent("peer", "work");
+    db.prepare("UPDATE organization_units SET sort_order = 2, revision = 1 WHERE content_id = 'peer'").run();
     addPosition("p1", "work");
     addPosition("p2", "section");
     addPerson("private");
@@ -102,7 +105,7 @@ describe("published organization permalink", () => {
     };
     expect(payload.unit.slug).toBe("work");
     expect(payload.ancestors.map((item) => item.slug)).toEqual(["division"]);
-    expect(payload.units.map((item) => item.slug)).toEqual(["work", "section"]);
+    expect(payload.units.map((item) => item.slug)).toEqual(["work", "section", "leaf", "peer"]);
     expect(payload.positions.map((item) => item.id)).toEqual(["p1", "p2"]);
     expect(payload.positions[0]?.assignments[0]?.person).toMatchObject({ publicEmail: "", publicPhone: "" });
     expect(payload.positions[1]?.assignments[0]?.person).toMatchObject({
