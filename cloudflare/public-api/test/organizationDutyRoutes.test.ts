@@ -63,10 +63,12 @@ function request(method: string, path: string, body: unknown, revision?: string)
 }
 
 async function dispatch(method: string, path: string, body: unknown, revision?: string) {
-  return handleAdminOrganizationDutyWrite(request(method, path, body, revision), env, [
-    "organization",
-    ...path.split("/")
-  ], identity);
+  return handleAdminOrganizationDutyWrite(
+    request(method, path, body, revision),
+    env,
+    ["organization", ...path.split("/")],
+    identity
+  );
 }
 
 beforeEach(() => {
