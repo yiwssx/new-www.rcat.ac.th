@@ -62,6 +62,15 @@ export function resolveAdminRoutePolicy(method: string, segments: readonly strin
     return requires("media.manage", "media-bridge-authorization");
   }
 
+  // Organization records are a separate CMS domain: never reuse generic content
+  // permissions. Writes become routable only when their audited handlers land.
+  if (segments[0] === "organization") {
+    if (segments.length === 2 && ["units", "personnel", "positions", "assignments"].includes(segments[1])) {
+      if (method === "GET") return requires("organization.read", "organization");
+    }
+    return UNMATCHED;
+  }
+
   if (segments[0] === "content") {
     if (segments.length === 1 && method === "GET") return requires("content.read", "content");
     if (segments.length === 1 && method === "POST") return requires("content.create", "content");
