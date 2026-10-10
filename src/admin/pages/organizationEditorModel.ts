@@ -111,10 +111,12 @@ export function availableOrganizationParents(units: readonly OrganizationUnitLis
 export function toOrganizationUnitWrite(form: OrganizationEditorForm): OrganizationUnitWrite {
   const value = organizationEditorSchema.parse(form);
   const convertedPublish = fromLocalDateTimeInputValue(value.publishAt);
-  // The Worker supplies the authoritative publish timestamp for immediate publication.
+  const utcPublish = convertedPublish ? new Date(convertedPublish).toISOString() : "";
+  // The Worker requires normalized UTC timestamps; local Thailand input is converted before the request.
   const effectivePublishAt =
-    value.status === "published" && !convertedPublish ? new Date().toISOString() : convertedPublish;
-  const unpublish = fromLocalDateTimeInputValue(value.unpublishAt);
+    value.status === "published" && !utcPublish ? new Date().toISOString() : utcPublish;
+  const convertedUnpublish = fromLocalDateTimeInputValue(value.unpublishAt);
+  const unpublish = convertedUnpublish ? new Date(convertedUnpublish).toISOString() : "";
   if (unpublish && (!effectivePublishAt || Date.parse(unpublish) <= Date.parse(effectivePublishAt))) {
     throw new Error("วันเวลาหยุดเผยแพร่ต้องอยู่หลังวันเวลาเผยแพร่");
   }
