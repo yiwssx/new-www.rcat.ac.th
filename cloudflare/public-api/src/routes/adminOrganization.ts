@@ -16,15 +16,17 @@ function isCollection(value: string | undefined): value is Collection {
   return COLLECTIONS.some((collection) => collection === value);
 }
 
-function readPageLimit(request: Request): number | null {
+function readPageParams(request: Request, units: boolean): { limit: number; offset: number } | null {
   const params = new URL(request.url).searchParams;
-  if ([...params.keys()].some((key) => key !== "limit")) return null;
-  if (params.getAll("limit").length > 1) return null;
+  if ([...params.keys()].some((key) => key !== "limit" && (key !== "offset" || !units))) return null;
+  if (params.getAll("limit").length > 1 || params.getAll("offset").length > 1) return null;
   const raw = params.get("limit");
-  if (raw === null) return 100;
-  if (!/^[1-9]\d{0,2}$/.test(raw)) return null;
-  const limit = Number(raw);
-  return limit <= 100 ? limit : null;
+  const rawOffset = params.get("offset");
+  if (raw !== null && !/^[1-9]\d{0,2}$/.test(raw)) return null;
+  if (rawOffset !== null && !/^(0|[1-9]\d{0,5})$/.test(rawOffset)) return null;
+  const limit = raw === null ? 100 : Number(raw);
+  const offset = rawOffset === null ? 0 : Number(rawOffset);
+  return limit <= 100 && offset <= 999999 ? { limit, offset } : null;
 }
 
 /**
@@ -57,12 +59,13 @@ export async function handleAdminOrganizationRead(request: Request, env: Env, se
     return jsonError("not found", 404, { resource: "organization" });
   }
 
-  const limit = readPageLimit(request);
-  if (limit === null) return jsonError("invalid organization page limit", 400, { resource: "organization" });
+  const page = readPageParams(request, collection === "units");
+  if (page === null) return jsonError("invalid organization page parameters", 400, { resource: "organization" });
+  const { limit, offset } = page;
 
   const items =
     collection === "units"
-      ? await listAdminOrganizationContentUnits(env, limit)
+      ? await listAdminOrganizationContentUnits(env, limit, offset)
       : collection === "personnel"
         ? await listAdminPersonnel(env, limit)
         : collection === "positions"
@@ -70,7 +73,12 @@ export async function handleAdminOrganizationRead(request: Request, env: Env, se
           : await listAdminOrganizationAssignments(env, limit);
 
   return json(
-    { items, maximumItems: limit, generatedAt: new Date().toISOString() },
+    {
+      items,
+      maximumItems: limit,
+      nextOffset: collection === "units" && items.length === limit ? offset + limit : null,
+      generatedAt: new Date().toISOString()
+    },
     { headers: { "Cache-Control": "no-store" } }
   );
 }
