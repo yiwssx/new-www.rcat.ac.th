@@ -31,6 +31,7 @@ import { isAdminStaleRevisionError } from "../../features/admin-write/errors";
 import { appSwal } from "../../utils/swal";
 import OrganizationUnitEditorDialog from "../components/OrganizationUnitEditorDialog";
 import OrganizationPersonnelDirectory from "../components/OrganizationPersonnelDirectory";
+import OrganizationBuilder from "../components/OrganizationBuilder";
 import { ORGANIZATION_KIND_LABELS, ORGANIZATION_STATUS_LABELS } from "./organizationEditorModel";
 
 function humanError(error: unknown) {
@@ -324,6 +325,7 @@ export default function OrganizationPage() {
         </CardContent>
       </Card>
       <OrganizationPersonnelDirectory canManage={canManage} canBrowseMedia={canBrowseMedia} />
+      <OrganizationBuilder units={rows} allUnitsLoaded={!units.hasNextPage && !units.isPending} canManage={canManage} />
       {canManage && (
         <OrganizationUnitEditorDialog
           open={editorOpen}
