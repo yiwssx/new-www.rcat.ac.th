@@ -123,7 +123,8 @@ export function listAdminOrganizationContentUnits(env: Env, limit = 100) {
     throw new RangeError("organization page size must be between 1 and 100");
   }
   return requireD1Database(env)
-    .prepare(`
+    .prepare(
+      `
       SELECT u.content_id, u.parent_content_id, u.unit_kind, u.sort_order,
              u.revision AS unit_revision,
              c.slug, c.title, c.summary, c.status, c.publish_at, c.unpublish_at,
@@ -133,7 +134,8 @@ export function listAdminOrganizationContentUnits(env: Env, limit = 100) {
       WHERE c.type = 'organization' AND COALESCE(c.deleted_at, '') = ''
       ORDER BY u.sort_order ASC, c.title COLLATE NOCASE ASC, u.content_id ASC
       LIMIT ?
-    `)
+    `
+    )
     .bind(limit)
     .all<{
       content_id: string;
