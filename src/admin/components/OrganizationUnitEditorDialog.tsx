@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -49,7 +49,7 @@ export default function OrganizationUnitEditorDialog({ open, initial, units, bus
     if (open) reset(editorDefaults(initial));
   }, [initial, open, reset]);
   const canSelectParent = availableOrganizationParents(units, initial?.content_id ?? null);
-  const status = watch("status");
+  const status = useWatch({ control, name: "status" });
   const save = handleSubmit(async (form) => {
     await onSave(toOrganizationUnitWrite(form));
   });
