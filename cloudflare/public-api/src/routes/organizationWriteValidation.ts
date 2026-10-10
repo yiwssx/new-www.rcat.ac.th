@@ -1,4 +1,3 @@
-
 /**
  * Trusted Worker boundary for Organization Chart mutation payloads.
  * Neither IDs of newly created records nor revisions, timestamps, actor

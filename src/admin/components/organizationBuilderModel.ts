@@ -64,4 +64,3 @@ export function enabledDistinctOccupants(
     assignments.filter((item) => item.position_id === positionId && item.enabled === 1).map((item) => item.personnel_id)
   ).size;
 }
-

@@ -71,8 +71,15 @@ describe("Organization Chart server-side write validation", () => {
 
   it("accepts manual assignment controls but rejects scheduling and protected fields", () => {
     const fields = { personnelId: "p-1", positionId: "pos-1" };
-    expect(parseOrganizationAssignmentWrite(fields)).toMatchObject({ ...fields, enabled: true, sortOrder: 0, dutyDetail: "" });
-    expect(() => parseOrganizationAssignmentWrite({ ...fields, startsAt: "2026-10-10T00:00:00Z" })).toThrow(/protected field/);
+    expect(parseOrganizationAssignmentWrite(fields)).toMatchObject({
+      ...fields,
+      enabled: true,
+      sortOrder: 0,
+      dutyDetail: ""
+    });
+    expect(() => parseOrganizationAssignmentWrite({ ...fields, startsAt: "2026-10-10T00:00:00Z" })).toThrow(
+      /protected field/
+    );
     expect(() => parseOrganizationAssignmentWrite({ ...fields, endsAt: "" })).toThrow(/protected field/);
     expect(() => parseOrganizationAssignmentWrite({ ...fields, enabled: "true" })).toThrow(/enabled/);
     expect(() => parseOrganizationAssignmentWrite({ ...fields, createdAt: "forged" })).toThrow(/protected field/);

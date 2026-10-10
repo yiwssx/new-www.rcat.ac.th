@@ -60,13 +60,7 @@ function addAssignment(
       "(id, personnel_id, position_id, duty_detail, enabled) " +
       "VALUES (?, ?, ?, ?, ?)"
   );
-  statement.run(
-    id,
-    personId,
-    positionId,
-    options.duty ?? "",
-    options.enabled ?? 1
-  );
+  statement.run(id, personId, positionId, options.duty ?? "", options.enabled ?? 1);
 }
 
 function visiblePositions() {
