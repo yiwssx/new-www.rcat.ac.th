@@ -1,8 +1,8 @@
 # Organization Content Workstream Tracker
 
-Status: **ACTIVE / PHASE 1 COMPLETE / PHASE 2 IN PROGRESS / FEATURE BRANCH ONLY — NO MERGE**
+Status: **PAUSED / PHASE 1 COMPLETE / PHASE 2 COMPLETE / PHASE 3 PLANNED / FEATURE BRANCH ONLY — NO MERGE**
 
-Updated: 2026-10-09 Asia/Bangkok
+Updated: 2026-10-10 Asia/Bangkok
 
 Repository: `yiwssx/new-www.rcat.ac.th`
 
@@ -13,7 +13,7 @@ Recovery source: closed, unmerged [PR #524](https://github.com/yiwssx/new-www.rc
 ## Recovery checkpoint
 
 - Restored onto current `main` through a documentation-only PR on 2026-10-08.
-- Phase 0 planning is complete; Phase 1 passed CI on 2026-10-09; Phase 2 is **IN_PROGRESS** and Phases 3-11 are not started.
+- Phase 0 and Phase 1 are complete. Phase 2 **COMPLETE / PAUSED** as of 2026-10-10 after the exact-head all-green exit gate. Phases 3-11 remain planned; do not start the next phase without a new instruction.
 - The Organization workstream was explicitly resumed on 2026-10-09. Implementation is scoped to non-production PRs.
 - The original tracker restoration was documentation-only. The later 2026-10-09 implementation authorization covers non-production feature development, not production database changes, deployments, or real-data population.
 
@@ -86,7 +86,7 @@ Add a dedicated CMS content type for organizational units and personnel structur
 | ----- | ---------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 0     | Discovery, pnpman review, domain model, tracker      | **COMPLETE** | Architecture decisions above are recorded and no implementation has started                                                                                   |
 | 1     | Schema + shared contracts                            | COMPLETE     | Append-only D1 migration, types, validation, indexes, hierarchy/assignment integrity tests                                                                    |
-| 2     | Worker repositories + public/admin APIs              | IN_PROGRESS  | CRUD/read contracts, recursive unit reads, personnel/position/assignment operations, safe public sanitizer                                                    |
+| 2     | Worker repositories + public/admin APIs              | COMPLETE     | CRUD/read contracts, recursive unit reads, personnel/position/assignment operations, safe public sanitizer                                                    |
 | 3     | RBAC + Admin routing/service layer                   | PLANNED      | Dedicated capabilities, route policy, API facade/query keys, Admin navigation entry                                                                           |
 | 4     | Organization list/editor                             | PLANNED      | Dedicated `/admin/organization` list, title/slug/type/parent/status workflow, revision-safe writes                                                            |
 | 5     | Personnel directory                                  | PLANNED      | Canonical personnel CRUD, Media Library photo selection, reuse across organization pages                                                                      |
@@ -196,11 +196,26 @@ Add a dedicated CMS content type for organizational units and personnel structur
 - Phase 2 is **IN_PROGRESS**. Do not claim phase completion yet: organization-unit/content publication lifecycle, controlled delete/reassign operations and their permission/privacy/regression coverage remain unimplemented. Follow-up Phases 3-9 remain subject to the single final merge gate.
 - **No merge to `main`, no production D1 migration, no protected deployment, no real RCAT person data population.** PR #553 stays Draft.
 
+## Phase 2 closure — 2026-10-10 Asia/Bangkok
+
+**Status: COMPLETE / PAUSED.** This is the authoritative current phase status. All preceding "IN_PROGRESS" checkpoints are retained as historical evidence and are superseded by this closure.
+
+- **Phase 2 exit contract passed:** additive D1 schema and shared contracts, recursive published-unit hierarchy, active/period-filtered positions and multi-duty assignments, contact opt-in privacy sanitization, authenticated Admin list/detail and create/update/delete APIs for units, personnel, positions and assignments.
+- Organization unit CRUD uses the canonical CMS `contents` slug/status/revision and a linked `organization_units` row with **atomic D1 content + unit + audit writes**, server-owned IDs, strict allowlist validation, duplicate-slug rejection, immutable content revision evidence, publish/draft controls, ancestry integrity and optimistic concurrency.
+- Personnel, positions and assignments use their own revision-checked D1 transactions with audit logs. Foreign-key restrictions reject implicit cascade; callers must remove or explicitly reassign linked assignments before deleting persons, positions or units. Occupant limits and assignment date windows are guarded at both DTO and D1 levels.
+- **Last-mile security closure:** isolated the `organization` type from the generic `/api/admin/content` detail, mutation, paginated list, dashboard/snapshot and bulk publish paths so those routes cannot bypass organization lifecycle revisions or expose confidential unit content to roles without `organization.read`.
+- SQLite and Worker regression coverage includes revision conflicts, D1 batch rollback, hierarchy cycles, slug uniqueness, linked-entity deletion, private contacts, RBAC/capabilities, scoped Admin routes and generic-content/dashboard isolation. Required authentication/CSRF/password step-up and rate-limit paths reuse the existing CMS boundary.
+- **Exact code-head CI PASS:** [run #38027607847](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38027607847) at `34c4a7908cb6b76fd34d1e1c7a31de33806023e4`. Dependency Preflight, Static Quality (including Prettier), Unit Tests, Integration Tests, Worker, Build, Dependencies, Governance, Functional E2E and aggregate `quality` all succeeded.
+- **Prettier improvement:** the same-repository PR autofix [run #38027607853](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38027607853) succeeded on the exact code head without requiring a new format commit. Its stale-ref safeguard prevents forced/outdated pushes. The CI quality gate remains enabled; no lint or security gates were disabled.
+- This tracker closure changes **documentation only** after that code-head CI. Reconfirm CI for the resulting documentation HEAD before calling the branch fully green. Do not start Phase 3, mark the PR ready, merge, deploy, apply production D1 migration, or populate RCAT data. PR #553 remains Draft.
+- **Deferred to explicit later phases:** Phase 3 Admin facade/nav and complete RBAC application workflow; Phases 4–6 editors/personnel directory/builder UI; Phase 7 public rendering/SEO and complete scheduled-publishing UX; Phase 8 menu/search/sitemap; Phase 9 responsive/accessibility/backup and release preflight.
+
 ## Current blockers
 
-- No Phase 1 blockers. Phase 2 remains **IN_PROGRESS**: required work includes protected Admin endpoints, complete CRUD/delete/archive workflows, server-side validations, revision conflict mapping, audit logs, route and privacy regression tests, and final exact-head CI.
-- Deployment and final merge intentionally remain blocked until completion and acceptance of every pre-merge Phase 1-9 deliverable.
+- **No outstanding Phase 2 implementation or CI blocker.** Phase 2 exit criteria are complete and its exact-code-head required CI passed. This documentation-only closing commit starts a new exact-head run for confirmation.
+- The final merge/deployment remains intentionally blocked until all pre-merge Phases 1–9 are finished, reviewed and validated. Production D1 apply/deploy and real data population remain Phases 10–11 after the single final merge.
 
 ## Next action
 
-On the **same** branch, implement organization-unit creation/editing tied atomically to the CMS content/slug/status/revision lifecycle. Finish safe delete/reassignment policies and admin/public leak regression tests. Begin Phase 3 only once complete Phase 2 contract and exact-head CI pass. Continue through pre-merge Phases 1-9 without an intermediate merge. Protected production migration/deployment/real-data population remain post-merge operations.
+**PAUSE HERE.** Do not begin Phase 3 without new user authorization. Preserve `agent/org-01-domain-schema` and Draft PR #553. Upon resumption, implement Phase 3 Admin navigation/service layer on the same branch, without intermediate merge. Protected production migration/deployment and real-person data population remain post-merge phases.
+
