@@ -12,8 +12,7 @@ export const publicOrganizationDetailQueryKey = (slug: string) => ["public-organ
 export function publicOrganizationDetailQueryOptions(slug: string, runtimeOptions: PublicQueryRuntimeOptions = {}) {
   return queryOptions({
     queryKey: publicOrganizationDetailQueryKey(slug),
-    queryFn: (context) =>
-      getPublicOrganizationDetail(slug, getPublicQueryRequestOptions(context, runtimeOptions)),
+    queryFn: (context) => getPublicOrganizationDetail(slug, getPublicQueryRequestOptions(context, runtimeOptions)),
     enabled: Boolean(slug),
     staleTime: PUBLIC_CACHE_FRESHNESS_MS.detail,
     gcTime: PUBLIC_QUERY_GC_TIME_MS,

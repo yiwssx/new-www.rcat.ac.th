@@ -20,7 +20,13 @@ interface Props {
   slug: string;
 }
 
-function PositionGroup({ position, media }: { position: PublicOrganizationPosition; media: Map<string, import("../../types").MediaAsset> }) {
+function PositionGroup({
+  position,
+  media
+}: {
+  position: PublicOrganizationPosition;
+  media: Map<string, import("../../types").MediaAsset>;
+}) {
   return (
     <Card variant="outlined" sx={{ borderRadius: 2, height: "100%" }}>
       <CardContent>
@@ -79,9 +85,7 @@ function PositionGroup({ position, media }: { position: PublicOrganizationPositi
                       )}
                     </Box>
                     <Stack spacing={0.25} sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography sx={{ fontWeight: 600, overflowWrap: "anywhere" }}>
-                        {person.displayName}
-                      </Typography>
+                      <Typography sx={{ fontWeight: 600, overflowWrap: "anywhere" }}>{person.displayName}</Typography>
                       {assignment.dutyDetail && (
                         <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: "anywhere" }}>
                           {assignment.dutyDetail}
@@ -163,7 +167,10 @@ export default function PublicOrganizationDetailPage({ slug }: Props) {
       <Stack direction="row" spacing={1.5} alignItems="flex-start" sx={{ mb: 3 }}>
         <AccountTreeOutlinedIcon color="primary" sx={{ fontSize: 36, flexShrink: 0 }} aria-hidden="true" />
         <Box sx={{ minWidth: 0 }}>
-          <Typography variant="h1" sx={{ fontSize: { xs: "1.7rem", md: "2.25rem" }, fontWeight: 700, overflowWrap: "anywhere" }}>
+          <Typography
+            variant="h1"
+            sx={{ fontSize: { xs: "1.7rem", md: "2.25rem" }, fontWeight: 700, overflowWrap: "anywhere" }}
+          >
             {data.unit.title}
           </Typography>
           {data.unit.summary && (
