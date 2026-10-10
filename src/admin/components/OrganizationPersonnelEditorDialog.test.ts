@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { personnelEditorDefaults, personnelEditorSchema, toPersonnelWrite } from "./OrganizationPersonnelEditorDialog";
+import { personnelEditorDefaults, personnelEditorSchema, toPersonnelWrite } from "./organizationPersonnelEditorModel";
 
 describe("Phase 5 personnel privacy and validation contract", () => {
   const valid = {
