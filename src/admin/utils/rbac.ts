@@ -9,6 +9,7 @@ export function canReadAdminData(capabilities: CapabilityCarrier) {
   return hasAnyCmsCapability(capabilities, [
     "dashboard.read",
     "content.read",
+    "organization.read",
     "documents.read",
     "media.read",
     "events.read",
@@ -26,6 +27,14 @@ export function canManageAdminData(capabilities: CapabilityCarrier) {
 
 export function canManageContent(capabilities: CapabilityCarrier) {
   return hasAnyCmsCapability(capabilities, ["content.create", "content.update", "content.delete", "content.publish"]);
+}
+
+export function canReadOrganization(capabilities: CapabilityCarrier) {
+  return hasCmsCapability(capabilities, "organization.read");
+}
+
+export function canManageOrganization(capabilities: CapabilityCarrier) {
+  return hasCmsCapability(capabilities, "organization.manage");
 }
 
 export function canPublishContent(capabilities: CapabilityCarrier) {
@@ -95,6 +104,7 @@ export function isReadOnlyAdminUser(capabilities: CapabilityCarrier) {
     "content.update",
     "content.delete",
     "content.publish",
+    "organization.manage",
     "documents.create",
     "documents.update",
     "documents.delete",
