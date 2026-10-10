@@ -223,7 +223,7 @@ export default function OrganizationPage() {
           <Stack spacing={2}>
             <Stack
               direction={{ xs: "column", sm: "row" }}
-              gap={2}
+              spacing={2}
               sx={{ justifyContent: "space-between", alignItems: { sm: "center" } }}
             >
               <Typography variant="h2" sx={{ fontSize: "1.25rem" }}>
