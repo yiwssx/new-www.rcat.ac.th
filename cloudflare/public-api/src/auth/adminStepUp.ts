@@ -48,7 +48,7 @@ function baseRequirement(method: string, segments: readonly string[]): AdminStep
     if (segments.length === 3 && ["mfa", "mfa-requirement"].includes(segments[2])) return "mfa";
   }
   if (method === "GET" && segments[0] === "backup" && segments[1] === "download") return "password";
-  if (isMutation(method) && ["settings", "menu", "external-services"].includes(segments[0])) return "password";
+  if (isMutation(method) && ["settings", "menu", "external-services", "organization"].includes(segments[0])) return "password";
   return null;
 }
 
