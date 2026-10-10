@@ -81,7 +81,7 @@ export default function OrganizationPersonnelEditorDialog({
   onSave
 }: Props) {
   const [mediaOpen, setMediaOpen] = useState(false);
-  const [selectedPhotoName, setSelectedPhotoName] = useState("");
+  const [selectedPhoto, setSelectedPhoto] = useState<{ id: string; name: string } | null>(null);
   const {
     control,
     handleSubmit,
@@ -155,7 +155,7 @@ export default function OrganizationPersonnelEditorDialog({
                   <Stack spacing={1}>
                     <Typography variant="body2">รูปประจำตัวจากคลังสื่อ</Typography>
                     <Typography variant="caption" sx={{ overflowWrap: "anywhere" }} color="text.secondary">
-                      {selectedPhotoName || (field.value ? `Media ID: ${field.value}` : "ยังไม่ได้เลือกรูปภาพ")}
+                      {selectedPhoto?.id === field.value ? selectedPhoto.name : (field.value ? `Media ID: ${field.value}` : "ยังไม่ได้เลือกรูปภาพ")}
                     </Typography>
                     <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
                       <Button
@@ -171,7 +171,7 @@ export default function OrganizationPersonnelEditorDialog({
                         disabled={busy || !field.value}
                         onClick={() => {
                           field.onChange(null);
-                          setSelectedPhotoName("");
+                          setSelectedPhoto(null);
                         }}
                       >
                         นำรูปออก
@@ -243,7 +243,7 @@ export default function OrganizationPersonnelEditorDialog({
           onClose={() => setMediaOpen(false)}
           onSelect={(asset) => {
             setValue("photoMediaId", asset.id, { shouldDirty: true, shouldValidate: true });
-            setSelectedPhotoName(asset.name);
+            setSelectedPhoto({ id: asset.id, name: asset.name });
             setMediaOpen(false);
           }}
         />
