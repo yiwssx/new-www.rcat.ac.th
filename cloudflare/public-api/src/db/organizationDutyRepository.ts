@@ -48,17 +48,7 @@ function auditStatement(
        SELECT ?, ?, ?, ?, ?, ?, ?
        WHERE EXISTS (SELECT 1 FROM ${TABLE[entity].table} WHERE id = ? AND revision = ?)`
     )
-    .bind(
-      `audit-${crypto.randomUUID()}`,
-      entity,
-      id,
-      action,
-      actor,
-      now,
-      JSON.stringify(metadata),
-      id,
-      revision
-    );
+    .bind(`audit-${crypto.randomUUID()}`, entity, id, action, actor, now, JSON.stringify(metadata), id, revision);
 }
 
 async function createAuditedRow(
@@ -153,7 +143,9 @@ export function getAdminOrganizationPositionById(env: Env, id: string) {
 
 export function getAdminOrganizationAssignmentById(env: Env, id: string) {
   return requireD1Database(env)
-    .prepare(`SELECT ${ORGANIZATION_ASSIGNMENT_ROW_COLUMNS.join(", ")} FROM organization_assignments WHERE id = ? LIMIT 1`)
+    .prepare(
+      `SELECT ${ORGANIZATION_ASSIGNMENT_ROW_COLUMNS.join(", ")} FROM organization_assignments WHERE id = ? LIMIT 1`
+    )
     .bind(id)
     .first<OrganizationAssignmentRow>();
 }
