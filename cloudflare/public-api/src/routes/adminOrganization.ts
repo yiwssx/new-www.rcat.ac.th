@@ -1,7 +1,7 @@
 import {
   listAdminOrganizationAssignments,
   listAdminOrganizationPositions,
-  listAdminOrganizationUnits,
+  listAdminOrganizationContentUnits,
   listAdminPersonnel,
   getAdminPersonnelById
 } from "../db/organizationAdminRepository";
@@ -62,7 +62,7 @@ export async function handleAdminOrganizationRead(request: Request, env: Env, se
 
   const items =
     collection === "units"
-      ? await listAdminOrganizationUnits(env, limit)
+      ? await listAdminOrganizationContentUnits(env, limit)
       : collection === "personnel"
         ? await listAdminPersonnel(env, limit)
         : collection === "positions"
