@@ -164,6 +164,9 @@ describe("Organization Chart D1 internal write repository", () => {
     await expect(updatePersonnelRow(env, person, 0.5)).rejects.toThrow(/expected revision/);
     await expect(listAdminPersonnel(env, 501)).rejects.toThrow(/page size/);
     expect((await listAdminPersonnel(env, 1)).map((row) => row.id)).toEqual(["p1"]);
+    await createPersonnelRow(env, { ...person, id: "p2", display_name: "Bob" });
+    expect((await listAdminPersonnel(env, 1, 1)).map((row) => row.id)).toEqual(["p2"]);
+    await expect(listAdminPersonnel(env, 1, -1)).rejects.toThrow(/offset/);
   });
 
   it("binds hostile data as a value without executing injected SQL", async () => {
