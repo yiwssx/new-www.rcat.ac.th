@@ -39,9 +39,7 @@ export function positionsForUnit(positions: readonly OrganizationPositionRow[], 
     .filter((position) => position.unit_content_id === unitId)
     .sort(
       (a, b) =>
-        a.group_sort_order - b.group_sort_order ||
-        a.sort_order - b.sort_order ||
-        a.title.localeCompare(b.title, "th")
+        a.group_sort_order - b.group_sort_order || a.sort_order - b.sort_order || a.title.localeCompare(b.title, "th")
     );
 }
 
@@ -51,8 +49,6 @@ export function enabledDistinctOccupants(
   positionId: string
 ): number {
   return new Set(
-    assignments
-      .filter((item) => item.position_id === positionId && item.enabled === 1)
-      .map((item) => item.personnel_id)
+    assignments.filter((item) => item.position_id === positionId && item.enabled === 1).map((item) => item.personnel_id)
   ).size;
 }

@@ -4,11 +4,7 @@ import type {
   OrganizationPositionRow,
   OrganizationUnitListRow
 } from "../../features/organization-admin/api";
-import {
-  enabledDistinctOccupants,
-  flattenOrganizationHierarchy,
-  positionsForUnit
-} from "./organizationBuilderModel";
+import { enabledDistinctOccupants, flattenOrganizationHierarchy, positionsForUnit } from "./organizationBuilderModel";
 
 function unit(id: string, parent: string | null, sort = 0): OrganizationUnitListRow {
   return {
@@ -45,11 +41,7 @@ describe("Phase 6 Organization builder model", () => {
   });
 
   it("does not hang on missing parents or corrupt cycles", () => {
-    const tree = flattenOrganizationHierarchy([
-      unit("unloaded", "outside"),
-      unit("a", "b"),
-      unit("b", "a")
-    ]);
+    const tree = flattenOrganizationHierarchy([unit("unloaded", "outside"), unit("a", "b"), unit("b", "a")]);
     expect(tree).toHaveLength(3);
     expect(tree.every((node) => node.detached || node.depth >= 0)).toBe(true);
   });
