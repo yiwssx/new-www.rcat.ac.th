@@ -121,7 +121,7 @@ describe("Phase 5 canonical personnel directory", () => {
     show(true, true);
     fireEvent.click(await screen.findByRole("button", { name: "แก้ไข" }));
     fireEvent.click(screen.getByRole("button", { name: "เลือกรูปภาพ" }));
-    fireEvent.click(screen.getByRole("button", { name: "เลือกไฟล์ทดสอบ" }));
+    fireEvent.click(await screen.findByRole("button", { name: "เลือกไฟล์ทดสอบ" }));
     fireEvent.click(screen.getByRole("button", { name: "บันทึกบุคลากร" }));
     await waitFor(() =>
       expect(api.update).toHaveBeenCalledWith(
