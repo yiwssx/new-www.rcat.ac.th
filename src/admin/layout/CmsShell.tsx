@@ -45,6 +45,7 @@ type AdminPath =
   | "/admin/carousel"
   | "/admin/external-services"
   | "/admin/content"
+  | "/admin/organization"
   | "/admin/documents"
   | "/admin/media"
   | "/admin/calendar"
@@ -71,6 +72,10 @@ const navItems: NavItem[] = [
     capabilities: ["dashboard.read"]
   },
   { label: "เนื้อหา", to: "/admin/content", icon: <ArticleOutlinedIcon />, capabilities: ["content.read"] },
+  {
+    label: "ผังองค์กร", to: "/admin/organization", icon: <AccountTreeOutlinedIcon />,
+    capabilities: ["organization.read"]
+  },
   {
     label: "เอกสารเผยแพร่",
     to: "/admin/documents",
