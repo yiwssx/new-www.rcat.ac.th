@@ -21,18 +21,24 @@ const identifier = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$/;
 export function parseOrganizationReorder(value: unknown): OrganizationReorderInput {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new TypeError("invalid reorder payload");
   const data = value as Record<string, unknown>;
-  if (Object.keys(data).some((key) => !["collection", "scopeId", "groupLabel", "groupSortOrder", "items"].includes(key))) {
+  if (
+    Object.keys(data).some((key) => !["collection", "scopeId", "groupLabel", "groupSortOrder", "items"].includes(key))
+  ) {
     throw new TypeError("unexpected reorder field");
   }
-  if (data.collection !== "positions" && data.collection !== "assignments") throw new TypeError("invalid reorder collection");
+  if (data.collection !== "positions" && data.collection !== "assignments")
+    throw new TypeError("invalid reorder collection");
   if (typeof data.scopeId !== "string" || !identifier.test(data.scopeId)) throw new TypeError("invalid reorder scope");
-  if (!Array.isArray(data.items) || data.items.length < 2 || data.items.length > 500) throw new TypeError("invalid reorder size");
+  if (!Array.isArray(data.items) || data.items.length < 2 || data.items.length > 500)
+    throw new TypeError("invalid reorder size");
   const seen = new Set<string>();
   const items = data.items.map((entry: unknown) => {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) throw new TypeError("invalid reorder entry");
     const row = entry as Record<string, unknown>;
-    if (Object.keys(row).some((key) => !["id", "revision"].includes(key))) throw new TypeError("unexpected reorder entry field");
-    if (typeof row.id !== "string" || !identifier.test(row.id) || seen.has(row.id)) throw new TypeError("invalid reorder ID");
+    if (Object.keys(row).some((key) => !["id", "revision"].includes(key)))
+      throw new TypeError("unexpected reorder entry field");
+    if (typeof row.id !== "string" || !identifier.test(row.id) || seen.has(row.id))
+      throw new TypeError("invalid reorder ID");
     if (typeof row.revision !== "number" || !Number.isSafeInteger(row.revision) || row.revision < 0) {
       throw new TypeError("invalid reorder revision");
     }
@@ -40,8 +46,13 @@ export function parseOrganizationReorder(value: unknown): OrganizationReorderInp
     return { id: row.id, revision: row.revision };
   });
   if (data.collection === "positions") {
-    if (typeof data.groupLabel !== "string" || data.groupLabel.length > 160) throw new TypeError("invalid position group");
-    if (typeof data.groupSortOrder !== "number" || !Number.isSafeInteger(data.groupSortOrder) || data.groupSortOrder < 0) {
+    if (typeof data.groupLabel !== "string" || data.groupLabel.length > 160)
+      throw new TypeError("invalid position group");
+    if (
+      typeof data.groupSortOrder !== "number" ||
+      !Number.isSafeInteger(data.groupSortOrder) ||
+      data.groupSortOrder < 0
+    ) {
       throw new TypeError("invalid position group order");
     }
   } else if (data.groupLabel !== "" || data.groupSortOrder !== 0) {
@@ -70,9 +81,7 @@ export async function reorderOrganizationRows(
   const db = requireD1Database(env);
   const isPosition = input.collection === "positions";
   const table = isPosition ? "organization_positions" : "organization_assignments";
-  const scope = isPosition
-    ? "unit_content_id = ?3 AND group_label = ?4 AND group_sort_order = ?5"
-    : "position_id = ?3";
+  const scope = isPosition ? "unit_content_id = ?3 AND group_label = ?4 AND group_sort_order = ?5" : "position_id = ?3";
   const payload = JSON.stringify(input.items);
   const args = isPosition
     ? [payload, new Date().toISOString(), input.scopeId, input.groupLabel, input.groupSortOrder, input.items.length]
@@ -101,7 +110,12 @@ export async function reorderOrganizationRows(
       input.scopeId,
       actor,
       args[1],
-      JSON.stringify({ collection: input.collection, groupLabel: input.groupLabel, groupSortOrder: input.groupSortOrder, items: input.items })
+      JSON.stringify({
+        collection: input.collection,
+        groupLabel: input.groupLabel,
+        groupSortOrder: input.groupSortOrder,
+        items: input.items
+      })
     );
   const update = db
     .prepare(
@@ -126,7 +140,12 @@ export async function handleAdminOrganizationReorder(
   segments: readonly string[],
   identity: AdminIdentity
 ): Promise<Response | null> {
-  if (segments.length !== 2 || segments[0] !== "organization" || segments[1] !== "reorder" || request.method !== "POST") {
+  if (
+    segments.length !== 2 ||
+    segments[0] !== "organization" ||
+    segments[1] !== "reorder" ||
+    request.method !== "POST"
+  ) {
     return null;
   }
   const raw: unknown = await request.json().catch(() => null);
@@ -134,7 +153,9 @@ export async function handleAdminOrganizationReorder(
   try {
     input = parseOrganizationReorder(raw);
   } catch (error) {
-    return jsonError(error instanceof Error ? error.message : "invalid reorder data", 400, { resource: "organization" });
+    return jsonError(error instanceof Error ? error.message : "invalid reorder data", 400, {
+      resource: "organization"
+    });
   }
   const updated = await reorderOrganizationRows(env, input, identity.actor);
   if (!updated) return jsonError("organization ordering changed; refresh and retry", 409, { resource: "organization" });
