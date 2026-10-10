@@ -31,11 +31,7 @@ import {
   type OrganizationUnitListRow
 } from "../../features/organization-admin";
 import { appSwal } from "../../utils/swal";
-import {
-  enabledDistinctOccupants,
-  flattenOrganizationHierarchy,
-  positionsForUnit
-} from "./organizationBuilderModel";
+import { enabledDistinctOccupants, flattenOrganizationHierarchy, positionsForUnit } from "./organizationBuilderModel";
 
 interface Props {
   units: readonly OrganizationUnitListRow[];
@@ -227,8 +223,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage }
       !safeNumber(assignmentForm.sortOrder, 0, 1000000) ||
       !checkDate(assignmentForm.startsAt) ||
       !checkDate(assignmentForm.endsAt) ||
-      (assignmentForm.endsAt !== "" &&
-        (!assignmentForm.startsAt || assignmentForm.endsAt < assignmentForm.startsAt))
+      (assignmentForm.endsAt !== "" && (!assignmentForm.startsAt || assignmentForm.endsAt < assignmentForm.startsAt))
     ) {
       setDialogError("กรุณาระบุบุคลากร ตำแหน่ง ลำดับ และช่วงวันเวลา ISO UTC ให้ถูกต้อง");
       return;
@@ -308,8 +303,16 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage }
               เลือกฝ่าย งาน หรือแผนก แล้วกำหนดตำแหน่งและหน้าที่ของบุคลากรคนเดียวในหลายหน่วยงานได้
             </Typography>
           </Box>
-          {error && <Alert severity="error" role="alert">{error}</Alert>}
-          {notice && <Alert severity="success" role="status">{notice}</Alert>}
+          {error && (
+            <Alert severity="error" role="alert">
+              {error}
+            </Alert>
+          )}
+          {notice && (
+            <Alert severity="success" role="status">
+              {notice}
+            </Alert>
+          )}
           {!allUnitsLoaded && (
             <Alert severity="warning">
               รายการหน่วยงานยังโหลดไม่ครบ กรุณาโหลดหน่วยงานเพิ่มเติมด้านบนก่อนเลือกจัดโครงสร้าง
@@ -320,7 +323,9 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage }
           )}
           <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ minWidth: 0 }}>
             <Box sx={{ width: { xs: "100%", md: "35%" }, minWidth: 0 }}>
-              <Typography variant="h3" sx={{ fontSize: "1rem", mb: 1 }}>ลำดับชั้นหน่วยงาน</Typography>
+              <Typography variant="h3" sx={{ fontSize: "1rem", mb: 1 }}>
+                ลำดับชั้นหน่วยงาน
+              </Typography>
               <Box component="nav" aria-label="โครงสร้างหน่วยงาน" sx={{ maxHeight: 480, overflowY: "auto" }}>
                 <Stack spacing={0.5}>
                   {hierarchy.map(({ unit, depth, detached }) => (
@@ -342,7 +347,8 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage }
                         setError("");
                       }}
                     >
-                      {unit.title}{detached ? " (ไม่พบหน่วยงานแม่ในข้อมูลที่โหลด)" : ""}
+                      {unit.title}
+                      {detached ? " (ไม่พบหน่วยงานแม่ในข้อมูลที่โหลด)" : ""}
                     </Button>
                   ))}
                 </Stack>
@@ -369,11 +375,17 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage }
                   return (
                     <Box key={position.id} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2 }}>
                       <Stack spacing={1}>
-                        <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ justifyContent: "space-between" }}>
+                        <Stack
+                          direction={{ xs: "column", sm: "row" }}
+                          spacing={1}
+                          sx={{ justifyContent: "space-between" }}
+                        >
                           <Box sx={{ minWidth: 0 }}>
                             <Typography sx={{ fontWeight: 700, overflowWrap: "anywhere" }}>{position.title}</Typography>
                             <Stack direction="row" spacing={0.5} useFlexGap sx={{ flexWrap: "wrap" }}>
-                              {position.group_label && <Chip size="small" label={position.group_label} variant="outlined" />}
+                              {position.group_label && (
+                                <Chip size="small" label={position.group_label} variant="outlined" />
+                              )}
                               <Chip size="small" label={"ลำดับ " + position.sort_order} variant="outlined" />
                               {position.occupant_limit !== null && !assignmentsQuery.hasNextPage && (
                                 <Chip
@@ -391,7 +403,9 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage }
                           </Box>
                           {canManage && (
                             <Stack direction="row" useFlexGap sx={{ flexWrap: "wrap" }}>
-                              <Button onClick={() => openPosition(position)} disabled={busy}>แก้ไขตำแหน่ง</Button>
+                              <Button onClick={() => openPosition(position)} disabled={busy}>
+                                แก้ไขตำแหน่ง
+                              </Button>
                               <Button color="error" onClick={() => void remove("positions", position)} disabled={busy}>
                                 ลบตำแหน่ง
                               </Button>
@@ -400,7 +414,11 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage }
                         </Stack>
                         {assigned.map((assignment) => (
                           <Box key={assignment.id} sx={{ bgcolor: "action.hover", borderRadius: 1, p: 1 }}>
-                            <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ justifyContent: "space-between" }}>
+                            <Stack
+                              direction={{ xs: "column", sm: "row" }}
+                              spacing={1}
+                              sx={{ justifyContent: "space-between" }}
+                            >
                               <Box sx={{ minWidth: 0 }}>
                                 <Typography sx={{ overflowWrap: "anywhere" }}>
                                   {byPerson.get(assignment.personnel_id)?.display_name ??
@@ -416,7 +434,11 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage }
                                   <Button disabled={busy} onClick={() => openAssignment(assignment, position.id)}>
                                     แก้ไขหน้าที่
                                   </Button>
-                                  <Button color="error" disabled={busy} onClick={() => void remove("assignments", assignment)}>
+                                  <Button
+                                    color="error"
+                                    disabled={busy}
+                                    onClick={() => void remove("assignments", assignment)}
+                                  >
                                     ลบหน้าที่
                                   </Button>
                                 </Stack>
@@ -440,7 +462,9 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage }
             {pageControl("ตำแหน่ง", positionsQuery)}
             {pageControl("หน้าที่", assignmentsQuery)}
             {pageControl("บุคลากร", personnelQuery)}
-            <Button onClick={() => void refresh()} disabled={busy}>รีเฟรชข้อมูล</Button>
+            <Button onClick={() => void refresh()} disabled={busy}>
+              รีเฟรชข้อมูล
+            </Button>
           </Stack>
           {(positionsQuery.hasNextPage || assignmentsQuery.hasNextPage || personnelQuery.hasNextPage) && (
             <Alert severity="info">
@@ -453,69 +477,159 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage }
               {positionForm && (
                 <Stack spacing={2} sx={{ mt: 1 }}>
                   {dialogError && <Alert severity="error">{dialogError}</Alert>}
-                  <TextField label="ชื่อตำแหน่ง" required fullWidth value={positionForm.title} disabled={busy}
-                    onChange={(event) => setPositionForm({ ...positionForm, title: event.target.value })} />
-                  <TextField label="กลุ่มตำแหน่ง" fullWidth value={positionForm.groupLabel} disabled={busy}
-                    onChange={(event) => setPositionForm({ ...positionForm, groupLabel: event.target.value })} />
-                  <TextField label="ลำดับกลุ่ม" type="number" fullWidth value={positionForm.groupSortOrder} disabled={busy}
-                    onChange={(event) => setPositionForm({ ...positionForm, groupSortOrder: Number(event.target.value) })} />
-                  <TextField label="ลำดับตำแหน่ง" type="number" fullWidth value={positionForm.sortOrder} disabled={busy}
-                    onChange={(event) => setPositionForm({ ...positionForm, sortOrder: Number(event.target.value) })} />
-                  <TextField label="รูปแบบแสดงผล" fullWidth value={positionForm.displayStyle} disabled={busy}
-                    onChange={(event) => setPositionForm({ ...positionForm, displayStyle: event.target.value })} />
-                  <TextField label="จำนวนผู้ดำรงตำแหน่งสูงสุด (ว่าง = ไม่จำกัด)" type="number" fullWidth
-                    value={positionForm.occupantLimit ?? ""} disabled={busy}
-                    onChange={(event) => setPositionForm({
-                      ...positionForm,
-                      occupantLimit: event.target.value === "" ? null : Number(event.target.value)
-                    })} />
-                  <Alert severity="info">เปลี่ยนลำดับได้ด้วยแป้นพิมพ์หรือปุ่มตัวเลข โดยระบบตรวจสอบ Revision ก่อนบันทึก</Alert>
+                  <TextField
+                    label="ชื่อตำแหน่ง"
+                    required
+                    fullWidth
+                    value={positionForm.title}
+                    disabled={busy}
+                    onChange={(event) => setPositionForm({ ...positionForm, title: event.target.value })}
+                  />
+                  <TextField
+                    label="กลุ่มตำแหน่ง"
+                    fullWidth
+                    value={positionForm.groupLabel}
+                    disabled={busy}
+                    onChange={(event) => setPositionForm({ ...positionForm, groupLabel: event.target.value })}
+                  />
+                  <TextField
+                    label="ลำดับกลุ่ม"
+                    type="number"
+                    fullWidth
+                    value={positionForm.groupSortOrder}
+                    disabled={busy}
+                    onChange={(event) =>
+                      setPositionForm({ ...positionForm, groupSortOrder: Number(event.target.value) })
+                    }
+                  />
+                  <TextField
+                    label="ลำดับตำแหน่ง"
+                    type="number"
+                    fullWidth
+                    value={positionForm.sortOrder}
+                    disabled={busy}
+                    onChange={(event) => setPositionForm({ ...positionForm, sortOrder: Number(event.target.value) })}
+                  />
+                  <TextField
+                    label="รูปแบบแสดงผล"
+                    fullWidth
+                    value={positionForm.displayStyle}
+                    disabled={busy}
+                    onChange={(event) => setPositionForm({ ...positionForm, displayStyle: event.target.value })}
+                  />
+                  <TextField
+                    label="จำนวนผู้ดำรงตำแหน่งสูงสุด (ว่าง = ไม่จำกัด)"
+                    type="number"
+                    fullWidth
+                    value={positionForm.occupantLimit ?? ""}
+                    disabled={busy}
+                    onChange={(event) =>
+                      setPositionForm({
+                        ...positionForm,
+                        occupantLimit: event.target.value === "" ? null : Number(event.target.value)
+                      })
+                    }
+                  />
+                  <Alert severity="info">
+                    เปลี่ยนลำดับได้ด้วยแป้นพิมพ์หรือปุ่มตัวเลข โดยระบบตรวจสอบ Revision ก่อนบันทึก
+                  </Alert>
                 </Stack>
               )}
             </DialogContent>
             <DialogActions>
-              <Button onClick={() => setPositionForm(null)} disabled={busy}>ยกเลิก</Button>
-              <Button variant="contained" onClick={() => void savePosition()} disabled={busy}>บันทึกตำแหน่ง</Button>
+              <Button onClick={() => setPositionForm(null)} disabled={busy}>
+                ยกเลิก
+              </Button>
+              <Button variant="contained" onClick={() => void savePosition()} disabled={busy}>
+                บันทึกตำแหน่ง
+              </Button>
             </DialogActions>
           </Dialog>
-          <Dialog open={assignmentForm !== null} onClose={() => !busy && setAssignmentForm(null)} fullWidth maxWidth="sm">
+          <Dialog
+            open={assignmentForm !== null}
+            onClose={() => !busy && setAssignmentForm(null)}
+            fullWidth
+            maxWidth="sm"
+          >
             <DialogTitle>{assignmentEditing ? "แก้ไขการมอบหมาย" : "มอบหมายบุคลากร"}</DialogTitle>
             <DialogContent>
               {assignmentForm && (
                 <Stack spacing={2} sx={{ mt: 1 }}>
                   {dialogError && <Alert severity="error">{dialogError}</Alert>}
-                  <TextField label="บุคลากรจากทะเบียนกลาง" select fullWidth required disabled={busy}
+                  <TextField
+                    label="บุคลากรจากทะเบียนกลาง"
+                    select
+                    fullWidth
+                    required
+                    disabled={busy}
                     value={assignmentForm.personnelId}
-                    onChange={(event) => setAssignmentForm({ ...assignmentForm, personnelId: event.target.value })}>
+                    onChange={(event) => setAssignmentForm({ ...assignmentForm, personnelId: event.target.value })}
+                  >
                     {personnel.map((person) => (
-                      <MenuItem key={person.id} value={person.id}>{person.display_name}</MenuItem>
-                    ))}
-                  </TextField>
-                  <TextField label="ตำแหน่ง (สามารถย้ายข้ามหน่วยงาน)" select fullWidth required disabled={busy}
-                    value={assignmentForm.positionId}
-                    onChange={(event) => setAssignmentForm({ ...assignmentForm, positionId: event.target.value })}>
-                    {positions.map((position) => (
-                      <MenuItem key={position.id} value={position.id}>
-                        {(byUnit.get(position.unit_content_id)?.title ?? position.unit_content_id) + " / " + position.title}
+                      <MenuItem key={person.id} value={person.id}>
+                        {person.display_name}
                       </MenuItem>
                     ))}
                   </TextField>
-                  <TextField label="รายละเอียดหน้าที่" multiline minRows={2} fullWidth disabled={busy}
+                  <TextField
+                    label="ตำแหน่ง (สามารถย้ายข้ามหน่วยงาน)"
+                    select
+                    fullWidth
+                    required
+                    disabled={busy}
+                    value={assignmentForm.positionId}
+                    onChange={(event) => setAssignmentForm({ ...assignmentForm, positionId: event.target.value })}
+                  >
+                    {positions.map((position) => (
+                      <MenuItem key={position.id} value={position.id}>
+                        {(byUnit.get(position.unit_content_id)?.title ?? position.unit_content_id) +
+                          " / " +
+                          position.title}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                  <TextField
+                    label="รายละเอียดหน้าที่"
+                    multiline
+                    minRows={2}
+                    fullWidth
+                    disabled={busy}
                     value={assignmentForm.dutyDetail}
-                    onChange={(event) => setAssignmentForm({ ...assignmentForm, dutyDetail: event.target.value })} />
-                  <TextField label="ลำดับการแสดง" type="number" fullWidth disabled={busy}
+                    onChange={(event) => setAssignmentForm({ ...assignmentForm, dutyDetail: event.target.value })}
+                  />
+                  <TextField
+                    label="ลำดับการแสดง"
+                    type="number"
+                    fullWidth
+                    disabled={busy}
                     value={assignmentForm.sortOrder}
-                    onChange={(event) => setAssignmentForm({ ...assignmentForm, sortOrder: Number(event.target.value) })} />
-                  <TextField label="เริ่มดำรงหน้าที่ (ISO UTC, ไม่บังคับ)" fullWidth disabled={busy}
+                    onChange={(event) =>
+                      setAssignmentForm({ ...assignmentForm, sortOrder: Number(event.target.value) })
+                    }
+                  />
+                  <TextField
+                    label="เริ่มดำรงหน้าที่ (ISO UTC, ไม่บังคับ)"
+                    fullWidth
+                    disabled={busy}
                     helperText="ตัวอย่าง 2026-10-10T00:00:00.000Z"
                     value={assignmentForm.startsAt}
-                    onChange={(event) => setAssignmentForm({ ...assignmentForm, startsAt: event.target.value })} />
-                  <TextField label="สิ้นสุดหน้าที่ (ISO UTC, ไม่บังคับ)" fullWidth disabled={busy}
+                    onChange={(event) => setAssignmentForm({ ...assignmentForm, startsAt: event.target.value })}
+                  />
+                  <TextField
+                    label="สิ้นสุดหน้าที่ (ISO UTC, ไม่บังคับ)"
+                    fullWidth
+                    disabled={busy}
                     value={assignmentForm.endsAt}
-                    onChange={(event) => setAssignmentForm({ ...assignmentForm, endsAt: event.target.value })} />
+                    onChange={(event) => setAssignmentForm({ ...assignmentForm, endsAt: event.target.value })}
+                  />
                   <FormControlLabel
-                    control={<Checkbox checked={assignmentForm.enabled} disabled={busy}
-                      onChange={(_, enabled) => setAssignmentForm({ ...assignmentForm, enabled })} />}
+                    control={
+                      <Checkbox
+                        checked={assignmentForm.enabled}
+                        disabled={busy}
+                        onChange={(_, enabled) => setAssignmentForm({ ...assignmentForm, enabled })}
+                      />
+                    }
                     label="เปิดใช้งานการมอบหมายนี้"
                   />
                   <Alert severity="info">
@@ -525,8 +639,12 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage }
               )}
             </DialogContent>
             <DialogActions>
-              <Button disabled={busy} onClick={() => setAssignmentForm(null)}>ยกเลิก</Button>
-              <Button variant="contained" disabled={busy} onClick={() => void saveAssignment()}>บันทึกหน้าที่</Button>
+              <Button disabled={busy} onClick={() => setAssignmentForm(null)}>
+                ยกเลิก
+              </Button>
+              <Button variant="contained" disabled={busy} onClick={() => void saveAssignment()}>
+                บันทึกหน้าที่
+              </Button>
             </DialogActions>
           </Dialog>
         </Stack>
