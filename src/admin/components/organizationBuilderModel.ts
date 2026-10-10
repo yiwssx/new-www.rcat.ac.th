@@ -1,3 +1,4 @@
+import { fromLocalDateTimeInputValue, toLocalDateTimeInputValue } from "../../utils/calendar";
 import type {
   OrganizationAssignmentRow,
   OrganizationPositionRow,
@@ -63,4 +64,12 @@ export function enabledDistinctOccupants(
   return new Set(
     assignments.filter((item) => item.position_id === positionId && item.enabled === 1).map((item) => item.personnel_id)
   ).size;
+}
+
+/** Keep stored sub-minute precision if a Thai-local date input is untouched. */
+export function assignmentDateToUtc(localInput: string, originalUtc = ""): string | null {
+  if (!localInput) return "";
+  if (originalUtc && localInput === toLocalDateTimeInputValue(originalUtc)) return originalUtc;
+  const parsed = fromLocalDateTimeInputValue(localInput);
+  return parsed ? new Date(parsed).toISOString() : null;
 }

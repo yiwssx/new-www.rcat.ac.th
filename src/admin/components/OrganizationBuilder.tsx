@@ -31,7 +31,13 @@ import {
   type OrganizationUnitListRow
 } from "../../features/organization-admin";
 import { appSwal } from "../../utils/swal";
-import { enabledDistinctOccupants, flattenOrganizationHierarchy, positionsForUnit } from "./organizationBuilderModel";
+import {
+  assignmentDateToUtc,
+  enabledDistinctOccupants,
+  flattenOrganizationHierarchy,
+  positionsForUnit
+} from "./organizationBuilderModel";
+import { toLocalDateTimeInputValue } from "../../utils/calendar";
 
 interface Props {
   units: readonly OrganizationUnitListRow[];
@@ -170,8 +176,8 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
             positionId: row.position_id,
             dutyDetail: row.duty_detail,
             sortOrder: row.sort_order,
-            startsAt: row.starts_at,
-            endsAt: row.ends_at,
+            startsAt: toLocalDateTimeInputValue(row.starts_at),
+            endsAt: toLocalDateTimeInputValue(row.ends_at),
             enabled: row.enabled === 1
           }
         : emptyAssignment(positionId)
@@ -216,26 +222,27 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
 
   async function saveAssignment() {
     if (!canManage || !assignmentForm || busy) return;
-    const checkDate = (date: string) =>
-      !date || (Number.isFinite(Date.parse(date)) && new Date(date).toISOString() === date);
+    const startsAt = assignmentDateToUtc(assignmentForm.startsAt, assignmentEditing?.starts_at);
+    const endsAt = assignmentDateToUtc(assignmentForm.endsAt, assignmentEditing?.ends_at);
     if (
       !assignmentForm.personnelId ||
       !assignmentForm.positionId ||
       !safeNumber(assignmentForm.sortOrder, 0, 1000000) ||
-      !checkDate(assignmentForm.startsAt) ||
-      !checkDate(assignmentForm.endsAt) ||
-      (assignmentForm.endsAt !== "" && (!assignmentForm.startsAt || assignmentForm.endsAt < assignmentForm.startsAt))
+      startsAt === null ||
+      endsAt === null ||
+      (endsAt !== "" && (!startsAt || endsAt < startsAt))
     ) {
-      setDialogError("กรุณาระบุบุคลากร ตำแหน่ง ลำดับ และช่วงวันเวลา ISO UTC ให้ถูกต้อง");
+      setDialogError("กรุณาระบุบุคลากร ตำแหน่ง ลำดับ และช่วงวันเวลาไทยให้ถูกต้อง");
       return;
     }
+    const input = { ...assignmentForm, startsAt, endsAt };
     setBusy(true);
     setDialogError("");
     try {
       if (assignmentEditing) {
-        await updateOrganizationRecord("assignments", assignmentEditing.id, assignmentEditing.revision, assignmentForm);
+        await updateOrganizationRecord("assignments", assignmentEditing.id, assignmentEditing.revision, input);
       } else {
-        await createOrganizationRecord("assignments", assignmentForm);
+        await createOrganizationRecord("assignments", input);
       }
       await refresh();
       setAssignmentForm(null);
@@ -636,15 +643,19 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                     }
                   />
                   <TextField
-                    label="เริ่มดำรงหน้าที่ (ISO UTC, ไม่บังคับ)"
+                    label="เริ่มดำรงหน้าที่ (เวลาไทย, ไม่บังคับ)"
+                    type="datetime-local"
+                    slotProps={{ inputLabel: { shrink: true } }}
                     fullWidth
                     disabled={busy}
-                    helperText="ตัวอย่าง 2026-10-10T00:00:00.000Z"
+                    helperText="เลือกวันเวลาไทย ระบบแปลงเป็น UTC ก่อนบันทึก"
                     value={assignmentForm.startsAt}
                     onChange={(event) => setAssignmentForm({ ...assignmentForm, startsAt: event.target.value })}
                   />
                   <TextField
-                    label="สิ้นสุดหน้าที่ (ISO UTC, ไม่บังคับ)"
+                    label="สิ้นสุดหน้าที่ (เวลาไทย, ไม่บังคับ)"
+                    type="datetime-local"
+                    slotProps={{ inputLabel: { shrink: true } }}
                     fullWidth
                     disabled={busy}
                     value={assignmentForm.endsAt}
