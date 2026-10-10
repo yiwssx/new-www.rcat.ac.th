@@ -159,8 +159,6 @@ export async function getOrganizationCollection<K extends OrganizationCollection
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100) throw new RangeError("invalid organization limit");
   if (!Number.isSafeInteger(offset) || offset < 0 || offset > 999999)
     throw new RangeError("invalid organization offset");
-  if (collection !== "units" && collection !== "personnel" && offset !== 0)
-    throw new RangeError("offset applies to units and personnel only");
   return requestCloudflareAdmin<{
     items: OrganizationRecordByCollection[K][];
     nextOffset: number | null;

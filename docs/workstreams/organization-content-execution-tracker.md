@@ -1,6 +1,6 @@
 # Organization Content Workstream Tracker
 
-Status: **PAUSED / PHASES 1–5 COMPLETE / PHASE 6 PLANNED / FEATURE BRANCH ONLY — NO MERGE**
+Status: **IN PROGRESS / PHASE 6 / PHASES 1–5 COMPLETE / FEATURE BRANCH ONLY — NO MERGE**
 
 Updated: 2026-10-10 Asia/Bangkok
 
@@ -90,7 +90,7 @@ Add a dedicated CMS content type for organizational units and personnel structur
 | 3     | RBAC + Admin routing/service layer                   | COMPLETE     | Dedicated capabilities, route policy, API facade/query keys, Admin navigation entry                                                                           |
 | 4     | Organization list/editor                             | COMPLETE     | Dedicated `/admin/organization` list, title/slug/type/parent/status workflow, revision-safe writes                                                            |
 | 5     | Personnel directory                                  | COMPLETE     | Canonical personnel CRUD, Media Library photo selection, reuse across organization pages                                                                      |
-| 6     | Organization builder                                 | PLANNED      | Unit positions, assignment/reassignment, ordering, multiple duties, occupant limits, accessible non-drag controls; drag/drop only if justified                |
+| 6     | Organization builder                                 | IN PROGRESS      | Unit positions, assignment/reassignment, ordering, multiple duties, occupant limits, accessible non-drag controls; drag/drop only if justified                |
 | 7     | Public renderer + permalink/SSR/SEO                  | PLANNED      | Published organization slugs resolve through public routing, hierarchy/breadcrumbs render, draft/private fields remain inaccessible                           |
 | 8     | Menu/search/sitemap integration                      | PLANNED      | Menu can link to organization pages; search/sitemap behavior is deliberate and tested; generic content lists do not leak organization records unintentionally |
 | 9     | Quality, accessibility, performance, backup coverage | PLANNED      | Unit/integration/functional tests, format/lint/build/worker checks, responsive/mobile verification, backup counts/download include new tables where required  |
@@ -287,3 +287,12 @@ Add a dedicated CMS content type for organizational units and personnel structur
 - Added targeted tests for personnel directory RBAC/privacy, create/edit/delete, Media Library selection, public-contact validation, pagination, REST path/offset boundaries and image-reference enforcement. The Media Picker test mock uses a real MUI Dialog portal to match accessibility behavior in production.
 - **Exact-code-head full CI PASSED:** [CI #38039829166](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38039829166) on `dc25e3a4e80ff8c01ba0306966526bcbe5b612dd` — Dependency Preflight, Static Quality/Prettier, Unit Tests, Integration Tests, Worker, Build, Dependencies, Governance, Functional E2E, aggregate `quality` all successful.
 - This tracker closure is documentation-only; its post-write exact-head CI must be checked separately. **Do not merge PR #553, deploy production, apply production D1 migrations, or populate real RCAT personnel.** Phase 6 remains unstarted pending explicit instruction.
+
+## Phase 6 implementation checkpoint — 2026-10-10 Asia/Bangkok
+
+- Phase 6 authorized by the user; still WIP on the existing draft PR #553 branch. No merge, protected release, production data or production migration.
+- First prerequisite: enable safe offset pagination for **positions and assignments**, matching existing units/personnel semantics. Without this, the builder silently omits duties after the first 100 rows.
+- Add deterministic, cycle-tolerant, accessible hierarchy flattening plus position grouping and unique-enabled-occupant presentation helpers with regression tests.
+- Next gates: interactive position/assignment CRUD and reassignment; keyboard/touch-accessible ordering; full-result loading, D1-atomic multi-record reordering if provided, and exact-final-head CI.
+- The proposed Tree View / drag packages remain **not installed** pending an accessible prototype and peer/license review. Existing React/MUI controls can provide an immediate non-drag baseline; do not equate drag functionality with a correct transactional reorder API.
+- Phase 6 is **IN PROGRESS**, not complete. Preserve historical checkpoint entries above as evidence rather than retroactively rewriting them.

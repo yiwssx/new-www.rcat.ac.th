@@ -168,12 +168,12 @@ export function listAdminPersonnel(env: Env, limit?: number, offset = 0) {
   return listRows<PersonnelRow>(env, "person", limit, offset);
 }
 
-export function listAdminOrganizationPositions(env: Env, limit?: number) {
-  return listRows<OrganizationPositionRow>(env, "position", limit);
+export function listAdminOrganizationPositions(env: Env, limit?: number, offset = 0) {
+  return listRows<OrganizationPositionRow>(env, "position", limit, offset);
 }
 
-export function listAdminOrganizationAssignments(env: Env, limit?: number) {
-  return listRows<OrganizationAssignmentRow>(env, "assignment", limit);
+export function listAdminOrganizationAssignments(env: Env, limit?: number, offset = 0) {
+  return listRows<OrganizationAssignmentRow>(env, "assignment", limit, offset);
 }
 
 export function createOrganizationUnitRow(env: Env, row: OrganizationUnitRow) {

@@ -22,7 +22,9 @@ describe("organization Admin facade", () => {
     requestMock.mockResolvedValueOnce({ items: [], maximumItems: 100, nextOffset: null, generatedAt: "" });
     await getOrganizationCollection("personnel", 100, 100);
     expect(requestMock).toHaveBeenLastCalledWith("/api/admin/organization/personnel?limit=100&offset=100");
-    await expect(getOrganizationCollection("assignments", 100, 1)).rejects.toThrow(/offset/);
+    requestMock.mockResolvedValueOnce({ items: [], maximumItems: 100, nextOffset: null, generatedAt: "" });
+    await getOrganizationCollection("assignments", 100, 100);
+    expect(requestMock).toHaveBeenLastCalledWith("/api/admin/organization/assignments?limit=100&offset=100");
   });
 
   it("requires exact revisions on mutations and preserves API authentication handling", async () => {

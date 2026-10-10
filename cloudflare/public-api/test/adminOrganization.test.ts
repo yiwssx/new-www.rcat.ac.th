@@ -72,7 +72,7 @@ describe("Organization Chart Admin read boundary", () => {
       expect(response?.status).toBe(200);
       expect(response?.headers.get("Cache-Control")).toBe("no-store");
       expect(await response?.json()).toMatchObject({ items: [], maximumItems: 25 });
-      expect(read).toHaveBeenCalledWith(...(["units", "personnel"].includes(collection) ? [env, 25, 0] : [env, 25]));
+      expect(read).toHaveBeenCalledWith(env, 25, 0);
     }
   });
 
@@ -106,12 +106,15 @@ describe("Organization Chart Admin read boundary", () => {
     expect(response?.status).toBe(200);
     expect(await response?.json()).toMatchObject({ maximumItems: 2, nextOffset: 4 });
     expect(listAdminPersonnel).toHaveBeenCalledWith(env, 2, 2);
-    const invalid = await handleAdminOrganizationRead(
-      new Request("https://example.invalid/api/admin/organization/assignments?offset=1"),
+    vi.mocked(listAdminOrganizationAssignments).mockResolvedValueOnce([{ id: "assignment-2" }] as never);
+    const assignmentsPage = await handleAdminOrganizationRead(
+      new Request("https://example.invalid/api/admin/organization/assignments?limit=1&offset=1"),
       env,
       ["organization", "assignments"]
     );
-    expect(invalid?.status).toBe(400);
+    expect(assignmentsPage?.status).toBe(200);
+    expect(await assignmentsPage?.json()).toMatchObject({ nextOffset: 2 });
+    expect(listAdminOrganizationAssignments).toHaveBeenCalledWith(env, 1, 1);
   });
 
   it("bounds unit pagination and emits nextOffset only for a full page", async () => {

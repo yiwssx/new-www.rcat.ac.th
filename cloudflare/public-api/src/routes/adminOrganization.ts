@@ -16,9 +16,9 @@ function isCollection(value: string | undefined): value is Collection {
   return COLLECTIONS.some((collection) => collection === value);
 }
 
-function readPageParams(request: Request, paginated: boolean): { limit: number; offset: number } | null {
+function readPageParams(request: Request): { limit: number; offset: number } | null {
   const params = new URL(request.url).searchParams;
-  if ([...params.keys()].some((key) => key !== "limit" && (key !== "offset" || !paginated))) return null;
+  if ([...params.keys()].some((key) => key !== "limit" && key !== "offset")) return null;
   if (params.getAll("limit").length > 1 || params.getAll("offset").length > 1) return null;
   const raw = params.get("limit");
   const rawOffset = params.get("offset");
@@ -59,7 +59,7 @@ export async function handleAdminOrganizationRead(request: Request, env: Env, se
     return jsonError("not found", 404, { resource: "organization" });
   }
 
-  const page = readPageParams(request, collection === "units" || collection === "personnel");
+  const page = readPageParams(request);
   if (page === null) return jsonError("invalid organization page parameters", 400, { resource: "organization" });
   const { limit, offset } = page;
 
@@ -69,15 +69,15 @@ export async function handleAdminOrganizationRead(request: Request, env: Env, se
       : collection === "personnel"
         ? await listAdminPersonnel(env, limit, offset)
         : collection === "positions"
-          ? await listAdminOrganizationPositions(env, limit)
-          : await listAdminOrganizationAssignments(env, limit);
+          ? await listAdminOrganizationPositions(env, limit, offset)
+          : await listAdminOrganizationAssignments(env, limit, offset);
 
   return json(
     {
       items,
       maximumItems: limit,
       nextOffset:
-        (collection === "units" || collection === "personnel") && items.length === limit ? offset + limit : null,
+        items.length === limit ? offset + limit : null,
       generatedAt: new Date().toISOString()
     },
     { headers: { "Cache-Control": "no-store" } }
