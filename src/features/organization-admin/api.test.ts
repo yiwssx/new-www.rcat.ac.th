@@ -15,6 +15,9 @@ describe("organization Admin facade", () => {
     requestMock.mockResolvedValueOnce({ items: [], maximumItems: 25, generatedAt: "" });
     await getOrganizationCollection("units", 25);
     expect(requestMock).toHaveBeenCalledWith("/api/admin/organization/units?limit=25");
+    requestMock.mockResolvedValueOnce({ items: [], maximumItems: 25, nextOffset: null, generatedAt: "" });
+    await getOrganizationCollection("units", 25, 50);
+    expect(requestMock).toHaveBeenCalledWith("/api/admin/organization/units?limit=25&offset=50");
     await expect(getOrganizationCollection("units", 101)).rejects.toThrow();
   });
 
