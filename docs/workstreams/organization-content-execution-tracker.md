@@ -1,6 +1,6 @@
 # Organization Content Workstream Tracker
 
-Status: **PAUSED / PHASE 1 COMPLETE / PHASE 2 COMPLETE / PHASE 3 PLANNED / FEATURE BRANCH ONLY — NO MERGE**
+Status: **PAUSED / PHASES 1–3 COMPLETE / PHASE 4 PLANNED / FEATURE BRANCH ONLY — NO MERGE**
 
 Updated: 2026-10-10 Asia/Bangkok
 
@@ -13,7 +13,7 @@ Recovery source: closed, unmerged [PR #524](https://github.com/yiwssx/new-www.rc
 ## Recovery checkpoint
 
 - Restored onto current `main` through a documentation-only PR on 2026-10-08.
-- Phase 0 and Phase 1 are complete. Phase 2 **COMPLETE / PAUSED** as of 2026-10-10 after the exact-head all-green exit gate. Phases 3-11 remain planned; do not start the next phase without a new instruction.
+- Phases 0–3 are **COMPLETE** (Phase 3 exact-code-head CI green on 2026-10-10). Phase 4–11 remain PLANNED. The project is **PAUSED** pending separate user authorization for Phase 4.
 - The Organization workstream was explicitly resumed on 2026-10-09. Implementation is scoped to non-production PRs.
 - The original tracker restoration was documentation-only. The later 2026-10-09 implementation authorization covers non-production feature development, not production database changes, deployments, or real-data population.
 
@@ -87,7 +87,7 @@ Add a dedicated CMS content type for organizational units and personnel structur
 | 0     | Discovery, pnpman review, domain model, tracker      | **COMPLETE** | Architecture decisions above are recorded and no implementation has started                                                                                   |
 | 1     | Schema + shared contracts                            | COMPLETE     | Append-only D1 migration, types, validation, indexes, hierarchy/assignment integrity tests                                                                    |
 | 2     | Worker repositories + public/admin APIs              | COMPLETE     | CRUD/read contracts, recursive unit reads, personnel/position/assignment operations, safe public sanitizer                                                    |
-| 3     | RBAC + Admin routing/service layer                   | PLANNED      | Dedicated capabilities, route policy, API facade/query keys, Admin navigation entry                                                                           |
+| 3     | RBAC + Admin routing/service layer                   | COMPLETE      | Dedicated capabilities, route policy, API facade/query keys, Admin navigation entry                                                                           |
 | 4     | Organization list/editor                             | PLANNED      | Dedicated `/admin/organization` list, title/slug/type/parent/status workflow, revision-safe writes                                                            |
 | 5     | Personnel directory                                  | PLANNED      | Canonical personnel CRUD, Media Library photo selection, reuse across organization pages                                                                      |
 | 6     | Organization builder                                 | PLANNED      | Unit positions, assignment/reassignment, ordering, multiple duties, occupant limits, accessible non-drag controls; drag/drop only if justified                |
@@ -119,7 +119,7 @@ Add a dedicated CMS content type for organizational units and personnel structur
 
 ## Planned dependencies and tool adoption — decision 2026-10-10
 
-**Status: PLAN ONLY / NOT INSTALLED / PHASE 3 NOT STARTED.** The user approved recording the recommended tool choices, **not** installing packages or starting the next phase. All new dependencies remain subject to a phase-specific implementation review. Phase 1 and 2 remain COMPLETE; Phase 3-9 remain PLANNED.
+**Status: DEPENDENCY PLAN ONLY / NOT INSTALLED.** The initial approval covered tool planning without installing packages or starting Phase 3. Phase 3 was subsequently authorized separately and completed on 2026-10-10. The remaining tool choices require review during Phases 4–9.
 
 | Phase                                         | Planned dependency/tool choice                                                             | Decision                                                                          | Reason and constraints                                                                                                                                                                                                                                                                                                                                                                                 |
 | --------------------------------------------- | ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -138,7 +138,7 @@ Add a dedicated CMS content type for organizational units and personnel structur
 - Evaluate bundle size, performance, supply-chain/security advisories, server-side rendering effects where applicable, and whether existing components can already meet the requirement.
 - Keep each dependency introduction scoped to its Phase with focused regression coverage and unchanged required format/lint/typecheck/unit/integration/build/functional/security gates. Do not weaken CI to make dependency installation pass.
 - For Phase 6, prototype the accessibility and non-drag workflow first; do not assume that adding tree and drag libraries supplies server-atomic multi-record reorder, cycle prevention, occupant-capacity checks or revision conflict handling. These remain application responsibilities.
-- **Governance stays unchanged:** retain the single feature branch `agent/org-01-domain-schema`, Draft PR #553, no intermediate merge, no production migrations/deployments, and no real RCAT personnel data before the approved release path. **Pause after this documentation update; Phase 3 requires separate explicit authorization.**
+- **Governance stays unchanged:** retain the single feature branch `agent/org-01-domain-schema`, Draft PR #553, no intermediate merge, no production migrations/deployments, and no real RCAT personnel data before the approved release path. **This original dependency-planning checkpoint did not authorize Phase 3; later user authorization was received and Phase 3 completed. Pause before Phase 4.**
 
 ## Required integrity rules
 
@@ -233,11 +233,24 @@ Add a dedicated CMS content type for organizational units and personnel structur
 - This tracker closure changes **documentation only** after that code-head CI. Reconfirm CI for the resulting documentation HEAD before calling the branch fully green. Do not start Phase 3, mark the PR ready, merge, deploy, apply production D1 migration, or populate RCAT data. PR #553 remains Draft.
 - **Deferred to explicit later phases:** Phase 3 Admin facade/nav and complete RBAC application workflow; Phases 4–6 editors/personnel directory/builder UI; Phase 7 public rendering/SEO and complete scheduled-publishing UX; Phase 8 menu/search/sitemap; Phase 9 responsive/accessibility/backup and release preflight.
 
+## Phase 3 closure — 2026-10-10 Asia/Bangkok
+
+**Status: COMPLETE / PAUSED.** The Phase 3 implementation is closed on the single Organization feature branch. This section supersedes historical planning-only and "Phase 3 PLANNED" statements earlier in this tracker.
+
+- **Admin RBAC alignment:** frontend CMS capability registry now recognizes `organization.read` and `organization.manage`, matching the Worker authorization and Admin/Editor versus Viewer policy already delivered in Phase 2. Frontend permission helpers, read-only classification and navigation never substitute for Worker-enforced permissions.
+- **Dedicated Admin route:** `/admin/organization` is registered in the existing TanStack Router route tree and lazily loads `OrganizationPage` behind the authenticated CMS shell and `CapabilityGuard capability="organization.read"`. The CMS drawer menu is shown only to users with the dedicated capability, independent of generic `content.read`.
+- **Phase 3 landing page:** a responsive, read-only overview uses authenticated Organization collections to display bounded counts for units, personnel, positions and assignments, with loading/error states. It deliberately defers Organization editor, personnel directory and builder UI to Phases 4–6.
+- **API service facade:** `src/features/organization-admin/{api,query,index}.ts` exposes typed collection/detail reads, create/update/delete operations, collection-specific TanStack Query keys and targeted invalidation. All requests reuse the existing **same-origin Admin proxy** with session cookie, CSRF enforcement, password step-up and server-side RBAC. Client mutations require valid IDs and revision headers; the shared error bridge recognizes Organization stale-revision and duplicate-slug conflicts.
+- **Regression tests:** added/updated capability registry, Admin RBAC utility, CMS navigation capability filtering, guarded route allow/deny, unauthenticated deep-link redirect, organization facade validation/query key isolation, and error mapping tests. Protected query keys are prefixed `admin-` so existing logout/account-switch cache clearing covers Organization data.
+- **Exact code-head CI PASS:** [run #38034166955](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38034166955) at `1ae9e4bf970ce743d32b783420df491e0a3562fa`. Dependency Preflight, Static Quality/Prettier, Unit Tests, Integration Tests, Worker, Build, Dependencies, Governance, Functional E2E and aggregate `quality` all succeeded. The existing Prettier autofix [run #38034126164](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38034126164) created the formatting-only commit, and all checks passed on that exact code head.
+- **Dependency plan remains uninstalled**; no Phase 4/5/6 form or tree/dnd packages were added. No protected D1 migration, deployment, production data population, PR readiness change or merge to `main` took place.
+- **The tracker closure commit is documentation only**; confirm its own exact-head CI separately. PR #553 remains Draft and unmerged.
+
 ## Current blockers
 
-- **No outstanding Phase 2 implementation or CI blocker.** Phase 2 exit criteria are complete and its exact-code-head required CI passed. This documentation-only closing commit starts a new exact-head run for confirmation.
-- The final merge/deployment remains intentionally blocked until all pre-merge Phases 1–9 are finished, reviewed and validated. Production D1 apply/deploy and real data population remain Phases 10–11 after the single final merge.
+- **No known Phase 3 implementation blockers.** The Phase 3 code-head CI passed. This final documentation-only checkpoint requires exact-head CI confirmation.
+- Feature completion, final merge and production release remain intentionally blocked until Phases 4–9 are finished, reviewed and validated. Protected production release and RCAT real data population remain Phases 10–11.
 
 ## Next action
 
-**PAUSE HERE.** Do not begin Phase 3 without new user authorization. Preserve `agent/org-01-domain-schema` and Draft PR #553. Upon resumption, implement Phase 3 Admin navigation/service layer on the same branch, without intermediate merge. Protected production migration/deployment and real-person data population remain post-merge phases.
+**PAUSE HERE.** Phase 3 is COMPLETE; do not start Phase 4 without new user authorization. Keep `agent/org-01-domain-schema` and [Draft PR #553](https://github.com/yiwssx/new-www.rcat.ac.th/pull/553) open and unmerged. On explicit approval, implement Phase 4 Organization list/editor on this same branch, with no intermediate merge or production changes.
