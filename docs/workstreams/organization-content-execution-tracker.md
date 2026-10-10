@@ -77,7 +77,7 @@ Add a dedicated CMS content type for organizational units and personnel structur
   - unit/content reference, position name, ordering, optional occupant limit, presentation key, revision.
 
 - `organization_assignments`
-  - personnel reference, organization position reference, ordering, note/duty detail, active dates where needed, enabled state, revision.
+  - personnel reference, organization position reference, ordering, note/duty detail, manual enabled/disabled state (no appointment period or automatic expiry), revision.
   - uniqueness must not prevent one person from holding multiple duties in one unit.
 
 ## Status tracker
@@ -119,7 +119,7 @@ Add a dedicated CMS content type for organizational units and personnel structur
 
 ## Planned dependencies and tool adoption — decision 2026-10-10
 
-**Status: Phase 4 form dependencies INSTALLED; Phase 5 reused them with NO new dependencies; Phase 6–9 planned dependencies NOT INSTALLED.** The initial approval covered tool planning without installing packages or starting Phase 3. Phase 3 was subsequently authorized separately and completed on 2026-10-10. Phase 4 subsequently installed React Hook Form, Zod and its resolver. Remaining tool choices require review during Phases 5–9.
+**Status: Phase 4 form dependencies INSTALLED; Phase 5 reused them; Phase 6 `@mui/x-tree-view` 9.15.0 INSTALLED and locked; optional DnD and Phase 7–9 tools remain UNINSTALLED.** The initial approval covered tool planning without installing packages or starting Phase 3. Phase 3 was subsequently authorized separately and completed on 2026-10-10. Phase 4 subsequently installed React Hook Form, Zod and its resolver. Remaining tool choices require review during Phases 5–9.
 
 | Phase                                         | Planned dependency/tool choice                                                             | Decision                                                                          | Reason and constraints                                                                                                                                                                                                                                                                                                                                                                                 |
 | --------------------------------------------- | ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -304,3 +304,12 @@ Add a dedicated CMS content type for organizational units and personnel structur
 - Added UI regression tests for paging past the initial 100-position window, failed reads, and stale-revision rejection. Recheck exact new head CI before marking Phase 6 complete.
 - No Tree View or drag/drop package installed; keyboard/touch-editable numeric ordering remains the supported accessible path pending any justified atomic batch-reorder requirements.
 - Governance: draft PR #553, single branch only, no merge or protected production operations.
+
+## Phase 6 rule correction and hardening — 2026-10-10 Asia/Bangkok
+
+- **Authoritative personnel assignment policy: no appointment-term management.** The organization feature has no assignment `startsAt`/`endsAt` fields, no start/end time form, no expiry scheduler and no temporal visibility filters. Administrators explicitly enable, disable, reassign or remove duties; this does not affect the separate canonical CMS `publishAt`/`unpublishAt` settings for unit pages.
+- D1 occupant limits count **distinct personnel attached through enabled duties**, not distinct duty rows. One person may hold multiple duties across positions/units. A capped appointment is freed only when the administrator disables or removes all duties for the outgoing person. D1 revision/audit protections, foreign keys and delete restrictions remain.
+- Adopted **`@mui/x-tree-view` 9.15.0** RichTreeView for the hierarchy navigator, with explicit nested data, expand/collapse, selected-unit state, readable wrapping labels, keyboard navigation and mobile-compatible layout. Lockfile regenerated with pnpm 10 strict peers. No MUI X Pro licensed feature is used.
+- **No DnD dependency adopted:** Numeric group/position/assignment order is already editable by keyboard and touch under revision-checked single-row writes. Unreviewed cross-parent drag/reorder would need coordinated transactional writes and stronger move/cycle safeguards; keep drag/drop optional instead of shipping a misleading control.
+- Regression tests expanded for manually managed handovers, disabled/re-enabled duties, cross-unit reassignment/capacity denial, public visibility, scheduling-field rejection, absent term fields and accessible tree selection. The one-time lockfile repair workflow was removed after lock synchronization to restore the bounded workflow inventory.
+- **Phase 6 remains IN PROGRESS until all required checks pass for its final exact code+tracker SHA.** No merge, production migration/deployment or real staff data population. Historical Phase 2/6 checkpoint descriptions of period-based duties are superseded by the policy above.
