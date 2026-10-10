@@ -76,6 +76,9 @@ function searchNeedle(pattern: unknown) {
 
 function filterContentRows(query: string, bindings: unknown[], source: Row[]) {
   let rows = activeRows("contents", source);
+  if (/type\s*<>\s*'organization'/i.test(query)) {
+    rows = rows.filter((row) => row.type !== "organization");
+  }
   let bindingIndex = 0;
 
   if (/\bLIKE\s+\?/i.test(query)) {
@@ -303,7 +306,11 @@ function createPaginationDb(initial: Record<string, Row[]> = {}) {
                   String(row.publish_at ?? "") !== "" &&
                   String(row.publish_at) <= now);
 
-              if (String(row.deleted_at ?? "") === "" && publishable) {
+              if (
+                String(row.deleted_at ?? "") === "" &&
+                publishable &&
+                (!/type\s*<>\s*'organization'/i.test(query) || row.type !== "organization")
+              ) {
                 row.status = "published";
                 row.publish_at = currentStatus === reviewStatus ? reviewPublishAt : row.publish_at;
                 row.updated_at = updatedAt;
@@ -733,6 +740,29 @@ describe("admin server pagination routes", () => {
 
       expect(response.status, `admin ${entity}`).toBe(200);
     }
+  });
+
+  it("keeps organization content out of generic pagination and publish-pending writes", async () => {
+    const state = createPaginationDb({
+      contents: [
+        contentRow(101, { status: "review", publish_at: "" }),
+        contentRow(102, { type: "organization", status: "review", publish_at: "" })
+      ]
+    });
+    const env = { ...baseEnv, DB: state.db };
+    const list = await worker.fetch(request("/api/admin/content", { role: "editor" }), env);
+    expect(list.status).toBe(200);
+    const data = await jsonBody(list);
+    expect((data.items as Row[]).map((row) => row.id)).toEqual(["content-101"]);
+
+    const publish = await worker.fetch(
+      request("/api/admin/content/publish-pending", { method: "POST", role: "editor", body: "{}" }),
+      env
+    );
+    expect(publish.status).toBe(200);
+    await expect(jsonBody(publish)).resolves.toMatchObject({ publishedCount: 1 });
+    expect(state.tables.contents.find((row) => row.id === "content-101")?.status).toBe("published");
+    expect(state.tables.contents.find((row) => row.id === "content-102")?.status).toBe("review");
   });
 
   it("publishes only review and due scheduled content and reports the exact changed count", async () => {
