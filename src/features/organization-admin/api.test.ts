@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getOrganizationCollection, updateOrganizationRecord, deleteOrganizationRecord, reorderOrganizationRecords } from "./api";
+import {
+  getOrganizationCollection,
+  updateOrganizationRecord,
+  deleteOrganizationRecord,
+  reorderOrganizationRecords
+} from "./api";
 import { organizationAdminQueryKeys } from "./query";
 
 const requestMock = vi.hoisted(() => vi.fn());
@@ -44,7 +49,10 @@ describe("organization Admin facade", () => {
 
   it("sends a complete versioned DnD reorder through the secure organization facade", async () => {
     requestMock.mockResolvedValueOnce({ reordered: true, count: 2 });
-    const items = [{ id: "pos-b", revision: 2 }, { id: "pos-a", revision: 1 }];
+    const items = [
+      { id: "pos-b", revision: 2 },
+      { id: "pos-a", revision: 1 }
+    ];
     await reorderOrganizationRecords("positions", "division-1", items, "Leadership", 0);
     expect(requestMock).toHaveBeenLastCalledWith("/api/admin/organization/reorder", {
       method: "POST",

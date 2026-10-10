@@ -115,10 +115,33 @@ describe("Phase 6 accessible Organization builder", () => {
 
   it("enables drag handles only for editable, complete sibling lists", async () => {
     api.list.mockImplementation(async (collection: string) => ({
-      items: collection === "positions" ? [
-        { id: "p-a", unit_content_id: "work-1", title: "A", group_label: "", group_sort_order: 0, sort_order: 0, display_style: "default", occupant_limit: null, revision: 0 },
-        { id: "p-b", unit_content_id: "work-1", title: "B", group_label: "", group_sort_order: 0, sort_order: 1, display_style: "default", occupant_limit: null, revision: 0 }
-      ] : [],
+      items:
+        collection === "positions"
+          ? [
+              {
+                id: "p-a",
+                unit_content_id: "work-1",
+                title: "A",
+                group_label: "",
+                group_sort_order: 0,
+                sort_order: 0,
+                display_style: "default",
+                occupant_limit: null,
+                revision: 0
+              },
+              {
+                id: "p-b",
+                unit_content_id: "work-1",
+                title: "B",
+                group_label: "",
+                group_sort_order: 0,
+                sort_order: 1,
+                display_style: "default",
+                occupant_limit: null,
+                revision: 0
+              }
+            ]
+          : [],
       nextOffset: null,
       maximumItems: 100,
       generatedAt: ""
