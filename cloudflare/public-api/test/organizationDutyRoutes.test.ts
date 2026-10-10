@@ -149,10 +149,7 @@ describe("Organization Chart protected position and assignment writes", () => {
       revision: 0
     });
     expect(vi.mocked(updateAuditedOrganizationAssignment).mock.calls[0]?.[2]).toBe(4);
-    expect(vi.mocked(updateAuditedOrganizationAssignment).mock.calls[0]?.[4]).toEqual([
-      "enabled",
-      "positionId"
-    ]);
+    expect(vi.mocked(updateAuditedOrganizationAssignment).mock.calls[0]?.[4]).toEqual(["enabled", "positionId"]);
     expect(vi.mocked(createAuditedOrganizationAssignment)).not.toHaveBeenCalled();
   });
 

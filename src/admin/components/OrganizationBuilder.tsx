@@ -32,7 +32,12 @@ import {
   type OrganizationUnitListRow
 } from "../../features/organization-admin";
 import { appSwal } from "../../utils/swal";
-import { enabledDistinctOccupants, flattenOrganizationHierarchy, organizationTreeItems, positionsForUnit } from "./organizationBuilderModel";
+import {
+  enabledDistinctOccupants,
+  flattenOrganizationHierarchy,
+  organizationTreeItems,
+  positionsForUnit
+} from "./organizationBuilderModel";
 
 interface Props {
   units: readonly OrganizationUnitListRow[];

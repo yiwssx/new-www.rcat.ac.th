@@ -4,7 +4,12 @@ import type {
   OrganizationPositionRow,
   OrganizationUnitListRow
 } from "../../features/organization-admin/api";
-import { enabledDistinctOccupants, flattenOrganizationHierarchy, organizationTreeItems, positionsForUnit } from "./organizationBuilderModel";
+import {
+  enabledDistinctOccupants,
+  flattenOrganizationHierarchy,
+  organizationTreeItems,
+  positionsForUnit
+} from "./organizationBuilderModel";
 
 function unit(id: string, parent: string | null, sort = 0): OrganizationUnitListRow {
   return {

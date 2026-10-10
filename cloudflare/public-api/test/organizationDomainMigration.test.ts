@@ -168,8 +168,12 @@ describe("Organization Chart phase 1 D1 foundation", () => {
     assignment("duty-p1", "p1", "post", "Lead");
     assignment("advisor-p1", "p1", "post", "Advisor");
 
-    expect(db.prepare("PRAGMA table_info(organization_assignments)").all().map((row) => (row as { name: string }).name))
-      .not.toEqual(expect.arrayContaining(["starts_at", "ends_at"]));
+    expect(
+      db
+        .prepare("PRAGMA table_info(organization_assignments)")
+        .all()
+        .map((row) => (row as { name: string }).name)
+    ).not.toEqual(expect.arrayContaining(["starts_at", "ends_at"]));
     expect(() => assignment("duty-p2", "p2", "post")).toThrow(/occupant limit/);
 
     db.prepare("UPDATE organization_assignments SET enabled = 0, revision = 1 WHERE id = 'duty-p1'").run();
@@ -179,8 +183,9 @@ describe("Organization Chart phase 1 D1 foundation", () => {
     expect(() =>
       db.prepare("UPDATE organization_assignments SET enabled = 1, revision = 2 WHERE id = 'advisor-p1'").run()
     ).toThrow(/occupant limit/);
-    expect(db.prepare("SELECT enabled FROM organization_assignments WHERE id = 'advisor-p1'").get())
-      .toMatchObject({ enabled: 0 });
+    expect(db.prepare("SELECT enabled FROM organization_assignments WHERE id = 'advisor-p1'").get()).toMatchObject({
+      enabled: 0
+    });
   });
 
   it("validates cross-unit reassignment and capacity at the database boundary", () => {
@@ -199,13 +204,15 @@ describe("Organization Chart phase 1 D1 foundation", () => {
       "UPDATE organization_assignments SET position_id = ?, revision = revision + 1 WHERE id = 'move-me'"
     );
     expect(() => move.run("department-head")).toThrow(/occupant limit/);
-    expect(db.prepare("SELECT position_id, revision FROM organization_assignments WHERE id = 'move-me'").get())
-      .toMatchObject({ position_id: "division-head", revision: 0 });
+    expect(
+      db.prepare("SELECT position_id, revision FROM organization_assignments WHERE id = 'move-me'").get()
+    ).toMatchObject({ position_id: "division-head", revision: 0 });
 
     db.prepare("UPDATE organization_assignments SET enabled = 0, revision = 1 WHERE id = 'occupied'").run();
     move.run("department-head");
-    expect(db.prepare("SELECT position_id, revision FROM organization_assignments WHERE id = 'move-me'").get())
-      .toMatchObject({ position_id: "department-head", revision: 1 });
+    expect(
+      db.prepare("SELECT position_id, revision FROM organization_assignments WHERE id = 'move-me'").get()
+    ).toMatchObject({ position_id: "department-head", revision: 1 });
     expect(db.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
   });
 
