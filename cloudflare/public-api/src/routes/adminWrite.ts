@@ -994,6 +994,7 @@ async function handleContent(request: Request, env: Env, segments: string[], ide
       `SELECT ${CONTENT_ADMIN_ROW_COLUMNS.join(", ")}
        FROM contents
        WHERE COALESCE(deleted_at, '') = ''
+         AND type <> 'organization'
        ORDER BY updated_at DESC`
     );
     return json({ items: rows.map(mapContentRowToAdminItem), generatedAt: now });
@@ -1028,13 +1029,13 @@ async function handleContent(request: Request, env: Env, segments: string[], ide
   if (segments.length === 2 && request.method === "GET") {
     const row = await getContentById(env, id);
 
-    return row ? json({ item: mapContentRowToAdminItem(row) }) : notFoundAdmin();
+    return row && row.type !== "organization" ? json({ item: mapContentRowToAdminItem(row) }) : notFoundAdmin();
   }
 
   if (segments.length === 2 && request.method === "PATCH") {
     const existing = await getContentById(env, id);
 
-    if (!existing) {
+    if (!existing || existing.type === "organization") {
       return notFoundAdmin();
     }
 
@@ -1050,7 +1051,7 @@ async function handleContent(request: Request, env: Env, segments: string[], ide
   if (segments.length === 2 && request.method === "DELETE") {
     const existing = await getContentById(env, id);
 
-    if (!existing) {
+    if (!existing || existing.type === "organization") {
       return notFoundAdmin();
     }
 
@@ -1088,7 +1089,7 @@ async function handleContent(request: Request, env: Env, segments: string[], ide
     return withAdminRouteContext(context, async () => {
       const existing = await getContentById(env, id);
 
-      if (!existing) {
+      if (!existing || existing.type === "organization") {
         return notFoundAdmin();
       }
 
