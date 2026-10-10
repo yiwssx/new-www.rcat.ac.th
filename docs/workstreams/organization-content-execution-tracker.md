@@ -264,7 +264,6 @@ Add a dedicated CMS content type for organizational units and personnel structur
 - **Verification pending:** Await exact-final-head CI (Unit Tests, Static Quality/Prettier, Worker, Build, Integration, Security/Governance and aggregate Quality) and reconcile any further failures. Do not infer success from prior/cancelled runs.
 - **No intermediate merge, production D1 migration, release or real personnel data changes.** Phase 5–11 remain deferred.
 
-
 ## Phase 4 closure — 2026-10-10 Asia/Bangkok
 
 **Status: COMPLETE / PAUSED BEFORE PHASE 5.** This section supersedes the preceding Phase 4 in-progress checkpoint.
