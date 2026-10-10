@@ -70,7 +70,7 @@ beforeEach(() => {
 describe("Phase 4 Organization Admin list/editor", () => {
   it("displays organizational titles but hides all mutations from read-only users", async () => {
     renderPage();
-    expect(await screen.findByText("ฝ่ายบริหารทรัพยากร")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "ฝ่ายบริหารทรัพยากร" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "เพิ่มหน่วยงาน" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "แก้ไข" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "ลบ" })).not.toBeInTheDocument();
@@ -89,7 +89,7 @@ describe("Phase 4 Organization Admin list/editor", () => {
       generatedAt: ""
     }));
     renderPage();
-    expect(await screen.findByText("ฝ่ายบริหารทรัพยากร")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "ฝ่ายบริหารทรัพยากร" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "โหลดหน่วยงานเพิ่มเติม" }));
     expect(await screen.findByText("งานธุรการ")).toBeInTheDocument();
     expect(api.getCollection).toHaveBeenCalledWith("units", 100, 1);
