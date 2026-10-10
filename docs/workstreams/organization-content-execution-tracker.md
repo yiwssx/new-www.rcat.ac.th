@@ -166,6 +166,15 @@ Add a dedicated CMS content type for organizational units and personnel structur
 - New code has not yet earned a completed CI gate; latest workflow was queued/in progress during the checkpoint (CI run 37951304214 for commit `2b06a3a`). The tracker-only commit will start a newer exact-head CI run. Diagnose it before closing Phase 2.
 - No production D1 migration, Worker/Vercel deploy, public site release, data population or merge was performed.
 
+## Phase 2 continuation checkpoint: 2026-10-10 Asia/Bangkok
+
+- Corrected the missing `contents.summary` column in the public-position SQLite test fixture and resolved the Prettier diagnostics from `organizationAdminRepository.ts`; the temporary read-only diagnostic workflow was removed.
+- Full exact-head [CI #38020104219](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38020104219) passed on `90412a6e`, validating the public hierarchy/assignment read and internal D1 CRUD primitives.
+- Added server-side `organizationWriteValidation.ts` with strict, field-allowlisted DTO validators for Organization Units, Personnel, Positions, and Assignments. The server rejects protected metadata/mass assignment, invalid references, date ranges, occupant limits, contact flags and non-private default visibility.
+- Added `organizationWriteValidation.test.ts` for validation, input integrity, privacy defaults and mutation abuse cases. Exact-head [CI #38020539437](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38020539437) **PASSED** at commit `65c1a53c`: Dependency Preflight, Static Quality, Unit Tests, Worker, Build, Integration Tests, Dependencies, Governance, Functional E2E and aggregate Quality Gate all green.
+- **Scope remains Phase 2 IN_PROGRESS**. The new validators are not yet connected to authenticated Admin HTTP CRUD; also outstanding are server-managed content lifecycle, RBAC/CSRF/step-up policies, audit evidence, safe conflict mapping, and reassignment/delete behavior.
+- The feature remains only on `agent/org-01-domain-schema` in Draft PR #553. **Never merge intermediate phases; no production migration/deploy or real-person data was performed.**
+
 ## Current blockers
 
 - No Phase 1 blockers. Phase 2 remains **IN_PROGRESS**: required work includes protected Admin endpoints, complete CRUD/delete/archive workflows, server-side validations, revision conflict mapping, audit logs, route and privacy regression tests, and final exact-head CI.
@@ -173,4 +182,4 @@ Add a dedicated CMS content type for organizational units and personnel structur
 
 ## Next action
 
-On the **same** branch, check CI for the current head after this checkpoint; fix any failing static quality, unit/integration, Worker and security gates before further implementation. Then continue Phase 2 with dedicated authenticated Admin CRUD routes, server-owned validation, revision conflict and audited writes. Do not merge until Phases 1-9 and final review pass. Protected production migration/deployment/real-data population remain post-merge operations.
+On the **same** branch, integrate the validated Organization mutation DTOs and revision-safe D1 repositories into dedicated authenticated Admin CRUD routes. Enforce capability/CSRF/step-up, rate limiting, audit evidence and scoped content lifecycle; add API authorization/privacy/conflict and deletion/reassignment regression tests. Continue through pre-merge Phases 1-9 without an intermediate merge. Protected production migration/deployment/real-data population remain post-merge operations.
