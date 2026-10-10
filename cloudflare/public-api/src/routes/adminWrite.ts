@@ -68,6 +68,7 @@ import { handleAdminBackup } from "./adminBackup";
 import { handleAdminOrganizationRead } from "./adminOrganization";
 import { handleAdminOrganizationWrite } from "./adminOrganizationWrite";
 import { handleAdminOrganizationDutyWrite } from "./adminOrganizationDutyWrite";
+import { handleAdminOrganizationReorder } from "./adminOrganizationReorder";
 import { handleAdminOrganizationUnitWrite } from "./adminOrganizationUnitWrite";
 import { handleAdminOrganizationDelete } from "./adminOrganizationDelete";
 import { handleAdminPaginatedReads } from "./adminPagination";
@@ -2158,6 +2159,9 @@ export async function adminWrite(request: Request, env: Env): Promise<Response |
 
     const unitWriteResponse = await handleAdminOrganizationUnitWrite(request, env, segments, authResult.identity);
     if (unitWriteResponse) return unitWriteResponse;
+
+    const reorderResponse = await handleAdminOrganizationReorder(request, env, segments, authResult.identity);
+    if (reorderResponse) return reorderResponse;
 
     const dutyWriteResponse = await handleAdminOrganizationDutyWrite(request, env, segments, authResult.identity);
     if (dutyWriteResponse) return dutyWriteResponse;

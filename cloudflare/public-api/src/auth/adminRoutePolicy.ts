@@ -65,6 +65,10 @@ export function resolveAdminRoutePolicy(method: string, segments: readonly strin
   // Organization records are a separate CMS domain: never reuse generic content
   // permissions. Writes become routable only when their audited handlers land.
   if (segments[0] === "organization") {
+    if (isExact(segments, "organization", "reorder") && method === "POST") {
+      return requires("organization.manage", "organization");
+    }
+
     if (segments.length === 2 && ["units", "personnel", "positions", "assignments"].includes(segments[1])) {
       if (method === "GET") return requires("organization.read", "organization");
       if (["units", "personnel", "positions", "assignments"].includes(segments[1]) && method === "POST") {
