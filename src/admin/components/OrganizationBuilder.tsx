@@ -399,17 +399,17 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                                 !assignmentsQuery.hasNextPage &&
                                 !assignmentsQuery.isPending &&
                                 !assignmentsQuery.isError && (
-                                <Chip
-                                  size="small"
-                                  label={
-                                    "ผู้ดำรงตำแหน่ง " +
-                                    enabledDistinctOccupants(assignments, position.id) +
-                                    "/" +
-                                    position.occupant_limit
-                                  }
-                                  variant="outlined"
-                                />
-                              )}
+                                  <Chip
+                                    size="small"
+                                    label={
+                                      "ผู้ดำรงตำแหน่ง " +
+                                      enabledDistinctOccupants(assignments, position.id) +
+                                      "/" +
+                                      position.occupant_limit
+                                    }
+                                    variant="outlined"
+                                  />
+                                )}
                             </Stack>
                           </Box>
                           {canManage && (
