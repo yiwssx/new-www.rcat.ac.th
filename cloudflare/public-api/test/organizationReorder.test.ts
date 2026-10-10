@@ -87,7 +87,10 @@ describe("Phase 6 atomic DnD reorder", () => {
       scopeId: "division",
       groupLabel: "Leadership",
       groupSortOrder: 0,
-      items: [{ id: "pos-a", revision: 0 }, { id: "pos-b", revision: 0 }]
+      items: [
+        { id: "pos-a", revision: 0 },
+        { id: "pos-b", revision: 0 }
+      ]
     };
     expect(parseOrganizationReorder(valid)).toMatchObject(valid);
     expect(() => parseOrganizationReorder({ ...valid, items: [valid.items[0], valid.items[0]] })).toThrow();
@@ -109,7 +112,11 @@ describe("Phase 6 atomic DnD reorder", () => {
         scopeId: "division",
         groupLabel: "Group",
         groupSortOrder: 0,
-        items: [{ id: "pos-c", revision: 0 }, { id: "pos-a", revision: 0 }, { id: "pos-b", revision: 0 }]
+        items: [
+          { id: "pos-c", revision: 0 },
+          { id: "pos-a", revision: 0 },
+          { id: "pos-b", revision: 0 }
+        ]
       },
       "editor"
     );
@@ -131,7 +138,10 @@ describe("Phase 6 atomic DnD reorder", () => {
       scopeId: "division",
       groupLabel: "",
       groupSortOrder: 0,
-      items: [{ id: "pos-b", revision: 0 }, { id: "pos-a", revision: 0 }]
+      items: [
+        { id: "pos-b", revision: 0 },
+        { id: "pos-a", revision: 0 }
+      ]
     };
     expect(await reorderOrganizationRows(env, incomplete, "editor")).toBe(false);
     expect(auditCount()).toBe(0);
@@ -139,7 +149,11 @@ describe("Phase 6 atomic DnD reorder", () => {
 
     const stale = {
       ...incomplete,
-      items: [{ id: "pos-b", revision: 99 }, { id: "pos-a", revision: 0 }, { id: "pos-c", revision: 0 }]
+      items: [
+        { id: "pos-b", revision: 99 },
+        { id: "pos-a", revision: 0 },
+        { id: "pos-c", revision: 0 }
+      ]
     };
     expect(await reorderOrganizationRows(env, stale, "editor")).toBe(false);
     expect(auditCount()).toBe(0);
@@ -158,7 +172,10 @@ describe("Phase 6 atomic DnD reorder", () => {
           scopeId: "division",
           groupLabel: "Group",
           groupSortOrder: 0,
-          items: [{ id: "pos-other", revision: 0 }, { id: "pos-a", revision: 0 }]
+          items: [
+            { id: "pos-other", revision: 0 },
+            { id: "pos-a", revision: 0 }
+          ]
         },
         "editor"
       )
@@ -181,7 +198,10 @@ describe("Phase 6 atomic DnD reorder", () => {
         scopeId: "pos-a",
         groupLabel: "",
         groupSortOrder: 0,
-        items: [{ id: "b", revision: 1 }, { id: "a", revision: 0 }]
+        items: [
+          { id: "b", revision: 1 },
+          { id: "a", revision: 0 }
+        ]
       },
       "editor"
     );
