@@ -142,7 +142,7 @@ function hasExternalCanonical(item, siteUrl) {
 }
 
 export function getPublishedContentSitemapRoute(item, siteUrl) {
-  if (!isPublishedContent(item) || hasExternalCanonical(item, siteUrl)) {
+  if (!isPublishedContent(item) || item?.type === 'organization' || hasExternalCanonical(item, siteUrl)) {
     return "";
   }
 
@@ -158,9 +158,20 @@ export function getPublishedContentSitemapRoute(item, siteUrl) {
   return `/content/${encodedSlug}`;
 }
 
-export function buildSitemapUrls({ siteUrl, content = [] }) {
+export function getPublishedOrganizationSitemapRoute(unit) {
+  const slug = String(unit?.slug || '').trim();
+  if (!/^[\\p{L}\\p{N}][\\p{L}\\p{N}\\p{M}]*(?:-[\\p{L}\\p{N}][\\p{L}\\p{N}\\p{M}]*)*$/u.test(slug)) return '';
+  return `/organization/${encodeURIComponent(slug)}`;
+}
+
+export function buildSitemapUrls({ siteUrl, content = [], organization = [] }) {
   const normalizedSiteUrl = normalizeSiteUrl(siteUrl);
   const routes = new Set(STATIC_INDEXABLE_ROUTES);
+
+  for (const unit of organization) {
+    const route = getPublishedOrganizationSitemapRoute(unit);
+    if (route) routes.add(route);
+  }
 
   for (const item of content) {
     const route = getPublishedContentSitemapRoute(item, normalizedSiteUrl);
@@ -241,10 +252,11 @@ export async function loadSitemapData(apiBaseUrl) {
 
   // Programs currently have a listing route (/departments) but no public detail route.
   // Only real content records may be emitted under the canonical /content/:slug namespace.
-  const [newsSnapshot, announcementsSnapshot, blogSnapshot] = await Promise.all([
+  const [newsSnapshot, announcementsSnapshot, blogSnapshot, organizationSnapshot] = await Promise.all([
     fetchJson(`${baseUrl}/api/public/content?kind=${encodeURIComponent(CONTENT_KINDS[0])}`),
     loadAnnouncementSnapshot(baseUrl),
-    fetchJson(`${baseUrl}/api/public/content?kind=${encodeURIComponent(CONTENT_KINDS[2])}`)
+    fetchJson(`${baseUrl}/api/public/content?kind=${encodeURIComponent(CONTENT_KINDS[2])}`),
+    fetchJson(`${baseUrl}/api/public/organization`)
   ]);
 
   const content = [
@@ -254,7 +266,7 @@ export async function loadSitemapData(apiBaseUrl) {
     ...getSnapshotItems(blogSnapshot)
   ];
 
-  return { content };
+  return { content, organization: getSnapshotItems(organizationSnapshot) };
 }
 
 function inferSiteUrl(request) {
@@ -285,7 +297,7 @@ async function getLiveSitemap(siteUrl, apiBaseUrl) {
 
   const promise = (async () => {
     const data = await loadSitemapData(apiBaseUrl);
-    const urls = buildSitemapUrls({ siteUrl, content: data.content });
+    const urls = buildSitemapUrls({ siteUrl, content: data.content, organization: data.organization });
     const xml = createSitemapXml(urls);
 
     lastKnownGoodSitemap = { siteUrl, xml };
