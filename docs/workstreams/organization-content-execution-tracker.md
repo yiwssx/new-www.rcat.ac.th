@@ -1,6 +1,6 @@
 # Organization Content Workstream Tracker
 
-Status: **IN PROGRESS / PHASE 6 / PHASES 1–5 COMPLETE / FEATURE BRANCH ONLY — NO MERGE**
+Status: **PHASE 6 COMPLETE / PHASES 0–6 COMPLETE / PAUSED BEFORE PHASE 7 / FEATURE BRANCH ONLY — NO MERGE**
 
 Updated: 2026-10-10 Asia/Bangkok
 
@@ -13,7 +13,7 @@ Recovery source: closed, unmerged [PR #524](https://github.com/yiwssx/new-www.rc
 ## Recovery checkpoint
 
 - Restored onto current `main` through a documentation-only PR on 2026-10-08.
-- Phases 0–5 are **COMPLETE** (Phase 5 code-head CI green on 2026-10-10). Phases 6–11 remain PLANNED. Implementation is paused before Phase 6.
+- Phases 0–6 are **COMPLETE** on the feature branch. Phase 6 implementation passed CI run [#38068146144](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38068146144) at `c3130f3addf70e1e9679558cab64ec1df1f33bad` before this tracker-only closure commit; CI of this final tracker SHA is the last documentation gate. Phases 7–11 remain PLANNED; pause before Phase 7.
 - The Organization workstream was explicitly resumed on 2026-10-09. Implementation is scoped to non-production PRs.
 - The original tracker restoration was documentation-only. The later 2026-10-09 implementation authorization covers non-production feature development, not production database changes, deployments, or real-data population.
 
@@ -90,7 +90,7 @@ Add a dedicated CMS content type for organizational units and personnel structur
 | 3     | RBAC + Admin routing/service layer                   | COMPLETE     | Dedicated capabilities, route policy, API facade/query keys, Admin navigation entry                                                                           |
 | 4     | Organization list/editor                             | COMPLETE     | Dedicated `/admin/organization` list, title/slug/type/parent/status workflow, revision-safe writes                                                            |
 | 5     | Personnel directory                                  | COMPLETE     | Canonical personnel CRUD, Media Library photo selection, reuse across organization pages                                                                      |
-| 6     | Organization builder                                 | IN PROGRESS  | Unit positions, assignment/reassignment, ordering, multiple duties, occupant limits, accessible non-drag controls; drag/drop only if justified                |
+| 6     | Organization builder                                 | **COMPLETE** | Unit positions, assignment/reassignment, ordering, multiple duties, occupant limits, accessible non-drag controls; drag/drop only if justified                |
 | 7     | Public renderer + permalink/SSR/SEO                  | PLANNED      | Published organization slugs resolve through public routing, hierarchy/breadcrumbs render, draft/private fields remain inaccessible                           |
 | 8     | Menu/search/sitemap integration                      | PLANNED      | Menu can link to organization pages; search/sitemap behavior is deliberate and tested; generic content lists do not leak organization records unintentionally |
 | 9     | Quality, accessibility, performance, backup coverage | PLANNED      | Unit/integration/functional tests, format/lint/build/worker checks, responsive/mobile verification, backup counts/download include new tables where required  |
@@ -119,7 +119,7 @@ Add a dedicated CMS content type for organizational units and personnel structur
 
 ## Planned dependencies and tool adoption — decision 2026-10-10
 
-**Status: Phase 4 form dependencies INSTALLED; Phase 5 reused them; Phase 6 `@mui/x-tree-view` 9.15.0 INSTALLED and locked; optional DnD and Phase 7–9 tools remain UNINSTALLED.** The initial approval covered tool planning without installing packages or starting Phase 3. Phase 3 was subsequently authorized separately and completed on 2026-10-10. Phase 4 subsequently installed React Hook Form, Zod and its resolver. Remaining tool choices require review during Phases 5–9.
+**Status: Phase 4 form dependencies INSTALLED; Phase 5 reused them; Phase 6 `@mui/x-tree-view` 9.15.0 plus `@dnd-kit/react` and `@dnd-kit/helpers` 0.5.0 INSTALLED and locked; Phase 7–9 optional tools remain UNINSTALLED.** The initial approval covered tool planning without installing packages or starting Phase 3. Phase 3 was subsequently authorized separately and completed on 2026-10-10. Phase 4 subsequently installed React Hook Form, Zod and its resolver. Remaining tool choices require review during Phases 5–9.
 
 | Phase                                         | Planned dependency/tool choice                                                             | Decision                                                                          | Reason and constraints                                                                                                                                                                                                                                                                                                                                                                                 |
 | --------------------------------------------- | ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -313,3 +313,14 @@ Add a dedicated CMS content type for organizational units and personnel structur
 - **No DnD dependency adopted:** Numeric group/position/assignment order is already editable by keyboard and touch under revision-checked single-row writes. Unreviewed cross-parent drag/reorder would need coordinated transactional writes and stronger move/cycle safeguards; keep drag/drop optional instead of shipping a misleading control.
 - Regression tests expanded for manually managed handovers, disabled/re-enabled duties, cross-unit reassignment/capacity denial, public visibility, scheduling-field rejection, absent term fields and accessible tree selection. The one-time lockfile repair workflow was removed after lock synchronization to restore the bounded workflow inventory.
 - **Phase 6 remains IN PROGRESS until all required checks pass for its final exact code+tracker SHA.** No merge, production migration/deployment or real staff data population. Historical Phase 2/6 checkpoint descriptions of period-based duties are superseded by the policy above.
+
+## Phase 6 final closure — 2026-10-10 Asia/Bangkok
+
+**Status: COMPLETE on the feature branch; PAUSE BEFORE PHASE 7.** This checkpoint supersedes older Phase 6 `IN PROGRESS` and `DnD not installed` historical notes above.
+
+- Installed `@mui/x-tree-view` 9.15.0, `@dnd-kit/react` 0.5.0 and `@dnd-kit/helpers` 0.5.0 with the pnpm 10 strict-peer lockfile. Removed the one-time DnD lockfile generation workflow after successful sync.
+- Organization Builder now supports accessible, nested unit navigation, organization-scoped positions, reused canonical personnel, manual duty enabling/disabling, multiple simultaneous roles, cross-unit reassignment, numeric keyboard/touch order editing and same-sibling drag/drop position and duty sorting. No appointment or term expiry is present.
+- Added authenticated `POST /api/admin/organization/reorder`, restricted to `organization.manage`. D1 enforces a complete sibling group, matched revisions, transactionally changed rows, and audit records. Sorting never silently moves personnel between groups/positions, and stale/incomplete lists are rejected rather than partially saved.
+- Tests cover the Admin facade/route policy, drag handles, complete/stale/conflicting scopes, audit/no-partial-write behavior, manual handovers and D1 occupant limits; supplied a jsdom-only ResizeObserver stand-in for the new drag library. Real browser behavior remains covered by Functional E2E and fuller mobile/accessibility verification remains Phase 9.
+- **Verified code-head CI:** [CI run #38068146144](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38068146144) at `c3130f3addf70e1e9679558cab64ec1df1f33bad`: Dependency Preflight, Dependencies, Static Quality, Unit Tests, Integration Tests, Worker, Build, Governance, Functional E2E, and aggregate `quality` all **SUCCESS**.
+- **Final tracker SHA CI pending verification after this documentation commit.** Remain on `agent/org-01-domain-schema`; keep [PR #553](https://github.com/yiwssx/new-www.rcat.ac.th/pull/553) Draft, unmerged, and unchanged in production. Phase 7 must start only on a subsequent explicit instruction.
