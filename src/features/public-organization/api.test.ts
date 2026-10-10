@@ -1,12 +1,21 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PublicReadError } from "../public-read/errors";
-import { getPublicOrganizationDetail } from "./api";
+import { getPublicOrganizationDetail, getPublicOrganizationIndex } from "./api";
 
 const requestMock = vi.hoisted(() => vi.fn());
 vi.mock("../public-read/request", () => ({ getPublicJson: requestMock }));
 afterEach(() => vi.clearAllMocks());
 
 describe("public Organization permalink facade", () => {
+  it("returns published-only organization units for menu choices and rejects malformed indexes", async () => {
+    const published = [{ contentId: "unit-1", slug: "ฝ่ายวิชาการ", title: "ฝ่ายวิชาการ" }];
+    requestMock.mockResolvedValueOnce({ items: published });
+    expect(await getPublicOrganizationIndex()).toEqual(published);
+    expect(requestMock).toHaveBeenCalledWith("/api/public/organization", "organization", {});
+    requestMock.mockResolvedValueOnce({ items: null });
+    await expect(getPublicOrganizationIndex()).rejects.toThrow(/invalid published organization index/);
+  });
+
   it("fetches only its namespaced slug and preserves public snapshot", async () => {
     const detail = {
       unit: { contentId: "unit-1", slug: "academic", title: "วิชาการ" },
