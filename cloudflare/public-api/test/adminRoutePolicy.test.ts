@@ -14,15 +14,22 @@ const SUPPORTED_ADMIN_ROUTES: readonly RouteCase[] = [
   { method: "GET", path: "capabilities", requirement: "dashboard.read" },
   { method: "POST", path: "media-bridge-authorization", requirement: "media.manage" },
   { method: "GET", path: "organization/units", requirement: "organization.read" },
+  { method: "POST", path: "organization/units", requirement: "organization.manage" },
+  { method: "GET", path: "organization/units/unit-1", requirement: "organization.read" },
+  { method: "PATCH", path: "organization/units/unit-1", requirement: "organization.manage" },
+  { method: "DELETE", path: "organization/units/unit-1", requirement: "organization.manage" },
   { method: "GET", path: "organization/personnel", requirement: "organization.read" },
   { method: "POST", path: "organization/personnel", requirement: "organization.manage" },
   { method: "PATCH", path: "organization/personnel/person-1", requirement: "organization.manage" },
+  { method: "DELETE", path: "organization/personnel/person-1", requirement: "organization.manage" },
   { method: "GET", path: "organization/positions", requirement: "organization.read" },
   { method: "POST", path: "organization/positions", requirement: "organization.manage" },
   { method: "PATCH", path: "organization/positions/position-1", requirement: "organization.manage" },
+  { method: "DELETE", path: "organization/positions/position-1", requirement: "organization.manage" },
   { method: "GET", path: "organization/assignments", requirement: "organization.read" },
   { method: "POST", path: "organization/assignments", requirement: "organization.manage" },
   { method: "PATCH", path: "organization/assignments/assignment-1", requirement: "organization.manage" },
+  { method: "DELETE", path: "organization/assignments/assignment-1", requirement: "organization.manage" },
   { method: "GET", path: "content", requirement: "content.read" },
   { method: "POST", path: "content", requirement: "content.create" },
   { method: "GET", path: "content/content-1", requirement: "content.read" },
@@ -114,8 +121,8 @@ describe("Admin route policy", () => {
     expect(requirement(decision)).toEqual(expected);
   });
 
-  it("has an explicit independent inventory for all 87 supported method/path patterns", () => {
-    expect(SUPPORTED_ADMIN_ROUTES).toHaveLength(87);
+  it("has an explicit independent inventory for all 94 supported method/path patterns", () => {
+    expect(SUPPORTED_ADMIN_ROUTES).toHaveLength(94);
     expect(
       SUPPORTED_ADMIN_ROUTES.every(({ method, path }) => resolveAdminRoutePolicy(method, segments(path)).matched)
     ).toBe(true);
@@ -123,7 +130,7 @@ describe("Admin route policy", () => {
 
   it.each([
     ["DELETE", "organization/units"],
-    ["DELETE", "organization/personnel/person-1"],
+    ["PUT", "organization/units/unit-1"],
     ["PUT", "organization/personnel/person-1"],
     ["PUT", "content/content-1"],
     ["POST", "settings/site"],
