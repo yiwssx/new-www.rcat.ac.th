@@ -40,7 +40,10 @@ describe("Organization Chart Admin read boundary", () => {
     expect(hasAdminCapability("editor", "organization.read")).toBe(true);
     expect(hasAdminCapability("viewer", "organization.read")).toBe(false);
     expect(hasAdminCapability("viewer", "organization.manage")).toBe(false);
-    expect(resolveAdminRoutePolicy("POST", ["organization", "personnel"])).toEqual({ matched: false });
+    expect(resolveAdminRoutePolicy("POST", ["organization", "personnel"])).toMatchObject({
+      matched: true,
+      capability: "organization.manage"
+    });
   });
 
   it("reads all four collections with bounded pagination and no-store response headers", async () => {
