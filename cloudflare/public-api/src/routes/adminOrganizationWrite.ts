@@ -5,6 +5,7 @@ import {
   updateAuditedPersonnelRow
 } from "../db/organizationAdminRepository";
 import type { PersonnelRow } from "../db/organizationSchema";
+import { requireD1Database } from "../db/documentsRepository";
 import type { Env } from "../env";
 import { json, jsonError } from "../responses";
 import { OrganizationInputError, parsePersonnelWrite } from "./organizationWriteValidation";
@@ -33,6 +34,15 @@ function expectedRevision(request: Request) {
   if (!/^(0|[1-9]\d*)$/.test(raw)) return Number.NaN;
   const revision = Number(raw);
   return Number.isSafeInteger(revision) ? revision : Number.NaN;
+}
+
+async function photoIsValid(env: Env, id: string | null) {
+  if (!id) return true;
+  const row = await requireD1Database(env)
+    .prepare("SELECT id FROM media_assets WHERE id = ? AND type = 'image' LIMIT 1")
+    .bind(id)
+    .first<{ id: string }>();
+  return Boolean(row);
 }
 
 function makePersonnelRow(payload: ReturnType<typeof parsePersonnelWrite>, id: string, now: string): PersonnelRow {
@@ -84,6 +94,7 @@ export async function handleAdminOrganizationWrite(
   if (segments.length === 2 && request.method === "POST") {
     try {
       const payload = parsePersonnelWrite(await bodyRecord(request));
+      if (!(await photoIsValid(env, payload.photoMediaId))) return fail("selected personnel photo is not a Media Library image", 400);
       const row = makePersonnelRow(payload, `person-${crypto.randomUUID()}`, new Date().toISOString());
       await createAuditedPersonnelRow(env, row, identity.actor);
       return noStore({ item: row }, 201);
@@ -107,6 +118,7 @@ export async function handleAdminOrganizationWrite(
     try {
       const changes = await bodyRecord(request);
       const payload = parsePersonnelWrite({ ...currentPersonnelInput(current), ...changes });
+      if (!(await photoIsValid(env, payload.photoMediaId))) return fail("selected personnel photo is not a Media Library image", 400);
       const row = { ...makePersonnelRow(payload, id, new Date().toISOString()), created_at: current.created_at };
       const updated = await updateAuditedPersonnelRow(env, row, revision, identity.actor, Object.keys(changes).sort());
       if (!updated) return fail("stale revision", 409);
