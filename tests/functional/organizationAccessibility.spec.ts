@@ -19,7 +19,11 @@ async function installOrganizationFixture(page: Page) {
   await page.route("**/api/public/organization/**", async (route) => {
     const requestedSlug = decodeURIComponent(new URL(route.request().url()).pathname.split("/").pop() ?? "");
     if (requestedSlug !== slug) {
-      await route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ error: "not found" }) });
+      await route.fulfill({
+        status: 404,
+        contentType: "application/json",
+        body: JSON.stringify({ error: "not found" })
+      });
       return;
     }
     await route.fulfill({
@@ -41,29 +45,33 @@ async function installOrganizationFixture(page: Page) {
             depth: 1
           }
         ],
-        positions: [{
-          id: "position-1",
-          unitContentId: "division-1",
-          title: "หัวหน้าฝ่าย",
-          groupLabel: "",
-          groupSortOrder: 0,
-          sortOrder: 0,
-          displayStyle: "default",
-          assignments: [{
-            id: "assignment-1",
-            dutyDetail: "กำกับดูแลงาน",
+        positions: [
+          {
+            id: "position-1",
+            unitContentId: "division-1",
+            title: "หัวหน้าฝ่าย",
+            groupLabel: "",
+            groupSortOrder: 0,
             sortOrder: 0,
-            person: {
-              id: "person-1",
-              displayName: "บุคลากรทดสอบ",
-              personnelType: "teacher",
-              employmentPosition: "ครู",
-              photoMediaId: null,
-              publicEmail: "",
-              publicPhone: ""
-            }
-          }]
-        }],
+            displayStyle: "default",
+            assignments: [
+              {
+                id: "assignment-1",
+                dutyDetail: "กำกับดูแลงาน",
+                sortOrder: 0,
+                person: {
+                  id: "person-1",
+                  displayName: "บุคลากรทดสอบ",
+                  personnelType: "teacher",
+                  employmentPosition: "ครู",
+                  photoMediaId: null,
+                  publicEmail: "",
+                  publicPhone: ""
+                }
+              }
+            ]
+          }
+        ],
         media: []
       })
     });
@@ -89,9 +97,14 @@ test.describe("Organization public accessibility and responsive regression", () 
         `/organization/${encodeURIComponent("งานทะเบียน")}`
       );
       await expect(page.getByText("บุคลากรทดสอบ")).toBeVisible();
-      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+      await expect
+        .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1))
+        .toBe(true);
 
-      const audit = await new AxeBuilder({ page }).include("main").withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
+      const audit = await new AxeBuilder({ page })
+        .include("main")
+        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+        .analyze();
       expect(
         audit.violations.map((violation) => ({
           id: violation.id,
