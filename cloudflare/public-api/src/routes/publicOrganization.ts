@@ -47,7 +47,32 @@ export function selectPublishedOrganizationDetail(
     }
     return false;
   };
-  const units = organization.items.filter(isDescendant);
+  const descendants = organization.items.filter(isDescendant);
+  const children = new Map<string, PublicOrganizationUnit[]>();
+  for (const candidate of descendants) {
+    if (candidate.contentId === unit.contentId || !candidate.parentContentId) continue;
+    const siblings = children.get(candidate.parentContentId) ?? [];
+    siblings.push(candidate);
+    children.set(candidate.parentContentId, siblings);
+  }
+  for (const siblings of children.values()) {
+    siblings.sort((left, right) =>
+      left.sortOrder - right.sortOrder ||
+      left.title.localeCompare(right.title, "th") ||
+      left.contentId.localeCompare(right.contentId)
+    );
+  }
+  // The SQL visible CTE returns breadth-first rows; render preorder instead so
+  // grandchildren follow their actual parent, not an unrelated sibling.
+  const units: PublicOrganizationUnit[] = [];
+  const added = new Set<string>();
+  function visit(current: PublicOrganizationUnit) {
+    if (added.has(current.contentId)) return;
+    added.add(current.contentId);
+    units.push(current);
+    for (const child of children.get(current.contentId) ?? []) visit(child);
+  }
+  visit(unit);
   const visibleIds = new Set(units.map((item) => item.contentId));
   return {
     unit,
