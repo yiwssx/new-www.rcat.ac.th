@@ -160,7 +160,13 @@ export async function handleAdminOrganizationDutyWrite(
       const row = toPositionRow(input, id, now, old?.created_at);
       if (isCreate) await createAuditedOrganizationPosition(env, row, identity.actor);
       else {
-        const updated = await updateAuditedOrganizationPosition(env, row, revision as number, identity.actor, Object.keys(changes).sort());
+        const updated = await updateAuditedOrganizationPosition(
+          env,
+          row,
+          revision as number,
+          identity.actor,
+          Object.keys(changes).sort()
+        );
         if (!updated) return errorResponse("stale revision", 409);
       }
       return ok({ ...row, revision: isCreate ? 0 : (revision as number) + 1 }, isCreate ? 201 : 200);
@@ -171,7 +177,13 @@ export async function handleAdminOrganizationDutyWrite(
     const row = toAssignmentRow(input, id, now, old?.created_at);
     if (isCreate) await createAuditedOrganizationAssignment(env, row, identity.actor);
     else {
-      const updated = await updateAuditedOrganizationAssignment(env, row, revision as number, identity.actor, Object.keys(changes).sort());
+      const updated = await updateAuditedOrganizationAssignment(
+        env,
+        row,
+        revision as number,
+        identity.actor,
+        Object.keys(changes).sort()
+      );
       if (!updated) return errorResponse("stale revision", 409);
     }
     return ok({ ...row, revision: isCreate ? 0 : (revision as number) + 1 }, isCreate ? 201 : 200);
