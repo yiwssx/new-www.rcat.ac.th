@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 import { CMS_CAPABILITIES, parseCmsCapabilityPayload } from "./capabilities";
 
 describe("CMS capability registry", () => {
-  it("contains exactly 46 unique capabilities without wildcard support", () => {
-    expect(CMS_CAPABILITIES).toHaveLength(46);
-    expect(new Set(CMS_CAPABILITIES).size).toBe(46);
+  it("contains exactly 48 unique capabilities without wildcard support", () => {
+    expect(CMS_CAPABILITIES).toHaveLength(48);
+    expect(new Set(CMS_CAPABILITIES).size).toBe(48);
     expect(CMS_CAPABILITIES).toContain("audit.read");
+    expect(CMS_CAPABILITIES).toContain("organization.read");
+    expect(CMS_CAPABILITIES).toContain("organization.manage");
     expect(CMS_CAPABILITIES).toContain("backup.restore");
     expect(CMS_CAPABILITIES).not.toContain("*" as never);
   });

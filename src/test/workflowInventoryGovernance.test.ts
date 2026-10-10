@@ -19,6 +19,7 @@ const expectedWorkflows = [
   "maintenance-recovery.yml",
   "production-data-operations.yml",
   "production-verification.yml",
+  "pr-prettier-autofix.yml",
   "worker-production-rollback.yml",
   "worker-production.yml"
 ].sort();
@@ -26,7 +27,7 @@ const expectedWorkflows = [
 describe("workflow inventory governance", () => {
   it("keeps the active workflow surface intentionally bounded", () => {
     expect(workflowFiles).toEqual(expectedWorkflows);
-    expect(workflowFiles).toHaveLength(10);
+    expect(workflowFiles).toHaveLength(11);
   });
 
   it("does not restore retired branch-mutating, phase-specific, or duplicate workflows", () => {
@@ -53,6 +54,7 @@ describe("workflow inventory governance", () => {
 
   it("uses clear responsibility-oriented workflow names", () => {
     expect(readWorkflow("ci.yml")).toContain("name: CI");
+    expect(readWorkflow("pr-prettier-autofix.yml")).toContain("name: PR Prettier autofix");
     expect(readWorkflow("dependency-status-sync.yml")).toContain("name: Dependencies");
     expect(readWorkflow("image-production-worker.yml")).toContain("name: Deploy / Image Production Worker");
     expect(readWorkflow("production-verification.yml")).toContain("name: Production Verification");

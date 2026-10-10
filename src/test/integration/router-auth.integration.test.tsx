@@ -25,6 +25,12 @@ describe("router + auth integration", () => {
     expect(await screen.findByRole("button", { name: /เข้าสู่ระบบ/ }, { timeout: 5_000 })).toBeInTheDocument();
   });
 
+  it("redirects unauthenticated organization admin visits to the login page", async () => {
+    window.history.pushState({}, "", "/admin/organization");
+    renderApp();
+    expect(await screen.findByRole("button", { name: /เข้าสู่ระบบ/ }, { timeout: 5_000 })).toBeInTheDocument();
+  });
+
   it("protects the public documents admin route", async () => {
     window.history.pushState({}, "", "/admin/documents");
 

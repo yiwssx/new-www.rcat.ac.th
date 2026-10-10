@@ -44,6 +44,15 @@ export async function getPublicContentRouteHead(
   return implementation.getPublicContentRouteHead(slug, loaderData, context);
 }
 
+export async function getPublicOrganizationRouteHead(
+  slug: string,
+  loaderData?: unknown,
+  context?: PublicRouteHeadContextData
+) {
+  const implementation = await loadPublicRouteHeadImplementation();
+  return implementation.getPublicOrganizationRouteHead(slug, loaderData, context);
+}
+
 export async function getCmsRouteHead() {
   const implementation = await loadPublicRouteHeadImplementation();
   return implementation.getCmsRouteHead();

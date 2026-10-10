@@ -1,8 +1,27 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { buildRecoveryUpsertSql } from "../src/routes/adminBackupRecovery";
+import { buildRecoveryUpsertSql, orderOrganizationUnitsForRestore } from "../src/routes/adminBackupRecovery";
 
 describe("backup recovery UPSERT builder", () => {
+  it("sorts organization restore parent before child even from unordered exports", () => {
+    const rows = [
+      { content_id: "grandchild", parent_content_id: "child" },
+      { content_id: "child", parent_content_id: "root" },
+      { content_id: "root", parent_content_id: null }
+    ];
+    expect(orderOrganizationUnitsForRestore(rows).map((row) => row.content_id)).toEqual([
+      "root",
+      "child",
+      "grandchild"
+    ]);
+    expect(() =>
+      orderOrganizationUnitsForRestore([
+        { content_id: "left", parent_content_id: "right" },
+        { content_id: "right", parent_content_id: "left" }
+      ])
+    ).toThrow(/cyclic/);
+  });
+
   it("updates by the stable primary key without REPLACE semantics", () => {
     const sql = buildRecoveryUpsertSql("contents", ["id", "slug", "title"], ["id"]);
 

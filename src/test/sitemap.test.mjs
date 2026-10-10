@@ -6,6 +6,7 @@ import {
   createSitemapXml,
   createStaticSitemapXml,
   getPublishedContentSitemapRoute,
+  getPublishedOrganizationSitemapRoute,
   loadSitemapData,
   normalizeInternalRoute
 } from "../../api/sitemap.mjs";
@@ -55,6 +56,9 @@ describe("runtime sitemap generation", () => {
       requestedUrls.push(url);
       const parsed = new URL(url);
       const kind = parsed.searchParams.get("kind");
+      if (parsed.pathname === "/api/public/organization") {
+        return { ok: true, json: async () => ({ items: [{ slug: "ฝ่ายวิชาการ", title: "ฝ่ายวิชาการ" }] }) };
+      }
       const pagesPage = Number(parsed.searchParams.get("pagesPage") || 0);
 
       if (kind === "announcements") {
@@ -80,6 +84,8 @@ describe("runtime sitemap generation", () => {
       const data = await loadSitemapData("https://api.school.example/");
 
       expect(requestedUrls.some((url) => url.includes("/programs"))).toBe(false);
+      expect(requestedUrls).toContain("https://api.school.example/api/public/organization");
+      expect(data.organization.map((unit) => unit.slug)).toEqual(["ฝ่ายวิชาการ"]);
       expect(requestedUrls).toContain("https://api.school.example/api/public/content?kind=news");
       expect(requestedUrls).toContain(
         "https://api.school.example/api/public/content?kind=announcements&pagesPage=1&pagesPageSize=100"
@@ -98,6 +104,22 @@ describe("runtime sitemap generation", () => {
     } finally {
       globalThis.fetch = originalFetch;
     }
+  });
+
+  it("includes published-only organization units with Unicode slugs, never arbitrary generic content", () => {
+    const urls = buildSitemapUrls({
+      siteUrl: "https://school.example",
+      organization: [{ slug: "ฝ่ายวิชาการ", title: "ฝ่ายวิชาการ" }, { slug: "../private" }],
+      content: [{ type: "organization", slug: "unscoped", status: "published" }]
+    });
+    expect(getPublishedOrganizationSitemapRoute({ slug: "ฝ่ายวิชาการ" })).toBe(
+      "/organization/%E0%B8%9D%E0%B9%88%E0%B8%B2%E0%B8%A2%E0%B8%A7%E0%B8%B4%E0%B8%8A%E0%B8%B2%E0%B8%81%E0%B8%B2%E0%B8%A3"
+    );
+    expect(urls).toContain(
+      "https://school.example/organization/%E0%B8%9D%E0%B9%88%E0%B8%B2%E0%B8%A2%E0%B8%A7%E0%B8%B4%E0%B8%8A%E0%B8%B2%E0%B8%81%E0%B8%B2%E0%B8%A3"
+    );
+    expect(urls.join("\\n")).not.toContain("unscoped");
+    expect(urls.join("\\n")).not.toContain("private");
   });
 
   it("excludes locally hosted content when CMS declares an external canonical URL", () => {

@@ -16,6 +16,10 @@ const RECOVERY_BATCH_SIZE = 100;
 const RECOVERY_TABLES = [
   "contents",
   "media_assets",
+  "organization_units",
+  "personnel",
+  "organization_positions",
+  "organization_assignments",
   "documents",
   "menu_items",
   "carousel_slides",
@@ -40,6 +44,36 @@ interface TableColumnInfo {
 interface RecoveryTableSchema {
   columns: Set<string>;
   primaryKey: string[];
+}
+
+/** Ensures parent units are restored before their children in D1 FK-safe order. */
+export function orderOrganizationUnitsForRestore(rows: readonly Record<string, unknown>[]) {
+  const byId = new Map<string, Record<string, unknown>>();
+  for (const row of rows) {
+    const id = row.content_id;
+    if (typeof id !== "string" || !id || byId.has(id)) throw new TypeError("invalid organization unit backup ID");
+    byId.set(id, row);
+  }
+  const ordered: Record<string, unknown>[] = [];
+  const completed = new Set<string>();
+  const visiting = new Set<string>();
+  function visit(id: string) {
+    if (completed.has(id)) return;
+    if (visiting.has(id)) throw new TypeError("cyclic organization unit backup");
+    const row = byId.get(id);
+    if (!row) return;
+    visiting.add(id);
+    const parent = row.parent_content_id;
+    if (parent !== null && parent !== undefined && parent !== "") {
+      if (typeof parent !== "string") throw new TypeError("invalid organization parent");
+      if (byId.has(parent)) visit(parent);
+    }
+    visiting.delete(id);
+    completed.add(id);
+    ordered.push(row);
+  }
+  for (const id of byId.keys()) visit(id);
+  return ordered;
 }
 
 function noStore(response: Response) {
@@ -214,15 +248,16 @@ async function recoverBackup(request: Request, env: Env, identity: AdminIdentity
 
       const schema = await readTableSchema(db, table);
       if (!schema.columns.size) {
-        restoredCounts[table] = 0;
-        continue;
+        throw new TypeError(`${table}: table has not been migrated`);
       }
       if (!schema.primaryKey.length) {
         throw new TypeError(`${table}: table has no stable primary key`);
       }
 
       let accepted = 0;
-      for (const rawRow of rows) {
+      const orderedRows =
+        table === "organization_units" ? orderOrganizationUnitsForRestore(rows as JsonRecord[]) : rows;
+      for (const rawRow of orderedRows) {
         const row = parseJsonRecord(rawRow);
         if (!row) throw new TypeError(`${table}: backup row is invalid`);
 

@@ -54,6 +54,9 @@ describe("runtime sitemap cache and degradation", () => {
     const fetchMock = vi.fn(async (input) => {
       const url = new URL(String(input));
       const kind = url.searchParams.get("kind");
+      if (url.pathname === "/api/public/organization") {
+        return Response.json({ items: [{ slug: "ฝ่ายวิชาการ", title: "ฝ่ายวิชาการ" }] });
+      }
 
       if (kind === "announcements") {
         return Response.json({
