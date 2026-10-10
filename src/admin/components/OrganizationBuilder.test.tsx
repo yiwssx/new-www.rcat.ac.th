@@ -175,6 +175,18 @@ describe("Phase 6 accessible Organization builder", () => {
     );
   });
 
+  it("does not offer assignment period inputs and allows explicit manual visibility", async () => {
+    setup(true);
+    fireEvent.click(screen.getByRole("treeitem", { name: "งานสารบรรณ" }));
+    fireEvent.click(await screen.findByRole("button", { name: "มอบหมายบุคลากร" }));
+    const dialog = screen.getByRole("dialog", { name: "มอบหมายบุคลากร" });
+    expect(dialog).toBeInTheDocument();
+    expect(screen.queryByLabelText(/เริ่มดำรงหน้าที่|สิ้นสุดหน้าที่|วาระ/)).not.toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "เปิดใช้งานการมอบหมายนี้" })).toBeChecked();
+    fireEvent.click(screen.getByRole("checkbox", { name: "เปิดใช้งานการมอบหมายนี้" }));
+    expect(screen.getByRole("checkbox", { name: "เปิดใช้งานการมอบหมายนี้" })).not.toBeChecked();
+  });
+
   it("exposes assignment to canonical personnel rather than creating a second person", async () => {
     setup(true);
     fireEvent.click(screen.getByRole("treeitem", { name: "งานสารบรรณ" }));

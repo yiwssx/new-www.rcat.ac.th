@@ -129,6 +129,20 @@ describe("Organization Chart public positions and assignments", () => {
     expect(positions[0]?.assignments).toEqual([]);
   });
 
+  it("changes public visibility only when the administrator changes enabled, never by time", () => {
+    addContent("division");
+    addUnit("division");
+    addPosition("pos", "division");
+    addPerson("p1");
+    addAssignment("manual", "p1", "pos");
+
+    expect(visiblePositions()[0]?.assignments.map((item) => item.id)).toEqual(["manual"]);
+    db.prepare("UPDATE organization_assignments SET enabled = 0, revision = 1 WHERE id = 'manual'").run();
+    expect(visiblePositions()[0]?.assignments).toEqual([]);
+    db.prepare("UPDATE organization_assignments SET enabled = 1, revision = 2 WHERE id = 'manual'").run();
+    expect(visiblePositions()[0]?.assignments.map((item) => item.id)).toEqual(["manual"]);
+  });
+
   it("redacts default-private contact details, permits explicit opt-in, and allows multiple duties", () => {
     addContent("division");
     addUnit("division");

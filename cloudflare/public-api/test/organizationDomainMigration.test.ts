@@ -159,6 +159,56 @@ describe("Organization Chart phase 1 D1 foundation", () => {
     expect(db.prepare("SELECT COUNT(*) AS total FROM organization_assignments").get()).toMatchObject({ total: 3 });
   });
 
+  it("lets administrators hand over a capped position manually without any date or term setting", () => {
+    content("division");
+    unit("division");
+    person("p1");
+    person("p2");
+    position("post", "division", 1);
+    assignment("duty-p1", "p1", "post", "Lead");
+    assignment("advisor-p1", "p1", "post", "Advisor");
+
+    expect(db.prepare("PRAGMA table_info(organization_assignments)").all().map((row) => (row as { name: string }).name))
+      .not.toEqual(expect.arrayContaining(["starts_at", "ends_at"]));
+    expect(() => assignment("duty-p2", "p2", "post")).toThrow(/occupant limit/);
+
+    db.prepare("UPDATE organization_assignments SET enabled = 0, revision = 1 WHERE id = 'duty-p1'").run();
+    expect(() => assignment("duty-p2", "p2", "post")).toThrow(/occupant limit/);
+    db.prepare("UPDATE organization_assignments SET enabled = 0, revision = 1 WHERE id = 'advisor-p1'").run();
+    assignment("duty-p2", "p2", "post");
+    expect(() =>
+      db.prepare("UPDATE organization_assignments SET enabled = 1, revision = 2 WHERE id = 'advisor-p1'").run()
+    ).toThrow(/occupant limit/);
+    expect(db.prepare("SELECT enabled FROM organization_assignments WHERE id = 'advisor-p1'").get())
+      .toMatchObject({ enabled: 0 });
+  });
+
+  it("validates cross-unit reassignment and capacity at the database boundary", () => {
+    content("division");
+    content("department");
+    unit("division");
+    unit("department");
+    person("p1");
+    person("p2");
+    position("division-head", "division", 1);
+    position("department-head", "department", 1);
+    assignment("move-me", "p1", "division-head");
+    assignment("occupied", "p2", "department-head");
+
+    const move = db.prepare(
+      "UPDATE organization_assignments SET position_id = ?, revision = revision + 1 WHERE id = 'move-me'"
+    );
+    expect(() => move.run("department-head")).toThrow(/occupant limit/);
+    expect(db.prepare("SELECT position_id, revision FROM organization_assignments WHERE id = 'move-me'").get())
+      .toMatchObject({ position_id: "division-head", revision: 0 });
+
+    db.prepare("UPDATE organization_assignments SET enabled = 0, revision = 1 WHERE id = 'occupied'").run();
+    move.run("department-head");
+    expect(db.prepare("SELECT position_id, revision FROM organization_assignments WHERE id = 'move-me'").get())
+      .toMatchObject({ position_id: "department-head", revision: 1 });
+    expect(db.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+  });
+
   it("blocks stale revision writes and malformed settings", () => {
     content("root");
     unit("root");

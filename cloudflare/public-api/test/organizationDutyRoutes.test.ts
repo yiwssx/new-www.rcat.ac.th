@@ -133,6 +133,29 @@ describe("Organization Chart protected position and assignment writes", () => {
     expect((await dispatch("PATCH", "assignments/assignment-1", { dutyDetail: "New" }, "4"))?.status).toBe(409);
   });
 
+  it("supports revision-guarded cross-unit reassignment and manual deactivation", async () => {
+    const response = await dispatch(
+      "PATCH",
+      "assignments/assignment-1",
+      { positionId: "position-in-another-unit", enabled: false },
+      "4"
+    );
+    expect(response?.status).toBe(200);
+    expect(vi.mocked(updateAuditedOrganizationAssignment).mock.calls[0]?.[1]).toMatchObject({
+      id: "assignment-1",
+      personnel_id: "person-1",
+      position_id: "position-in-another-unit",
+      enabled: 0,
+      revision: 0
+    });
+    expect(vi.mocked(updateAuditedOrganizationAssignment).mock.calls[0]?.[2]).toBe(4);
+    expect(vi.mocked(updateAuditedOrganizationAssignment).mock.calls[0]?.[4]).toEqual([
+      "enabled",
+      "positionId"
+    ]);
+    expect(vi.mocked(createAuditedOrganizationAssignment)).not.toHaveBeenCalled();
+  });
+
   it("maps D1 foreign key and occupant capacity errors to safe conflicts", async () => {
     vi.mocked(createAuditedOrganizationAssignment).mockRejectedValueOnce(new Error("FOREIGN KEY constraint failed"));
     expect((await dispatch("POST", "assignments", { personnelId: "p1", positionId: "pos1" }))?.status).toBe(409);
