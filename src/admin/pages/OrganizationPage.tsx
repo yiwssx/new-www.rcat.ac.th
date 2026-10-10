@@ -313,17 +313,11 @@ export default function OrganizationPage() {
               </Box>
             ))}
             {units.hasNextPage && (
-              <Button
-                variant="outlined"
-                onClick={() => void units.fetchNextPage()}
-                disabled={units.isFetchingNextPage}
-              >
+              <Button variant="outlined" onClick={() => void units.fetchNextPage()} disabled={units.isFetchingNextPage}>
                 {units.isFetchingNextPage ? "กำลังโหลดเพิ่มเติม…" : "โหลดหน่วยงานเพิ่มเติม"}
               </Button>
             )}
-            {units.isFetchNextPageError && (
-              <Alert severity="error">โหลดหน้าถัดไปไม่สำเร็จ กรุณาลองใหม่</Alert>
-            )}
+            {units.isFetchNextPageError && <Alert severity="error">โหลดหน้าถัดไปไม่สำเร็จ กรุณาลองใหม่</Alert>}
           </Stack>
         </CardContent>
       </Card>

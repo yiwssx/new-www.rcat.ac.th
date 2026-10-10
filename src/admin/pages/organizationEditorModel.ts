@@ -113,8 +113,7 @@ export function toOrganizationUnitWrite(form: OrganizationEditorForm): Organizat
   const convertedPublish = fromLocalDateTimeInputValue(value.publishAt);
   const utcPublish = convertedPublish ? new Date(convertedPublish).toISOString() : "";
   // The Worker requires normalized UTC timestamps; local Thailand input is converted before the request.
-  const effectivePublishAt =
-    value.status === "published" && !utcPublish ? new Date().toISOString() : utcPublish;
+  const effectivePublishAt = value.status === "published" && !utcPublish ? new Date().toISOString() : utcPublish;
   const convertedUnpublish = fromLocalDateTimeInputValue(value.unpublishAt);
   const unpublish = convertedUnpublish ? new Date(convertedUnpublish).toISOString() : "";
   if (unpublish && (!effectivePublishAt || Date.parse(unpublish) <= Date.parse(effectivePublishAt))) {

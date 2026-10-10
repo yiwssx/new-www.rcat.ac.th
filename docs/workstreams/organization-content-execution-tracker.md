@@ -255,7 +255,6 @@ Add a dedicated CMS content type for organizational units and personnel structur
 
 **Phase 4 IN_PROGRESS.** Continue exact-head CI verification and close editor/list regressions; do not mark Phase 4 complete until all required checks pass. Keep `agent/org-01-domain-schema` and [Draft PR #553](https://github.com/yiwssx/new-www.rcat.ac.th/pull/553) open and unmerged. Do not start Phase 5, deploy, or populate production data.
 
-
 ## Phase 4 active checkpoint — 2026-10-10 Asia/Bangkok
 
 - User reauthorized continuation of the dedicated Organization list/editor on the existing long-lived feature branch. The single-merge gate and Draft PR #553 remain in force.
