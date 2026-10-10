@@ -14,7 +14,7 @@ import { publicDocuments } from "./routes/publicDocuments";
 import { publicEvents } from "./routes/publicEvents";
 import { publicHome } from "./routes/publicHome";
 import { publicPrograms } from "./routes/publicPrograms";
-import { publicOrganization } from "./routes/publicOrganization";
+import { publicOrganization, publicOrganizationDetail } from "./routes/publicOrganization";
 import { publicSearch } from "./routes/publicSearch";
 import { publicShell } from "./routes/publicShell";
 import { publicVisitorStats } from "./routes/publicVisitorStats";
@@ -182,6 +182,21 @@ export async function routeRequest(request: Request, env: Env) {
 
   if (pathname === "/api/public/organization") {
     return publicOrganization(env);
+  }
+
+  if (pathname.startsWith("/api/public/organization/")) {
+    const rawSlug = pathname.slice("/api/public/organization/".length);
+    // Reject encoded separators rather than decoding them into a different route.
+    if (!rawSlug || rawSlug.includes("/") || /%2f|%5c/i.test(rawSlug)) {
+      return jsonError("not found", 404, { resource: "organization" });
+    }
+    let slug: string;
+    try {
+      slug = decodeURIComponent(rawSlug);
+    } catch {
+      return jsonError("not found", 404, { resource: "organization" });
+    }
+    return publicOrganizationDetail(env, slug);
   }
 
   if (pathname === "/api/public/visitor-stats") {

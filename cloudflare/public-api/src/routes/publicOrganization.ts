@@ -1,6 +1,7 @@
 import { readPublishedOrganization } from "../db/organizationReadRepository";
 import type { Env } from "../env";
-import { json } from "../responses";
+import { json, jsonError } from "../responses";
+import type { PublicOrganizationUnit } from "../db/organizationReadRepository";
 
 /**
  * ASVS 8.2.3: expose only published organization chains, active assignments
@@ -11,4 +12,54 @@ export async function publicOrganization(env: Env): Promise<Response> {
   return json(organization, {
     headers: { "Cache-Control": "public, max-age=60" }
   });
+}
+
+/** A detail permalink can only resolve a fully published ancestor chain. */
+export function selectPublishedOrganizationDetail(
+  organization: Awaited<ReturnType<typeof readPublishedOrganization>>,
+  slug: string
+) {
+  const unit = organization.items.find((item) => item.slug === slug);
+  if (!unit) return null;
+  const byId = new Map(organization.items.map((item) => [item.contentId, item]));
+  const ancestors: PublicOrganizationUnit[] = [];
+  const visited = new Set([unit.contentId]);
+  let parentId = unit.parentContentId;
+  while (parentId) {
+    if (visited.has(parentId)) return null;
+    visited.add(parentId);
+    const parent = byId.get(parentId);
+    if (!parent) return null;
+    ancestors.unshift(parent);
+    parentId = parent.parentContentId;
+  }
+  const isDescendant = (candidate: PublicOrganizationUnit) => {
+    const seen = new Set<string>();
+    let current: PublicOrganizationUnit | undefined = candidate;
+    while (current) {
+      if (current.contentId === unit.contentId) return true;
+      if (seen.has(current.contentId)) return false;
+      seen.add(current.contentId);
+      current = current.parentContentId ? byId.get(current.parentContentId) : undefined;
+    }
+    return false;
+  };
+  const units = organization.items.filter(isDescendant);
+  const visibleIds = new Set(units.map((item) => item.contentId));
+  return {
+    unit,
+    ancestors,
+    units,
+    positions: organization.positions.filter((position) => visibleIds.has(position.unitContentId))
+  };
+}
+
+export async function publicOrganizationDetail(env: Env, slug: string): Promise<Response> {
+  if (!/^[a-z0-9][a-z0-9-]{0,159}$/.test(slug)) {
+    return jsonError("not found", 404, { resource: "organization" });
+  }
+  const organization = await readPublishedOrganization(env);
+  const result = selectPublishedOrganizationDetail(organization, slug);
+  if (!result) return jsonError("not found", 404, { resource: "organization" });
+  return json(result, { headers: { "Cache-Control": "public, max-age=60" } });
 }
