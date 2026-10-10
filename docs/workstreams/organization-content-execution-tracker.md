@@ -275,7 +275,6 @@ Add a dedicated CMS content type for organizational units and personnel structur
 - **Exact-code-head full CI passed** at `998317d42b6b0204ecc812617a837e45fc4b390a`: [CI run #38038056497](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38038056497). Dependency Preflight, Static Quality/Prettier, Unit Tests, Integration Tests, Worker, Build, Dependencies, Governance, Functional E2E and aggregate Quality all succeeded. Prettier autofix applied formatting-only commit `998317d42b`.
 - This tracker closure is documentation-only after the validated code head; verify its own CI separately. **No merge to `main`, protected D1 migration, production deploy or real RCAT data population occurred.** Draft PR #553 remains WIP for Phases 5–9.
 
-
 ## Phase 5 closure — 2026-10-10 Asia/Bangkok
 
 **Status: COMPLETE / PAUSED BEFORE PHASE 6.** This checkpoint supersedes the earlier Phase 5 planning state.
