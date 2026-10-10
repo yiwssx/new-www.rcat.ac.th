@@ -92,7 +92,7 @@ describe("Organization Chart protected personnel mutations", () => {
           expect(query).toContain("type = 'image'");
           return {
             bind: (id: string) => ({
-              first: async () => id === "image-1" ? { id } : null
+              first: async () => (id === "image-1" ? { id } : null)
             })
           };
         }

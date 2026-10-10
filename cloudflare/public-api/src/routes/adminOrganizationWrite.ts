@@ -94,7 +94,8 @@ export async function handleAdminOrganizationWrite(
   if (segments.length === 2 && request.method === "POST") {
     try {
       const payload = parsePersonnelWrite(await bodyRecord(request));
-      if (!(await photoIsValid(env, payload.photoMediaId))) return fail("selected personnel photo is not a Media Library image", 400);
+      if (!(await photoIsValid(env, payload.photoMediaId)))
+        return fail("selected personnel photo is not a Media Library image", 400);
       const row = makePersonnelRow(payload, `person-${crypto.randomUUID()}`, new Date().toISOString());
       await createAuditedPersonnelRow(env, row, identity.actor);
       return noStore({ item: row }, 201);
@@ -118,7 +119,8 @@ export async function handleAdminOrganizationWrite(
     try {
       const changes = await bodyRecord(request);
       const payload = parsePersonnelWrite({ ...currentPersonnelInput(current), ...changes });
-      if (!(await photoIsValid(env, payload.photoMediaId))) return fail("selected personnel photo is not a Media Library image", 400);
+      if (!(await photoIsValid(env, payload.photoMediaId)))
+        return fail("selected personnel photo is not a Media Library image", 400);
       const row = { ...makePersonnelRow(payload, id, new Date().toISOString()), created_at: current.created_at };
       const updated = await updateAuditedPersonnelRow(env, row, revision, identity.actor, Object.keys(changes).sort());
       if (!updated) return fail("stale revision", 409);

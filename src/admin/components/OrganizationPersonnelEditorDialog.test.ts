@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  personnelEditorDefaults,
-  personnelEditorSchema,
-  toPersonnelWrite
-} from "./OrganizationPersonnelEditorDialog";
+import { personnelEditorDefaults, personnelEditorSchema, toPersonnelWrite } from "./OrganizationPersonnelEditorDialog";
 
 describe("Phase 5 personnel privacy and validation contract", () => {
   const valid = {
@@ -38,9 +34,14 @@ describe("Phase 5 personnel privacy and validation contract", () => {
     expect(personnelEditorSchema.safeParse({ ...valid, publicEmail: "bad@" }).success).toBe(false);
     expect(personnelEditorSchema.safeParse({ ...valid, showPublicEmail: true }).success).toBe(false);
     expect(personnelEditorSchema.safeParse({ ...valid, showPublicPhone: true }).success).toBe(false);
-    expect(personnelEditorSchema.safeParse({
-      ...valid, publicEmail: "staff@example.org", showPublicEmail: true,
-      publicPhone: "043123456", showPublicPhone: true
-    }).success).toBe(true);
+    expect(
+      personnelEditorSchema.safeParse({
+        ...valid,
+        publicEmail: "staff@example.org",
+        showPublicEmail: true,
+        publicPhone: "043123456",
+        showPublicPhone: true
+      }).success
+    ).toBe(true);
   });
 });

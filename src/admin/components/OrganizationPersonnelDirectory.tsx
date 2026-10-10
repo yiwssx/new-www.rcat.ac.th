@@ -53,10 +53,12 @@ export default function OrganizationPersonnelDirectory({ canManage, canBrowseMed
   const rows = useMemo(() => list.data?.pages.flatMap((page) => page.items) ?? [], [list.data]);
   const visible = useMemo(() => {
     const term = search.trim().toLocaleLowerCase("th");
-    return rows.filter((person) =>
-      !term || [person.display_name, person.personnel_type, person.employment_position].some((value) =>
-        value.toLocaleLowerCase("th").includes(term)
-      )
+    return rows.filter(
+      (person) =>
+        !term ||
+        [person.display_name, person.personnel_type, person.employment_position].some((value) =>
+          value.toLocaleLowerCase("th").includes(term)
+        )
     );
   }, [rows, search]);
 
@@ -121,9 +123,7 @@ export default function OrganizationPersonnelDirectory({ canManage, canBrowseMed
       setNotice("ลบข้อมูลบุคลากรจากทะเบียนกลางแล้ว");
     } catch (cause) {
       setError(
-        isAdminStaleRevisionError(cause)
-          ? "Revision ไม่ตรงกับข้อมูลล่าสุด กรุณาตรวจสอบอีกครั้ง"
-          : messageFor(cause)
+        isAdminStaleRevisionError(cause) ? "Revision ไม่ตรงกับข้อมูลล่าสุด กรุณาตรวจสอบอีกครั้ง" : messageFor(cause)
       );
       await invalidateOrganizationQueries(client, "personnel");
     }
@@ -133,18 +133,44 @@ export default function OrganizationPersonnelDirectory({ canManage, canBrowseMed
     <Card variant="outlined">
       <CardContent>
         <Stack spacing={2}>
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ justifyContent: "space-between", alignItems: { sm: "center" } }}>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={2}
+            sx={{ justifyContent: "space-between", alignItems: { sm: "center" } }}
+          >
             <Box>
-              <Typography variant="h2" sx={{ fontSize: "1.25rem" }}>ทะเบียนบุคลากรกลาง</Typography>
-              <Typography variant="body2" color="text.secondary">บุคคลหนึ่งคนใช้ประวัติเดียวกันได้ในหลายฝ่าย งาน และแผนกวิชา</Typography>
+              <Typography variant="h2" sx={{ fontSize: "1.25rem" }}>
+                ทะเบียนบุคลากรกลาง
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                บุคคลหนึ่งคนใช้ประวัติเดียวกันได้ในหลายฝ่าย งาน และแผนกวิชา
+              </Typography>
             </Box>
             <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
-              <Button startIcon={<RefreshOutlinedIcon />} disabled={list.isFetching} onClick={() => void list.refetch()}>รีเฟรช</Button>
-              {canManage && <Button variant="contained" startIcon={<AddOutlinedIcon />} onClick={() => start(null)}>เพิ่มบุคลากร</Button>}
+              <Button
+                startIcon={<RefreshOutlinedIcon />}
+                disabled={list.isFetching}
+                onClick={() => void list.refetch()}
+              >
+                รีเฟรช
+              </Button>
+              {canManage && (
+                <Button variant="contained" startIcon={<AddOutlinedIcon />} onClick={() => start(null)}>
+                  เพิ่มบุคลากร
+                </Button>
+              )}
             </Stack>
           </Stack>
-          {error && <Alert severity="error" role="alert">{error}</Alert>}
-          {notice && <Alert severity="success" role="status">{notice}</Alert>}
+          {error && (
+            <Alert severity="error" role="alert">
+              {error}
+            </Alert>
+          )}
+          {notice && (
+            <Alert severity="success" role="status">
+              {notice}
+            </Alert>
+          )}
           <TextField
             label="ค้นหาบุคลากรที่โหลดมา"
             placeholder="ชื่อ ประเภทบุคลากร หรือตำแหน่ง"
@@ -155,30 +181,55 @@ export default function OrganizationPersonnelDirectory({ canManage, canBrowseMed
           />
           {list.isPending && <Typography role="status">กำลังโหลดรายชื่อบุคลากร…</Typography>}
           {list.isError && <Alert severity="error">ไม่สามารถโหลดรายชื่อบุคลากร กรุณาลองใหม่</Alert>}
-          {!list.isPending && !list.isError && rows.length === 0 && <Alert severity="info">ยังไม่มีบุคลากรในทะเบียนกลาง</Alert>}
+          {!list.isPending && !list.isError && rows.length === 0 && (
+            <Alert severity="info">ยังไม่มีบุคลากรในทะเบียนกลาง</Alert>
+          )}
           {rows.length > 0 && visible.length === 0 && (
             <Typography color="text.secondary">ไม่พบข้อมูลที่ตรงกับคำค้นในรายการที่โหลดมา</Typography>
           )}
           {visible.map((row) => (
             <Box key={row.id} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2, minWidth: 0 }}>
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ alignItems: { sm: "center" }, justifyContent: "space-between" }}>
+              <Stack
+                direction={{ xs: "column", sm: "row" }}
+                spacing={1.5}
+                sx={{ alignItems: { sm: "center" }, justifyContent: "space-between" }}
+              >
                 <Stack direction="row" spacing={1.5} sx={{ minWidth: 0, alignItems: "center" }}>
                   <Avatar aria-hidden="true">{row.display_name.slice(0, 1)}</Avatar>
                   <Box sx={{ minWidth: 0 }}>
                     <Typography sx={{ fontWeight: 700, overflowWrap: "anywhere" }}>{row.display_name}</Typography>
                     <Typography color="text.secondary" variant="body2" sx={{ overflowWrap: "anywhere" }}>
-                      {[row.personnel_type, row.employment_position].filter(Boolean).join(" · ") || "ยังไม่ระบุประเภทและตำแหน่ง"}
+                      {[row.personnel_type, row.employment_position].filter(Boolean).join(" · ") ||
+                        "ยังไม่ระบุประเภทและตำแหน่ง"}
                     </Typography>
                     <Stack direction="row" spacing={0.5} useFlexGap sx={{ flexWrap: "wrap", mt: 0.5 }}>
-                      <Chip size="small" label={row.active === 1 ? "ปฏิบัติงาน" : "ไม่ปฏิบัติงาน"} color={row.active === 1 ? "success" : "default"} variant="outlined" />
+                      <Chip
+                        size="small"
+                        label={row.active === 1 ? "ปฏิบัติงาน" : "ไม่ปฏิบัติงาน"}
+                        color={row.active === 1 ? "success" : "default"}
+                        variant="outlined"
+                      />
                       {!!row.photo_media_id && <Chip size="small" label="มีรูปจากคลังสื่อ" variant="outlined" />}
                     </Stack>
                   </Box>
                 </Stack>
                 {canManage && (
                   <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }}>
-                    <Button startIcon={<EditOutlinedIcon />} onClick={() => start(row)} disabled={save.isPending || remove.isPending}>แก้ไข</Button>
-                    <Button startIcon={<DeleteOutlineOutlinedIcon />} color="error" onClick={() => void handleRemove(row)} disabled={save.isPending || remove.isPending}>ลบ</Button>
+                    <Button
+                      startIcon={<EditOutlinedIcon />}
+                      onClick={() => start(row)}
+                      disabled={save.isPending || remove.isPending}
+                    >
+                      แก้ไข
+                    </Button>
+                    <Button
+                      startIcon={<DeleteOutlineOutlinedIcon />}
+                      color="error"
+                      onClick={() => void handleRemove(row)}
+                      disabled={save.isPending || remove.isPending}
+                    >
+                      ลบ
+                    </Button>
                   </Stack>
                 )}
               </Stack>
@@ -190,7 +241,11 @@ export default function OrganizationPersonnelDirectory({ canManage, canBrowseMed
             </Button>
           )}
           {list.isFetchNextPageError && <Alert severity="error">โหลดรายชื่อหน้าถัดไปไม่สำเร็จ กรุณาลองใหม่</Alert>}
-          {rows.length > 0 && <Typography variant="caption" color="text.secondary">แสดง {rows.length} รายการที่โหลดแล้ว (100 รายการต่อหน้า)</Typography>}
+          {rows.length > 0 && (
+            <Typography variant="caption" color="text.secondary">
+              แสดง {rows.length} รายการที่โหลดแล้ว (100 รายการต่อหน้า)
+            </Typography>
+          )}
         </Stack>
       </CardContent>
       {canManage && (
@@ -200,7 +255,12 @@ export default function OrganizationPersonnelDirectory({ canManage, canBrowseMed
           busy={save.isPending}
           error={editorError}
           canBrowseMedia={canBrowseMedia}
-          onClose={() => { if (!save.isPending) { setDialogOpen(false); setEditing(null); } }}
+          onClose={() => {
+            if (!save.isPending) {
+              setDialogOpen(false);
+              setEditing(null);
+            }
+          }}
           onSave={handleSave}
         />
       )}

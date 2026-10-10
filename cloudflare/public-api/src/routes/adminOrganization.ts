@@ -76,7 +76,8 @@ export async function handleAdminOrganizationRead(request: Request, env: Env, se
     {
       items,
       maximumItems: limit,
-      nextOffset: (collection === "units" || collection === "personnel") && items.length === limit ? offset + limit : null,
+      nextOffset:
+        (collection === "units" || collection === "personnel") && items.length === limit ? offset + limit : null,
       generatedAt: new Date().toISOString()
     },
     { headers: { "Cache-Control": "no-store" } }

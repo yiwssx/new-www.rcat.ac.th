@@ -97,9 +97,7 @@ describe("Organization Chart Admin read boundary", () => {
   });
 
   it("supports offset paging for a reusable personnel directory without leaking other collections", async () => {
-    vi.mocked(listAdminPersonnel).mockResolvedValueOnce([
-      { id: "person-002" }, { id: "person-003" }
-    ] as never);
+    vi.mocked(listAdminPersonnel).mockResolvedValueOnce([{ id: "person-002" }, { id: "person-003" }] as never);
     const response = await handleAdminOrganizationRead(
       new Request("https://example.invalid/api/admin/organization/personnel?limit=2&offset=2"),
       env,

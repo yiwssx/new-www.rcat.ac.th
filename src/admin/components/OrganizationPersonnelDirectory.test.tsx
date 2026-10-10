@@ -24,10 +24,20 @@ vi.mock("../../utils/swal", () => ({
 }));
 
 vi.mock("./RichTextMediaPickerDialog", () => ({
-  default: ({ onSelect, onClose }: { onSelect: (asset: { id: string; name: string }) => void; onClose: () => void }) => (
+  default: ({
+    onSelect,
+    onClose
+  }: {
+    onSelect: (asset: { id: string; name: string }) => void;
+    onClose: () => void;
+  }) => (
     <div role="dialog" aria-label="Media Library test picker">
-      <button type="button" onClick={() => onSelect({ id: "media-photo-1", name: "ภาพบุคลากร" })}>เลือกไฟล์ทดสอบ</button>
-      <button type="button" onClick={onClose}>ปิดคลังสื่อ</button>
+      <button type="button" onClick={() => onSelect({ id: "media-photo-1", name: "ภาพบุคลากร" })}>
+        เลือกไฟล์ทดสอบ
+      </button>
+      <button type="button" onClick={onClose}>
+        ปิดคลังสื่อ
+      </button>
     </div>
   )
 }));
@@ -47,7 +57,9 @@ const person: OrganizationPersonnelRow = {
 };
 
 function show(canManage = false, canBrowseMedia = false) {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } } });
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } }
+  });
   return render(
     <QueryClientProvider client={client}>
       <OrganizationPersonnelDirectory canManage={canManage} canBrowseMedia={canBrowseMedia} />
@@ -92,13 +104,16 @@ describe("Phase 5 canonical personnel directory", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "ชื่อ-นามสกุล" }), { target: { value: "บุคลากร ใหม่" } });
     fireEvent.click(screen.getByRole("button", { name: "บันทึกบุคลากร" }));
     await waitFor(() =>
-      expect(api.create).toHaveBeenCalledWith("personnel", expect.objectContaining({
-        displayName: "บุคลากร ใหม่",
-        photoMediaId: null,
-        showPublicEmail: false,
-        showPublicPhone: false,
-        active: true
-      }))
+      expect(api.create).toHaveBeenCalledWith(
+        "personnel",
+        expect.objectContaining({
+          displayName: "บุคลากร ใหม่",
+          photoMediaId: null,
+          showPublicEmail: false,
+          showPublicPhone: false,
+          active: true
+        })
+      )
     );
   });
 
@@ -109,8 +124,12 @@ describe("Phase 5 canonical personnel directory", () => {
     fireEvent.click(screen.getByRole("button", { name: "เลือกไฟล์ทดสอบ" }));
     fireEvent.click(screen.getByRole("button", { name: "บันทึกบุคลากร" }));
     await waitFor(() =>
-      expect(api.update).toHaveBeenCalledWith("personnel", "person-1", 3,
-        expect.objectContaining({ photoMediaId: "media-photo-1" }))
+      expect(api.update).toHaveBeenCalledWith(
+        "personnel",
+        "person-1",
+        3,
+        expect.objectContaining({ photoMediaId: "media-photo-1" })
+      )
     );
   });
 

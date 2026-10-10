@@ -82,7 +82,13 @@ export default function OrganizationPersonnelEditorDialog({
 }: Props) {
   const [mediaOpen, setMediaOpen] = useState(false);
   const [selectedPhotoName, setSelectedPhotoName] = useState("");
-  const { control, handleSubmit, reset, setValue, formState: { errors, isDirty } } = useForm<PersonnelEditorForm>({
+  const {
+    control,
+    handleSubmit,
+    reset,
+    setValue,
+    formState: { errors, isDirty }
+  } = useForm<PersonnelEditorForm>({
     resolver: zodResolver(personnelEditorSchema),
     defaultValues: personnelEditorDefaults(initial),
     mode: "onBlur"
@@ -98,7 +104,10 @@ export default function OrganizationPersonnelEditorDialog({
     await onSave(toPersonnelWrite(form));
   });
 
-  const input = (name: "displayName" | "personnelType" | "employmentPosition" | "publicEmail" | "publicPhone", label: string) => (
+  const input = (
+    name: "displayName" | "personnelType" | "employmentPosition" | "publicEmail" | "publicPhone",
+    label: string
+  ) => (
     <Controller
       name={name}
       control={control}
@@ -118,12 +127,24 @@ export default function OrganizationPersonnelEditorDialog({
 
   return (
     <>
-      <Dialog open={open} onClose={() => { if (!busy) onClose(); }} fullWidth maxWidth="sm" aria-labelledby="personnel-editor-title">
+      <Dialog
+        open={open}
+        onClose={() => {
+          if (!busy) onClose();
+        }}
+        fullWidth
+        maxWidth="sm"
+        aria-labelledby="personnel-editor-title"
+      >
         <DialogTitle id="personnel-editor-title">{initial ? "แก้ไขบุคลากร" : "เพิ่มบุคลากร"}</DialogTitle>
         <Box component="form" noValidate onSubmit={(event) => void submit(event)}>
           <DialogContent dividers>
             <Stack spacing={2}>
-              {error && <Alert severity="error" role="alert">{error}</Alert>}
+              {error && (
+                <Alert severity="error" role="alert">
+                  {error}
+                </Alert>
+              )}
               {input("displayName", "ชื่อ-นามสกุล")}
               {input("personnelType", "ประเภทบุคลากร")}
               {input("employmentPosition", "ตำแหน่งงาน/วิชาการ")}
@@ -137,10 +158,22 @@ export default function OrganizationPersonnelEditorDialog({
                       {selectedPhotoName || (field.value ? `Media ID: ${field.value}` : "ยังไม่ได้เลือกรูปภาพ")}
                     </Typography>
                     <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
-                      <Button type="button" variant="outlined" disabled={busy || !canBrowseMedia} onClick={() => setMediaOpen(true)}>
+                      <Button
+                        type="button"
+                        variant="outlined"
+                        disabled={busy || !canBrowseMedia}
+                        onClick={() => setMediaOpen(true)}
+                      >
                         เลือกรูปภาพ
                       </Button>
-                      <Button type="button" disabled={busy || !field.value} onClick={() => { field.onChange(null); setSelectedPhotoName(""); }}>
+                      <Button
+                        type="button"
+                        disabled={busy || !field.value}
+                        onClick={() => {
+                          field.onChange(null);
+                          setSelectedPhotoName("");
+                        }}
+                      >
                         นำรูปออก
                       </Button>
                     </Stack>
@@ -156,7 +189,9 @@ export default function OrganizationPersonnelEditorDialog({
                 control={control}
                 render={({ field }) => (
                   <FormControlLabel
-                    control={<Checkbox checked={field.value} onChange={(_, value) => field.onChange(value)} disabled={busy} />}
+                    control={
+                      <Checkbox checked={field.value} onChange={(_, value) => field.onChange(value)} disabled={busy} />
+                    }
                     label="อนุญาตให้เผยแพร่อีเมลบนเว็บไซต์"
                   />
                 )}
@@ -167,7 +202,9 @@ export default function OrganizationPersonnelEditorDialog({
                 control={control}
                 render={({ field }) => (
                   <FormControlLabel
-                    control={<Checkbox checked={field.value} onChange={(_, value) => field.onChange(value)} disabled={busy} />}
+                    control={
+                      <Checkbox checked={field.value} onChange={(_, value) => field.onChange(value)} disabled={busy} />
+                    }
                     label="อนุญาตให้เผยแพร่โทรศัพท์บนเว็บไซต์"
                   />
                 )}
@@ -177,16 +214,22 @@ export default function OrganizationPersonnelEditorDialog({
                 control={control}
                 render={({ field }) => (
                   <FormControlLabel
-                    control={<Checkbox checked={field.value} onChange={(_, value) => field.onChange(value)} disabled={busy} />}
+                    control={
+                      <Checkbox checked={field.value} onChange={(_, value) => field.onChange(value)} disabled={busy} />
+                    }
                     label="บุคลากรอยู่ในสถานะปฏิบัติงาน"
                   />
                 )}
               />
-              <Alert severity="info">ข้อมูลติดต่อเป็นข้อมูลภายในโดยค่าเริ่มต้น และจะปรากฏต่อสาธารณะเมื่อเลือกอนุญาตเท่านั้น</Alert>
+              <Alert severity="info">
+                ข้อมูลติดต่อเป็นข้อมูลภายในโดยค่าเริ่มต้น และจะปรากฏต่อสาธารณะเมื่อเลือกอนุญาตเท่านั้น
+              </Alert>
             </Stack>
           </DialogContent>
           <DialogActions sx={{ p: 2 }}>
-            <Button onClick={onClose} disabled={busy}>ยกเลิก</Button>
+            <Button onClick={onClose} disabled={busy}>
+              ยกเลิก
+            </Button>
             <Button type="submit" variant="contained" disabled={busy || (Boolean(initial) && !isDirty)}>
               {busy ? "กำลังบันทึก…" : "บันทึกบุคลากร"}
             </Button>
