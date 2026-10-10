@@ -113,10 +113,14 @@ describe("Organization Chart audited duty D1 operations", () => {
   it("increments both revisions and rejects stale updates without extra audit entries", async () => {
     await createAuditedOrganizationPosition(env, position, "editor");
     await createAuditedOrganizationAssignment(env, assignment, "editor");
-    expect(await updateAuditedOrganizationPosition(env, { ...position, title: "Updated" }, 0, "editor", ["title"]))
-      .toBe(true);
-    expect(await updateAuditedOrganizationAssignment(env, { ...assignment, duty_detail: "Advisor" }, 0, "editor", ["dutyDetail"]))
-      .toBe(true);
+    expect(
+      await updateAuditedOrganizationPosition(env, { ...position, title: "Updated" }, 0, "editor", ["title"])
+    ).toBe(true);
+    expect(
+      await updateAuditedOrganizationAssignment(env, { ...assignment, duty_detail: "Advisor" }, 0, "editor", [
+        "dutyDetail"
+      ])
+    ).toBe(true);
     expect(count("admin_audit_log")).toBe(4);
     expect(await updateAuditedOrganizationPosition(env, position, 0, "editor", ["title"])).toBe(false);
     expect(await updateAuditedOrganizationAssignment(env, assignment, 0, "editor", ["dutyDetail"])).toBe(false);
