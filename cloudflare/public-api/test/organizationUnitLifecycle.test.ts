@@ -135,6 +135,8 @@ describe("Organization unit + CMS content transactional lifecycle", () => {
     expect(rows[1]).toMatchObject({ parent_content_id: "org1", slug: "division-b" });
     expect(Object.keys(rows[0])).not.toContain("public_email");
     expect(await listAdminOrganizationContentUnits(env, 1)).toHaveLength(1);
+    expect((await listAdminOrganizationContentUnits(env, 1, 1))[0]?.slug).toBe("division-b");
+    await expect(listAdminOrganizationContentUnits(env, 25, -1)).rejects.toThrow(/offset/);
     await expect(listAdminOrganizationContentUnits(env, 101)).rejects.toThrow(/page size/);
   });
 
