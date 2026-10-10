@@ -15,6 +15,7 @@ import {
   type OrganizationUnitInput
 } from "../src/db/organizationUnitLifecycle";
 import type { Env } from "../src/env";
+import { listAdminOrganizationContentUnits } from "../src/db/organizationAdminRepository";
 
 let db: DatabaseSync;
 let env: Env;
@@ -118,6 +119,23 @@ describe("Organization unit + CMS content transactional lifecycle", () => {
     expect(count("content_revisions")).toBe(2);
     expect(await updateAuditedOrganizationUnit(env, "org1", input, 0, "editor", now2)).toBe(false);
     expect(count("admin_audit_log")).toBe(2);
+  });
+
+  it("provides a CMS-backed Admin unit list with title, slug, publication state and synchronized revisions", async () => {
+    await createAuditedOrganizationUnit(env, "org1", input, "editor", NOW);
+    await createAuditedOrganizationUnit(env, "org2", {
+      ...input, slug: "division-b", title: "Division B", parentContentId: "org1", unitKind: "work"
+    }, "editor", NOW);
+    const rows = await listAdminOrganizationContentUnits(env, 25);
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toMatchObject({
+      content_id: "org1", slug: "division-a", title: "Division A", status: "draft",
+      unit_revision: 0, content_revision: 0
+    });
+    expect(rows[1]).toMatchObject({ parent_content_id: "org1", slug: "division-b" });
+    expect(Object.keys(rows[0])).not.toContain("public_email");
+    expect(await listAdminOrganizationContentUnits(env, 1)).toHaveLength(1);
+    await expect(listAdminOrganizationContentUnits(env, 101)).rejects.toThrow(/page size/);
   });
 
   it("rejects duplicate slugs and rolls back all associated unit changes", async () => {
