@@ -16,6 +16,10 @@ const RECOVERY_BATCH_SIZE = 100;
 const RECOVERY_TABLES = [
   "contents",
   "media_assets",
+  "organization_units",
+  "personnel",
+  "organization_positions",
+  "organization_assignments",
   "documents",
   "menu_items",
   "carousel_slides",
@@ -214,8 +218,7 @@ async function recoverBackup(request: Request, env: Env, identity: AdminIdentity
 
       const schema = await readTableSchema(db, table);
       if (!schema.columns.size) {
-        restoredCounts[table] = 0;
-        continue;
+        throw new TypeError(`${table}: table has not been migrated`);
       }
       if (!schema.primaryKey.length) {
         throw new TypeError(`${table}: table has no stable primary key`);
