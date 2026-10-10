@@ -1,6 +1,6 @@
 # Organization Content Workstream Tracker
 
-Status: **PAUSED / PHASES 1–4 COMPLETE / PHASE 5 PLANNED / FEATURE BRANCH ONLY — NO MERGE**
+Status: **PAUSED / PHASES 1–5 COMPLETE / PHASE 6 PLANNED / FEATURE BRANCH ONLY — NO MERGE**
 
 Updated: 2026-10-10 Asia/Bangkok
 
@@ -13,7 +13,7 @@ Recovery source: closed, unmerged [PR #524](https://github.com/yiwssx/new-www.rc
 ## Recovery checkpoint
 
 - Restored onto current `main` through a documentation-only PR on 2026-10-08.
-- Phases 0–4 are **COMPLETE** (Phase 4 code-head CI green on 2026-10-10). Phases 5–11 remain PLANNED. Implementation is paused before Phase 5.
+- Phases 0–5 are **COMPLETE** (Phase 5 code-head CI green on 2026-10-10). Phases 6–11 remain PLANNED. Implementation is paused before Phase 6.
 - The Organization workstream was explicitly resumed on 2026-10-09. Implementation is scoped to non-production PRs.
 - The original tracker restoration was documentation-only. The later 2026-10-09 implementation authorization covers non-production feature development, not production database changes, deployments, or real-data population.
 
@@ -89,7 +89,7 @@ Add a dedicated CMS content type for organizational units and personnel structur
 | 2     | Worker repositories + public/admin APIs              | COMPLETE     | CRUD/read contracts, recursive unit reads, personnel/position/assignment operations, safe public sanitizer                                                    |
 | 3     | RBAC + Admin routing/service layer                   | COMPLETE     | Dedicated capabilities, route policy, API facade/query keys, Admin navigation entry                                                                           |
 | 4     | Organization list/editor                             | COMPLETE     | Dedicated `/admin/organization` list, title/slug/type/parent/status workflow, revision-safe writes                                                            |
-| 5     | Personnel directory                                  | PLANNED      | Canonical personnel CRUD, Media Library photo selection, reuse across organization pages                                                                      |
+| 5     | Personnel directory                                  | COMPLETE     | Canonical personnel CRUD, Media Library photo selection, reuse across organization pages                                                                      |
 | 6     | Organization builder                                 | PLANNED      | Unit positions, assignment/reassignment, ordering, multiple duties, occupant limits, accessible non-drag controls; drag/drop only if justified                |
 | 7     | Public renderer + permalink/SSR/SEO                  | PLANNED      | Published organization slugs resolve through public routing, hierarchy/breadcrumbs render, draft/private fields remain inaccessible                           |
 | 8     | Menu/search/sitemap integration                      | PLANNED      | Menu can link to organization pages; search/sitemap behavior is deliberate and tested; generic content lists do not leak organization records unintentionally |
@@ -119,7 +119,7 @@ Add a dedicated CMS content type for organizational units and personnel structur
 
 ## Planned dependencies and tool adoption — decision 2026-10-10
 
-**Status: Phase 4 form dependencies INSTALLED; Phase 5–9 planned dependencies NOT INSTALLED.** The initial approval covered tool planning without installing packages or starting Phase 3. Phase 3 was subsequently authorized separately and completed on 2026-10-10. Phase 4 subsequently installed React Hook Form, Zod and its resolver. Remaining tool choices require review during Phases 5–9.
+**Status: Phase 4 form dependencies INSTALLED; Phase 5 reused them with NO new dependencies; Phase 6–9 planned dependencies NOT INSTALLED.** The initial approval covered tool planning without installing packages or starting Phase 3. Phase 3 was subsequently authorized separately and completed on 2026-10-10. Phase 4 subsequently installed React Hook Form, Zod and its resolver. Remaining tool choices require review during Phases 5–9.
 
 | Phase                                         | Planned dependency/tool choice                                                             | Decision                                                                          | Reason and constraints                                                                                                                                                                                                                                                                                                                                                                                 |
 | --------------------------------------------- | ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -253,7 +253,7 @@ Add a dedicated CMS content type for organizational units and personnel structur
 
 ## Next action
 
-**PAUSE BEFORE PHASE 5.** Phase 4 code-head CI passed on `998317d42b6b0204ecc812617a837e45fc4b390a`. Keep `agent/org-01-domain-schema` and [Draft PR #553](https://github.com/yiwssx/new-www.rcat.ac.th/pull/553) open and unmerged. Do not start Phase 5, deploy, or populate production data until separately authorized.
+**PAUSE BEFORE PHASE 6.** Phase 5 code-head CI passed on `dc25e3a4e80ff8c01ba0306966526bcbe5b612dd`. Keep `agent/org-01-domain-schema` and [Draft PR #553](https://github.com/yiwssx/new-www.rcat.ac.th/pull/553) open and unmerged. Do not start Phase 6, deploy, or populate production data until separately authorized.
 
 ## Phase 4 active checkpoint — 2026-10-10 Asia/Bangkok
 
@@ -274,3 +274,17 @@ Add a dedicated CMS content type for organizational units and personnel structur
 - Revision-safe writes, stale-conflict recovery, hierarchy cycle guards, reserved slugs, validation and publication windows have unit/Worker regression coverage. The Worker remains authoritative for RBAC/CSRF/step-up, D1 writes and privacy.
 - **Exact-code-head full CI passed** at `998317d42b6b0204ecc812617a837e45fc4b390a`: [CI run #38038056497](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38038056497). Dependency Preflight, Static Quality/Prettier, Unit Tests, Integration Tests, Worker, Build, Dependencies, Governance, Functional E2E and aggregate Quality all succeeded. Prettier autofix applied formatting-only commit `998317d42b`.
 - This tracker closure is documentation-only after the validated code head; verify its own CI separately. **No merge to `main`, protected D1 migration, production deploy or real RCAT data population occurred.** Draft PR #553 remains WIP for Phases 5–9.
+
+
+## Phase 5 closure — 2026-10-10 Asia/Bangkok
+
+**Status: COMPLETE / PAUSED BEFORE PHASE 6.** This checkpoint supersedes the earlier Phase 5 planning state.
+
+- Added the **canonical personnel directory** within the existing dedicated `/admin/organization` Admin page; personnel records are globally reusable across divisions, works, departments and assignments without cloning profiles or creating a parallel user account.
+- Protected create/edit/delete flows reuse the existing `organization.read/manage` RBAC, CMS session, CSRF, origin/step-up protections and optimistic row revisions. Deletes require explicit confirmation and cannot silently cascade through linked assignments.
+- Reused Phase 4 **React Hook Form + Zod + MUI** and the existing **Media Library image picker**, without new dependencies or upload services. Worker rejects nonexistent or non-image `photoMediaId` values; profile photos remain references to `media_assets`.
+- Public email/phone visibility controls are opt-in per person and default to private. Contacts are not shown in the Admin directory summary; the public Worker sanitizer remains authoritative in Phase 7 rendering.
+- Added **paged personnel reads** using bounded `limit`/`offset`, stable name/id ordering and explicit Load More, with validation at the API boundary and Worker repository. Search is clearly scoped to rows loaded in the browser, avoiding a false global-search promise.
+- Added targeted tests for personnel directory RBAC/privacy, create/edit/delete, Media Library selection, public-contact validation, pagination, REST path/offset boundaries and image-reference enforcement. The Media Picker test mock uses a real MUI Dialog portal to match accessibility behavior in production.
+- **Exact-code-head full CI PASSED:** [CI #38039829166](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38039829166) on `dc25e3a4e80ff8c01ba0306966526bcbe5b612dd` — Dependency Preflight, Static Quality/Prettier, Unit Tests, Integration Tests, Worker, Build, Dependencies, Governance, Functional E2E, aggregate `quality` all successful.
+- This tracker closure is documentation-only; its post-write exact-head CI must be checked separately. **Do not merge PR #553, deploy production, apply production D1 migrations, or populate real RCAT personnel.** Phase 6 remains unstarted pending explicit instruction.
