@@ -2,8 +2,13 @@ import {
   listAdminOrganizationAssignments,
   listAdminOrganizationPositions,
   listAdminOrganizationUnits,
-  listAdminPersonnel
+  listAdminPersonnel,
+  getAdminPersonnelById
 } from "../db/organizationAdminRepository";
+import {
+  getAdminOrganizationPositionById,
+  getAdminOrganizationAssignmentById
+} from "../db/organizationDutyRepository";
 import type { Env } from "../env";
 import { json, jsonError } from "../responses";
 
@@ -33,7 +38,25 @@ function readPageLimit(request: Request): number | null {
 export async function handleAdminOrganizationRead(request: Request, env: Env, segments: readonly string[]) {
   if (segments[0] !== "organization") return null;
   const collection = segments[1];
-  if (segments.length !== 2 || !isCollection(collection) || request.method !== "GET") {
+  if (!isCollection(collection) || request.method !== "GET") {
+    return jsonError("not found", 404, { resource: "organization" });
+  }
+  if (segments.length === 3 && collection !== "units") {
+    const id = segments[2];
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$/.test(id)) {
+      return jsonError("invalid organization record ID", 400, { resource: "organization" });
+    }
+    const item =
+      collection === "personnel"
+        ? await getAdminPersonnelById(env, id)
+        : collection === "positions"
+          ? await getAdminOrganizationPositionById(env, id)
+          : await getAdminOrganizationAssignmentById(env, id);
+    return item
+      ? json({ item }, { headers: { "Cache-Control": "no-store" } })
+      : jsonError("organization record not found", 404, { resource: "organization" });
+  }
+  if (segments.length !== 2) {
     return jsonError("not found", 404, { resource: "organization" });
   }
 
