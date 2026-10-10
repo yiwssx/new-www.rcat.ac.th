@@ -13,6 +13,10 @@ const SUPPORTED_ADMIN_ROUTES: readonly RouteCase[] = [
   { method: "GET", path: "dashboard-summary", requirement: "dashboard.read" },
   { method: "GET", path: "capabilities", requirement: "dashboard.read" },
   { method: "POST", path: "media-bridge-authorization", requirement: "media.manage" },
+  { method: "GET", path: "organization/units", requirement: "organization.read" },
+  { method: "GET", path: "organization/personnel", requirement: "organization.read" },
+  { method: "GET", path: "organization/positions", requirement: "organization.read" },
+  { method: "GET", path: "organization/assignments", requirement: "organization.read" },
   { method: "GET", path: "content", requirement: "content.read" },
   { method: "POST", path: "content", requirement: "content.create" },
   { method: "GET", path: "content/content-1", requirement: "content.read" },
@@ -104,14 +108,17 @@ describe("Admin route policy", () => {
     expect(requirement(decision)).toEqual(expected);
   });
 
-  it("has an explicit independent inventory for all 77 supported method/path patterns", () => {
-    expect(SUPPORTED_ADMIN_ROUTES).toHaveLength(77);
+  it("has an explicit independent inventory for all 81 supported method/path patterns", () => {
+    expect(SUPPORTED_ADMIN_ROUTES).toHaveLength(81);
     expect(
       SUPPORTED_ADMIN_ROUTES.every(({ method, path }) => resolveAdminRoutePolicy(method, segments(path)).matched)
     ).toBe(true);
   });
 
   it.each([
+    ["POST", "organization/personnel"],
+    ["PATCH", "organization/personnel/person-1"],
+    ["DELETE", "organization/units"],
     ["PUT", "content/content-1"],
     ["POST", "settings/site"],
     ["PUT", "events/event-1"],
