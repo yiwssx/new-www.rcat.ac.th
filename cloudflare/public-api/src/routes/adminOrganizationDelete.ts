@@ -1,9 +1,6 @@
 import type { AdminIdentity } from "../auth/adminAccess";
 import { getAdminPersonnelById } from "../db/organizationAdminRepository";
-import {
-  getAdminOrganizationAssignmentById,
-  getAdminOrganizationPositionById
-} from "../db/organizationDutyRepository";
+import { getAdminOrganizationAssignmentById, getAdminOrganizationPositionById } from "../db/organizationDutyRepository";
 import { deleteAuditedOrganizationEntity } from "../db/organizationDeleteRepository";
 import type { Env } from "../env";
 import { json, jsonError } from "../responses";

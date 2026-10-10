@@ -78,19 +78,23 @@ describe("No implicit cascade for linked Organization records", () => {
   });
 
   it("allows explicit assignment removal then safe position and personnel deletion", async () => {
-    expect(await deleteAuditedOrganizationEntity(env, "assignment", "a1", 0, "editor", "2026-10-10T00:00:00.000Z"))
-      .toBe(true);
-    expect(await deleteAuditedOrganizationEntity(env, "position", "pos1", 0, "editor", "2026-10-10T00:00:00.000Z"))
-      .toBe(true);
-    expect(await deleteAuditedOrganizationEntity(env, "personnel", "p1", 0, "editor", "2026-10-10T00:00:00.000Z"))
-      .toBe(true);
+    expect(
+      await deleteAuditedOrganizationEntity(env, "assignment", "a1", 0, "editor", "2026-10-10T00:00:00.000Z")
+    ).toBe(true);
+    expect(
+      await deleteAuditedOrganizationEntity(env, "position", "pos1", 0, "editor", "2026-10-10T00:00:00.000Z")
+    ).toBe(true);
+    expect(await deleteAuditedOrganizationEntity(env, "personnel", "p1", 0, "editor", "2026-10-10T00:00:00.000Z")).toBe(
+      true
+    );
     expect(count("admin_audit_log")).toBe(3);
     expect(count("organization_positions")).toBe(0);
   });
 
   it("fails closed on stale revision without deleting or auditing", async () => {
-    expect(await deleteAuditedOrganizationEntity(env, "assignment", "a1", 1, "editor", "2026-10-10T00:00:00.000Z"))
-      .toBe(false);
+    expect(
+      await deleteAuditedOrganizationEntity(env, "assignment", "a1", 1, "editor", "2026-10-10T00:00:00.000Z")
+    ).toBe(false);
     expect(count("admin_audit_log")).toBe(0);
     expect(count("organization_assignments")).toBe(1);
   });

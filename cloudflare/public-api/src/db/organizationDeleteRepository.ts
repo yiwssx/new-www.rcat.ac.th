@@ -42,9 +42,7 @@ export async function deleteAuditedOrganizationEntity(
       id,
       expectedRevision
     );
-  const deletion = db
-    .prepare(`DELETE FROM ${table} WHERE id = ? AND revision = ?`)
-    .bind(id, expectedRevision);
+  const deletion = db.prepare(`DELETE FROM ${table} WHERE id = ? AND revision = ?`).bind(id, expectedRevision);
   const results = await db.batch([audit, deletion]);
   return Number(results[1]?.meta.changes ?? 0) === 1;
 }

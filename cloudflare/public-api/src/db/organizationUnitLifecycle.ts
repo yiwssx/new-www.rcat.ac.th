@@ -104,8 +104,7 @@ function unitForCreate(id: string, input: OrganizationUnitInput, now: string): O
 }
 
 function auditStatement(db: D1Database, id: string, action: string, actor: string, now: string, revision?: number) {
-  const base =
-    `INSERT INTO admin_audit_log (id, entity_type, entity_id, action, actor, created_at, metadata_json)`;
+  const base = `INSERT INTO admin_audit_log (id, entity_type, entity_id, action, actor, created_at, metadata_json)`;
   if (revision === undefined) {
     return db
       .prepare(`${base} VALUES (?, 'organization_unit', ?, ?, ?, ?, '{}')`)
@@ -180,8 +179,18 @@ export async function updateAuditedOrganizationUnit(
          AND EXISTS (SELECT 1 FROM organization_units WHERE content_id = ? AND revision = ?)`
     )
     .bind(
-      input.slug, input.title, input.summary, input.status, input.publishAt, input.unpublishAt,
-      now, actor, id, revision, id, revision
+      input.slug,
+      input.title,
+      input.summary,
+      input.status,
+      input.publishAt,
+      input.unpublishAt,
+      now,
+      actor,
+      id,
+      revision,
+      id,
+      revision
     );
   const unitUpdate = db
     .prepare(
@@ -200,13 +209,7 @@ export async function updateAuditedOrganizationUnit(
 }
 
 /** Archive is safe by default: unpublishes the entire descendant chain. */
-export async function unpublishOrganizationUnit(
-  env: Env,
-  id: string,
-  revision: number,
-  actor: string,
-  now: string
-) {
+export async function unpublishOrganizationUnit(env: Env, id: string, revision: number, actor: string, now: string) {
   const current = await getOrganizationUnitEditor(env, id);
   if (!current || current.unit_revision !== revision || current.content_revision !== revision) return false;
   return updateAuditedOrganizationUnit(
@@ -247,7 +250,16 @@ export async function deleteAuditedOrganizationUnit(
          WHERE c.id = ? AND c.revision = ? AND u.revision = ? AND c.deleted_at = ''
        )`
     )
-    .bind(`audit-${crypto.randomUUID()}`, id, actor, now, JSON.stringify({ expectedRevision: revision }), id, revision, revision);
+    .bind(
+      `audit-${crypto.randomUUID()}`,
+      id,
+      actor,
+      now,
+      JSON.stringify({ expectedRevision: revision }),
+      id,
+      revision,
+      revision
+    );
   const removeUnit = db
     .prepare(
       `DELETE FROM organization_units WHERE content_id = ? AND revision = ?

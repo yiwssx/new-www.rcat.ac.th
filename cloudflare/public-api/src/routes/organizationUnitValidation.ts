@@ -41,8 +41,15 @@ export function parseOrganizationContentUnitWrite(
   }
   const body = value as Record<string, unknown>;
   const allowed = new Set([
-    "slug", "title", "summary", "status", "publishAt", "unpublishAt",
-    "parentContentId", "unitKind", "sortOrder"
+    "slug",
+    "title",
+    "summary",
+    "status",
+    "publishAt",
+    "unpublishAt",
+    "parentContentId",
+    "unitKind",
+    "sortOrder"
   ]);
   const protectedKey = Object.keys(body).find((field) => !allowed.has(field));
   if (protectedKey) throw new OrganizationInputError(`unknown or protected field: ${protectedKey}`);

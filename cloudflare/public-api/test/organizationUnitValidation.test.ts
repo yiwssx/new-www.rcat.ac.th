@@ -15,13 +15,16 @@ describe("Organization CMS unit mutation validation", () => {
       parentContentId: null
     });
     expect(
-      parseOrganizationContentUnitWrite({
-        ...required,
-        slug: "ฝ่ายบริหาร-1",
-        unitKind: "work",
-        parentContentId: "organization-abc",
-        sortOrder: 2
-      }, NOW)
+      parseOrganizationContentUnitWrite(
+        {
+          ...required,
+          slug: "ฝ่ายบริหาร-1",
+          unitKind: "work",
+          parentContentId: "organization-abc",
+          sortOrder: 2
+        },
+        NOW
+      )
     ).toMatchObject({ slug: "ฝ่ายบริหาร-1", unitKind: "work", sortOrder: 2 });
   });
 
@@ -30,21 +33,23 @@ describe("Organization CMS unit mutation validation", () => {
       expect(() => parseOrganizationContentUnitWrite({ ...required, slug }, NOW)).toThrow(/slug/);
     }
     for (const field of ["id", "revision", "contentRevision", "type", "updatedBy", "owner", "deletedAt"]) {
-      expect(() => parseOrganizationContentUnitWrite({ ...required, [field]: "forged" }, NOW))
-        .toThrow(/protected field/);
+      expect(() => parseOrganizationContentUnitWrite({ ...required, [field]: "forged" }, NOW)).toThrow(
+        /protected field/
+      );
     }
   });
 
   it("guards scheduled publication, ISO instants and unpublish ordering", () => {
-    expect(
-      parseOrganizationContentUnitWrite({ ...required, status: "published" }, NOW)
-    ).toMatchObject({ status: "published", publishAt: NOW });
-    expect(() =>
-      parseOrganizationContentUnitWrite({ ...required, status: "scheduled" }, NOW)
-    ).toThrow(/future publishAt/);
-    expect(() =>
-      parseOrganizationContentUnitWrite({ ...required, status: "scheduled", publishAt: NOW }, NOW)
-    ).toThrow(/future publishAt/);
+    expect(parseOrganizationContentUnitWrite({ ...required, status: "published" }, NOW)).toMatchObject({
+      status: "published",
+      publishAt: NOW
+    });
+    expect(() => parseOrganizationContentUnitWrite({ ...required, status: "scheduled" }, NOW)).toThrow(
+      /future publishAt/
+    );
+    expect(() => parseOrganizationContentUnitWrite({ ...required, status: "scheduled", publishAt: NOW }, NOW)).toThrow(
+      /future publishAt/
+    );
     expect(
       parseOrganizationContentUnitWrite(
         { ...required, status: "scheduled", publishAt: "2026-10-11T00:00:00.000Z" },

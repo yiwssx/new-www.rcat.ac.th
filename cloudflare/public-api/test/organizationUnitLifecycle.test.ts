@@ -101,8 +101,12 @@ describe("Organization unit + CMS content transactional lifecycle", () => {
     const now2 = "2026-10-10T04:31:00.000Z";
     expect(
       await updateAuditedOrganizationUnit(
-        env, "org1", { ...input, status: "published", publishAt: now2 },
-        0, "editor", now2
+        env,
+        "org1",
+        { ...input, status: "published", publishAt: now2 },
+        0,
+        "editor",
+        now2
       )
     ).toBe(true);
     expect(await getOrganizationUnitEditor(env, "org1")).toMatchObject({
@@ -125,9 +129,11 @@ describe("Organization unit + CMS content transactional lifecycle", () => {
   it("requires children and positions to be explicitly removed before deleting a unit", async () => {
     await createAuditedOrganizationUnit(env, "org1", input, "editor", NOW);
     await createAuditedOrganizationUnit(
-      env, "org2",
+      env,
+      "org2",
       { ...input, slug: "work-b", title: "Work", parentContentId: "org1", unitKind: "work" },
-      "editor", NOW
+      "editor",
+      NOW
     );
     await expect(deleteAuditedOrganizationUnit(env, "org1", 0, "editor", NOW)).rejects.toThrow(/FOREIGN KEY/);
     expect((await getOrganizationUnitEditor(env, "org1"))?.slug).toBe("division-a");
@@ -141,9 +147,11 @@ describe("Organization unit + CMS content transactional lifecycle", () => {
   it("prevents cyclical reparenting without changing the content revision or audit", async () => {
     await createAuditedOrganizationUnit(env, "org1", input, "editor", NOW);
     await createAuditedOrganizationUnit(
-      env, "org2",
+      env,
+      "org2",
       { ...input, slug: "work-b", title: "Work", parentContentId: "org1", unitKind: "work" },
-      "editor", NOW
+      "editor",
+      NOW
     );
     await expect(
       updateAuditedOrganizationUnit(env, "org1", { ...input, parentContentId: "org2" }, 0, "editor", NOW)
