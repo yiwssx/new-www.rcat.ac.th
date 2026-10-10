@@ -117,6 +117,41 @@ async function listRows<T>(env: Env, kind: OrganizationTableKind, limit = 100) {
   return result.results ?? [];
 }
 
+/** Phase 4 Admin list: organization data and canonical CMS lifecycle in one bounded read. */
+export function listAdminOrganizationContentUnits(env: Env, limit = 100) {
+  if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100) {
+    throw new RangeError("organization page size must be between 1 and 100");
+  }
+  return requireD1Database(env)
+    .prepare(`
+      SELECT u.content_id, u.parent_content_id, u.unit_kind, u.sort_order,
+             u.revision AS unit_revision,
+             c.slug, c.title, c.summary, c.status, c.publish_at, c.unpublish_at,
+             c.revision AS content_revision
+      FROM organization_units AS u
+      JOIN contents AS c ON c.id = u.content_id
+      WHERE c.type = 'organization' AND COALESCE(c.deleted_at, '') = ''
+      ORDER BY u.sort_order ASC, c.title COLLATE NOCASE ASC, u.content_id ASC
+      LIMIT ?
+    `)
+    .bind(limit)
+    .all<{
+      content_id: string;
+      parent_content_id: string | null;
+      unit_kind: string;
+      sort_order: number;
+      unit_revision: number;
+      slug: string;
+      title: string;
+      summary: string;
+      status: "draft" | "review" | "scheduled" | "published";
+      publish_at: string;
+      unpublish_at: string;
+      content_revision: number;
+    }>()
+    .then((result) => result.results ?? []);
+}
+
 export function listAdminOrganizationUnits(env: Env, limit?: number) {
   return listRows<OrganizationUnitRow>(env, "unit", limit);
 }
