@@ -1,0 +1,42 @@
+name: Organization Phase 9 Axe Dependency Lockfile
+on:
+  push:
+    branches:
+      - agent/org-01-domain-schema
+    paths:
+      - .github/workflows/organization-phase9-axe-lockfile.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync-lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: agent/org-01-domain-schema
+          persist-credentials: true
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+      - name: Install pinned Playwright accessibility auditor and regenerate strict pnpm lock
+        run: |
+          pnpm add -D --save-exact @axe-core/playwright@4.13.0 --ignore-scripts --strict-peer-dependencies
+          pnpm install --lockfile-only --ignore-scripts --strict-peer-dependencies
+          pnpm install --frozen-lockfile --strict-peer-dependencies --ignore-scripts
+      - name: Commit synchronized manifest and lockfile on feature branch only
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json pnpm-lock.yaml
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(organization): pin axe Playwright audit dependency in strict pnpm 10 lockfile"
+            git pull --rebase origin agent/org-01-domain-schema
+            git push origin HEAD:agent/org-01-domain-schema
+          fi
