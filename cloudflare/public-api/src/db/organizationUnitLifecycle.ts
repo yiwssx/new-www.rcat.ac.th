@@ -118,6 +118,7 @@ function auditStatement(db: D1Database, id: string, action: string, actor: strin
          SELECT 1 FROM organization_units AS u JOIN contents AS c ON c.id = u.content_id
          WHERE u.content_id = ? AND u.revision = ?
            AND c.revision = ? AND c.updated_at = ?
+           AND changes() = 1
        )`
     )
     .bind(
@@ -168,6 +169,8 @@ export async function updateAuditedOrganizationUnit(
   now: string
 ) {
   if (!Number.isSafeInteger(revision) || revision < 0) throw new RangeError("invalid expected revision");
+  const current = await getOrganizationUnitEditor(env, id);
+  if (!current || current.content_revision !== revision || current.unit_revision !== revision) return false;
   const db = requireD1Database(env);
   const contentUpdate = db
     .prepare(
