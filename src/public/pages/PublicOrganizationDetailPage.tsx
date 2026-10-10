@@ -51,13 +51,10 @@ function PositionGroup({
                 const person = assignment.person;
                 const portrait = person.photoMediaId ? media.get(person.photoMediaId) : undefined;
                 return (
-                  <Stack
+                  <Box
                     component="li"
                     key={assignment.id}
-                    direction="row"
-                    spacing={1.5}
-                    alignItems="flex-start"
-                    sx={{ minWidth: 0 }}
+                    sx={{ display: "flex", flexDirection: "row", gap: 1.5, alignItems: "flex-start", minWidth: 0 }}
                   >
                     <Box
                       sx={{
@@ -107,7 +104,7 @@ function PositionGroup({
                         </Typography>
                       )}
                     </Stack>
-                  </Stack>
+                  </Box>
                 );
               })}
             </Stack>
@@ -164,7 +161,7 @@ export default function PublicOrganizationDetailPage({ slug }: Props) {
         ))}
         <Typography color="text.primary">{data.unit.title}</Typography>
       </Breadcrumbs>
-      <Stack direction="row" spacing={1.5} alignItems="flex-start" sx={{ mb: 3 }}>
+      <Stack direction="row" spacing={1.5} sx={{ mb: 3, alignItems: "flex-start" }}>
         <AccountTreeOutlinedIcon color="primary" sx={{ fontSize: 36, flexShrink: 0 }} aria-hidden="true" />
         <Box sx={{ minWidth: 0 }}>
           <Typography
