@@ -103,15 +103,18 @@ async function updateRow(
 }
 
 /** Bounded internal dataset until the Phase 3 Admin route exposes pagination. */
-async function listRows<T>(env: Env, kind: OrganizationTableKind, limit = 100) {
+async function listRows<T>(env: Env, kind: OrganizationTableKind, limit = 100, offset = 0) {
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > 500) {
     throw new RangeError("organization page size must be between 1 and 500");
+  }
+  if (!Number.isSafeInteger(offset) || offset < 0 || offset > 999999) {
+    throw new RangeError("organization offset must be between 0 and 999999");
   }
   const model = MODELS[kind];
 
   const result = await requireD1Database(env)
-    .prepare(`SELECT ${model.columns.join(", ")} FROM ${model.table} ORDER BY ${model.order} LIMIT ?`)
-    .bind(limit)
+    .prepare(`SELECT ${model.columns.join(", ")} FROM ${model.table} ORDER BY ${model.order} LIMIT ? OFFSET ?`)
+    .bind(limit, offset)
     .all<T>();
 
   return result.results ?? [];
@@ -161,8 +164,8 @@ export function listAdminOrganizationUnits(env: Env, limit?: number) {
   return listRows<OrganizationUnitRow>(env, "unit", limit);
 }
 
-export function listAdminPersonnel(env: Env, limit?: number) {
-  return listRows<PersonnelRow>(env, "person", limit);
+export function listAdminPersonnel(env: Env, limit?: number, offset = 0) {
+  return listRows<PersonnelRow>(env, "person", limit, offset);
 }
 
 export function listAdminOrganizationPositions(env: Env, limit?: number) {
