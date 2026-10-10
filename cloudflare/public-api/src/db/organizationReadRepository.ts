@@ -70,8 +70,6 @@ export const PUBLIC_ORGANIZATION_POSITIONS_SQL = `
   LEFT JOIN organization_assignments AS assignment
     ON assignment.position_id = position.id
     AND assignment.enabled = 1
-    AND (assignment.starts_at = '' OR datetime(assignment.starts_at) <= datetime(?1))
-    AND (assignment.ends_at = '' OR datetime(assignment.ends_at) > datetime(?1))
   LEFT JOIN personnel AS person ON person.id = assignment.personnel_id AND person.active = 1
   ORDER BY unit.depth ASC, unit.sort_order ASC, unit.content_id ASC,
            position.group_sort_order ASC, position.sort_order ASC, position.id ASC,

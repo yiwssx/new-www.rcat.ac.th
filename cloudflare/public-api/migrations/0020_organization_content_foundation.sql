@@ -66,13 +66,10 @@ CREATE TABLE IF NOT EXISTS organization_assignments (
   position_id TEXT NOT NULL REFERENCES organization_positions(id) ON DELETE RESTRICT,
   duty_detail TEXT NOT NULL DEFAULT '',
   sort_order INTEGER NOT NULL DEFAULT 0 CHECK (sort_order >= 0),
-  starts_at TEXT NOT NULL DEFAULT '',
-  ends_at TEXT NOT NULL DEFAULT '',
   enabled INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1)),
   revision INTEGER NOT NULL DEFAULT 0 CHECK (revision >= 0),
   created_at TEXT NOT NULL DEFAULT '',
-  updated_at TEXT NOT NULL DEFAULT '',
-  CHECK (ends_at = '' OR (starts_at <> '' AND ends_at >= starts_at))
+  updated_at TEXT NOT NULL DEFAULT ''
 );
 
 -- No UNIQUE(personnel_id, position_id): the same person may hold several

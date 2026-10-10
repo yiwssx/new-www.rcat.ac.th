@@ -1,4 +1,3 @@
-import { isValidOrganizationAssignmentPeriod } from "../../../../shared/organizationContracts";
 
 /**
  * Trusted Worker boundary for Organization Chart mutation payloads.
@@ -174,27 +173,17 @@ export interface OrganizationAssignmentWriteInput {
   positionId: string;
   dutyDetail: string;
   sortOrder: number;
-  startsAt: string;
-  endsAt: string;
   enabled: boolean;
 }
 
 export function parseOrganizationAssignmentWrite(value: unknown): OrganizationAssignmentWriteInput {
   const input = asRecord(value);
-  allowOnly(input, ["personnelId", "positionId", "dutyDetail", "sortOrder", "startsAt", "endsAt", "enabled"]);
-  const startsAt = text(input, "startsAt", 24);
-  const endsAt = text(input, "endsAt", 24);
-  if (!isValidOrganizationAssignmentPeriod(startsAt, endsAt)) {
-    throw new OrganizationInputError("invalid assignment period");
-  }
-
+  allowOnly(input, ["personnelId", "positionId", "dutyDetail", "sortOrder", "enabled"]);
   return {
     personnelId: requiredId(input, "personnelId"),
     positionId: requiredId(input, "positionId"),
     dutyDetail: text(input, "dutyDetail", 1200),
     sortOrder: integer(input, "sortOrder", 0),
-    startsAt,
-    endsAt,
     enabled: flag(input, "enabled", true)
   };
 }

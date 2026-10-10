@@ -94,8 +94,6 @@ export interface OrganizationAssignmentRow {
   position_id: OrganizationAssignment["positionId"];
   duty_detail: string;
   sort_order: number;
-  starts_at: string;
-  ends_at: string;
   enabled: 0 | 1;
   revision: number;
   created_at: string;
@@ -108,8 +106,6 @@ export const ORGANIZATION_ASSIGNMENT_ROW_COLUMNS = [
   "position_id",
   "duty_detail",
   "sort_order",
-  "starts_at",
-  "ends_at",
   "enabled",
   "revision",
   "created_at",

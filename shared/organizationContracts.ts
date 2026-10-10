@@ -48,8 +48,6 @@ export interface OrganizationAssignment {
   positionId: string;
   dutyDetail: string;
   sortOrder: number;
-  startsAt: string;
-  endsAt: string;
   enabled: boolean;
   revision: number;
 }
@@ -84,18 +82,6 @@ export function validateOrganizationParent(
     cursor = parents.get(cursor) ?? null;
   }
   return { ok: true };
-}
-
-/** Dates are optional or normalized UTC instants; lexical SQL order is safe. */
-export function isValidOrganizationAssignmentPeriod(startsAt: string, endsAt: string): boolean {
-  const isUtcInstant = (date: string) => {
-    const timestamp = Date.parse(date);
-    return Number.isFinite(timestamp) && new Date(timestamp).toISOString() === date;
-  };
-
-  if (startsAt && !isUtcInstant(startsAt)) return false;
-  if (endsAt && (!startsAt || !isUtcInstant(endsAt))) return false;
-  return !endsAt || endsAt >= startsAt;
 }
 
 /** The public profile is explicitly opt-in at each contact-field boundary. */

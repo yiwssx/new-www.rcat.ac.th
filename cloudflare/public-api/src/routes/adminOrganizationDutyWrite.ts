@@ -62,8 +62,6 @@ function inputFromAssignment(row: OrganizationAssignmentRow) {
     positionId: row.position_id,
     dutyDetail: row.duty_detail,
     sortOrder: row.sort_order,
-    startsAt: row.starts_at,
-    endsAt: row.ends_at,
     enabled: row.enabled === 1
   };
 }
@@ -101,8 +99,6 @@ function toAssignmentRow(
     position_id: input.positionId,
     duty_detail: input.dutyDetail,
     sort_order: input.sortOrder,
-    starts_at: input.startsAt,
-    ends_at: input.endsAt,
     enabled: input.enabled ? 1 : 0,
     revision: 0,
     created_at: createdAt,

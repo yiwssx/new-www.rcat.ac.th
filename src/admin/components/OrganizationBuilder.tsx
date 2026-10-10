@@ -32,12 +32,10 @@ import {
 } from "../../features/organization-admin";
 import { appSwal } from "../../utils/swal";
 import {
-  assignmentDateToUtc,
   enabledDistinctOccupants,
   flattenOrganizationHierarchy,
   positionsForUnit
 } from "./organizationBuilderModel";
-import { toLocalDateTimeInputValue } from "../../utils/calendar";
 
 interface Props {
   units: readonly OrganizationUnitListRow[];
@@ -67,8 +65,6 @@ const emptyAssignment = (positionId: string): AssignmentForm => ({
   positionId,
   dutyDetail: "",
   sortOrder: 0,
-  startsAt: "",
-  endsAt: "",
   enabled: true
 });
 
@@ -176,8 +172,6 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
             positionId: row.position_id,
             dutyDetail: row.duty_detail,
             sortOrder: row.sort_order,
-            startsAt: toLocalDateTimeInputValue(row.starts_at),
-            endsAt: toLocalDateTimeInputValue(row.ends_at),
             enabled: row.enabled === 1
           }
         : emptyAssignment(positionId)
@@ -222,27 +216,21 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
 
   async function saveAssignment() {
     if (!canManage || !assignmentForm || busy) return;
-    const startsAt = assignmentDateToUtc(assignmentForm.startsAt, assignmentEditing?.starts_at);
-    const endsAt = assignmentDateToUtc(assignmentForm.endsAt, assignmentEditing?.ends_at);
     if (
       !assignmentForm.personnelId ||
       !assignmentForm.positionId ||
-      !safeNumber(assignmentForm.sortOrder, 0, 1000000) ||
-      startsAt === null ||
-      endsAt === null ||
-      (endsAt !== "" && (!startsAt || endsAt < startsAt))
+      !safeNumber(assignmentForm.sortOrder, 0, 1000000)
     ) {
-      setDialogError("กรุณาระบุบุคลากร ตำแหน่ง ลำดับ และช่วงวันเวลาไทยให้ถูกต้อง");
+      setDialogError("กรุณาระบุบุคลากร ตำแหน่ง และลำดับให้ถูกต้อง");
       return;
     }
-    const input = { ...assignmentForm, startsAt, endsAt };
     setBusy(true);
     setDialogError("");
     try {
       if (assignmentEditing) {
-        await updateOrganizationRecord("assignments", assignmentEditing.id, assignmentEditing.revision, input);
+        await updateOrganizationRecord("assignments", assignmentEditing.id, assignmentEditing.revision, assignmentForm);
       } else {
-        await createOrganizationRecord("assignments", input);
+        await createOrganizationRecord("assignments", assignmentForm);
       }
       await refresh();
       setAssignmentForm(null);
@@ -641,25 +629,6 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                     onChange={(event) =>
                       setAssignmentForm({ ...assignmentForm, sortOrder: Number(event.target.value) })
                     }
-                  />
-                  <TextField
-                    label="เริ่มดำรงหน้าที่ (เวลาไทย, ไม่บังคับ)"
-                    type="datetime-local"
-                    slotProps={{ inputLabel: { shrink: true } }}
-                    fullWidth
-                    disabled={busy}
-                    helperText="เลือกวันเวลาไทย ระบบแปลงเป็น UTC ก่อนบันทึก"
-                    value={assignmentForm.startsAt}
-                    onChange={(event) => setAssignmentForm({ ...assignmentForm, startsAt: event.target.value })}
-                  />
-                  <TextField
-                    label="สิ้นสุดหน้าที่ (เวลาไทย, ไม่บังคับ)"
-                    type="datetime-local"
-                    slotProps={{ inputLabel: { shrink: true } }}
-                    fullWidth
-                    disabled={busy}
-                    value={assignmentForm.endsAt}
-                    onChange={(event) => setAssignmentForm({ ...assignmentForm, endsAt: event.target.value })}
                   />
                   <FormControlLabel
                     control={

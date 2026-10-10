@@ -50,8 +50,6 @@ export interface OrganizationAssignmentRow {
   position_id: string;
   duty_detail: string;
   sort_order: number;
-  starts_at: string;
-  ends_at: string;
   enabled: number;
   revision: number;
 }
@@ -121,8 +119,6 @@ export type OrganizationAssignmentWrite = {
   positionId: string;
   dutyDetail?: string;
   sortOrder?: number;
-  startsAt?: string;
-  endsAt?: string;
   enabled?: boolean;
 };
 
