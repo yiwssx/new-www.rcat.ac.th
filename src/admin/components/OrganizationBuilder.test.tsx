@@ -113,6 +113,22 @@ describe("Phase 6 accessible Organization builder", () => {
     expect(api.create).not.toHaveBeenCalled();
   });
 
+  it("enables drag handles only for editable, complete sibling lists", async () => {
+    api.list.mockImplementation(async (collection: string) => ({
+      items: collection === "positions" ? [
+        { id: "p-a", unit_content_id: "work-1", title: "A", group_label: "", group_sort_order: 0, sort_order: 0, display_style: "default", occupant_limit: null, revision: 0 },
+        { id: "p-b", unit_content_id: "work-1", title: "B", group_label: "", group_sort_order: 0, sort_order: 1, display_style: "default", occupant_limit: null, revision: 0 }
+      ] : [],
+      nextOffset: null,
+      maximumItems: 100,
+      generatedAt: ""
+    }));
+    setup(true);
+    fireEvent.click(screen.getByText("งานสารบรรณ"));
+    expect(await screen.findByRole("button", { name: "ลากจัดลำดับ A" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "ลากจัดลำดับ B" })).toBeInTheDocument();
+  });
+
   it("creates a unit-scoped position through the dedicated audited facade", async () => {
     setup(true);
     fireEvent.click(screen.getByText("งานสารบรรณ"));

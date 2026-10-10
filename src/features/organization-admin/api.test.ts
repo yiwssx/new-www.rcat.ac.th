@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getOrganizationCollection, updateOrganizationRecord, deleteOrganizationRecord } from "./api";
+import { getOrganizationCollection, updateOrganizationRecord, deleteOrganizationRecord, reorderOrganizationRecords } from "./api";
 import { organizationAdminQueryKeys } from "./query";
 
 const requestMock = vi.hoisted(() => vi.fn());
@@ -39,6 +39,22 @@ describe("organization Admin facade", () => {
     expect(requestMock).toHaveBeenLastCalledWith("/api/admin/organization/personnel/person-1", {
       method: "DELETE",
       headers: { "X-RCAT-Expected-Revision": "4" }
+    });
+  });
+
+  it("sends a complete versioned DnD reorder through the secure organization facade", async () => {
+    requestMock.mockResolvedValueOnce({ reordered: true, count: 2 });
+    const items = [{ id: "pos-b", revision: 2 }, { id: "pos-a", revision: 1 }];
+    await reorderOrganizationRecords("positions", "division-1", items, "Leadership", 0);
+    expect(requestMock).toHaveBeenLastCalledWith("/api/admin/organization/reorder", {
+      method: "POST",
+      body: JSON.stringify({
+        collection: "positions",
+        scopeId: "division-1",
+        items,
+        groupLabel: "Leadership",
+        groupSortOrder: 0
+      })
     });
   });
 
