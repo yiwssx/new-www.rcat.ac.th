@@ -114,6 +114,14 @@ describe("published organization permalink", () => {
     expect(response.headers.get("Cache-Control")).toContain("max-age=60");
   });
 
+  it("supports published Thai unit slugs under the same editor contract", async () => {
+    addContent("งานสารบรรณ");
+    const response = await publicOrganizationDetail(env, "งานสารบรรณ");
+    expect(response.status).toBe(200);
+    const payload = await response.json() as { unit: { slug: string } };
+    expect(payload.unit.slug).toBe("งานสารบรรณ");
+  });
+
   it("returns identical 404 for draft units, draft parents, future pages and invalid slugs", async () => {
     addContent("draft", null, "draft");
     addContent("child", "draft");

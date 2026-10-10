@@ -20,6 +20,19 @@ describe("public Organization permalink facade", () => {
     expect(requestMock).toHaveBeenCalledWith("/api/public/organization/academic", "organization-detail", {});
   });
 
+  it("percent-encodes Thai slugs without changing their meaning", async () => {
+    requestMock.mockResolvedValueOnce({
+      unit: { contentId: "thai", slug: "งานสารบรรณ", title: "งานสารบรรณ" },
+      ancestors: [], units: [], positions: [], media: []
+    });
+    await getPublicOrganizationDetail("งานสารบรรณ");
+    expect(requestMock).toHaveBeenCalledWith(
+      `/api/public/organization/${encodeURIComponent("งานสารบรรณ")}`,
+      "organization-detail",
+      {}
+    );
+  });
+
   it("treats unpublished/not-found responses as absent and rejects bad slugs without requesting", async () => {
     requestMock.mockRejectedValueOnce(
       new PublicReadError("not found", { kind: "http", resource: "organization-detail", status: 404 })
