@@ -5,10 +5,7 @@ import {
   listAdminPersonnel,
   getAdminPersonnelById
 } from "../db/organizationAdminRepository";
-import {
-  getAdminOrganizationPositionById,
-  getAdminOrganizationAssignmentById
-} from "../db/organizationDutyRepository";
+import { getAdminOrganizationPositionById, getAdminOrganizationAssignmentById } from "../db/organizationDutyRepository";
 import type { Env } from "../env";
 import { json, jsonError } from "../responses";
 
