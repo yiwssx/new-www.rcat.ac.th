@@ -1,0 +1,19 @@
+name: Organization formatter diagnostic (temporary)
+on:
+  push:
+    branches:
+      - agent/org-01-domain-schema
+permissions:
+  contents: read
+jobs:
+  prettier-diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-project
+      - name: Print Prettier patch without modifying repository
+        run: |
+          for FILE in cloudflare/public-api/src/db/organizationDutyRepository.ts cloudflare/public-api/src/routes/adminOrganizationDutyWrite.ts cloudflare/public-api/test/organizationDutyRoutes.test.ts cloudflare/public-api/test/organizationDutyAudit.test.ts; do
+            pnpm exec prettier "$FILE" > /tmp/org-format.ts
+            diff -u "$FILE" /tmp/org-format.ts || true
+          done
