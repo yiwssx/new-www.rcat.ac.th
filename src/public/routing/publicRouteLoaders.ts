@@ -201,10 +201,7 @@ function createContentHeadItem(item: ContentItem): PublicContentHeadItem {
 }
 
 /** Organization detail SSR prefetch is shared with the client query cache. */
-export async function loadPublicOrganizationDetailData(
-  context: PublicRouteLoaderContext,
-  slug: string | undefined
-) {
+export async function loadPublicOrganizationDetailData(context: PublicRouteLoaderContext, slug: string | undefined) {
   if (!slug) throw notFound({ data: { resource: "organization" } });
   const { publicOrganizationDetailQueryOptions } = await import("../../features/public-organization");
   const result = await ensurePublicQuery(() =>

@@ -215,8 +215,7 @@ const publicOrganizationDetailRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "organization/$slug",
   loader: ({ context, params }) => loadPublicOrganizationDetailData(context, params.slug),
-  head: ({ params, loaderData, matches }) =>
-    getPublicOrganizationRouteHead(params.slug, loaderData, { matches }),
+  head: ({ params, loaderData, matches }) => getPublicOrganizationRouteHead(params.slug, loaderData, { matches }),
   component: PublicOrganizationDetailRoute
 });
 
