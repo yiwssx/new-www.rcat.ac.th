@@ -41,7 +41,9 @@ describe("organization Admin facade", () => {
   });
 
   it("uses distinct query cache partitions per resource and item", () => {
-    expect(organizationAdminQueryKeys.collection("units")).not.toEqual(organizationAdminQueryKeys.collection("personnel"));
+    expect(organizationAdminQueryKeys.collection("units")).not.toEqual(
+      organizationAdminQueryKeys.collection("personnel")
+    );
     expect(organizationAdminQueryKeys.detail("units", "org-a")).not.toEqual(
       organizationAdminQueryKeys.detail("units", "org-b")
     );

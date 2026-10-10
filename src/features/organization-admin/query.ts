@@ -4,7 +4,8 @@ import { getOrganizationCollection, getOrganizationDetail, type OrganizationColl
 export const organizationAdminQueryKeys = {
   all: ["admin-organization"] as const,
   collection: (collection: OrganizationCollection) => ["admin-organization", collection] as const,
-  list: (collection: OrganizationCollection, limit: number) => ["admin-organization", collection, "list", limit] as const,
+  list: (collection: OrganizationCollection, limit: number) =>
+    ["admin-organization", collection, "list", limit] as const,
   detail: (collection: OrganizationCollection, id: string) => ["admin-organization", collection, "detail", id] as const
 };
 

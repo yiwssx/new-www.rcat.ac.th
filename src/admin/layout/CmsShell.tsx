@@ -73,7 +73,9 @@ const navItems: NavItem[] = [
   },
   { label: "เนื้อหา", to: "/admin/content", icon: <ArticleOutlinedIcon />, capabilities: ["content.read"] },
   {
-    label: "ผังองค์กร", to: "/admin/organization", icon: <AccountTreeOutlinedIcon />,
+    label: "ผังองค์กร",
+    to: "/admin/organization",
+    icon: <AccountTreeOutlinedIcon />,
     capabilities: ["organization.read"]
   },
   {

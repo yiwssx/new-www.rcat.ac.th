@@ -146,9 +146,11 @@ function revisionHeaders(revision: number) {
 /** Always use the existing same-origin CMS proxy, session cookie, CSRF and password step-up layer. */
 export async function getOrganizationCollection<K extends OrganizationCollection>(collection: K, limit = 100) {
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100) throw new RangeError("invalid organization limit");
-  return requestCloudflareAdmin<{ items: OrganizationRecordByCollection[K][]; maximumItems: number; generatedAt: string }>(
-    `${collectionPath(collection)}?limit=${limit}`
-  );
+  return requestCloudflareAdmin<{
+    items: OrganizationRecordByCollection[K][];
+    maximumItems: number;
+    generatedAt: string;
+  }>(`${collectionPath(collection)}?limit=${limit}`);
 }
 
 export async function getOrganizationDetail<K extends OrganizationCollection>(collection: K, id: string) {
