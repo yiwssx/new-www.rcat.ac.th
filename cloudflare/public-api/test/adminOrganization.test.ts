@@ -4,8 +4,13 @@ import {
   listAdminOrganizationAssignments,
   listAdminOrganizationPositions,
   listAdminOrganizationUnits,
-  listAdminPersonnel
+  listAdminPersonnel,
+  getAdminPersonnelById
 } from "../src/db/organizationAdminRepository";
+import {
+  getAdminOrganizationAssignmentById,
+  getAdminOrganizationPositionById
+} from "../src/db/organizationDutyRepository";
 import { hasAdminCapability } from "../src/auth/adminCapabilities";
 import { resolveAdminRoutePolicy } from "../src/auth/adminRoutePolicy";
 import { handleAdminOrganizationRead } from "../src/routes/adminOrganization";
@@ -15,7 +20,13 @@ vi.mock("../src/db/organizationAdminRepository", () => ({
   listAdminOrganizationUnits: vi.fn(),
   listAdminPersonnel: vi.fn(),
   listAdminOrganizationPositions: vi.fn(),
-  listAdminOrganizationAssignments: vi.fn()
+  listAdminOrganizationAssignments: vi.fn(),
+  getAdminPersonnelById: vi.fn()
+}));
+
+vi.mock("../src/db/organizationDutyRepository", () => ({
+  getAdminOrganizationPositionById: vi.fn(),
+  getAdminOrganizationAssignmentById: vi.fn()
 }));
 
 const env = {} as Env;
@@ -26,6 +37,9 @@ beforeEach(() => {
   vi.mocked(listAdminPersonnel).mockResolvedValue([]);
   vi.mocked(listAdminOrganizationPositions).mockResolvedValue([]);
   vi.mocked(listAdminOrganizationAssignments).mockResolvedValue([]);
+  vi.mocked(getAdminPersonnelById).mockResolvedValue(null);
+  vi.mocked(getAdminOrganizationPositionById).mockResolvedValue(null);
+  vi.mocked(getAdminOrganizationAssignmentById).mockResolvedValue(null);
 });
 
 describe("Organization Chart Admin read boundary", () => {
@@ -72,6 +86,24 @@ describe("Organization Chart Admin read boundary", () => {
       expect(response?.status).toBe(400);
     }
     expect(listAdminPersonnel).not.toHaveBeenCalled();
+  });
+
+  it("reads private detail records only on capability-gated routes and returns no-store", async () => {
+    vi.mocked(getAdminPersonnelById).mockResolvedValue({ id: "person-1", display_name: "Staff" } as never);
+    const response = await handleAdminOrganizationRead(
+      new Request("https://example.invalid/api/admin/organization/personnel/person-1"),
+      env,
+      ["organization", "personnel", "person-1"]
+    );
+    expect(response?.status).toBe(200);
+    expect(response?.headers.get("Cache-Control")).toBe("no-store");
+    expect(getAdminPersonnelById).toHaveBeenCalledWith(env, "person-1");
+    const missing = await handleAdminOrganizationRead(
+      new Request("https://example.invalid/api/admin/organization/positions/unknown"),
+      env,
+      ["organization", "positions", "unknown"]
+    );
+    expect(missing?.status).toBe(404);
   });
 
   it("does not support mutation endpoints until audited write handlers are present", async () => {
