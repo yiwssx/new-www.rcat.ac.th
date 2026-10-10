@@ -121,7 +121,7 @@ describe("published organization permalink", () => {
     addContent("งานสารบรรณ");
     const response = await publicOrganizationDetail(env, "งานสารบรรณ");
     expect(response.status).toBe(200);
-    const payload = await response.json() as { unit: { slug: string } };
+    const payload = (await response.json()) as { unit: { slug: string } };
     expect(payload.unit.slug).toBe("งานสารบรรณ");
   });
 

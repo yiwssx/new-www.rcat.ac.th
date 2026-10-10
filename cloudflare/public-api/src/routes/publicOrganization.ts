@@ -56,10 +56,11 @@ export function selectPublishedOrganizationDetail(
     children.set(candidate.parentContentId, siblings);
   }
   for (const siblings of children.values()) {
-    siblings.sort((left, right) =>
-      left.sortOrder - right.sortOrder ||
-      left.title.localeCompare(right.title, "th") ||
-      left.contentId.localeCompare(right.contentId)
+    siblings.sort(
+      (left, right) =>
+        left.sortOrder - right.sortOrder ||
+        left.title.localeCompare(right.title, "th") ||
+        left.contentId.localeCompare(right.contentId)
     );
   }
   // The SQL visible CTE returns breadth-first rows; render preorder instead so

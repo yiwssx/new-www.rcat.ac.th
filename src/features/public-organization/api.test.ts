@@ -23,7 +23,10 @@ describe("public Organization permalink facade", () => {
   it("percent-encodes Thai slugs without changing their meaning", async () => {
     requestMock.mockResolvedValueOnce({
       unit: { contentId: "thai", slug: "งานสารบรรณ", title: "งานสารบรรณ" },
-      ancestors: [], units: [], positions: [], media: []
+      ancestors: [],
+      units: [],
+      positions: [],
+      media: []
     });
     await getPublicOrganizationDetail("งานสารบรรณ");
     expect(requestMock).toHaveBeenCalledWith(

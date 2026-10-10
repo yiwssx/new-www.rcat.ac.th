@@ -91,7 +91,7 @@ Add a dedicated CMS content type for organizational units and personnel structur
 | 4     | Organization list/editor                             | COMPLETE     | Dedicated `/admin/organization` list, title/slug/type/parent/status workflow, revision-safe writes                                                            |
 | 5     | Personnel directory                                  | COMPLETE     | Canonical personnel CRUD, Media Library photo selection, reuse across organization pages                                                                      |
 | 6     | Organization builder                                 | **COMPLETE** | Unit positions, assignment/reassignment, ordering, multiple duties, occupant limits, accessible non-drag controls; drag/drop only if justified                |
-| 7     | Public renderer + permalink/SSR/SEO                  | IN PROGRESS      | Published organization slugs resolve through public routing, hierarchy/breadcrumbs render, draft/private fields remain inaccessible                           |
+| 7     | Public renderer + permalink/SSR/SEO                  | IN PROGRESS  | Published organization slugs resolve through public routing, hierarchy/breadcrumbs render, draft/private fields remain inaccessible                           |
 | 8     | Menu/search/sitemap integration                      | PLANNED      | Menu can link to organization pages; search/sitemap behavior is deliberate and tested; generic content lists do not leak organization records unintentionally |
 | 9     | Quality, accessibility, performance, backup coverage | PLANNED      | Unit/integration/functional tests, format/lint/build/worker checks, responsive/mobile verification, backup counts/download include new tables where required  |
 | 10    | Production migration + release verification          | PLANNED      | Protected migration/deploy sequence completed once, browser verification passes, tracker records release evidence                                             |
@@ -324,7 +324,6 @@ Add a dedicated CMS content type for organizational units and personnel structur
 - Tests cover the Admin facade/route policy, drag handles, complete/stale/conflicting scopes, audit/no-partial-write behavior, manual handovers and D1 occupant limits; supplied a jsdom-only ResizeObserver stand-in for the new drag library. Real browser behavior remains covered by Functional E2E and fuller mobile/accessibility verification remains Phase 9.
 - **Verified code-head CI:** [CI run #38068146144](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38068146144) at `c3130f3addf70e1e9679558cab64ec1df1f33bad`: Dependency Preflight, Dependencies, Static Quality, Unit Tests, Integration Tests, Worker, Build, Governance, Functional E2E, and aggregate `quality` all **SUCCESS**.
 - **Final tracker SHA CI pending verification after this documentation commit.** Remain on `agent/org-01-domain-schema`; keep [PR #553](https://github.com/yiwssx/new-www.rcat.ac.th/pull/553) Draft, unmerged, and unchanged in production. Phase 7 must start only on a subsequent explicit instruction.
-
 
 ## Phase 7 public organization delivery — 2026-10-10 Asia/Bangkok
 
