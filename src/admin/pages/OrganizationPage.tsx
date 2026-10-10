@@ -32,7 +32,7 @@ export default function OrganizationPage() {
   return (
     <Stack spacing={3} sx={{ width: "100%", minWidth: 0 }}>
       <Box>
-        <Stack direction="row" spacing={1} alignItems="center">
+        <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
           <AccountTreeOutlinedIcon color="primary" />
           <Typography variant="h1" sx={{ fontSize: { xs: "1.5rem", md: "2rem" } }}>
             ผังองค์กร
