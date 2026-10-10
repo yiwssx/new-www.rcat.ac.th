@@ -118,7 +118,7 @@ test.describe("Organization public accessibility and responsive regression", () 
   test("an unpublished organization permalink returns a user-safe missing state", async ({ page }) => {
     await installOrganizationFixture(page);
     await page.goto("/organization/unpublished");
-    await expect(page.getByText("ไม่พบหน่วยงาน")).toBeVisible();
-    await expect(page.getByText("ข้อมูลนี้อาจยังไม่ได้เผยแพร่หรือไม่สามารถเข้าถึงได้")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "ไม่พบหน้าที่ต้องการ" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "กลับหน้าแรก" })).toBeVisible();
   });
 });
