@@ -2,6 +2,7 @@
 import { DatabaseSync } from "node:sqlite";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import initialSql from "../migrations/0001_public_read_schema.sql?raw";
+import coreSql from "../migrations/0002_public_read_core_batch.sql?raw";
 import adminSql from "../migrations/0003_admin_write_batch.sql?raw";
 import lifecycleSql from "../migrations/0016_content_lifecycle_governance.sql?raw";
 import revisionSql from "../migrations/0019_content_revision_write_boundary.sql?raw";
@@ -74,7 +75,7 @@ function count(table: string) {
 beforeEach(() => {
   db = new DatabaseSync(":memory:");
   db.exec("PRAGMA foreign_keys = ON;");
-  for (const migration of [initialSql, adminSql, lifecycleSql, revisionSql, organizationSql]) {
+  for (const migration of [initialSql, coreSql, adminSql, lifecycleSql, revisionSql, organizationSql]) {
     db.exec(migration);
   }
   env = { DB: d1() };
