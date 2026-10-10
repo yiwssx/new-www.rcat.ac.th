@@ -18,7 +18,11 @@ const SUPPORTED_ADMIN_ROUTES: readonly RouteCase[] = [
   { method: "POST", path: "organization/personnel", requirement: "organization.manage" },
   { method: "PATCH", path: "organization/personnel/person-1", requirement: "organization.manage" },
   { method: "GET", path: "organization/positions", requirement: "organization.read" },
+  { method: "POST", path: "organization/positions", requirement: "organization.manage" },
+  { method: "PATCH", path: "organization/positions/position-1", requirement: "organization.manage" },
   { method: "GET", path: "organization/assignments", requirement: "organization.read" },
+  { method: "POST", path: "organization/assignments", requirement: "organization.manage" },
+  { method: "PATCH", path: "organization/assignments/assignment-1", requirement: "organization.manage" },
   { method: "GET", path: "content", requirement: "content.read" },
   { method: "POST", path: "content", requirement: "content.create" },
   { method: "GET", path: "content/content-1", requirement: "content.read" },
@@ -110,8 +114,8 @@ describe("Admin route policy", () => {
     expect(requirement(decision)).toEqual(expected);
   });
 
-  it("has an explicit independent inventory for all 83 supported method/path patterns", () => {
-    expect(SUPPORTED_ADMIN_ROUTES).toHaveLength(83);
+  it("has an explicit independent inventory for all 87 supported method/path patterns", () => {
+    expect(SUPPORTED_ADMIN_ROUTES).toHaveLength(87);
     expect(
       SUPPORTED_ADMIN_ROUTES.every(({ method, path }) => resolveAdminRoutePolicy(method, segments(path)).matched)
     ).toBe(true);
