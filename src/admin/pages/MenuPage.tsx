@@ -43,6 +43,7 @@ import {
 } from "../../features/admin-pagination";
 import type { PublicMenuItem } from "../../features/cms-navigation/types";
 import { PUBLIC_MENU_ROUTE_OPTIONS } from "../../public/routing/publicRouteRegistry";
+import { getPublicOrganizationIndex } from "../../features/public-organization";
 import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 import { ADMIN_READ_ONLY_NOTICE, canManageMenu } from "../utils/rbac";
 import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
@@ -145,6 +146,12 @@ export default function MenuPage() {
     queryFn: getAllAdminMenuItems
   });
   const orderQuery = useQuery(adminMenuOrderQueryOptions());
+  const publishedOrganizationQuery = useQuery({
+    queryKey: ["public-organization-index"],
+    queryFn: () => getPublicOrganizationIndex(),
+    enabled: dialogOpen,
+    staleTime: 60_000
+  });
 
   const saveMutation = useMutation({ mutationFn: saveAdminMenuItem });
   const deleteMutation = useMutation({ mutationFn: deleteAdminMenuItem });
@@ -653,6 +660,37 @@ export default function MenuPage() {
                 ))}
               </Select>
               <FormHelperText>เลือกหน้าที่ระบบรู้จักเพื่อเติมเส้นทาง หรือกำหนด URL เองในช่องด้านล่าง</FormHelperText>
+            </FormControl>
+
+            <FormControl fullWidth>
+              <InputLabel id="menu-organization-route-label">หน้าผังองค์กรที่เผยแพร่แล้ว</InputLabel>
+              <Select
+                labelId="menu-organization-route-label"
+                label="หน้าผังองค์กรที่เผยแพร่แล้ว"
+                value={
+                  (publishedOrganizationQuery.data ?? []).some(
+                    (unit) => `/organization/${encodeURIComponent(unit.slug)}` === normalizedFormHref
+                  ) ? normalizedFormHref : ""
+                }
+                onChange={(event) => {
+                  const path = String(event.target.value || "");
+                  if (path) {
+                    setForm((current) => ({ ...current, href: path }));
+                  }
+                }}
+              >
+                <MenuItem value="">กำหนด URL เอง</MenuItem>
+                {(publishedOrganizationQuery.data ?? []).map((unit) => (
+                  <MenuItem key={unit.contentId} value={`/organization/${encodeURIComponent(unit.slug)}`}>
+                    {unit.title}
+                  </MenuItem>
+                ))}
+              </Select>
+              <FormHelperText>
+                {publishedOrganizationQuery.isError
+                  ? "โหลดหน่วยงานที่เผยแพร่ไม่สำเร็จ ยังสามารถระบุ URL ด้วยตนเองได้"
+                  : "เลือกเฉพาะหน่วยงานที่เผยแพร่พร้อมหน่วยงานแม่แล้ว; เมื่อยกเลิกเผยแพร่ควรนำลิงก์เมนูออกด้วย"}
+              </FormHelperText>
             </FormControl>
 
             <TextField
