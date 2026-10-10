@@ -3,6 +3,7 @@ import { createPublicMetadata } from "../adapters/publicMetadataAdapter";
 import { searchPublishedContentRows, type PublicContentSummaryReadRow } from "../db/contentRepository";
 import { readPublicShellMetadataRows } from "../db/publicMetadataRepository";
 import { searchPublishedContentPageWithCountRows } from "../db/publicSearchRepository";
+import { listPublishedOrganizationUnits } from "../db/organizationReadRepository";
 import type { Env } from "../env";
 import { json, jsonError } from "../responses";
 
@@ -59,6 +60,7 @@ export async function publicSearch(request: Request, env: Env) {
 
   try {
     const shellMetadataPromise = readPublicShellMetadataRows(env);
+    const organizationPromise = query ? listPublishedOrganizationUnits(env) : Promise.resolve([]);
     let rows: PublicContentSummaryReadRow[];
     let pagination: ReturnType<typeof createPagination> | undefined;
 
@@ -76,7 +78,11 @@ export async function publicSearch(request: Request, env: Env) {
       rows = await searchPublishedContentRows(env, query);
     }
 
-    const shellMetadataRows = await shellMetadataPromise;
+    const [shellMetadataRows, visibleUnits] = await Promise.all([shellMetadataPromise, organizationPromise]);
+    const normalizedQuery = query.toLocaleLowerCase('th');
+    const organizationItems = visibleUnits.filter((unit) =>
+      [unit.title, unit.summary, unit.slug].some((field) => field.toLocaleLowerCase('th').includes(normalizedQuery))
+    ).slice(0, 30);
     const metadata = createPublicMetadata({
       ...shellMetadataRows,
       media: [],
@@ -85,7 +91,7 @@ export async function publicSearch(request: Request, env: Env) {
       events: []
     });
 
-    return json(createPublicSearchSnapshot(query, rows, metadata, new Date(), pagination));
+    return json(createPublicSearchSnapshot(query, rows, metadata, new Date(), pagination, organizationItems));
   } catch {
     return jsonError("Unable to load search", 500, {
       resource: RESOURCE,

@@ -1,4 +1,5 @@
 import type { PublicContentPaginationContract, PublicContentSummaryContract } from "./publicContent";
+import type { PublicOrganizationUnit } from "../db/organizationReadRepository";
 import type {
   PublicDisplaySettingsContract,
   PublicHomepageSettingsContract,
@@ -9,6 +10,7 @@ import type {
 export interface PublicSearchSnapshotContract {
   query: string;
   items: PublicContentSummaryContract[];
+  organizationItems?: PublicOrganizationUnit[];
   pagination?: PublicContentPaginationContract;
   siteSettings: PublicSiteSettingsContract;
   homepageSettings: PublicHomepageSettingsContract;

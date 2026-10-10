@@ -60,6 +60,7 @@ async function readSearchPage(
       `SELECT ${PUBLIC_CONTENT_SUMMARY_READ_COLUMNS.join(", ")}, COUNT(*) OVER() AS total_items
        FROM contents
        WHERE ${PUBLIC_PUBLISHED_CONTENT_FILTER_SQL}
+         AND type <> 'organization'
          AND COALESCE(deleted_at, '') = ''${searchFilter.sql}
        ORDER BY publish_at DESC, updated_at DESC
        LIMIT ? OFFSET ?`
@@ -85,6 +86,7 @@ async function countSearchRows(env: Env, query: string) {
       `SELECT COUNT(*) AS total_items
        FROM contents
        WHERE ${PUBLIC_PUBLISHED_CONTENT_FILTER_SQL}
+         AND type <> 'organization'
          AND COALESCE(deleted_at, '') = ''${searchFilter.sql}`
     )
     .bind(...publicPublishedContentBindings(...searchFilter.bindings))

@@ -165,6 +165,7 @@ export async function listPublishedContentRows(env: Env, type: string): Promise<
        FROM contents
        WHERE ${PUBLIC_PUBLISHED_CONTENT_FILTER_SQL}
          AND type = ?
+         AND type <> 'organization'
          AND COALESCE(deleted_at, '') = ''
        ORDER BY publish_at DESC, updated_at DESC`
     )
@@ -182,6 +183,7 @@ export async function listPublishedContentSummaryRows(env: Env, type: string): P
        FROM contents
        WHERE ${PUBLIC_PUBLISHED_CONTENT_FILTER_SQL}
          AND type = ?
+         AND type <> 'organization'
          AND COALESCE(deleted_at, '') = ''
        ORDER BY publish_at DESC, updated_at DESC`
     )
@@ -215,6 +217,7 @@ export async function listPublishedContentSummaryPageRows(
        FROM contents
        WHERE ${PUBLIC_PUBLISHED_CONTENT_FILTER_SQL}
          AND type = ?
+         AND type <> 'organization'
          AND COALESCE(deleted_at, '') = ''
        ORDER BY publish_at DESC, updated_at DESC
        LIMIT ? OFFSET ?`
@@ -232,6 +235,7 @@ export async function listAllPublishedContentRows(env: Env): Promise<PublicConte
       `SELECT ${PUBLIC_CONTENT_READ_COLUMNS.join(", ")}
        FROM contents
        WHERE ${PUBLIC_PUBLISHED_CONTENT_FILTER_SQL}
+         AND type <> 'organization'
          AND COALESCE(deleted_at, '') = ''
        ORDER BY publish_at DESC, updated_at DESC`
     )
@@ -248,6 +252,7 @@ export async function listAllPublishedContentSummaryRows(env: Env): Promise<Publ
       `SELECT ${PUBLIC_CONTENT_SUMMARY_READ_COLUMNS.join(", ")}
        FROM contents
        WHERE ${PUBLIC_PUBLISHED_CONTENT_FILTER_SQL}
+         AND type <> 'organization'
          AND COALESCE(deleted_at, '') = ''
        ORDER BY publish_at DESC, updated_at DESC`
     )
@@ -264,6 +269,7 @@ export async function listAllPublishedContentCardRows(env: Env): Promise<PublicC
       `SELECT ${PUBLIC_CONTENT_CARD_READ_COLUMNS.join(", ")}
        FROM contents
        WHERE ${PUBLIC_PUBLISHED_CONTENT_FILTER_SQL}
+         AND type <> 'organization'
          AND COALESCE(deleted_at, '') = ''
        ORDER BY publish_at DESC, updated_at DESC`
     )
@@ -282,6 +288,7 @@ export async function listFeaturedContentRows(env: Env): Promise<PublicContentRe
        WHERE ${PUBLIC_PUBLISHED_CONTENT_FILTER_SQL}
          AND featured = ?
          AND type <> ?
+         AND type <> 'organization'
          AND COALESCE(deleted_at, '') = ''
        ORDER BY publish_at DESC, updated_at DESC
        LIMIT 6`
@@ -317,6 +324,7 @@ export async function searchPublishedContentRows(env: Env, query: string): Promi
       `SELECT ${PUBLIC_CONTENT_SUMMARY_READ_COLUMNS.join(", ")}
        FROM contents
        WHERE ${PUBLIC_PUBLISHED_CONTENT_FILTER_SQL}
+         AND type <> 'organization'
          AND COALESCE(deleted_at, '') = ''${searchFilter.sql}
        ORDER BY publish_at DESC, updated_at DESC`
     )
@@ -333,7 +341,8 @@ export async function countSearchPublishedContentRows(env: Env, query: string): 
     `SELECT COUNT(*) AS total_items
      FROM contents
      WHERE ${PUBLIC_PUBLISHED_CONTENT_FILTER_SQL}
-       AND COALESCE(deleted_at, '') = ''${searchFilter.sql}`,
+       AND type <> 'organization'
+         AND COALESCE(deleted_at, '') = ''${searchFilter.sql}`,
     publicPublishedContentBindings(...searchFilter.bindings)
   );
 }
@@ -350,6 +359,7 @@ export async function searchPublishedContentPageRows(
       `SELECT ${PUBLIC_CONTENT_SUMMARY_READ_COLUMNS.join(", ")}
        FROM contents
        WHERE ${PUBLIC_PUBLISHED_CONTENT_FILTER_SQL}
+         AND type <> 'organization'
          AND COALESCE(deleted_at, '') = ''${searchFilter.sql}
        ORDER BY publish_at DESC, updated_at DESC
        LIMIT ? OFFSET ?`
