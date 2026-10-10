@@ -2,7 +2,9 @@ import type { Env } from "../env";
 import { requireD1Database } from "./documentsRepository";
 
 /**
- * Public organization reads are rooted in published ancestors. This prevents a
+ * Public organization reads are rooted in effectively published ancestors.
+ * Scheduled units become visible automatically once publish_at is reached.
+ * This prevents a
  * published child from leaking through an unpublished/draft ancestor.
  * Binding ?1 once ensures every layer uses the same visibility timestamp.
  */
@@ -19,7 +21,10 @@ const PUBLIC_ORGANIZATION_CTE = `
     FROM organization_units AS unit
     JOIN contents AS content ON content.id = unit.content_id
     WHERE content.type = 'organization'
-      AND content.status = 'published'
+      AND (
+        content.status = 'published'
+        OR (content.status = 'scheduled' AND COALESCE(content.publish_at, '') <> '')
+      )
       AND COALESCE(content.deleted_at, '') = ''
       AND (COALESCE(content.publish_at, '') = '' OR datetime(content.publish_at) <= datetime(?1))
       AND (COALESCE(content.unpublish_at, '') = '' OR datetime(content.unpublish_at) > datetime(?1))

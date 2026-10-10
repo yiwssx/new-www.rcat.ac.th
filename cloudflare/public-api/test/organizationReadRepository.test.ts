@@ -68,6 +68,16 @@ describe("Organization Chart published hierarchy reads", () => {
     expect(visibleIds()).toEqual(["root", "child"]);
   });
 
+  it("publishes scheduled ancestor chains only after the scheduled timestamp", () => {
+    addContent("scheduled-parent", "scheduled", "2026-10-09T13:00:00.000Z");
+    addContent("scheduled-child", "scheduled", "2026-10-09T15:00:00.000Z");
+    addContent("published-child", "published");
+    addUnit("scheduled-parent");
+    addUnit("scheduled-child", "scheduled-parent");
+    addUnit("published-child", "scheduled-parent");
+    expect(visibleIds()).toEqual(["scheduled-parent", "published-child"]);
+  });
+
   it("respects scheduled publishing and expiration on every ancestor", () => {
     addContent("root", "published", "", "2026-10-09T13:00:00.000Z");
     addContent("child", "published");
