@@ -15,7 +15,7 @@ describe("organization Admin facade", () => {
     requestMock.mockResolvedValueOnce({ items: [], maximumItems: 25, generatedAt: "" });
     await getOrganizationCollection("units", 25);
     expect(requestMock).toHaveBeenCalledWith("/api/admin/organization/units?limit=25");
-    expect(() => getOrganizationCollection("units", 101)).rejects.toThrow();
+    await expect(getOrganizationCollection("units", 101)).rejects.toThrow();
   });
 
   it("requires exact revisions on mutations and preserves API authentication handling", async () => {
@@ -33,10 +33,10 @@ describe("organization Admin facade", () => {
     });
   });
 
-  it("rejects unsafe IDs and invalid revisions before a network request", () => {
-    expect(() => getOrganizationCollection("units", 0)).rejects.toThrow();
-    expect(() => deleteOrganizationRecord("units", "../content", 0)).toThrow("invalid organization record ID");
-    expect(() => deleteOrganizationRecord("units", "org-1", -1)).toThrow("valid revision");
+  it("rejects unsafe IDs and invalid revisions before a network request", async () => {
+    await expect(getOrganizationCollection("units", 0)).rejects.toThrow();
+    await expect(deleteOrganizationRecord("units", "../content", 0)).rejects.toThrow("invalid organization record ID");
+    await expect(deleteOrganizationRecord("units", "org-1", -1)).rejects.toThrow("valid revision");
     expect(requestMock).not.toHaveBeenCalled();
   });
 
