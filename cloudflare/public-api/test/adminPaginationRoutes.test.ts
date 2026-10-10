@@ -755,6 +755,13 @@ describe("admin server pagination routes", () => {
     const data = await jsonBody(list);
     expect((data.items as Row[]).map((row) => row.id)).toEqual(["content-101"]);
 
+    const dashboardResponse = await worker.fetch(request("/api/admin/dashboard-summary", { role: "viewer" }), env);
+    const dashboard = await jsonBody(dashboardResponse);
+    expect(dashboardResponse.status).toBe(200);
+    expect(dashboard.counts).toMatchObject({ content: { total: 1, review: 1 } });
+    expect((dashboard.recentContent as Row[]).map((row) => row.id)).toEqual(["content-101"]);
+    expect((dashboard.content as Row[]).map((row) => row.id)).toEqual(["content-101"]);
+
     const publish = await worker.fetch(
       request("/api/admin/content/publish-pending", { method: "POST", role: "editor", body: "{}" }),
       env
