@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   listAdminOrganizationAssignments,
   listAdminOrganizationPositions,
-  listAdminOrganizationUnits,
+  listAdminOrganizationContentUnits,
   listAdminPersonnel,
   getAdminPersonnelById
 } from "../src/db/organizationAdminRepository";
@@ -17,7 +17,7 @@ import { handleAdminOrganizationRead } from "../src/routes/adminOrganization";
 import type { Env } from "../src/env";
 
 vi.mock("../src/db/organizationAdminRepository", () => ({
-  listAdminOrganizationUnits: vi.fn(),
+  listAdminOrganizationContentUnits: vi.fn(),
   listAdminPersonnel: vi.fn(),
   listAdminOrganizationPositions: vi.fn(),
   listAdminOrganizationAssignments: vi.fn(),
@@ -33,7 +33,7 @@ const env = {} as Env;
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(listAdminOrganizationUnits).mockResolvedValue([]);
+  vi.mocked(listAdminOrganizationContentUnits).mockResolvedValue([]);
   vi.mocked(listAdminPersonnel).mockResolvedValue([]);
   vi.mocked(listAdminOrganizationPositions).mockResolvedValue([]);
   vi.mocked(listAdminOrganizationAssignments).mockResolvedValue([]);
@@ -62,7 +62,7 @@ describe("Organization Chart Admin read boundary", () => {
 
   it("reads all four collections with bounded pagination and no-store response headers", async () => {
     for (const [collection, read] of [
-      ["units", listAdminOrganizationUnits],
+      ["units", listAdminOrganizationContentUnits],
       ["personnel", listAdminPersonnel],
       ["positions", listAdminOrganizationPositions],
       ["assignments", listAdminOrganizationAssignments]
