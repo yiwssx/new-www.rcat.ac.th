@@ -1,0 +1,142 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { OrganizationUnitListRow } from "../../features/organization-admin/api";
+import OrganizationBuilder from "./OrganizationBuilder";
+
+const api = vi.hoisted(() => ({
+  list: vi.fn(),
+  create: vi.fn(),
+  update: vi.fn(),
+  remove: vi.fn()
+}));
+vi.mock("../../features/organization-admin/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../features/organization-admin/api")>()),
+  getOrganizationCollection: api.list,
+  createOrganizationRecord: api.create,
+  updateOrganizationRecord: api.update,
+  deleteOrganizationRecord: api.remove
+}));
+vi.mock("../../utils/swal", () => ({
+  appSwal: { fire: vi.fn(async () => ({ isConfirmed: true })) }
+}));
+
+const units: OrganizationUnitListRow[] = [
+  {
+    content_id: "division-1",
+    parent_content_id: null,
+    unit_kind: "division",
+    sort_order: 0,
+    slug: "division-1",
+    title: "ฝ่ายบริหาร",
+    summary: "",
+    status: "draft",
+    publish_at: "",
+    unpublish_at: "",
+    content_revision: 0,
+    unit_revision: 0
+  },
+  {
+    content_id: "work-1",
+    parent_content_id: "division-1",
+    unit_kind: "work",
+    sort_order: 0,
+    slug: "work-1",
+    title: "งานสารบรรณ",
+    summary: "",
+    status: "draft",
+    publish_at: "",
+    unpublish_at: "",
+    content_revision: 0,
+    unit_revision: 0
+  }
+];
+
+function setup(canManage: boolean) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } }
+  });
+  return render(
+    <QueryClientProvider client={client}>
+      <OrganizationBuilder units={units} allUnitsLoaded canManage={canManage} />
+    </QueryClientProvider>
+  );
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  api.list.mockImplementation(async (collection: string) => ({
+    items:
+      collection === "positions"
+        ? [
+            {
+              id: "position-1",
+              unit_content_id: "work-1",
+              title: "หัวหน้างาน",
+              group_label: "ผู้บริหาร",
+              group_sort_order: 0,
+              sort_order: 0,
+              display_style: "default",
+              occupant_limit: 1,
+              revision: 0
+            }
+          ]
+        : collection === "personnel"
+          ? [
+              {
+                id: "person-1",
+                display_name: "บุคลากรทดสอบ",
+                active: 1,
+                revision: 0
+              }
+            ]
+          : [],
+    nextOffset: null,
+    maximumItems: 100,
+    generatedAt: ""
+  }));
+  api.create.mockResolvedValue({ item: {} });
+  api.update.mockResolvedValue({ item: {} });
+  api.remove.mockResolvedValue({ deleted: true });
+});
+
+describe("Phase 6 accessible Organization builder", () => {
+  it("shows a nested unit navigator and position details to read-only editors without writes", async () => {
+    setup(false);
+    fireEvent.click(screen.getByRole("button", { name: "งานสารบรรณ" }));
+    expect(await screen.findByText("หัวหน้างาน")).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "โครงสร้างหน่วยงาน" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "เพิ่มตำแหน่ง" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "มอบหมายบุคลากร" })).not.toBeInTheDocument();
+    expect(api.create).not.toHaveBeenCalled();
+  });
+
+  it("creates a unit-scoped position through the dedicated audited facade", async () => {
+    setup(true);
+    fireEvent.click(screen.getByRole("button", { name: "งานสารบรรณ" }));
+    fireEvent.click(await screen.findByRole("button", { name: "เพิ่มตำแหน่ง" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "ชื่อตำแหน่ง" }), {
+      target: { value: "ผู้ช่วยหัวหน้างาน" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกตำแหน่ง" }));
+    await waitFor(() =>
+      expect(api.create).toHaveBeenCalledWith(
+        "positions",
+        expect.objectContaining({
+          title: "ผู้ช่วยหัวหน้างาน",
+          unitContentId: "work-1",
+          occupantLimit: null
+        })
+      )
+    );
+  });
+
+  it("exposes assignment to canonical personnel rather than creating a second person", async () => {
+    setup(true);
+    fireEvent.click(screen.getByRole("button", { name: "งานสารบรรณ" }));
+    fireEvent.click(await screen.findByRole("button", { name: "มอบหมายบุคลากร" }));
+    expect(screen.getByRole("dialog", { name: "มอบหมายบุคลากร" })).toBeInTheDocument();
+    expect(screen.getByText(/บันทึกบุคลากรคนเดิมซ้ำในหลายตำแหน่ง/)).toBeInTheDocument();
+    expect(api.create).not.toHaveBeenCalled();
+  });
+});
