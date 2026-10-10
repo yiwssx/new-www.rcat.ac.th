@@ -9,11 +9,17 @@ describe("backup recovery UPSERT builder", () => {
       { content_id: "child", parent_content_id: "root" },
       { content_id: "root", parent_content_id: null }
     ];
-    expect(orderOrganizationUnitsForRestore(rows).map((row) => row.content_id)).toEqual(["root", "child", "grandchild"]);
-    expect(() => orderOrganizationUnitsForRestore([
-      { content_id: "left", parent_content_id: "right" },
-      { content_id: "right", parent_content_id: "left" }
-    ])).toThrow(/cyclic/);
+    expect(orderOrganizationUnitsForRestore(rows).map((row) => row.content_id)).toEqual([
+      "root",
+      "child",
+      "grandchild"
+    ]);
+    expect(() =>
+      orderOrganizationUnitsForRestore([
+        { content_id: "left", parent_content_id: "right" },
+        { content_id: "right", parent_content_id: "left" }
+      ])
+    ).toThrow(/cyclic/);
   });
 
   it("updates by the stable primary key without REPLACE semantics", () => {

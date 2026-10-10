@@ -255,7 +255,8 @@ async function recoverBackup(request: Request, env: Env, identity: AdminIdentity
       }
 
       let accepted = 0;
-      const orderedRows = table === "organization_units" ? orderOrganizationUnitsForRestore(rows as JsonRecord[]) : rows;
+      const orderedRows =
+        table === "organization_units" ? orderOrganizationUnitsForRestore(rows as JsonRecord[]) : rows;
       for (const rawRow of orderedRows) {
         const row = parseJsonRecord(rawRow);
         if (!row) throw new TypeError(`${table}: backup row is invalid`);
