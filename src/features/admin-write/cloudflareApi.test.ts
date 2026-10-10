@@ -122,6 +122,20 @@ describe("Cloudflare Admin CMS Session integration", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it("maps organization revision and slug conflicts to existing Admin error classes", async () => {
+    const { AdminStaleRevisionError, AdminDuplicateSlugError } = await import("./errors");
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(Response.json({ error: "stale organization revision" }, { status: 409 }))
+      .mockResolvedValueOnce(Response.json({ error: "organization slug already exists" }, { status: 409 }));
+
+    await expect(requestCloudflareAdmin("/api/admin/organization/units/org-1")).rejects.toBeInstanceOf(
+      AdminStaleRevisionError
+    );
+    await expect(requestCloudflareAdmin("/api/admin/organization/units")).rejects.toBeInstanceOf(
+      AdminDuplicateSlugError
+    );
+  });
+
   it("clears CMS Session only on the exact expiry 401 and never opens step-up for 401 or 403", async () => {
     const expiredListener = vi.fn();
     window.addEventListener("rcat:cms-session-expired", expiredListener);
