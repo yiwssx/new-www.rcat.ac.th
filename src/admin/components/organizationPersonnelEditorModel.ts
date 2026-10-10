@@ -14,7 +14,7 @@ export const personnelEditorSchema = z
     active: z.boolean()
   })
   .superRefine((value, ctx) => {
-    if (value.publicEmail && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(value.publicEmail)) {
+    if (value.publicEmail && !z.email().safeParse(value.publicEmail).success) {
       ctx.addIssue({ code: "custom", path: ["publicEmail"], message: "รูปแบบอีเมลไม่ถูกต้อง" });
     }
     if (value.showPublicEmail && !value.publicEmail) {
