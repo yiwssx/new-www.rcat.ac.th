@@ -30,6 +30,7 @@ import {
 import { isAdminStaleRevisionError } from "../../features/admin-write/errors";
 import { appSwal } from "../../utils/swal";
 import OrganizationUnitEditorDialog from "../components/OrganizationUnitEditorDialog";
+import OrganizationPersonnelDirectory from "../components/OrganizationPersonnelDirectory";
 import { ORGANIZATION_KIND_LABELS, ORGANIZATION_STATUS_LABELS } from "./organizationEditorModel";
 
 function humanError(error: unknown) {
@@ -39,6 +40,7 @@ function humanError(error: unknown) {
 export default function OrganizationPage() {
   const { capabilities } = useAuth();
   const canManage = hasCmsCapability(capabilities, "organization.manage");
+  const canBrowseMedia = hasCmsCapability(capabilities, "media.read");
   const client = useQueryClient();
   const units = useInfiniteQuery({
     queryKey: ["admin-organization", "units", "pages"],
@@ -321,6 +323,7 @@ export default function OrganizationPage() {
           </Stack>
         </CardContent>
       </Card>
+      <OrganizationPersonnelDirectory canManage={canManage} canBrowseMedia={canBrowseMedia} />
       {canManage && (
         <OrganizationUnitEditorDialog
           open={editorOpen}
