@@ -87,11 +87,17 @@ describe("Phase 4 Organization Admin list/editor", () => {
       target: { value: "work-procurement" }
     });
     fireEvent.click(screen.getByRole("button", { name: "บันทึกหน่วยงาน" }));
-    await waitFor(() => expect(api.create).toHaveBeenCalledWith(
-      "units", expect.objectContaining({
-        title: "งานพัสดุ", slug: "work-procurement", parentContentId: null, status: "draft"
-      })
-    ));
+    await waitFor(() =>
+      expect(api.create).toHaveBeenCalledWith(
+        "units",
+        expect.objectContaining({
+          title: "งานพัสดุ",
+          slug: "work-procurement",
+          parentContentId: null,
+          status: "draft"
+        })
+      )
+    );
     expect(api.update).not.toHaveBeenCalled();
   });
 
@@ -104,9 +110,14 @@ describe("Phase 4 Organization Admin list/editor", () => {
       target: { value: "ฝ่ายบริหารทรัพยากร (แก้ไข)" }
     });
     fireEvent.click(screen.getByRole("button", { name: "บันทึกหน่วยงาน" }));
-    await waitFor(() => expect(api.update).toHaveBeenCalledWith(
-      "units", "unit-1", 2, expect.objectContaining({ title: "ฝ่ายบริหารทรัพยากร (แก้ไข)" })
-    ));
+    await waitFor(() =>
+      expect(api.update).toHaveBeenCalledWith(
+        "units",
+        "unit-1",
+        2,
+        expect.objectContaining({ title: "ฝ่ายบริหารทรัพยากร (แก้ไข)" })
+      )
+    );
     expect(await screen.findByText(/ข้อมูลหน่วยงานถูกเปลี่ยนโดยผู้อื่น/)).toBeInTheDocument();
   });
 });
