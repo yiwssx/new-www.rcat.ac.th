@@ -86,6 +86,7 @@ beforeEach(() => {
       status TEXT NOT NULL,
       slug TEXT NOT NULL,
       title TEXT NOT NULL,
+      summary TEXT NOT NULL DEFAULT '',
       deleted_at TEXT NOT NULL DEFAULT '',
       publish_at TEXT NOT NULL DEFAULT '',
       unpublish_at TEXT NOT NULL DEFAULT ''
