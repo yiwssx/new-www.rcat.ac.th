@@ -186,6 +186,16 @@ Add a dedicated CMS content type for organizational units and personnel structur
 - The temporary Prettier diagnostic workflow was removed. **No production DB migration, deployment, user data population or intermediate merge occurred.**
 - **Phase 2 remains IN_PROGRESS:** organization content lifecycle, position and assignment mutations, archive/reassignment policy, full scope/privacy tests, and Phase 2 exit CI are outstanding.
 
+## Phase 2 position/assignment CRUD checkpoint: 2026-10-10 Asia/Bangkok
+
+- Added authenticated **POST/PATCH** handlers for `/api/admin/organization/positions` and `/api/admin/organization/assignments` on the same long-lived feature branch. They run behind the existing CMS session proxy, CSRF verification, origin checks, admin rate limiting, `organization.manage` RBAC and password reauthentication (step-up).
+- New `organizationDutyRepository.ts` persists position/assignment changes and their audit records in the **same D1 batch transaction**. Updates require an exact `X-RCAT-Expected-Revision`, use SQL-level revision compare-and-swap and do not emit audit records for stale writes.
+- Server-generated IDs, strict DTO allowlists, required references, occupancy capacity and valid assignment periods are enforced; D1 FK/capacity violations map to safe conflict responses without leaking SQL internals.
+- Added route-policy inventory cases and `organizationDutyRoutes.test.ts` for valid and denied mutations, protected fields, revision errors and safe FK/capacity conflicts. Added SQLite-backed `organizationDutyAudit.test.ts` to verify atomic create/update, stale CAS, occupant limits and rollback on invalid references.
+- Applied the exact CI-runner Prettier changes, then removed the diagnostic-only workflow. The **full exact-code-head [CI #38025081145](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38025081145) passed** on `00b535e6`: Dependency Preflight, Static Quality, Unit Tests, Worker, Build, Integration Tests, Dependencies, Governance, Functional E2E and aggregate Quality Gate were all successful.
+- Phase 2 is **IN_PROGRESS**. Do not claim phase completion yet: organization-unit/content publication lifecycle, controlled delete/reassign operations and their permission/privacy/regression coverage remain unimplemented. Follow-up Phases 3-9 remain subject to the single final merge gate.
+- **No merge to `main`, no production D1 migration, no protected deployment, no real RCAT person data population.** PR #553 stays Draft.
+
 ## Current blockers
 
 - No Phase 1 blockers. Phase 2 remains **IN_PROGRESS**: required work includes protected Admin endpoints, complete CRUD/delete/archive workflows, server-side validations, revision conflict mapping, audit logs, route and privacy regression tests, and final exact-head CI.
@@ -193,4 +203,4 @@ Add a dedicated CMS content type for organizational units and personnel structur
 
 ## Next action
 
-On the **same** branch, verify the post-inventory-fix CI at the current head, then implement the missing organization-content lifecycle and protected position/assignment mutations, with audited revision-safe writes and deletion/reassignment policy. Continue through pre-merge Phases 1-9 without an intermediate merge. Production migration/deployment/real-data population remain post-merge operations.
+On the **same** branch, implement organization-unit creation/editing tied atomically to the CMS content/slug/status/revision lifecycle. Finish safe delete/reassignment policies and admin/public leak regression tests. Begin Phase 3 only once complete Phase 2 contract and exact-head CI pass. Continue through pre-merge Phases 1-9 without an intermediate merge. Protected production migration/deployment/real-data population remain post-merge operations.
