@@ -1867,6 +1867,7 @@ async function handleSnapshot(env: Env) {
       `SELECT ${CONTENT_ADMIN_ROW_COLUMNS.join(", ")}
        FROM contents
        WHERE COALESCE(deleted_at, '') = ''
+         AND type <> 'organization'
        ORDER BY updated_at DESC`
     ),
     getAll<DocumentRow>(
