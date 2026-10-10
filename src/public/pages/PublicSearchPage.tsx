@@ -10,6 +10,7 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import Grid from "@mui/material/Grid";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
+import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import EmptyState from "../../shared/components/EmptyState";
 import PublicErrorState from "../components/PublicErrorState";
@@ -63,6 +64,7 @@ export default function PublicSearchPage() {
   );
 
   const results = data?.items ?? [];
+  const organizationItems = data?.organizationItems ?? [];
   const fallbackPageCount = Math.max(1, Math.ceil(results.length / SEARCH_PAGE_SIZE));
   const page = data?.pagination?.page ?? Math.min(requestedPage, fallbackPageCount);
   const pageSize = data?.pagination?.pageSize ?? SEARCH_PAGE_SIZE;
@@ -196,7 +198,7 @@ export default function PublicSearchPage() {
           icon={<SearchOutlinedIcon />}
         />
       )}
-      {query && !totalItems && (
+      {query && !totalItems && !organizationItems.length && (
         <Stack spacing={1.5}>
           <EmptyState
             title="ไม่พบผลการค้นหา"
@@ -219,6 +221,40 @@ export default function PublicSearchPage() {
               ดูประกาศ
             </Button>
           </Stack>
+        </Stack>
+      )}
+      {query && organizationItems.length > 0 && (
+        <Stack component="section" aria-labelledby="organization-search-heading" spacing={1.5} sx={{ mb: 3 }}>
+          <Typography id="organization-search-heading" variant="h2" sx={{ fontSize: "1.4rem" }}>
+            หน่วยงานที่ตรงกับคำค้น ({organizationItems.length} รายการ)
+          </Typography>
+          <Grid container spacing={2}>
+            {organizationItems.map((unit) => (
+              <Grid key={unit.contentId} size={{ xs: 12, md: 6 }}>
+                <Card variant="outlined" sx={{ height: "100%" }}>
+                  <CardContent>
+                    <Stack direction="row" spacing={1} alignItems="flex-start">
+                      <AccountTreeOutlinedIcon color="primary" aria-hidden="true" />
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography
+                          component="a"
+                          href={normalizeSafeHref(`/organization/${encodeURIComponent(unit.slug)}`)}
+                          sx={{ color: "primary.dark", fontWeight: 700, fontSize: "1.1rem", overflowWrap: "anywhere" }}
+                        >
+                          {unit.title}
+                        </Typography>
+                        {unit.summary && (
+                          <Typography color="text.secondary" variant="body2" sx={{ mt: 0.75, overflowWrap: "anywhere" }}>
+                            {unit.summary}
+                          </Typography>
+                        )}
+                      </Box>
+                    </Stack>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
         </Stack>
       )}
       {query && totalItems > 0 && (
