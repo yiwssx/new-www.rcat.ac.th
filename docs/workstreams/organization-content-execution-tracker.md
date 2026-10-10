@@ -175,6 +175,17 @@ Add a dedicated CMS content type for organizational units and personnel structur
 - **Scope remains Phase 2 IN_PROGRESS**. The new validators are not yet connected to authenticated Admin HTTP CRUD; also outstanding are server-managed content lifecycle, RBAC/CSRF/step-up policies, audit evidence, safe conflict mapping, and reassignment/delete behavior.
 - The feature remains only on `agent/org-01-domain-schema` in Draft PR #553. **Never merge intermediate phases; no production migration/deploy or real-person data was performed.**
 
+## Phase 2 Admin API checkpoint: 2026-10-10 Asia/Bangkok
+
+- Added dedicated `organization.read` and `organization.manage` RBAC capabilities; Admin and Editor are authorized, Viewer is denied confidential organization reads. The explicit admin route-policy inventory now covers organization collections and guarded personnel writes.
+- Added authenticated `GET /api/admin/organization/{units,personnel,positions,assignments}` collection routes, with bounded maximum 100 rows and `Cache-Control: no-store`. They reuse the central CMS session, origin, CSRF, rate-limit and capability pipeline, not a parallel login.
+- Added authenticated, strictly validated `POST /api/admin/organization/personnel` and revision-required `PATCH /api/admin/organization/personnel/:id`. The Worker generates identifiers, rejects system-owned/mass-assigned fields and preserves opt-in public contact visibility.
+- Added password reauthentication (step-up) for organization mutations and atomic D1 personnel/audit operations using `DB.batch`. An unsuccessful revision compare-and-swap does not change the record or generate a misleading audit event.
+- Added `adminOrganization.test.ts`, `organizationPersonnelRoutes.test.ts`, `organizationPersonnelAudit.test.ts` and extended route-policy regression coverage. Real SQLite tests verify transactional creation, revision conflicts, audit privacy and rollback on audit failure.
+- [CI #38022241232](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38022241232) passed Static Quality, Build, Worker, Integration Tests, Dependencies and Governance. Unit Tests found four **expected-contract** regressions in existing fixed RBAC inventories (new capabilities increased the 46-entry registry to 48); Organization-specific tests passed. Updated the exact inventories in `adminCapabilities.test.ts` and `adminMfaManagementRoutes.test.ts`. A fresh exact-head CI rerun is required to verify the corrections.
+- The temporary Prettier diagnostic workflow was removed. **No production DB migration, deployment, user data population or intermediate merge occurred.**
+- **Phase 2 remains IN_PROGRESS:** organization content lifecycle, position and assignment mutations, archive/reassignment policy, full scope/privacy tests, and Phase 2 exit CI are outstanding.
+
 ## Current blockers
 
 - No Phase 1 blockers. Phase 2 remains **IN_PROGRESS**: required work includes protected Admin endpoints, complete CRUD/delete/archive workflows, server-side validations, revision conflict mapping, audit logs, route and privacy regression tests, and final exact-head CI.
@@ -182,4 +193,4 @@ Add a dedicated CMS content type for organizational units and personnel structur
 
 ## Next action
 
-On the **same** branch, integrate the validated Organization mutation DTOs and revision-safe D1 repositories into dedicated authenticated Admin CRUD routes. Enforce capability/CSRF/step-up, rate limiting, audit evidence and scoped content lifecycle; add API authorization/privacy/conflict and deletion/reassignment regression tests. Continue through pre-merge Phases 1-9 without an intermediate merge. Protected production migration/deployment/real-data population remain post-merge operations.
+On the **same** branch, verify the post-inventory-fix CI at the current head, then implement the missing organization-content lifecycle and protected position/assignment mutations, with audited revision-safe writes and deletion/reassignment policy. Continue through pre-merge Phases 1-9 without an intermediate merge. Production migration/deployment/real-data population remain post-merge operations.
