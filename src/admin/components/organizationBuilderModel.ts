@@ -16,21 +16,33 @@ export function flattenOrganizationHierarchy(units: readonly OrganizationUnitLis
   const sorted = [...units].sort((a, b) => a.sort_order - b.sort_order || a.title.localeCompare(b.title, "th"));
   const visited = new Set<string>();
   const result: OrganizationTreeNode[] = [];
-  function descend(unit: OrganizationUnitListRow, depth: number, detached: boolean) {
-    if (visited.has(unit.content_id)) return;
-    visited.add(unit.content_id);
-    result.push({ unit, depth, detached });
-    for (const child of sorted) {
-      if (child.parent_content_id === unit.content_id) descend(child, depth + 1, false);
+  const children = new Map<string, OrganizationUnitListRow[]>();
+  for (const unit of sorted) {
+    if (!unit.parent_content_id) continue;
+    const siblings = children.get(unit.parent_content_id) ?? [];
+    siblings.push(unit);
+    children.set(unit.parent_content_id, siblings);
+  }
+  function descend(root: OrganizationUnitListRow, detached: boolean) {
+    const stack: OrganizationTreeNode[] = [{ unit: root, depth: 0, detached }];
+    while (stack.length) {
+      const current = stack.pop();
+      if (!current || visited.has(current.unit.content_id)) continue;
+      visited.add(current.unit.content_id);
+      result.push(current);
+      const descendants = children.get(current.unit.content_id) ?? [];
+      for (let index = descendants.length - 1; index >= 0; index--) {
+        stack.push({ unit: descendants[index], depth: current.depth + 1, detached: false });
+      }
     }
   }
   for (const unit of sorted) {
     if (!unit.parent_content_id || !byId.has(unit.parent_content_id)) {
-      descend(unit, 0, Boolean(unit.parent_content_id));
+      descend(unit, Boolean(unit.parent_content_id));
     }
   }
-  // Corrupt/partially loaded cycles must never hang the editor or suppress records.
-  for (const unit of sorted) descend(unit, 0, true);
+  // Broken/cyclic/partially loaded graphs must never hang or silently hide units.
+  for (const unit of sorted) descend(unit, true);
   return result;
 }
 

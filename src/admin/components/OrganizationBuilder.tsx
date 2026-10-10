@@ -37,6 +37,7 @@ interface Props {
   units: readonly OrganizationUnitListRow[];
   allUnitsLoaded: boolean;
   canManage: boolean;
+  onEditUnit?: (unit: OrganizationUnitListRow) => void;
 }
 
 type PositionForm = Required<Omit<OrganizationPositionWrite, "occupantLimit">> & {
@@ -87,7 +88,7 @@ function pageQuery(collection: "positions" | "assignments" | "personnel") {
  * value is editable with keyboard/touch. The Worker owns revisions, capacity
  * checks, referential integrity and the immutable audit boundary.
  */
-export default function OrganizationBuilder({ units, allUnitsLoaded, canManage }: Props) {
+export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, onEditUnit }: Props) {
   const client = useQueryClient();
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [positionEditing, setPositionEditing] = useState<OrganizationPositionRow | null>(null);
@@ -361,9 +362,16 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage }
                     {selectedUnit ? "ตำแหน่งใน " + selectedUnit.title : "เลือกหน่วยงานจากรายการด้านซ้าย"}
                   </Typography>
                   {selectedUnit && canManage && (
-                    <Button variant="contained" disabled={busy} onClick={() => openPosition(null)}>
-                      เพิ่มตำแหน่ง
-                    </Button>
+                    <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
+                      {onEditUnit && (
+                        <Button variant="outlined" disabled={busy} onClick={() => onEditUnit(selectedUnit)}>
+                          แก้ไขหน่วยงาน/ลำดับชั้น
+                        </Button>
+                      )}
+                      <Button variant="contained" disabled={busy} onClick={() => openPosition(null)}>
+                        เพิ่มตำแหน่ง
+                      </Button>
+                    </Stack>
                   )}
                 </Stack>
                 {positionsQuery.isPending && <Typography role="status">กำลังโหลดตำแหน่ง…</Typography>}
@@ -387,7 +395,10 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage }
                                 <Chip size="small" label={position.group_label} variant="outlined" />
                               )}
                               <Chip size="small" label={"ลำดับ " + position.sort_order} variant="outlined" />
-                              {position.occupant_limit !== null && !assignmentsQuery.hasNextPage && (
+                              {position.occupant_limit !== null &&
+                                !assignmentsQuery.hasNextPage &&
+                                !assignmentsQuery.isPending &&
+                                !assignmentsQuery.isError && (
                                 <Chip
                                   size="small"
                                   label={

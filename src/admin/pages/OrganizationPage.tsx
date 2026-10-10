@@ -325,7 +325,12 @@ export default function OrganizationPage() {
         </CardContent>
       </Card>
       <OrganizationPersonnelDirectory canManage={canManage} canBrowseMedia={canBrowseMedia} />
-      <OrganizationBuilder units={rows} allUnitsLoaded={!units.hasNextPage && !units.isPending} canManage={canManage} />
+      <OrganizationBuilder
+        units={rows}
+        allUnitsLoaded={!units.hasNextPage && !units.isPending && !units.isError}
+        canManage={canManage}
+        onEditUnit={startEdit}
+      />
       {canManage && (
         <OrganizationUnitEditorDialog
           open={editorOpen}
