@@ -218,4 +218,3 @@ Add a dedicated CMS content type for organizational units and personnel structur
 ## Next action
 
 **PAUSE HERE.** Do not begin Phase 3 without new user authorization. Preserve `agent/org-01-domain-schema` and Draft PR #553. Upon resumption, implement Phase 3 Admin navigation/service layer on the same branch, without intermediate merge. Protected production migration/deployment and real-person data population remain post-merge phases.
-
