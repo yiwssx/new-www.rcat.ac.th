@@ -91,7 +91,7 @@ describe("Phase 4 Organization Admin list/editor", () => {
     renderPage();
     expect(await screen.findByRole("button", { name: "ฝ่ายบริหารทรัพยากร" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "โหลดหน่วยงานเพิ่มเติม" }));
-    expect(await screen.findByText("งานธุรการ")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "งานธุรการ" })).toBeInTheDocument();
     expect(api.getCollection).toHaveBeenCalledWith("units", 100, 1);
     expect(screen.queryByRole("button", { name: "โหลดหน่วยงานเพิ่มเติม" })).not.toBeInTheDocument();
   });
