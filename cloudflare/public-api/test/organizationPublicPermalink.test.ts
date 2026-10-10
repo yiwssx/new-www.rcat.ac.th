@@ -7,7 +7,6 @@ import type { Env } from "../src/env";
 
 let db: DatabaseSync;
 let env: Env;
-const now = "2026-10-10T16:00:00.000Z";
 
 function addContent(id: string, parent: string | null = null, status = "published", publishAt = "", unpublishAt = "") {
   db.prepare(
