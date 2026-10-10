@@ -87,19 +87,21 @@ export async function reorderOrganizationRows(
       WHERE ${matchScope}) = ${countParameter}`;
   // Write the audit first so it can only be recorded if every incoming
   // revision and the full sibling set match, at the serialized D1 boundary.
+  const auditOffset = args.length;
   const audit = db
     .prepare(
       `INSERT INTO admin_audit_log (id, entity_type, entity_id, action, actor, created_at, metadata_json)
-       SELECT ?, ?, ?, 'update', ?, ?, ? WHERE ${guard}`
+       SELECT ?${auditOffset + 1}, ?${auditOffset + 2}, ?${auditOffset + 3}, 'update',
+              ?${auditOffset + 4}, ?${auditOffset + 5}, ?${auditOffset + 6} WHERE ${guard}`
     )
     .bind(
+      ...args,
       `audit-${crypto.randomUUID()}`,
       isPosition ? "organization_position_order" : "organization_assignment_order",
       input.scopeId,
       actor,
       args[1],
-      JSON.stringify({ collection: input.collection, groupLabel: input.groupLabel, groupSortOrder: input.groupSortOrder, items: input.items }),
-      ...args
+      JSON.stringify({ collection: input.collection, groupLabel: input.groupLabel, groupSortOrder: input.groupSortOrder, items: input.items })
     );
   const update = db
     .prepare(
