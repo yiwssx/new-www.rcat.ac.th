@@ -2,6 +2,8 @@ import { readPublishedOrganization } from "../db/organizationReadRepository";
 import type { Env } from "../env";
 import { json, jsonError } from "../responses";
 import type { PublicOrganizationUnit } from "../db/organizationReadRepository";
+import { readPublicMediaRowsByIds } from "../db/publicMetadataRepository";
+import { mapMediaAssetRowToPublicMediaAsset } from "../adapters/publicMediaAdapter";
 
 /**
  * ASVS 8.2.3: expose only published organization chains, active assignments
@@ -61,5 +63,10 @@ export async function publicOrganizationDetail(env: Env, slug: string): Promise<
   const organization = await readPublishedOrganization(env);
   const result = selectPublishedOrganizationDetail(organization, slug);
   if (!result) return jsonError("not found", 404, { resource: "organization" });
-  return json(result, { headers: { "Cache-Control": "public, max-age=60" } });
+  const photoIds = result.positions.flatMap((position) =>
+    position.assignments.map((assignment) => assignment.person.photoMediaId).filter((id): id is string => Boolean(id))
+  );
+  const mediaRows = await readPublicMediaRowsByIds(env, photoIds);
+  const media = mediaRows.filter((row) => row.type === "image").map(mapMediaAssetRowToPublicMediaAsset);
+  return json({ ...result, media }, { headers: { "Cache-Control": "public, max-age=60" } });
 }
