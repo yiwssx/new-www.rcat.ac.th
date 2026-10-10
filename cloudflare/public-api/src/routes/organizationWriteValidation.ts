@@ -153,6 +153,10 @@ export function parseOrganizationPositionWrite(value: unknown): OrganizationPosi
     "occupantLimit"
   ]);
   const occupantLimit = input.occupantLimit;
+  let maxOccupants: number | null = null;
+  if (occupantLimit !== undefined && occupantLimit !== null) {
+    maxOccupants = integer(input, "occupantLimit", 1, 1, 500);
+  }
 
   return {
     unitContentId: requiredId(input, "unitContentId"),
@@ -161,7 +165,7 @@ export function parseOrganizationPositionWrite(value: unknown): OrganizationPosi
     groupSortOrder: integer(input, "groupSortOrder", 0),
     sortOrder: integer(input, "sortOrder", 0),
     displayStyle: text(input, "displayStyle", 64) || "default",
-    occupantLimit: occupantLimit === undefined || occupantLimit === null ? null : integer(input, "occupantLimit", 1, 1, 500)
+    occupantLimit: maxOccupants
   };
 }
 
