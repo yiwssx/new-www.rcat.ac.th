@@ -299,6 +299,7 @@ export async function getPublishedContentRowBySlug(env: Env, slug: string): Prom
       `SELECT ${PUBLIC_CONTENT_READ_COLUMNS.join(", ")}
        FROM contents
        WHERE ${PUBLIC_PUBLISHED_CONTENT_FILTER_SQL}
+         AND type <> 'organization'
          AND (slug = ? OR id = ?)
          AND COALESCE(deleted_at, '') = ''
        LIMIT 1`
