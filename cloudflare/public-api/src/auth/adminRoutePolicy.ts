@@ -67,10 +67,12 @@ export function resolveAdminRoutePolicy(method: string, segments: readonly strin
   if (segments[0] === "organization") {
     if (segments.length === 2 && ["units", "personnel", "positions", "assignments"].includes(segments[1])) {
       if (method === "GET") return requires("organization.read", "organization");
-      if (segments[1] === "personnel" && method === "POST") return requires("organization.manage", "organization");
+      if (["personnel", "positions", "assignments"].includes(segments[1]) && method === "POST") {
+        return requires("organization.manage", "organization");
+      }
     }
-    if (segments[1] === "personnel" && isDynamic(segments, 3) && method === "PATCH") {
-      return requires("organization.manage", "organization");
+    if (["personnel", "positions", "assignments"].includes(segments[1]) && isDynamic(segments, 3)) {
+      if (method === "PATCH") return requires("organization.manage", "organization");
     }
     return UNMATCHED;
   }
