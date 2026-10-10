@@ -15,8 +15,12 @@ describe("Phase 8 public search Organization privacy boundary", () => {
       prepare(sql: string) {
         queries.push(sql);
         return {
-          bind() { return this; },
-          async all() { return { results: [], success: true }; }
+          bind() {
+            return this;
+          },
+          async all() {
+            return { results: [], success: true };
+          }
         };
       }
     } as unknown as D1Database;
