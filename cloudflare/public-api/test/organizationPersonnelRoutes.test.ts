@@ -85,6 +85,39 @@ describe("Organization Chart protected personnel mutations", () => {
     expect(vi.mocked(createAuditedPersonnelRow).mock.calls[0]?.[2]).toBe(identity.actor);
   });
 
+  it("accepts only existing Media Library images as personnel photos", async () => {
+    const mediaEnv = {
+      DB: {
+        prepare: (query: string) => {
+          expect(query).toContain("type = 'image'");
+          return {
+            bind: (id: string) => ({
+              first: async () => id === "image-1" ? { id } : null
+            })
+          };
+        }
+      }
+    } as unknown as Env;
+
+    const rejected = await handleAdminOrganizationWrite(
+      req("POST", "personnel", { displayName: "Staff", photoMediaId: "document-1" }),
+      mediaEnv,
+      ["organization", "personnel"],
+      identity
+    );
+    expect(rejected?.status).toBe(400);
+    expect(createAuditedPersonnelRow).not.toHaveBeenCalled();
+
+    const accepted = await handleAdminOrganizationWrite(
+      req("POST", "personnel", { displayName: "Staff", photoMediaId: "image-1" }),
+      mediaEnv,
+      ["organization", "personnel"],
+      identity
+    );
+    expect(accepted?.status).toBe(201);
+    expect(vi.mocked(createAuditedPersonnelRow).mock.calls[0]?.[1]?.photo_media_id).toBe("image-1");
+  });
+
   it("rejects protected write fields and malformed payloads before D1", async () => {
     for (const body of [{ displayName: "A", role: "admin" }, { displayName: "A", revision: 42 }, []]) {
       const response = await handleAdminOrganizationWrite(
