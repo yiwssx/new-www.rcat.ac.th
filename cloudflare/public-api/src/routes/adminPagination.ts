@@ -1100,6 +1100,7 @@ async function handleDashboardSummary(env: Env) {
       `SELECT status AS key, COUNT(*) AS total
        FROM contents
        WHERE COALESCE(deleted_at, '') = ''
+         AND type <> 'organization'
        GROUP BY status`
     ),
     readAdminRows<{ key: string; total: number | string }>(
@@ -1107,6 +1108,7 @@ async function handleDashboardSummary(env: Env) {
       `SELECT status AS key, COUNT(*) AS total
        FROM documents
        WHERE COALESCE(deleted_at, '') = ''
+         AND type <> 'organization'
        GROUP BY status`
     ),
     readAdminRows<{ total: number | string }>(env, "SELECT COUNT(*) AS total FROM media_assets"),
@@ -1135,6 +1137,7 @@ async function handleDashboardSummary(env: Env) {
       `SELECT COUNT(*) AS total
        FROM contents
        WHERE COALESCE(deleted_at, '') = ''
+         AND type <> 'organization'
          AND ${PUBLISHABLE_CONTENT_SQL}`,
       publishableContentBindings(now)
     ),
@@ -1143,6 +1146,7 @@ async function handleDashboardSummary(env: Env) {
       `SELECT ${CONTENT_LIST_COLUMNS.join(", ")}
        FROM contents
        WHERE COALESCE(deleted_at, '') = ''
+         AND type <> 'organization'
          AND ${PUBLISHABLE_CONTENT_SQL}
        ORDER BY updated_at DESC, id ASC
        LIMIT 10`,
@@ -1153,6 +1157,7 @@ async function handleDashboardSummary(env: Env) {
       `SELECT ${CONTENT_LIST_COLUMNS.join(", ")}
        FROM contents
        WHERE COALESCE(deleted_at, '') = ''
+         AND type <> 'organization'
        ORDER BY updated_at DESC, id ASC
        LIMIT 10`
     ),
