@@ -44,4 +44,3 @@ export function personnelEditorDefaults(row: OrganizationPersonnelRow | null): P
 export function toPersonnelWrite(form: PersonnelEditorForm): OrganizationPersonnelWrite {
   return personnelEditorSchema.parse(form);
 }
-

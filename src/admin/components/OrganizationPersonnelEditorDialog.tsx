@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { personnelEditorSchema, personnelEditorDefaults, toPersonnelWrite, type PersonnelEditorForm } from "./organizationPersonnelEditorModel";
+import {
+  personnelEditorSchema,
+  personnelEditorDefaults,
+  toPersonnelWrite,
+  type PersonnelEditorForm
+} from "./organizationPersonnelEditorModel";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -111,7 +116,11 @@ export default function OrganizationPersonnelEditorDialog({
                   <Stack spacing={1}>
                     <Typography variant="body2">รูปประจำตัวจากคลังสื่อ</Typography>
                     <Typography variant="caption" sx={{ overflowWrap: "anywhere" }} color="text.secondary">
-                      {selectedPhoto?.id === field.value ? selectedPhoto.name : (field.value ? `Media ID: ${field.value}` : "ยังไม่ได้เลือกรูปภาพ")}
+                      {selectedPhoto?.id === field.value
+                        ? selectedPhoto.name
+                        : field.value
+                          ? `Media ID: ${field.value}`
+                          : "ยังไม่ได้เลือกรูปภาพ"}
                     </Typography>
                     <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
                       <Button
