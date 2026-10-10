@@ -38,7 +38,6 @@ export default function OrganizationUnitEditorDialog({ open, initial, units, bus
     control,
     handleSubmit,
     reset,
-    watch,
     formState: { errors, isDirty }
   } = useForm<OrganizationEditorForm>({
     resolver: zodResolver(organizationEditorSchema),
