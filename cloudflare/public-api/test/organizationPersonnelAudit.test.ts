@@ -63,9 +63,7 @@ function sqliteD1(): D1Database {
 }
 
 function auditCount() {
-  return Number(
-    (database.prepare("SELECT COUNT(*) AS count FROM admin_audit_log").get() as { count: number }).count
-  );
+  return Number((database.prepare("SELECT COUNT(*) AS count FROM admin_audit_log").get() as { count: number }).count);
 }
 
 beforeEach(() => {
@@ -99,8 +97,9 @@ describe("Organization Chart atomic personnel and audit persistence", () => {
 
   it("increments revisions and audits only successful compare-and-swap updates", async () => {
     await createAuditedPersonnelRow(env, person, "editor");
-    expect(await updateAuditedPersonnelRow(env, { ...person, display_name: "Changed" }, 0, "editor", ["displayName"]))
-      .toBe(true);
+    expect(
+      await updateAuditedPersonnelRow(env, { ...person, display_name: "Changed" }, 0, "editor", ["displayName"])
+    ).toBe(true);
     expect((await getAdminPersonnelById(env, person.id))?.revision).toBe(1);
     expect(auditCount()).toBe(2);
     const changed = database.prepare("SELECT metadata_json FROM admin_audit_log WHERE action = 'update'").get() as {
@@ -111,8 +110,9 @@ describe("Organization Chart atomic personnel and audit persistence", () => {
       expectedRevision: 0
     });
     expect(changed.metadata_json).not.toContain("private@example.invalid");
-    expect(await updateAuditedPersonnelRow(env, { ...person, display_name: "Stale" }, 0, "editor", ["displayName"]))
-      .toBe(false);
+    expect(
+      await updateAuditedPersonnelRow(env, { ...person, display_name: "Stale" }, 0, "editor", ["displayName"])
+    ).toBe(false);
     expect(auditCount()).toBe(2);
     expect((await getAdminPersonnelById(env, person.id))?.display_name).toBe("Changed");
   });
