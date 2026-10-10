@@ -217,7 +217,7 @@ importers:
         version: 3.9.9
       sigmap:
         specifier: ^8.62.0
-        version: 8.65.3
+        version: 8.69.0
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -311,6 +311,10 @@ packages:
     resolution: {integrity: sha512-E8lTAYNB1KW+FH+VGJuZM1ioAx2E6oVlvQFRrf5P8ZZmsiJXYAD9vTFV7yyEURNzgh1dFqMZuO6tUwcARbqFCA==}
     engines: {node: '>=6.0.0'}
     hasBin: true
+
+  '@babel/runtime@7.29.10':
+    resolution: {integrity: sha512-NpugTzbKgGrNe45Ui32cN8vCFFMxVtP/9rtfwv0nP5FRDAjvYBxJcLVpYA9mr1jxP6cnIT7x9LUzuDTbWYYNRA==}
+    engines: {node: '>=6.9.0'}
 
   '@babel/runtime@7.29.7':
     resolution: {integrity: sha512-Nq8OhGWiZIZGV6hLHoyAKLLcJihP/xFeBMGJoUrxTX2psI8dCifzLhZISFb+VWS3wFMRDmCGw5R+dOySCqPLhw==}
@@ -2991,8 +2995,8 @@ packages:
     resolution: {integrity: sha512-7++dFhtcx3353uBaq8DDR4NuxBetBzC7ZQOhmTQInHEd6bSrXdiEyzCvG07Z44UYdLShWUyXt5M/yhz8ekcb1A==}
     engines: {node: '>=8'}
 
-  sigmap@8.65.3:
-    resolution: {integrity: sha512-iZMT+Us8pZ7/eY33kuEKaZRcQHcaJlBDWIzaypcCd/YGvmKUdwEM2shb355D7spAegx6L35yYea4bPgrbT1xPg==}
+  sigmap@8.69.0:
+    resolution: {integrity: sha512-p/Pb2Em1tEs1aZpRGdc1N4M1WbvqhmmrPHLNvuGPb7n1KZ27T0ccLaAsrCBNh/qcdN3CqzEIN5t+7P3CJI8p7A==}
     engines: {node: '>=18.0.0'}
     hasBin: true
 
@@ -3507,6 +3511,8 @@ snapshots:
   '@babel/parser@7.29.8':
     dependencies:
       '@babel/types': 7.29.8
+
+  '@babel/runtime@7.29.10': {}
 
   '@babel/runtime@7.29.7': {}
 
@@ -4382,7 +4388,7 @@ snapshots:
   '@testing-library/dom@10.4.1':
     dependencies:
       '@babel/code-frame': 7.29.7
-      '@babel/runtime': 7.29.7
+      '@babel/runtime': 7.29.10
       '@types/aria-query': 5.0.4
       aria-query: 5.3.0
       dom-accessibility-api: 0.5.16
@@ -5892,7 +5898,7 @@ snapshots:
 
   shebang-regex@3.0.0: {}
 
-  sigmap@8.65.3: {}
+  sigmap@8.69.0: {}
 
   signal-exit@3.0.7: {}
 
