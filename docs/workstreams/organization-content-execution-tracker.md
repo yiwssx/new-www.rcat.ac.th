@@ -296,3 +296,11 @@ Add a dedicated CMS content type for organizational units and personnel structur
 - Next gates: interactive position/assignment CRUD and reassignment; keyboard/touch-accessible ordering; full-result loading, D1-atomic multi-record reordering if provided, and exact-final-head CI.
 - The proposed Tree View / drag packages remain **not installed** pending an accessible prototype and peer/license review. Existing React/MUI controls can provide an immediate non-drag baseline; do not equate drag functionality with a correct transactional reorder API.
 - Phase 6 is **IN PROGRESS**, not complete. Preserve historical checkpoint entries above as evidence rather than retroactively rewriting them.
+
+## Phase 6 continuity — 2026-10-10 Asia/Bangkok
+
+- Continued on the latest CI-green feature branch; earlier exact-head run [#38063244786](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38063244786) passed before this checkpoint.
+- Hardened builder narrow-screen hierarchy indentation, distinct empty-vs-failed position states, partial-page messaging and unloaded dropdown selection stability.
+- Added UI regression tests for paging past the initial 100-position window, failed reads, and stale-revision rejection. Recheck exact new head CI before marking Phase 6 complete.
+- No Tree View or drag/drop package installed; keyboard/touch-editable numeric ordering remains the supported accessible path pending any justified atomic batch-reorder requirements.
+- Governance: draft PR #553, single branch only, no merge or protected production operations.

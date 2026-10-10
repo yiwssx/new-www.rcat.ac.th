@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { AdminStaleRevisionError } from "../../features/admin-write/errors";
 import type { OrganizationUnitListRow } from "../../features/organization-admin/api";
 import OrganizationBuilder from "./OrganizationBuilder";
 
@@ -181,4 +182,60 @@ describe("Phase 6 accessible Organization builder", () => {
     expect(screen.getByText(/บันทึกบุคลากรคนเดิมซ้ำในหลายตำแหน่ง/)).toBeInTheDocument();
     expect(api.create).not.toHaveBeenCalled();
   });
+  it("paginates positions explicitly instead of silently hiding items beyond the first page", async () => {
+    api.list.mockImplementation(async (collection: string, _limit: number, offset = 0) => ({
+      items:
+        collection === "positions" && offset > 0
+          ? [
+              {
+                id: "position-2",
+                unit_content_id: "work-1",
+                title: "เจ้าหน้าที่ประสานงาน",
+                group_label: "",
+                group_sort_order: 0,
+                sort_order: 2,
+                display_style: "default",
+                occupant_limit: null,
+                revision: 0
+              }
+            ]
+          : [],
+      nextOffset: collection === "positions" && offset === 0 ? 100 : null,
+      maximumItems: 100,
+      generatedAt: ""
+    }));
+    setup(false);
+    fireEvent.click(screen.getByRole("button", { name: "งานสารบรรณ" }));
+    expect(await screen.findByText(/ยังไม่พบตำแหน่งของหน่วยงานนี้ในรายการที่โหลด/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "โหลดตำแหน่งเพิ่มเติม" }));
+    expect(await screen.findByText("เจ้าหน้าที่ประสานงาน")).toBeInTheDocument();
+    expect(api.list).toHaveBeenCalledWith("positions", 100, 100);
+  });
+
+  it("does not report an empty unit as authoritative when loading positions fails", async () => {
+    api.list.mockImplementation(async (collection: string) => {
+      if (collection === "positions") throw new Error("temporary database failure");
+      return { items: [], nextOffset: null, maximumItems: 100, generatedAt: "" };
+    });
+    setup(false);
+    fireEvent.click(screen.getByRole("button", { name: "งานสารบรรณ" }));
+    expect(await screen.findByText(/โหลดข้อมูลตำแหน่ง\/หน้าที่\/บุคลากรไม่สำเร็จ/)).toBeInTheDocument();
+    expect(screen.queryByText("ยังไม่มีตำแหน่งในหน่วยงานนี้")).not.toBeInTheDocument();
+  });
+
+  it("fails closed on concurrent position changes and refuses an unversioned overwrite", async () => {
+    api.update.mockRejectedValueOnce(new AdminStaleRevisionError());
+    setup(true);
+    fireEvent.click(screen.getByRole("button", { name: "งานสารบรรณ" }));
+    fireEvent.click(await screen.findByRole("button", { name: "แก้ไขตำแหน่ง" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "ชื่อตำแหน่ง" }), {
+      target: { value: "หัวหน้างาน (แก้ไข)" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกตำแหน่ง" }));
+    await waitFor(() => expect(api.update).toHaveBeenCalledWith(
+      "positions", "position-1", 0, expect.objectContaining({ title: "หัวหน้างาน (แก้ไข)" })
+    ));
+    expect(await screen.findByText(/ตำแหน่งถูกเปลี่ยนแปลงโดยผู้ดูแลอื่น/)).toBeInTheDocument();
+  });
+
 });

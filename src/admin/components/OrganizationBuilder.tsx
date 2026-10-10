@@ -336,7 +336,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                       sx={{
                         textAlign: "left",
                         justifyContent: "flex-start",
-                        pl: Math.min(depth, 12) * 2 + 1,
+                        pl: { xs: Math.min(depth, 3) * 1.5 + 1, md: Math.min(depth, 12) * 2 + 1 },
                         overflowWrap: "anywhere",
                         whiteSpace: "normal"
                       }}
@@ -375,8 +375,12 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                   )}
                 </Stack>
                 {positionsQuery.isPending && <Typography role="status">กำลังโหลดตำแหน่ง…</Typography>}
-                {selectedUnit && visiblePositions.length === 0 && !positionsQuery.isPending && (
-                  <Alert severity="info">ยังไม่มีตำแหน่งในหน่วยงานนี้ หรือยังโหลดรายการไม่ครบ</Alert>
+                {selectedUnit && visiblePositions.length === 0 && !positionsQuery.isPending && !positionsQuery.isError && (
+                  <Alert severity="info">
+                    {positionsQuery.hasNextPage
+                      ? "ยังไม่พบตำแหน่งของหน่วยงานนี้ในรายการที่โหลด กรุณาโหลดหน้าถัดไป"
+                      : "ยังไม่มีตำแหน่งในหน่วยงานนี้"}
+                  </Alert>
                 )}
                 {visiblePositions.map((position) => {
                   const assigned = assignmentsByPosition.get(position.id) ?? [];
@@ -576,6 +580,11 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                     value={assignmentForm.personnelId}
                     onChange={(event) => setAssignmentForm({ ...assignmentForm, personnelId: event.target.value })}
                   >
+                    {assignmentForm.personnelId && !byPerson.has(assignmentForm.personnelId) && (
+                      <MenuItem value={assignmentForm.personnelId} disabled>
+                        รหัสบุคลากร {assignmentForm.personnelId} (ยังไม่ได้โหลดข้อมูล)
+                      </MenuItem>
+                    )}
                     {personnel.map((person) => (
                       <MenuItem key={person.id} value={person.id}>
                         {person.display_name}
@@ -591,6 +600,11 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                     value={assignmentForm.positionId}
                     onChange={(event) => setAssignmentForm({ ...assignmentForm, positionId: event.target.value })}
                   >
+                    {assignmentForm.positionId && !positions.some((row) => row.id === assignmentForm.positionId) && (
+                      <MenuItem value={assignmentForm.positionId} disabled>
+                        รหัสตำแหน่ง {assignmentForm.positionId} (ยังไม่ได้โหลดข้อมูล)
+                      </MenuItem>
+                    )}
                     {positions.map((position) => (
                       <MenuItem key={position.id} value={position.id}>
                         {(byUnit.get(position.unit_content_id)?.title ?? position.unit_content_id) +
