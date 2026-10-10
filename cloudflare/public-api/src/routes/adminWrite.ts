@@ -66,6 +66,7 @@ import {
 } from "../securityRateLimit";
 import { handleAdminBackup } from "./adminBackup";
 import { handleAdminOrganizationRead } from "./adminOrganization";
+import { handleAdminOrganizationWrite } from "./adminOrganizationWrite";
 import { handleAdminPaginatedReads } from "./adminPagination";
 import { handleAdminStructuredParity, readAdminStructuredSnapshot } from "./adminStructuredParity";
 
@@ -2145,6 +2146,11 @@ export async function adminWrite(request: Request, env: Env): Promise<Response |
 
     if (backupResponse) {
       return backupResponse;
+    }
+
+    const organizationWriteResponse = await handleAdminOrganizationWrite(request, env, segments, authResult.identity);
+    if (organizationWriteResponse) {
+      return organizationWriteResponse;
     }
 
     const organizationResponse = await handleAdminOrganizationRead(request, env, segments);
