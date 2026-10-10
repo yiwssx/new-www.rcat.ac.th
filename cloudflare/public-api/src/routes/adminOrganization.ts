@@ -16,9 +16,9 @@ function isCollection(value: string | undefined): value is Collection {
   return COLLECTIONS.some((collection) => collection === value);
 }
 
-function readPageParams(request: Request, units: boolean): { limit: number; offset: number } | null {
+function readPageParams(request: Request, paginated: boolean): { limit: number; offset: number } | null {
   const params = new URL(request.url).searchParams;
-  if ([...params.keys()].some((key) => key !== "limit" && (key !== "offset" || !units))) return null;
+  if ([...params.keys()].some((key) => key !== "limit" && (key !== "offset" || !paginated))) return null;
   if (params.getAll("limit").length > 1 || params.getAll("offset").length > 1) return null;
   const raw = params.get("limit");
   const rawOffset = params.get("offset");
@@ -59,7 +59,7 @@ export async function handleAdminOrganizationRead(request: Request, env: Env, se
     return jsonError("not found", 404, { resource: "organization" });
   }
 
-  const page = readPageParams(request, collection === "units");
+  const page = readPageParams(request, collection === "units" || collection === "personnel");
   if (page === null) return jsonError("invalid organization page parameters", 400, { resource: "organization" });
   const { limit, offset } = page;
 
@@ -67,7 +67,7 @@ export async function handleAdminOrganizationRead(request: Request, env: Env, se
     collection === "units"
       ? await listAdminOrganizationContentUnits(env, limit, offset)
       : collection === "personnel"
-        ? await listAdminPersonnel(env, limit)
+        ? await listAdminPersonnel(env, limit, offset)
         : collection === "positions"
           ? await listAdminOrganizationPositions(env, limit)
           : await listAdminOrganizationAssignments(env, limit);
@@ -76,7 +76,7 @@ export async function handleAdminOrganizationRead(request: Request, env: Env, se
     {
       items,
       maximumItems: limit,
-      nextOffset: collection === "units" && items.length === limit ? offset + limit : null,
+      nextOffset: (collection === "units" || collection === "personnel") && items.length === limit ? offset + limit : null,
       generatedAt: new Date().toISOString()
     },
     { headers: { "Cache-Control": "no-store" } }
