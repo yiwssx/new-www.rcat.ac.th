@@ -9,24 +9,23 @@ let db: DatabaseSync;
 let env: Env;
 const now = "2026-10-10T16:00:00.000Z";
 
-function addContent(
-  id: string,
-  parent: string | null = null,
-  status = "published",
-  publishAt = "",
-  unpublishAt = ""
-) {
+function addContent(id: string, parent: string | null = null, status = "published", publishAt = "", unpublishAt = "") {
   db.prepare(
     "INSERT INTO contents (id, type, slug, title, summary, status, publish_at, unpublish_at) " +
       "VALUES (?, 'organization', ?, ?, ?, ?, ?, ?)"
   ).run(id, id, id, `Summary ${id}`, status, publishAt, unpublishAt);
-  db.prepare("INSERT INTO organization_units (content_id, parent_content_id, unit_kind) VALUES (?, ?, 'work')").run(id, parent);
+  db.prepare("INSERT INTO organization_units (content_id, parent_content_id, unit_kind) VALUES (?, ?, 'work')").run(
+    id,
+    parent
+  );
 }
 
 function addPosition(id: string, unit: string) {
-  db.prepare(
-    "INSERT INTO organization_positions (id, unit_content_id, title) VALUES (?, ?, ?)"
-  ).run(id, unit, `Position ${id}`);
+  db.prepare("INSERT INTO organization_positions (id, unit_content_id, title) VALUES (?, ?, ?)").run(
+    id,
+    unit,
+    `Position ${id}`
+  );
 }
 
 function addPerson(id: string, emailVisible = 0, active = 1) {
@@ -37,8 +36,12 @@ function addPerson(id: string, emailVisible = 0, active = 1) {
 }
 
 function assign(id: string, person: string, position: string, enabled = 1) {
-  db.prepare("INSERT INTO organization_assignments (id, personnel_id, position_id, enabled) VALUES (?, ?, ?, ?)")
-    .run(id, person, position, enabled);
+  db.prepare("INSERT INTO organization_assignments (id, personnel_id, position_id, enabled) VALUES (?, ?, ?, ?)").run(
+    id,
+    person,
+    position,
+    enabled
+  );
 }
 
 function database(): D1Database {
@@ -91,7 +94,7 @@ describe("published organization permalink", () => {
     assign("a2", "public", "p2");
     const response = await publicOrganizationDetail(env, "work");
     expect(response.status).toBe(200);
-    const payload = await response.json() as {
+    const payload = (await response.json()) as {
       unit: { slug: string };
       ancestors: Array<{ slug: string }>;
       units: Array<{ slug: string }>;
@@ -104,7 +107,8 @@ describe("published organization permalink", () => {
     expect(payload.positions.map((item) => item.id)).toEqual(["p1", "p2"]);
     expect(payload.positions[0]?.assignments[0]?.person).toMatchObject({ publicEmail: "", publicPhone: "" });
     expect(payload.positions[1]?.assignments[0]?.person).toMatchObject({
-      publicEmail: "public@example.invalid", publicPhone: ""
+      publicEmail: "public@example.invalid",
+      publicPhone: ""
     });
     expect(JSON.stringify(payload)).not.toContain("private@example.invalid");
     expect(JSON.stringify(payload)).not.toContain("0123456789");
@@ -137,7 +141,7 @@ describe("published organization permalink", () => {
     assign("hidden-assignment", "enabled", "hidden-pos");
     const response = await publicOrganizationDetail(env, "root");
     expect(response.status).toBe(200);
-    const payload = await response.json() as {
+    const payload = (await response.json()) as {
       units: Array<{ slug: string }>;
       positions: Array<{ id: string; assignments: Array<{ id: string }> }>;
     };

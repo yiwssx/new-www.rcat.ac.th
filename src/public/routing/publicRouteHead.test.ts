@@ -116,16 +116,18 @@ describe("public route head metadata", () => {
         summary: "รายละเอียดงานวิชาการ",
         depth: 1
       },
-      ancestors: [{
-        contentId: "division",
-        parentContentId: null,
-        unitKind: "division",
-        sortOrder: 0,
-        slug: "academic-division",
-        title: "ฝ่ายวิชาการ",
-        summary: "",
-        depth: 0
-      }],
+      ancestors: [
+        {
+          contentId: "division",
+          parentContentId: null,
+          unitKind: "division",
+          sortOrder: 0,
+          slug: "academic-division",
+          title: "ฝ่ายวิชาการ",
+          summary: "",
+          depth: 0
+        }
+      ],
       units: [],
       positions: [],
       media: []
@@ -135,16 +137,19 @@ describe("public route head metadata", () => {
     });
     expect(getMetaContent(head, "title")).toBe(`งานวิชาการ | ${siteSettings.siteName}`);
     expect(getMetaContent(head, "name", "description")).toBe("รายละเอียดงานวิชาการ");
-    expect(head.links).toEqual([{
-      rel: "canonical",
-      href: `${projectSettings.site.publicSiteUrl}/organization/academic-work`
-    }]);
+    expect(head.links).toEqual([
+      {
+        rel: "canonical",
+        href: `${projectSettings.site.publicSiteUrl}/organization/academic-work`
+      }
+    ]);
     expect(getJsonLd(head, "rcat-organization-page-jsonld")).toMatchObject({
       "@type": "WebPage",
       name: "งานวิชาการ"
     });
-    expect(getJsonLd(head, "rcat-breadcrumb-jsonld").itemListElement.map((item: { name: string }) => item.name))
-      .toEqual(["หน้าหลัก", "ฝ่ายวิชาการ", "งานวิชาการ"]);
+    expect(
+      getJsonLd(head, "rcat-breadcrumb-jsonld").itemListElement.map((item: { name: string }) => item.name)
+    ).toEqual(["หน้าหลัก", "ฝ่ายวิชาการ", "งานวิชาการ"]);
   });
 
   it("never indexes a missing or failed organization public loader result", () => {

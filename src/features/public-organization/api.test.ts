@@ -10,7 +10,10 @@ describe("public Organization permalink facade", () => {
   it("fetches only its namespaced slug and preserves public snapshot", async () => {
     const detail = {
       unit: { contentId: "unit-1", slug: "academic", title: "วิชาการ" },
-      ancestors: [], units: [], positions: [], media: []
+      ancestors: [],
+      units: [],
+      positions: [],
+      media: []
     };
     requestMock.mockResolvedValueOnce(detail);
     expect(await getPublicOrganizationDetail("academic")).toEqual(detail);
