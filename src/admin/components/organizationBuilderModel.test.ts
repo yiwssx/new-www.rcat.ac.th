@@ -76,12 +76,7 @@ describe("Phase 6 Organization builder model", () => {
   });
 
   it("preserves stored seconds when an existing date field is unchanged", () => {
-    expect(assignmentDateToUtc("2026-10-10T08:20", "2026-10-10T01:20:23.000Z")).toBe(
-      "2026-10-10T01:20:23.000Z"
-    );
-    expect(assignmentDateToUtc("2026-10-10T08:21", "2026-10-10T01:20:23.000Z")).toBe(
-      "2026-10-10T01:21:00.000Z"
-    );
+    expect(assignmentDateToUtc("2026-10-10T08:20", "2026-10-10T01:20:23.000Z")).toBe("2026-10-10T01:20:23.000Z");
+    expect(assignmentDateToUtc("2026-10-10T08:21", "2026-10-10T01:20:23.000Z")).toBe("2026-10-10T01:21:00.000Z");
   });
-
 });
