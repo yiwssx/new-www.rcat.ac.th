@@ -232,10 +232,14 @@ describe("Phase 6 accessible Organization builder", () => {
       target: { value: "หัวหน้างาน (แก้ไข)" }
     });
     fireEvent.click(screen.getByRole("button", { name: "บันทึกตำแหน่ง" }));
-    await waitFor(() => expect(api.update).toHaveBeenCalledWith(
-      "positions", "position-1", 0, expect.objectContaining({ title: "หัวหน้างาน (แก้ไข)" })
-    ));
+    await waitFor(() =>
+      expect(api.update).toHaveBeenCalledWith(
+        "positions",
+        "position-1",
+        0,
+        expect.objectContaining({ title: "หัวหน้างาน (แก้ไข)" })
+      )
+    );
     expect(await screen.findByText(/ตำแหน่งถูกเปลี่ยนแปลงโดยผู้ดูแลอื่น/)).toBeInTheDocument();
   });
-
 });

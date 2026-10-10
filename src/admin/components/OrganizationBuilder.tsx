@@ -375,13 +375,16 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                   )}
                 </Stack>
                 {positionsQuery.isPending && <Typography role="status">กำลังโหลดตำแหน่ง…</Typography>}
-                {selectedUnit && visiblePositions.length === 0 && !positionsQuery.isPending && !positionsQuery.isError && (
-                  <Alert severity="info">
-                    {positionsQuery.hasNextPage
-                      ? "ยังไม่พบตำแหน่งของหน่วยงานนี้ในรายการที่โหลด กรุณาโหลดหน้าถัดไป"
-                      : "ยังไม่มีตำแหน่งในหน่วยงานนี้"}
-                  </Alert>
-                )}
+                {selectedUnit &&
+                  visiblePositions.length === 0 &&
+                  !positionsQuery.isPending &&
+                  !positionsQuery.isError && (
+                    <Alert severity="info">
+                      {positionsQuery.hasNextPage
+                        ? "ยังไม่พบตำแหน่งของหน่วยงานนี้ในรายการที่โหลด กรุณาโหลดหน้าถัดไป"
+                        : "ยังไม่มีตำแหน่งในหน่วยงานนี้"}
+                    </Alert>
+                  )}
                 {visiblePositions.map((position) => {
                   const assigned = assignmentsByPosition.get(position.id) ?? [];
                   return (
