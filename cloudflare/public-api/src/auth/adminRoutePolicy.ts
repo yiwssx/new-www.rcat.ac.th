@@ -72,7 +72,7 @@ export function resolveAdminRoutePolicy(method: string, segments: readonly strin
       }
     }
     if (["units", "personnel", "positions", "assignments"].includes(segments[1]) && isDynamic(segments, 3)) {
-      if (segments[1] === "units" && method === "GET") return requires("organization.read", "organization");
+      if (method === "GET") return requires("organization.read", "organization");
       if (method === "PATCH" || method === "DELETE") {
         return requires("organization.manage", "organization");
       }
