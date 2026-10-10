@@ -244,7 +244,11 @@ export default function PublicSearchPage() {
                           {unit.title}
                         </Typography>
                         {unit.summary && (
-                          <Typography color="text.secondary" variant="body2" sx={{ mt: 0.75, overflowWrap: "anywhere" }}>
+                          <Typography
+                            color="text.secondary"
+                            variant="body2"
+                            sx={{ mt: 0.75, overflowWrap: "anywhere" }}
+                          >
                             {unit.summary}
                           </Typography>
                         )}

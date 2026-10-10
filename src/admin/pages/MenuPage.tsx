@@ -670,7 +670,9 @@ export default function MenuPage() {
                 value={
                   (publishedOrganizationQuery.data ?? []).some(
                     (unit) => `/organization/${encodeURIComponent(unit.slug)}` === normalizedFormHref
-                  ) ? normalizedFormHref : ""
+                  )
+                    ? normalizedFormHref
+                    : ""
                 }
                 onChange={(event) => {
                   const path = String(event.target.value || "");

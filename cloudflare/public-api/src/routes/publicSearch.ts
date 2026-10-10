@@ -79,10 +79,12 @@ export async function publicSearch(request: Request, env: Env) {
     }
 
     const [shellMetadataRows, visibleUnits] = await Promise.all([shellMetadataPromise, organizationPromise]);
-    const normalizedQuery = query.toLocaleLowerCase('th');
-    const organizationItems = visibleUnits.filter((unit) =>
-      [unit.title, unit.summary, unit.slug].some((field) => field.toLocaleLowerCase('th').includes(normalizedQuery))
-    ).slice(0, 30);
+    const normalizedQuery = query.toLocaleLowerCase("th");
+    const organizationItems = visibleUnits
+      .filter((unit) =>
+        [unit.title, unit.summary, unit.slug].some((field) => field.toLocaleLowerCase("th").includes(normalizedQuery))
+      )
+      .slice(0, 30);
     const metadata = createPublicMetadata({
       ...shellMetadataRows,
       media: [],

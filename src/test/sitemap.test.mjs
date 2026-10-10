@@ -112,8 +112,12 @@ describe("runtime sitemap generation", () => {
       organization: [{ slug: "ฝ่ายวิชาการ", title: "ฝ่ายวิชาการ" }, { slug: "../private" }],
       content: [{ type: "organization", slug: "unscoped", status: "published" }]
     });
-    expect(getPublishedOrganizationSitemapRoute({ slug: "ฝ่ายวิชาการ" })).toBe("/organization/%E0%B8%9D%E0%B9%88%E0%B8%B2%E0%B8%A2%E0%B8%A7%E0%B8%B4%E0%B8%8A%E0%B8%B2%E0%B8%81%E0%B8%B2%E0%B8%A3");
-    expect(urls).toContain("https://school.example/organization/%E0%B8%9D%E0%B9%88%E0%B8%B2%E0%B8%A2%E0%B8%A7%E0%B8%B4%E0%B8%8A%E0%B8%B2%E0%B8%81%E0%B8%B2%E0%B8%A3");
+    expect(getPublishedOrganizationSitemapRoute({ slug: "ฝ่ายวิชาการ" })).toBe(
+      "/organization/%E0%B8%9D%E0%B9%88%E0%B8%B2%E0%B8%A2%E0%B8%A7%E0%B8%B4%E0%B8%8A%E0%B8%B2%E0%B8%81%E0%B8%B2%E0%B8%A3"
+    );
+    expect(urls).toContain(
+      "https://school.example/organization/%E0%B8%9D%E0%B9%88%E0%B8%B2%E0%B8%A2%E0%B8%A7%E0%B8%B4%E0%B8%8A%E0%B8%B2%E0%B8%81%E0%B8%B2%E0%B8%A3"
+    );
     expect(urls.join("\\n")).not.toContain("unscoped");
     expect(urls.join("\\n")).not.toContain("private");
   });
