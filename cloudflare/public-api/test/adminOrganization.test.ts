@@ -72,7 +72,7 @@ describe("Organization Chart Admin read boundary", () => {
       expect(response?.status).toBe(200);
       expect(response?.headers.get("Cache-Control")).toBe("no-store");
       expect(await response?.json()).toMatchObject({ items: [], maximumItems: 25 });
-      expect(read).toHaveBeenCalledWith(...(collection === "units" ? [env, 25, 0] : [env, 25]));
+      expect(read).toHaveBeenCalledWith(...(["units", "personnel"].includes(collection) ? [env, 25, 0] : [env, 25]));
     }
   });
 
@@ -84,7 +84,7 @@ describe("Organization Chart Admin read boundary", () => {
       "?limit=x",
       "?limit=1&limit=2",
       "?sort=id",
-      "?offset=3"
+      "?offset=-1"
     ]) {
       const response = await handleAdminOrganizationRead(
         new Request(`https://example.invalid/api/admin/organization/personnel${query}`),
@@ -94,6 +94,26 @@ describe("Organization Chart Admin read boundary", () => {
       expect(response?.status).toBe(400);
     }
     expect(listAdminPersonnel).not.toHaveBeenCalled();
+  });
+
+  it("supports offset paging for a reusable personnel directory without leaking other collections", async () => {
+    vi.mocked(listAdminPersonnel).mockResolvedValueOnce([
+      { id: "person-002" }, { id: "person-003" }
+    ] as never);
+    const response = await handleAdminOrganizationRead(
+      new Request("https://example.invalid/api/admin/organization/personnel?limit=2&offset=2"),
+      env,
+      ["organization", "personnel"]
+    );
+    expect(response?.status).toBe(200);
+    expect(await response?.json()).toMatchObject({ maximumItems: 2, nextOffset: 4 });
+    expect(listAdminPersonnel).toHaveBeenCalledWith(env, 2, 2);
+    const invalid = await handleAdminOrganizationRead(
+      new Request("https://example.invalid/api/admin/organization/assignments?offset=1"),
+      env,
+      ["organization", "assignments"]
+    );
+    expect(invalid?.status).toBe(400);
   });
 
   it("bounds unit pagination and emits nextOffset only for a full page", async () => {
