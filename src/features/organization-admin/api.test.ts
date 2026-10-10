@@ -19,6 +19,10 @@ describe("organization Admin facade", () => {
     await getOrganizationCollection("units", 25, 50);
     expect(requestMock).toHaveBeenCalledWith("/api/admin/organization/units?limit=25&offset=50");
     await expect(getOrganizationCollection("units", 101)).rejects.toThrow();
+    requestMock.mockResolvedValueOnce({ items: [], maximumItems: 100, nextOffset: null, generatedAt: "" });
+    await getOrganizationCollection("personnel", 100, 100);
+    expect(requestMock).toHaveBeenLastCalledWith("/api/admin/organization/personnel?limit=100&offset=100");
+    await expect(getOrganizationCollection("assignments", 100, 1)).rejects.toThrow(/offset/);
   });
 
   it("requires exact revisions on mutations and preserves API authentication handling", async () => {
