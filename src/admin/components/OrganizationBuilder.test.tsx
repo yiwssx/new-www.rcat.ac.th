@@ -131,6 +131,48 @@ describe("Phase 6 accessible Organization builder", () => {
     );
   });
 
+  it("assigns an existing canonical person with audited position input and no duplicate profile", async () => {
+    setup(true);
+    fireEvent.click(screen.getByRole("button", { name: "งานสารบรรณ" }));
+    fireEvent.click(await screen.findByRole("button", { name: "มอบหมายบุคลากร" }));
+    fireEvent.mouseDown(screen.getByRole("combobox", { name: "บุคลากรจากทะเบียนกลาง" }));
+    fireEvent.click(await screen.findByRole("option", { name: "บุคลากรทดสอบ" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "รายละเอียดหน้าที่" }), {
+      target: { value: "ประสานงานเอกสาร" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกหน้าที่" }));
+    await waitFor(() =>
+      expect(api.create).toHaveBeenCalledWith(
+        "assignments",
+        expect.objectContaining({
+          personnelId: "person-1",
+          positionId: "position-1",
+          dutyDetail: "ประสานงานเอกสาร",
+          enabled: true
+        })
+      )
+    );
+    expect(api.create).not.toHaveBeenCalledWith("personnel", expect.anything());
+  });
+
+  it("updates a position against the row revision, not an unguarded write", async () => {
+    setup(true);
+    fireEvent.click(screen.getByRole("button", { name: "งานสารบรรณ" }));
+    fireEvent.click(await screen.findByRole("button", { name: "แก้ไขตำแหน่ง" }));
+    fireEvent.change(screen.getByRole("spinbutton", { name: "ลำดับตำแหน่ง" }), {
+      target: { value: "2" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกตำแหน่ง" }));
+    await waitFor(() =>
+      expect(api.update).toHaveBeenCalledWith(
+        "positions",
+        "position-1",
+        0,
+        expect.objectContaining({ sortOrder: 2, unitContentId: "work-1" })
+      )
+    );
+  });
+
   it("exposes assignment to canonical personnel rather than creating a second person", async () => {
     setup(true);
     fireEvent.click(screen.getByRole("button", { name: "งานสารบรรณ" }));
