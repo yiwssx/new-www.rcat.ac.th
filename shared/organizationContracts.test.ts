@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   isOrganizationUnitKind,
+  isValidOrganizationPublicSlug,
   ORGANIZATION_CONTENT_TYPE,
   projectOrganizationPersonPublic,
   validateOrganizationParent
@@ -12,6 +13,15 @@ describe("Organization Chart shared contracts", () => {
     expect(isOrganizationUnitKind("department")).toBe(true);
     expect(isOrganizationUnitKind("program")).toBe(true);
     expect(isOrganizationUnitKind("random")).toBe(false);
+  });
+
+  it("accepts Thai and English public slugs while rejecting unsafe paths", () => {
+    expect(isValidOrganizationPublicSlug("ฝ่ายวิชาการ")).toBe(true);
+    expect(isValidOrganizationPublicSlug("academic-office")).toBe(true);
+    expect(isValidOrganizationPublicSlug("งาน-อาคารสถานที่")).toBe(true);
+    expect(isValidOrganizationPublicSlug("../admin")).toBe(false);
+    expect(isValidOrganizationPublicSlug("foo/bar")).toBe(false);
+    expect(isValidOrganizationPublicSlug("foo--bar")).toBe(false);
   });
 
   it("rejects hierarchy self-links, missing parents, and descendant cycles", () => {

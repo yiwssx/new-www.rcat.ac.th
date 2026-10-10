@@ -52,6 +52,16 @@ export interface OrganizationAssignment {
   revision: number;
 }
 
+/** Matches the CMS editor's internationalized 160-character organization slug contract. */
+export function isValidOrganizationPublicSlug(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    value.length >= 1 &&
+    value.length <= 160 &&
+    /^[\p{L}\p{N}][\p{L}\p{N}\p{M}]*(?:-[\p{L}\p{N}][\p{L}\p{N}\p{M}]*)*$/u.test(value)
+  );
+}
+
 export function isOrganizationUnitKind(value: unknown): value is OrganizationUnitKind {
   return typeof value === "string" && ORGANIZATION_UNIT_KINDS.some((kind) => kind === value);
 }

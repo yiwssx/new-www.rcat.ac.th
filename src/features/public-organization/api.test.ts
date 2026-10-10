@@ -26,6 +26,7 @@ describe("public Organization permalink facade", () => {
     );
     expect(await getPublicOrganizationDetail("private")).toBeNull();
     expect(await getPublicOrganizationDetail("../private")).toBeNull();
+    expect(await getPublicOrganizationDetail("foo/bar")).toBeNull();
     expect(requestMock).toHaveBeenCalledTimes(1);
   });
 

@@ -1,4 +1,5 @@
 import { readPublishedOrganization } from "../db/organizationReadRepository";
+import { isValidOrganizationPublicSlug } from "../../../../shared/organizationContracts";
 import type { Env } from "../env";
 import { json, jsonError } from "../responses";
 import type { PublicOrganizationUnit } from "../db/organizationReadRepository";
@@ -57,7 +58,7 @@ export function selectPublishedOrganizationDetail(
 }
 
 export async function publicOrganizationDetail(env: Env, slug: string): Promise<Response> {
-  if (!/^[a-z0-9][a-z0-9-]{0,159}$/.test(slug)) {
+  if (!isValidOrganizationPublicSlug(slug)) {
     return jsonError("not found", 404, { resource: "organization" });
   }
   const organization = await readPublishedOrganization(env);

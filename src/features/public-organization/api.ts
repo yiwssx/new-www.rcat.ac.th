@@ -1,4 +1,5 @@
 import type { MediaAsset } from "../../types";
+import { isValidOrganizationPublicSlug } from "../../../shared/organizationContracts";
 import { isPublicReadNotFoundError } from "../public-read/errors";
 import { getPublicJson, type PublicReadRequestOptions } from "../public-read/request";
 
@@ -46,7 +47,7 @@ export interface PublicOrganizationDetail {
 }
 
 export async function getPublicOrganizationDetail(slug: string, options: PublicReadRequestOptions = {}) {
-  if (!/^[a-z0-9][a-z0-9-]{0,159}$/.test(slug)) return null;
+  if (!isValidOrganizationPublicSlug(slug)) return null;
   try {
     const payload = await getPublicJson(
       `/api/public/organization/${encodeURIComponent(slug)}`,
