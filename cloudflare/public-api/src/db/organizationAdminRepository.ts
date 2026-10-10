@@ -118,9 +118,12 @@ async function listRows<T>(env: Env, kind: OrganizationTableKind, limit = 100) {
 }
 
 /** Phase 4 Admin list: organization data and canonical CMS lifecycle in one bounded read. */
-export function listAdminOrganizationContentUnits(env: Env, limit = 100) {
+export function listAdminOrganizationContentUnits(env: Env, limit = 100, offset = 0) {
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100) {
     throw new RangeError("organization page size must be between 1 and 100");
+  }
+  if (!Number.isSafeInteger(offset) || offset < 0 || offset > 999999) {
+    throw new RangeError("organization offset must be between 0 and 999999");
   }
   return requireD1Database(env)
     .prepare(
@@ -133,10 +136,10 @@ export function listAdminOrganizationContentUnits(env: Env, limit = 100) {
       JOIN contents AS c ON c.id = u.content_id
       WHERE c.type = 'organization' AND COALESCE(c.deleted_at, '') = ''
       ORDER BY u.sort_order ASC, c.title COLLATE NOCASE ASC, u.content_id ASC
-      LIMIT ?
+      LIMIT ? OFFSET ?
     `
     )
-    .bind(limit)
+    .bind(limit, offset)
     .all<{
       content_id: string;
       parent_content_id: string | null;
