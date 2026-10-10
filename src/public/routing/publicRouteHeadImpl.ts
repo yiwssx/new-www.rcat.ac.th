@@ -1,4 +1,5 @@
 import { projectSettings } from "../../config/projectSettings";
+import type { PublicOrganizationDetail } from "../../features/public-organization";
 import type { ContentItem, MediaAsset, SiteSettings } from "../../types";
 import { getPublicRouteMetadata, PUBLIC_ROUTE_REGISTRY } from "./publicRouteRegistry";
 import { normalizePublicPageSearchValue } from "./searchParams";
@@ -369,6 +370,60 @@ export function getPublicContentRouteHead(slug: string, loaderData?: unknown, co
     modifiedTime: isPublicArticleContent(item) ? item.updatedAt : undefined,
     section: isPublicArticleContent(item) ? item.category : undefined,
     structuredData
+  });
+}
+
+/** Head metadata is computed only from publicly visible Worker data. */
+export function getPublicOrganizationRouteHead(
+  _slug: string,
+  loaderData?: unknown,
+  context?: PublicRouteHeadContextData
+) {
+  const siteSettings = getContextSiteSettings(context);
+  const valid =
+    isRecord(loaderData) &&
+    isRecord(loaderData.unit) &&
+    typeof loaderData.unit.title === "string" &&
+    typeof loaderData.unit.slug === "string" &&
+    Array.isArray(loaderData.ancestors);
+  if (!valid) {
+    return buildPublicRouteHead({ title: "ผังองค์กร", robots: "noindex, nofollow", social: false });
+  }
+  const detail = loaderData as unknown as PublicOrganizationDetail;
+  const unit = detail.unit;
+  const canonicalPath = `/organization/${encodeURIComponent(unit.slug)}`;
+  const description = unit.summary.trim() || `โครงสร้างหน่วยงานและบุคลากรของ${unit.title}`;
+  const breadcrumbs = [
+    { name: "หน้าหลัก", path: "/" },
+    ...detail.ancestors.map((ancestor) => ({
+      name: ancestor.title,
+      path: `/organization/${encodeURIComponent(ancestor.slug)}`
+    })),
+    { name: unit.title, path: canonicalPath }
+  ];
+  return buildPublicRouteHead({
+    title: unit.title,
+    description,
+    canonicalPath,
+    siteName: siteSettings ? getPublicSeoSiteName(siteSettings) : undefined,
+    imageUrl: siteSettings ? getDefaultPublicSocialImageUrl(siteSettings) : undefined,
+    imageAlt: unit.title,
+    structuredData: [
+      {
+        id: "rcat-organization-page-jsonld",
+        data: {
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          url: resolvePublicSeoUrl(canonicalPath),
+          name: unit.title,
+          description
+        }
+      },
+      {
+        id: "rcat-breadcrumb-jsonld",
+        data: buildPublicBreadcrumbJsonLd(breadcrumbs)
+      }
+    ]
   });
 }
 

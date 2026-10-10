@@ -200,6 +200,21 @@ function createContentHeadItem(item: ContentItem): PublicContentHeadItem {
   };
 }
 
+/** Organization detail SSR prefetch is shared with the client query cache. */
+export async function loadPublicOrganizationDetailData(
+  context: PublicRouteLoaderContext,
+  slug: string | undefined
+) {
+  if (!slug) throw notFound({ data: { resource: "organization" } });
+  const { publicOrganizationDetailQueryOptions } = await import("../../features/public-organization");
+  const result = await ensurePublicQuery(() =>
+    context.queryClient.ensureQueryData(publicOrganizationDetailQueryOptions(slug))
+  );
+  if (isPublicRouteLoadFailure(result)) return result;
+  if (result === null) throw notFound({ data: { resource: "organization", slug } });
+  return result;
+}
+
 export async function loadPublicContentDetailData(
   context: PublicRouteLoaderContext,
   slug: string | undefined

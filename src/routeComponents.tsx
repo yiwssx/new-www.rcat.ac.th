@@ -37,6 +37,7 @@ export const PublicDocumentsPage = lazy(() => import("./public/pages/PublicDocum
 export const PublicHomePage = lazy(() => import("./public/pages/PublicHomePage"));
 export const PublicIta2569Page = lazy(() => import("./public/pages/PublicIta2569Page"));
 export const PublicNewsPage = lazy(() => import("./public/pages/PublicNewsPage"));
+export const PublicOrganizationDetailPage = lazy(() => import("./public/pages/PublicOrganizationDetailPage"));
 export const PublicSearchPage = lazy(() => import("./public/pages/PublicSearchPage"));
 export const ResetPasswordPage = lazy(() => import("./admin/pages/ResetPasswordPage"));
 export const SettingsPage = lazy(() => import("./admin/pages/SettingsHomepageWorkflowPage"));
@@ -106,6 +107,11 @@ export function RootRouteLayout() {
       <RouteOutlet />
     </>
   );
+}
+
+export function PublicOrganizationDetailRoute() {
+  const { slug } = useParams({ strict: false }) as { slug: string };
+  return <PublicOrganizationDetailPage slug={slug} />;
 }
 
 export function PublicContentDetailRoute() {

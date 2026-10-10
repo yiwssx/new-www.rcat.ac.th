@@ -26,6 +26,7 @@ import {
   PublicComplaintPage,
   PublicContactPage,
   PublicContentDetailRoute,
+  PublicOrganizationDetailRoute,
   PublicDepartmentsPage,
   PublicDocumentsPage,
   PublicHomePage,
@@ -42,6 +43,7 @@ import {
 import {
   getCmsRouteHead,
   getPublicContentRouteHead,
+  getPublicOrganizationRouteHead,
   getPublicLayoutRouteHead,
   getRootRouteHead,
   getStaticPublicRouteHead
@@ -51,6 +53,7 @@ import {
   getContentArchiveLoaderInput,
   loadPublicCmsSnapshotData,
   loadPublicContentDetailData,
+  loadPublicOrganizationDetailData,
   loadPublicContentListData,
   loadPublicContentPermalinkData,
   loadPublicDocumentListData,
@@ -206,6 +209,15 @@ const publicContentDetailRoute = createRoute({
   loader: ({ context, params }) => loadPublicContentDetailData(context, params.slug),
   head: ({ params, loaderData, matches }) => getPublicContentRouteHead(params.slug, loaderData, { matches }),
   component: PublicContentDetailRoute
+});
+
+const publicOrganizationDetailRoute = createRoute({
+  getParentRoute: () => publicLayoutRoute,
+  path: "organization/$slug",
+  loader: ({ context, params }) => loadPublicOrganizationDetailData(context, params.slug),
+  head: ({ params, loaderData, matches }) =>
+    getPublicOrganizationRouteHead(params.slug, loaderData, { matches }),
+  component: PublicOrganizationDetailRoute
 });
 
 const publicPermalinkRoute = createRoute({
@@ -414,6 +426,7 @@ const routeTree = rootRoute.addChildren([
     publicIta2569Route,
     publicSearchRoute,
     publicContentDetailRoute,
+    publicOrganizationDetailRoute,
     publicPermalinkRoute
   ]),
   cmsAuthLayoutRoute.addChildren([
