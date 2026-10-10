@@ -224,11 +224,17 @@ export async function requestCloudflareAdmin<T>(path: string, init: RequestInit 
     const errorMessage = getCloudflareAdminErrorMessage(response, payload);
     maybeNotifyExpiredCmsSession(response, errorMessage);
 
-    if ((response.status === 409 && /stale (?:organization )?revision/i.test(errorMessage)) || response.status === 412) {
+    if (
+      (response.status === 409 && /stale (?:organization )?revision/i.test(errorMessage)) ||
+      response.status === 412
+    ) {
       throw new AdminStaleRevisionError();
     }
 
-    if (response.status === 409 && (errorMessage === "duplicate slug" || errorMessage === "organization slug already exists")) {
+    if (
+      response.status === 409 &&
+      (errorMessage === "duplicate slug" || errorMessage === "organization slug already exists")
+    ) {
       throw new AdminDuplicateSlugError();
     }
 
