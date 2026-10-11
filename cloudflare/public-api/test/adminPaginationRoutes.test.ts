@@ -755,7 +755,7 @@ describe("admin server pagination routes", () => {
     expect(response.status).toBe(200);
 
     const documentCountSql = state.calls.find(
-      ({ query }) => /FROM documents\\b/i.test(query) && /GROUP BY status\\b/i.test(query)
+      ({ query }) => /FROM documents/i.test(query) && /GROUP BY status/i.test(query)
     )?.query;
     expect(documentCountSql).toBeDefined();
 
