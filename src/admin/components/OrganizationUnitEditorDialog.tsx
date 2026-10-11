@@ -148,7 +148,7 @@ export default function OrganizationUnitEditorDialog({ open, initial, units, bus
                         { shouldDirty: true }
                       );
                     }
-                  }
+                  }}
                   error={Boolean(errors.parentContentId)}
                   helperText={errors.parentContentId?.message ?? "ปล่อยว่างสำหรับหน่วยงานระดับบนสุด"}
                 >
