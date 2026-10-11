@@ -50,7 +50,6 @@ export const PERSONNEL_ROW_COLUMNS = [
   "display_name",
   "personnel_type",
   "employment_position",
-  "education_qualifications",
   "photo_media_id",
   "public_email",
   "public_phone",
@@ -59,7 +58,8 @@ export const PERSONNEL_ROW_COLUMNS = [
   "active",
   "revision",
   "created_at",
-  "updated_at"
+  "updated_at",
+  "education_qualifications"
 ] as const satisfies readonly (keyof PersonnelRow)[];
 
 export interface OrganizationPositionRow {
