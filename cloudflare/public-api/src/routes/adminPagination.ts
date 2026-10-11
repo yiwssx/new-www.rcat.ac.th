@@ -1108,7 +1108,6 @@ async function handleDashboardSummary(env: Env) {
       `SELECT status AS key, COUNT(*) AS total
        FROM documents
        WHERE COALESCE(deleted_at, '') = ''
-         AND type <> 'organization'
        GROUP BY status`
     ),
     readAdminRows<{ total: number | string }>(env, "SELECT COUNT(*) AS total FROM media_assets"),
