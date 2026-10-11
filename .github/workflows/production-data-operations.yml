@@ -38,8 +38,8 @@ permissions:
   statuses: read
 
 concurrency:
-  group: production-data-operations-${{ github.event_name == 'push' && 'tooling-validation' || inputs.operation }}
-  cancel-in-progress: ${{ github.event_name == 'push' }}
+  group: production-data-operations-${{ github.event_name == 'push' && (contains(github.event.head_commit.message, '[organization-v3-import]') && 'org-v3-draft-import' || 'tooling-validation') || inputs.operation }}
+  cancel-in-progress: ${{ github.event_name == 'push' && !contains(github.event.head_commit.message, '[organization-v3-import]') }}
 
 jobs:
   facebook-tooling-validation:
@@ -531,3 +531,127 @@ jobs:
           path: ${{ runner.temp }}/facebook-reclassification/result/
           if-no-files-found: warn
           retention-days: 30
+
+  # Single-use protected import; no real personnel SQL is committed here.
+  organization-v3-draft-import:
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[organization-v3-import]') }}
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment:
+      name: production
+      deployment: false
+    env:
+      D1_NAME: rcat-public-api-preview
+      D1_CONFIG: cloudflare/public-api/wrangler.toml
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+
+      - name: Retrieve ephemeral private V3 import bundle through verified GitHub OIDC
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          private="$RUNNER_TEMP/org-v3"
+          mkdir -p "$private"
+          oidc="$(curl -fsS -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=rcat-organization-v3-private-import" | node -e '
+            let input = ""; process.stdin.on("data", x => input += x);
+            process.stdin.on("end", () => process.stdout.write(JSON.parse(input).value));
+          ')"
+          curl --fail --silent --show-error --retry 3 --max-time 45 -H "Authorization: Bearer $oidc"             -o "$private/bundle.zip" https://sb-407gn2auzb81.vercel.run/bundle
+          unset oidc
+          printf '%s  %s\n' "15cc800810b1617fc476e06815cef9356cdd1971e6df233690dc3743823e78b6" "$private/bundle.zip" | sha256sum -c --status
+          unzip -q "$private/bundle.zip" -d "$private"
+          node - "$private" <<'NODE'
+          const fs = require('fs'), path = require('path'), crypto = require('crypto');
+          const root = process.argv[2];
+          const report = JSON.parse(fs.readFileSync(path.join(root,'rcat_organization_2569_v3_report.json')));
+          if (report.people !== 114 || report.units !== 38 || report.assignments_total_if_empty !== 435 || report.draft_only !== true) throw Error('Unknown V3 bundle');
+          for (const item of report.files) {
+            const digest = crypto.createHash('sha256').update(fs.readFileSync(path.join(root,item.name))).digest('hex');
+            if (digest !== item.sha256) throw Error('Checksum mismatch: ' + item.name);
+          }
+          console.log('Verified private V3 bundle integrity; no personal data logged.');
+          NODE
+
+      - name: Verify canonical production D1 and Draft namespace
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_ACCOUNT_ID" && test -n "$CLOUDFLARE_API_TOKEN" && test -n "$RCAT_PRODUCTION_D1_DATABASE_ID"
+          pnpm wrangler d1 list --json > "$RUNNER_TEMP/d1-list.json"
+          node cloudflare/public-api/scripts/worker-production-preflight.mjs --database-list "$RUNNER_TEMP/d1-list.json" --verify-identity-only
+          pnpm wrangler d1 execute "$D1_NAME" --remote --env production --config "$D1_CONFIG"             --command "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('contents','organization_units','personnel','organization_positions','organization_assignments') ORDER BY name;"             --json > "$RUNNER_TEMP/d1-tables.json"
+          pnpm wrangler d1 execute "$D1_NAME" --remote --env production --config "$D1_CONFIG"             --command "SELECT COUNT(*) AS invalid FROM contents WHERE slug LIKE 'rcat-2569-%' AND (type <> 'organization' OR status <> 'draft');"             --json > "$RUNNER_TEMP/d1-conflicts.json"
+          node - "$RUNNER_TEMP" <<'NODE'
+          const fs = require('fs'), path = require('path');
+          const read = f => { const j = JSON.parse(fs.readFileSync(path.join(process.argv[2],f))); return (Array.isArray(j)?j:[j]).flatMap(x=>x.results||[]); };
+          const expected = ['contents','organization_assignments','organization_positions','organization_units','personnel'];
+          const actual = read('d1-tables.json').map(x=>x.name).sort();
+          if(JSON.stringify(expected)!==JSON.stringify(actual)) throw Error('Organization schema migration 0020 missing');
+          if(read('d1-conflicts.json')[0]?.invalid!==0) throw Error('Conflicting non-Draft organization rows');
+          console.log('Production D1 identity and Draft-only namespace verified.');
+          NODE
+
+      - name: Capture recovery checkpoint before writes
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
+        run: |
+          set -euo pipefail
+          umask 077
+          pnpm wrangler d1 time-travel info "$D1_NAME" --env production --config "$D1_CONFIG" --json > "$RUNNER_TEMP/pre-import-bookmark.json"
+          test -s "$RUNNER_TEMP/pre-import-bookmark.json"
+          pnpm wrangler d1 export "$D1_NAME" --remote --env production --config "$D1_CONFIG" --output "$RUNNER_TEMP/pre-import-backup.sql"
+          test -s "$RUNNER_TEMP/pre-import-backup.sql"
+          echo "Time Travel checkpoint and runner-local SQL snapshot ready; no public backup artifact."
+
+      - name: Import verified SQL in dependency order
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
+        run: |
+          set -euo pipefail
+          for part in 01_units 02_personnel 03_positions old_assignments_a old_assignments_b 04_extra_assignments 05_extra_assignments 06_extra_assignments 07_extra_assignments; do
+            file="$RUNNER_TEMP/org-v3/rcat_organization_2569_v3_$part.sql"
+            test -s "$file"
+            echo "Applying batch $part"
+            pnpm wrangler d1 execute "$D1_NAME" --remote --env production --config "$D1_CONFIG" --file "$file" > "$RUNNER_TEMP/import-$part.log" 2>&1
+          done
+
+      - name: Verify all imported organization pages remain Draft
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          RCAT_PRODUCTION_D1_DATABASE_ID: ${{ secrets.RCAT_PRODUCTION_D1_DATABASE_ID }}
+        run: |
+          set -euo pipefail
+          pnpm wrangler d1 execute "$D1_NAME" --remote --env production --config "$D1_CONFIG"             --command "SELECT (SELECT COUNT(*) FROM contents WHERE type='organization' AND slug LIKE 'rcat-2569-%') AS pages,(SELECT COUNT(*) FROM contents WHERE slug LIKE 'rcat-2569-%' AND status<>'draft') AS exposed,(SELECT COUNT(*) FROM personnel) AS people,(SELECT COUNT(*) FROM organization_positions) AS positions,(SELECT COUNT(*) FROM organization_assignments) AS assignments;"             --json > "$RUNNER_TEMP/verification.json"
+          pnpm wrangler d1 execute "$D1_NAME" --remote --env production --config "$D1_CONFIG"             --command "PRAGMA foreign_key_check;" --json > "$RUNNER_TEMP/fk.json"
+          node - "$RUNNER_TEMP" <<'NODE'
+          const fs = require('fs'), path = require('path');
+          const rows=f=>{ const j=JSON.parse(fs.readFileSync(path.join(process.argv[2],f)));return (Array.isArray(j)?j:[j]).flatMap(x=>x.results||[]); };
+          const r=rows('verification.json')[0];
+          if(!r || r.pages!==38 || r.exposed!==0 || rows('fk.json').length) throw Error('Draft import postflight failed');
+          console.log(JSON.stringify({draftPages:r.pages,personnel:r.people,positions:r.positions,assignments:r.assignments,publishedPages:r.exposed,foreignKeys:'PASS'}));
+          NODE
