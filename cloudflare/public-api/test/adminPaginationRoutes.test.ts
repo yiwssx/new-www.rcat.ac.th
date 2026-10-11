@@ -1,6 +1,8 @@
 // @vitest-environment node
 import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
 
 const authenticateCmsSessionMock = vi.hoisted(() => vi.fn());
@@ -758,9 +760,10 @@ describe("admin server pagination routes", () => {
     expect(documentCountSql).toBeDefined();
 
     const database = new DatabaseSync(":memory:");
+    const migrationDirectory = join(dirname(fileURLToPath(import.meta.url)), "../migrations");
     try {
-      database.exec(readFileSync(new URL("../migrations/0001_public_read_schema.sql", import.meta.url), "utf8"));
-      database.exec(readFileSync(new URL("../migrations/0003_admin_write_batch.sql", import.meta.url), "utf8"));
+      database.exec(readFileSync(join(migrationDirectory, "0001_public_read_schema.sql"), "utf8"));
+      database.exec(readFileSync(join(migrationDirectory, "0003_admin_write_batch.sql"), "utf8"));
 
       const insert = database.prepare("INSERT INTO documents (id, title, status, deleted_at) VALUES (?, ?, ?, ?)");
       insert.run("doc-draft", "Draft document", "draft", "");
