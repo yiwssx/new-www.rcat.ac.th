@@ -15,7 +15,7 @@ vi.mock("sweetalert2", () => ({
 
 vi.mock("sweetalert2/dist/sweetalert2.min.css", () => ({}));
 
-import { appSwal, showBlockingLoading, updateBlockingLoading } from "./swal";
+import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult, updateBlockingLoading } from "./swal";
 
 describe("blocking loading progress", () => {
   beforeEach(async () => {
@@ -99,4 +99,27 @@ describe("blocking loading progress", () => {
     );
     await vi.waitFor(() => expect(swalInstance.showLoading).toHaveBeenCalledTimes(1));
   });
+  it("keeps result modals above an active MUI editor dialog", async () => {
+    const modal = document.createElement("div");
+    modal.className = "MuiModal-root";
+    modal.style.zIndex = "1300";
+    const container = document.createElement("div");
+    container.className = "swal2-container";
+    container.style.zIndex = "1060";
+    const popup = document.createElement("div");
+    container.append(popup);
+    document.body.append(modal, container);
+
+    await showErrorResult("บันทึกไม่สำเร็จ", new Error("ข้อผิดพลาด"), "กรุณาลองใหม่");
+    const errorOptions = swalInstance.fire.mock.lastCall?.[0] as { didOpen?: (popup: HTMLElement) => void };
+    errorOptions.didOpen?.(popup);
+    expect(container.style.zIndex).toBe("1300");
+
+    container.style.zIndex = "1060";
+    await showSuccessResult("บันทึกสำเร็จ");
+    const successOptions = swalInstance.fire.mock.lastCall?.[0] as { didOpen?: (popup: HTMLElement) => void };
+    successOptions.didOpen?.(popup);
+    expect(container.style.zIndex).toBe("1300");
+  });
+
 });
