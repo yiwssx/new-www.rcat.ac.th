@@ -221,7 +221,6 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
         : asMessage(cause);
       setDialogError(message);
       if (stale) {
-        setError(message);
         void refresh();
       }
       setBusy(false);
@@ -268,7 +267,6 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
         : asMessage(cause);
       setDialogError(message);
       if (stale) {
-        setError(message);
         void refresh();
       }
       setBusy(false);
