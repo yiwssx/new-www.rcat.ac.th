@@ -35,6 +35,7 @@ const existing: PersonnelRow = {
   display_name: "Staff",
   personnel_type: "teacher",
   employment_position: "Instructor",
+  education_qualifications: "",
   photo_media_id: null,
   public_email: "private@example.invalid",
   public_phone: "000",
