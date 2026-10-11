@@ -690,7 +690,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                             (position) => position.sort_order
                           );
                       setPositionForm({ ...positionForm, groupLabel, sortOrder });
-                    }
+                    }}
                   />
                   <Box component="details" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, p: 1.5 }}>
                     <Box component="summary" sx={{ cursor: "pointer", fontWeight: 600 }}>
