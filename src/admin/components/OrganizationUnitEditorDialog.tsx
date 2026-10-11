@@ -13,6 +13,7 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import type { OrganizationUnitListRow, OrganizationUnitWrite } from "../../features/organization-admin/api";
+import { nextOrganizationSortOrder } from "./organizationBuilderModel";
 import {
   availableOrganizationParents,
   editorDefaults,
@@ -38,15 +39,20 @@ export default function OrganizationUnitEditorDialog({ open, initial, units, bus
     control,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors, isDirty }
   } = useForm<OrganizationEditorForm>({
     resolver: zodResolver(organizationEditorSchema),
     defaultValues: editorDefaults(initial),
     mode: "onBlur"
   });
+  const nextRootOrder = nextOrganizationSortOrder(
+    units.filter((unit) => unit.parent_content_id === null),
+    (unit) => unit.sort_order
+  );
   useEffect(() => {
-    if (open) reset(editorDefaults(initial));
-  }, [initial, open, reset]);
+    if (open) reset({ ...editorDefaults(initial), sortOrder: initial?.sort_order ?? nextRootOrder });
+  }, [initial, nextRootOrder, open, reset]);
   const canSelectParent = availableOrganizationParents(units, initial?.content_id ?? null);
   const status = useWatch({ control, name: "status" });
   const save = handleSubmit(async (form) => {
@@ -129,6 +135,20 @@ export default function OrganizationUnitEditorDialog({ open, initial, units, bus
                   fullWidth
                   label="หน่วยงานแม่"
                   disabled={busy}
+                  onChange={(event) => {
+                    field.onChange(event);
+                    if (!initial) {
+                      const nextParent = event.target.value || null;
+                      setValue(
+                        "sortOrder",
+                        nextOrganizationSortOrder(
+                          units.filter((unit) => unit.parent_content_id === nextParent),
+                          (unit) => unit.sort_order
+                        ),
+                        { shouldDirty: true }
+                      );
+                    }
+                  }}
                   error={Boolean(errors.parentContentId)}
                   helperText={errors.parentContentId?.message ?? "ปล่อยว่างสำหรับหน่วยงานระดับบนสุด"}
                 >
@@ -141,23 +161,32 @@ export default function OrganizationUnitEditorDialog({ open, initial, units, bus
                 </TextField>
               )}
             />
-            <Controller
-              name="sortOrder"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  type="number"
-                  fullWidth
-                  label="ลำดับแสดงผล"
-                  disabled={busy}
-                  onChange={(event) => field.onChange(Number(event.target.value))}
-                  error={Boolean(errors.sortOrder)}
-                  helperText={errors.sortOrder?.message ?? "จำนวนเต็มตั้งแต่ 0 ขึ้นไป"}
-                  slotProps={{ htmlInput: { min: 0, step: 1 } }}
-                />
-              )}
-            />
+            <Box component="details" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, p: 1.5 }}>
+              <Box component="summary" sx={{ cursor: "pointer", fontWeight: 600 }}>
+                ตั้งค่าลำดับด้วยตัวเลข (ขั้นสูง)
+              </Box>
+              <Controller
+                name="sortOrder"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    type="number"
+                    fullWidth
+                    sx={{ mt: 2 }}
+                    label="ลำดับแสดงผล"
+                    disabled={busy}
+                    onChange={(event) => field.onChange(Number(event.target.value))}
+                    error={Boolean(errors.sortOrder)}
+                    helperText={
+                      errors.sortOrder?.message ??
+                      "ระบบเติมลำดับถัดไปให้อัตโนมัติ (เริ่มบันทึกที่ 0 แต่แสดงอันดับเริ่มที่ 1)"
+                    }
+                    slotProps={{ htmlInput: { min: 0, step: 1 } }}
+                  />
+                )}
+              />
+            </Box>
             <Controller
               name="status"
               control={control}

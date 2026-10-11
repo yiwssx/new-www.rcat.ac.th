@@ -8,6 +8,7 @@ import {
   enabledDistinctOccupants,
   flattenOrganizationHierarchy,
   organizationTreeItems,
+  nextOrganizationSortOrder,
   positionsForUnit
 } from "./organizationBuilderModel";
 
@@ -66,6 +67,12 @@ describe("Phase 6 Organization builder model", () => {
       { id: "p1", unit_content_id: "root", group_sort_order: 0, sort_order: 4 }
     ] as OrganizationPositionRow[];
     expect(positionsForUnit(positions, "root").map((item) => item.id)).toEqual(["p1", "p2"]);
+  });
+
+  it("appends after the highest persisted sibling order, including legacy zero ties", () => {
+    expect(nextOrganizationSortOrder([], (row: { sort_order: number }) => row.sort_order)).toBe(0);
+    expect(nextOrganizationSortOrder([unit("a", null, 0), unit("b", null, 0)], (row) => row.sort_order)).toBe(2);
+    expect(nextOrganizationSortOrder([unit("a", null, 4), unit("b", null, 2)], (row) => row.sort_order)).toBe(5);
   });
 
   it("counts unique active occupants without rejecting multiple duties per person", () => {

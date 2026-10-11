@@ -103,7 +103,8 @@ describe("Phase 4 Organization Admin list/editor", () => {
   it("creates a unit from the isolated form with validated fields", async () => {
     auth.capabilities = ["organization.read", "organization.manage"];
     renderPage();
-    fireEvent.click(await screen.findByRole("button", { name: "เพิ่มหน่วยงาน" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "เพิ่มหน่วยงาน" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "เพิ่มหน่วยงาน" }));
     fireEvent.change(screen.getByRole("textbox", { name: "ชื่อหน่วยงาน" }), {
       target: { value: "งานพัสดุ" }
     });
@@ -123,6 +124,33 @@ describe("Phase 4 Organization Admin list/editor", () => {
       )
     );
     expect(api.update).not.toHaveBeenCalled();
+  });
+
+  it("starts a new unit after its siblings and labels loaded units with one-based ranks", async () => {
+    auth.capabilities = ["organization.read", "organization.manage"];
+    api.getCollection.mockImplementation(async (collection: string) => ({
+      items:
+        collection === "units"
+          ? [existing, { ...existing, content_id: "unit-2", slug: "division-2", title: "ฝ่ายวิชาการ", sort_order: 4 }]
+          : [],
+      nextOffset: null,
+      maximumItems: 100,
+      generatedAt: ""
+    }));
+    renderPage();
+    expect(await screen.findByText(/division-1 · อันดับ 1/)).toBeInTheDocument();
+    expect(screen.getByText(/division-2 · อันดับ 2/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "เพิ่มหน่วยงาน" }));
+    fireEvent.click(screen.getByText("ตั้งค่าลำดับด้วยตัวเลข (ขั้นสูง)"));
+    expect(screen.getByRole("spinbutton", { name: "ลำดับแสดงผล" })).toHaveValue(5);
+    fireEvent.change(screen.getByRole("textbox", { name: "ชื่อหน่วยงาน" }), {
+      target: { value: "งานใหม่" }
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: "Slug" }), {
+      target: { value: "new-work" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกหน่วยงาน" }));
+    await waitFor(() => expect(api.create).toHaveBeenCalledWith("units", expect.objectContaining({ sortOrder: 5 })));
   });
 
   it("only deletes units after user confirmation with the exact server revision", async () => {
@@ -154,7 +182,8 @@ describe("Phase 4 Organization Admin list/editor", () => {
   it("shows blocking feedback followed by an acknowledged unit-save success", async () => {
     auth.capabilities = ["organization.read", "organization.manage"];
     renderPage();
-    fireEvent.click(await screen.findByRole("button", { name: "เพิ่มหน่วยงาน" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "เพิ่มหน่วยงาน" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "เพิ่มหน่วยงาน" }));
     fireEvent.change(screen.getByRole("textbox", { name: "ชื่อหน่วยงาน" }), {
       target: { value: "งานทดสอบการบันทึก" }
     });
@@ -172,7 +201,8 @@ describe("Phase 4 Organization Admin list/editor", () => {
     auth.capabilities = ["organization.read", "organization.manage"];
     api.create.mockRejectedValueOnce(new Error("server unavailable"));
     renderPage();
-    fireEvent.click(await screen.findByRole("button", { name: "เพิ่มหน่วยงาน" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "เพิ่มหน่วยงาน" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "เพิ่มหน่วยงาน" }));
     fireEvent.change(screen.getByRole("textbox", { name: "ชื่อหน่วยงาน" }), {
       target: { value: "งานไม่ควรหาย" }
     });

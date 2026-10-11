@@ -89,6 +89,20 @@ export default function OrganizationPage() {
       )
       .sort((a, b) => a.sort_order - b.sort_order || a.title.localeCompare(b.title, "th"));
   }, [rows, search]);
+  const unitRanks = useMemo(() => {
+    const ranks = new Map<string, number>();
+    const counts = new Map<string, number>();
+    for (const unit of [...rows].sort(
+      (a, b) =>
+        a.sort_order - b.sort_order || a.title.localeCompare(b.title, "th") || a.content_id.localeCompare(b.content_id)
+    )) {
+      const parent = unit.parent_content_id ?? "";
+      const rank = (counts.get(parent) ?? 0) + 1;
+      counts.set(parent, rank);
+      ranks.set(unit.content_id, rank);
+    }
+    return ranks;
+  }, [rows]);
 
   const saveMutation = useMutation({
     mutationFn: async (input: OrganizationUnitWrite) => {
@@ -110,7 +124,7 @@ export default function OrganizationPage() {
   });
 
   function startCreate() {
-    if (!canManage) return;
+    if (!canManage || units.hasNextPage || units.isPending || units.isError) return;
     setEditing(null);
     setEditorError("");
     setError("");
@@ -259,7 +273,12 @@ export default function OrganizationPage() {
                   รีเฟรช
                 </Button>
                 {canManage && (
-                  <Button variant="contained" startIcon={<AddOutlinedIcon />} onClick={startCreate}>
+                  <Button
+                    variant="contained"
+                    startIcon={<AddOutlinedIcon />}
+                    onClick={startCreate}
+                    disabled={units.hasNextPage || units.isPending || units.isError}
+                  >
                     เพิ่มหน่วยงาน
                   </Button>
                 )}
@@ -272,6 +291,9 @@ export default function OrganizationPage() {
               fullWidth
               slotProps={{ htmlInput: { maxLength: 160 } }}
             />
+            {units.hasNextPage && canManage && (
+              <Alert severity="info">โหลดหน่วยงานเพิ่มเติมให้ครบก่อนเพิ่มรายการ เพื่อคำนวณลำดับต่อท้ายได้ถูกต้อง</Alert>
+            )}
             {units.isPending && <Typography role="status">กำลังโหลดหน่วยงาน…</Typography>}
             {units.isError && <Alert severity="error">โหลดรายการหน่วยงานไม่สำเร็จ กรุณาลองใหม่</Alert>}
             {rows.length === 0 && !units.isPending && !units.isError && (
@@ -305,7 +327,7 @@ export default function OrganizationPage() {
                       />
                     </Stack>
                     <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: "anywhere", mt: 0.5 }}>
-                      /{unit.slug} · ลำดับ {unit.sort_order}
+                      /{unit.slug} · อันดับ {unitRanks.get(unit.content_id) ?? 1}
                       {unit.parent_content_id
                         ? ` · อยู่ภายใต้ ${rows.find((item) => item.content_id === unit.parent_content_id)?.title ?? "หน่วยงานอื่น"}`
                         : ""}

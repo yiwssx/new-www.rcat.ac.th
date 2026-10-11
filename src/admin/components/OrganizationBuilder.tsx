@@ -40,6 +40,7 @@ import { OrganizationSortableRow } from "./OrganizationSortableRow";
 import {
   enabledDistinctOccupants,
   flattenOrganizationHierarchy,
+  nextOrganizationSortOrder,
   organizationTreeItems,
   positionsForUnit
 } from "./organizationBuilderModel";
@@ -57,21 +58,21 @@ type PositionForm = Required<Omit<OrganizationPositionWrite, "occupantLimit">> &
 
 type AssignmentForm = Required<OrganizationAssignmentWrite>;
 
-const emptyPosition = (unitContentId: string): PositionForm => ({
+const emptyPosition = (unitContentId: string, sortOrder = 0): PositionForm => ({
   unitContentId,
   title: "",
   groupLabel: "",
   groupSortOrder: 0,
-  sortOrder: 0,
+  sortOrder,
   displayStyle: "default",
   occupantLimit: null
 });
 
-const emptyAssignment = (positionId: string): AssignmentForm => ({
+const emptyAssignment = (positionId: string, sortOrder = 0): AssignmentForm => ({
   personnelId: "",
   positionId,
   dutyDetail: "",
-  sortOrder: 0,
+  sortOrder,
   enabled: true
 });
 
@@ -154,7 +155,11 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
   }
 
   function openPosition(row: OrganizationPositionRow | null) {
-    if (!canManage || (!row && !selectedUnit)) return;
+    if (
+      !canManage ||
+      (!row && (!selectedUnit || positionsQuery.hasNextPage || positionsQuery.isPending || positionsQuery.isError))
+    )
+      return;
     setDialogError("");
     setError("");
     setPositionEditing(row);
@@ -169,12 +174,22 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
             displayStyle: row.display_style,
             occupantLimit: row.occupant_limit
           }
-        : emptyPosition(selectedUnit?.content_id ?? "")
+        : emptyPosition(
+            selectedUnit?.content_id ?? "",
+            nextOrganizationSortOrder(
+              visiblePositions.filter((position) => position.group_label === "" && position.group_sort_order === 0),
+              (position) => position.sort_order
+            )
+          )
     );
   }
 
   function openAssignment(row: OrganizationAssignmentRow | null, positionId: string) {
-    if (!canManage) return;
+    if (
+      !canManage ||
+      (!row && (assignmentsQuery.hasNextPage || assignmentsQuery.isPending || assignmentsQuery.isError))
+    )
+      return;
     setDialogError("");
     setError("");
     setAssignmentEditing(row);
@@ -187,7 +202,10 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
             sortOrder: row.sort_order,
             enabled: row.enabled === 1
           }
-        : emptyAssignment(positionId)
+        : emptyAssignment(
+            positionId,
+            nextOrganizationSortOrder(assignmentsByPosition.get(positionId) ?? [], (item) => item.sort_order)
+          )
     );
   }
 
@@ -445,7 +463,13 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                           แก้ไขหน่วยงาน/ลำดับชั้น
                         </Button>
                       )}
-                      <Button variant="contained" disabled={busy} onClick={() => openPosition(null)}>
+                      <Button
+                        variant="contained"
+                        disabled={
+                          busy || positionsQuery.hasNextPage || positionsQuery.isPending || positionsQuery.isError
+                        }
+                        onClick={() => openPosition(null)}
+                      >
                         เพิ่มตำแหน่ง
                       </Button>
                     </Stack>
@@ -510,7 +534,11 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                                   {position.group_label && (
                                     <Chip size="small" label={position.group_label} variant="outlined" />
                                   )}
-                                  <Chip size="small" label={"ลำดับ " + position.sort_order} variant="outlined" />
+                                  <Chip
+                                    size="small"
+                                    label={"อันดับ " + (siblings.findIndex((row) => row.id === position.id) + 1)}
+                                    variant="outlined"
+                                  />
                                   {position.occupant_limit !== null &&
                                     !assignmentsQuery.hasNextPage &&
                                     !assignmentsQuery.isPending &&
@@ -587,8 +615,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                                           color="text.secondary"
                                           sx={{ overflowWrap: "anywhere" }}
                                         >
-                                          {assignment.duty_detail || "ยังไม่ระบุหน้าที่"} · ลำดับ{" "}
-                                          {assignment.sort_order}
+                                          {assignment.duty_detail || "ยังไม่ระบุหน้าที่"} · ลำดับ {index + 1}
                                           {assignment.enabled === 0 ? " · ปิดการแสดงผล" : ""}
                                         </Typography>
                                       </Box>
@@ -617,7 +644,12 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                             {canManage && (
                               <Button
                                 variant="outlined"
-                                disabled={busy}
+                                disabled={
+                                  busy ||
+                                  assignmentsQuery.hasNextPage ||
+                                  assignmentsQuery.isPending ||
+                                  assignmentsQuery.isError
+                                }
                                 onClick={() => openAssignment(null, position.id)}
                               >
                                 มอบหมายบุคลากร
@@ -643,6 +675,8 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
           {(positionsQuery.hasNextPage || assignmentsQuery.hasNextPage || personnelQuery.hasNextPage) && (
             <Alert severity="info">
               ข้อมูลบางประเภทยังโหลดไม่ครบ กรุณาโหลดหน้าถัดไปก่อนตรวจสอบจำนวนผู้ดำรงตำแหน่งหรือเลือกบุคลากร
+              {(positionsQuery.hasNextPage || assignmentsQuery.hasNextPage) &&
+                " และโหลดตำแหน่ง/หน้าที่ให้ครบก่อนเพิ่มรายการใหม่ เพื่อกำหนดอันดับถัดไปอย่างถูกต้อง"}
             </Alert>
           )}
           <Dialog open={positionForm !== null} onClose={() => !busy && setPositionForm(null)} fullWidth maxWidth="sm">
@@ -664,26 +698,65 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                     fullWidth
                     value={positionForm.groupLabel}
                     disabled={busy}
-                    onChange={(event) => setPositionForm({ ...positionForm, groupLabel: event.target.value })}
+                    onChange={(event) => {
+                      const groupLabel = event.target.value;
+                      const sortOrder = positionEditing
+                        ? positionForm.sortOrder
+                        : nextOrganizationSortOrder(
+                            positions.filter(
+                              (position) =>
+                                position.unit_content_id === positionForm.unitContentId &&
+                                position.group_label === groupLabel &&
+                                position.group_sort_order === positionForm.groupSortOrder
+                            ),
+                            (position) => position.sort_order
+                          );
+                      setPositionForm({ ...positionForm, groupLabel, sortOrder });
+                    }}
                   />
-                  <TextField
-                    label="ลำดับกลุ่ม"
-                    type="number"
-                    fullWidth
-                    value={positionForm.groupSortOrder}
-                    disabled={busy}
-                    onChange={(event) =>
-                      setPositionForm({ ...positionForm, groupSortOrder: Number(event.target.value) })
-                    }
-                  />
-                  <TextField
-                    label="ลำดับตำแหน่ง"
-                    type="number"
-                    fullWidth
-                    value={positionForm.sortOrder}
-                    disabled={busy}
-                    onChange={(event) => setPositionForm({ ...positionForm, sortOrder: Number(event.target.value) })}
-                  />
+                  <Box
+                    component="details"
+                    sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, p: 1.5 }}
+                  >
+                    <Box component="summary" sx={{ cursor: "pointer", fontWeight: 600 }}>
+                      ตั้งค่าลำดับด้วยตัวเลข (ขั้นสูง)
+                    </Box>
+                    <Stack spacing={2} sx={{ mt: 2 }}>
+                      <TextField
+                        label="ลำดับกลุ่ม"
+                        type="number"
+                        fullWidth
+                        value={positionForm.groupSortOrder}
+                        disabled={busy}
+                        onChange={(event) => {
+                          const groupSortOrder = Number(event.target.value);
+                          const sortOrder = positionEditing
+                            ? positionForm.sortOrder
+                            : nextOrganizationSortOrder(
+                                positions.filter(
+                                  (position) =>
+                                    position.unit_content_id === positionForm.unitContentId &&
+                                    position.group_label === positionForm.groupLabel &&
+                                    position.group_sort_order === groupSortOrder
+                                ),
+                                (position) => position.sort_order
+                              );
+                          setPositionForm({ ...positionForm, groupSortOrder, sortOrder });
+                        }}
+                      />
+                      <TextField
+                        label="ลำดับตำแหน่ง"
+                        type="number"
+                        fullWidth
+                        value={positionForm.sortOrder}
+                        disabled={busy}
+                        helperText="ค่าในระบบเริ่มที่ 0 แต่รายการแสดงอันดับเริ่มที่ 1"
+                        onChange={(event) =>
+                          setPositionForm({ ...positionForm, sortOrder: Number(event.target.value) })
+                        }
+                      />
+                    </Stack>
+                  </Box>
                   <TextField
                     label="รูปแบบแสดงผล"
                     fullWidth
@@ -705,7 +778,8 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                     }
                   />
                   <Alert severity="info">
-                    ลากการ์ดเพื่อจัดลำดับ หรือกรอกตัวเลขผ่านคีย์บอร์ดได้ ระบบตรวจสอบ Revision ก่อนบันทึก
+                    ลากการ์ดเพื่อจัดลำดับได้หลังบันทึก หรือใช้ตัวเลขในขั้นสูง
+                    ระบบกำหนดลำดับต่อท้ายให้อัตโนมัติเมื่อเพิ่มตำแหน่ง
                   </Alert>
                 </Stack>
               )}
@@ -757,7 +831,16 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                     required
                     disabled={busy}
                     value={assignmentForm.positionId}
-                    onChange={(event) => setAssignmentForm({ ...assignmentForm, positionId: event.target.value })}
+                    onChange={(event) => {
+                      const positionId = event.target.value;
+                      const sortOrder = assignmentEditing
+                        ? assignmentForm.sortOrder
+                        : nextOrganizationSortOrder(
+                            assignmentsByPosition.get(positionId) ?? [],
+                            (item) => item.sort_order
+                          );
+                      setAssignmentForm({ ...assignmentForm, positionId, sortOrder });
+                    }}
                   >
                     {assignmentForm.positionId && !positions.some((row) => row.id === assignmentForm.positionId) && (
                       <MenuItem value={assignmentForm.positionId} disabled>
@@ -781,16 +864,26 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                     value={assignmentForm.dutyDetail}
                     onChange={(event) => setAssignmentForm({ ...assignmentForm, dutyDetail: event.target.value })}
                   />
-                  <TextField
-                    label="ลำดับการแสดง"
-                    type="number"
-                    fullWidth
-                    disabled={busy}
-                    value={assignmentForm.sortOrder}
-                    onChange={(event) =>
-                      setAssignmentForm({ ...assignmentForm, sortOrder: Number(event.target.value) })
-                    }
-                  />
+                  <Box
+                    component="details"
+                    sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, p: 1.5 }}
+                  >
+                    <Box component="summary" sx={{ cursor: "pointer", fontWeight: 600 }}>
+                      ตั้งค่าลำดับด้วยตัวเลข (ขั้นสูง)
+                    </Box>
+                    <TextField
+                      label="ลำดับการแสดง"
+                      type="number"
+                      fullWidth
+                      sx={{ mt: 2 }}
+                      disabled={busy}
+                      value={assignmentForm.sortOrder}
+                      helperText="ระบบเติมลำดับถัดไปให้อัตโนมัติ และแสดงอันดับเริ่มที่ 1"
+                      onChange={(event) =>
+                        setAssignmentForm({ ...assignmentForm, sortOrder: Number(event.target.value) })
+                      }
+                    />
+                  </Box>
                   <FormControlLabel
                     control={
                       <Checkbox

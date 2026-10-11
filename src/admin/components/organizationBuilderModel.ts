@@ -79,6 +79,11 @@ export function positionsForUnit(positions: readonly OrganizationPositionRow[], 
     );
 }
 
+/** Append after the highest persisted order; zero remains the canonical first value. */
+export function nextOrganizationSortOrder<T>(items: readonly T[], orderOf: (item: T) => number): number {
+  return Math.max(items.length, items.reduce((max, item) => Math.max(max, orderOf(item)), -1) + 1);
+}
+
 /** Only pass a complete assignment dataset; D1 remains authoritative for limits. */
 export function enabledDistinctOccupants(
   assignments: readonly OrganizationAssignmentRow[],
