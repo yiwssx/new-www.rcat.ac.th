@@ -6,6 +6,7 @@ describe("Phase 5 personnel privacy and validation contract", () => {
     displayName: "เจ้าหน้าที่ ทดสอบ",
     personnelType: "เจ้าหน้าที่",
     employmentPosition: "",
+    educationQualifications: "",
     photoMediaId: null,
     publicEmail: "",
     publicPhone: "",
