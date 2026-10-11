@@ -21,6 +21,7 @@ export interface OrganizationPerson {
   displayName: string;
   personnelType: string;
   employmentPosition: string;
+  educationQualifications: string;
   photoMediaId: string | null;
   publicEmail: string;
   publicPhone: string;
@@ -101,6 +102,7 @@ export function projectOrganizationPersonPublic(person: OrganizationPerson) {
     displayName: person.displayName,
     personnelType: person.personnelType,
     employmentPosition: person.employmentPosition,
+    educationQualifications: person.educationQualifications,
     photoMediaId: person.photoMediaId,
     publicEmail: person.showPublicEmail ? person.publicEmail : "",
     publicPhone: person.showPublicPhone ? person.publicPhone : ""
