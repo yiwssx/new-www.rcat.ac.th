@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AdminStaleRevisionError } from "../../features/admin-write/errors";
 import type { OrganizationUnitListRow } from "../../features/organization-admin/api";
 import OrganizationPage from "./OrganizationPage";
-import { appSwal } from "../../utils/swal";
+import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 
 const auth = vi.hoisted(() => ({ capabilities: ["organization.read"] as string[] }));
 const api = vi.hoisted(() => ({
@@ -25,7 +25,10 @@ vi.mock("../../features/organization-admin/api", async (importOriginal) => ({
   deleteOrganizationRecord: api.remove
 }));
 vi.mock("../../utils/swal", () => ({
-  appSwal: { fire: vi.fn(async () => ({ isConfirmed: true })), close: vi.fn(async () => {}) }
+  appSwal: { fire: vi.fn(async () => ({ isConfirmed: true })), close: vi.fn(async () => {}) },
+  showBlockingLoading: vi.fn(),
+  showSuccessResult: vi.fn(async () => {}),
+  showErrorResult: vi.fn(async () => {})
 }));
 
 const existing: OrganizationUnitListRow = {
@@ -160,14 +163,10 @@ describe("Phase 4 Organization Admin list/editor", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "บันทึกหน่วยงาน" }));
     await waitFor(() =>
-      expect(appSwal.fire).toHaveBeenCalledWith(
-        expect.objectContaining({ title: "กำลังบันทึกหน่วยงาน", allowOutsideClick: false })
-      )
+      expect(showBlockingLoading).toHaveBeenCalledWith("กำลังบันทึกหน่วยงาน")
     );
     await waitFor(() =>
-      expect(appSwal.fire).toHaveBeenCalledWith(
-        expect.objectContaining({ title: "บันทึกหน่วยงานสำเร็จ", icon: "success", confirmButtonText: "ตกลง" })
-      )
+      expect(showSuccessResult).toHaveBeenCalledWith("บันทึกหน่วยงานสำเร็จ", expect.any(String))
     );
     expect(appSwal.close).toHaveBeenCalled();
     expect(screen.queryByRole("textbox", { name: "ชื่อหน่วยงาน" })).not.toBeInTheDocument();
@@ -186,9 +185,7 @@ describe("Phase 4 Organization Admin list/editor", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "บันทึกหน่วยงาน" }));
     await waitFor(() =>
-      expect(appSwal.fire).toHaveBeenCalledWith(
-        expect.objectContaining({ title: "บันทึกหน่วยงานไม่สำเร็จ", icon: "error", text: "server unavailable" })
-      )
+      expect(showErrorResult).toHaveBeenCalledWith("บันทึกหน่วยงานไม่สำเร็จ", expect.any(Error), "กรุณาลองอีกครั้ง")
     );
     expect(screen.getByRole("textbox", { name: "ชื่อหน่วยงาน" })).toHaveValue("งานไม่ควรหาย");
   });
