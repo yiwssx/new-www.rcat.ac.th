@@ -1,8 +1,8 @@
 # Organization Content Workstream Tracker
 
-Status: **PHASES 0–9 COMPLETE / PAUSED BEFORE FINAL MERGE AND PHASE 10 / FEATURE BRANCH ONLY — NO MERGE**
+Status: **PHASES 0–9 COMPLETE / MERGED TO `main` VIA PR #553 / PHASES 10–11 PENDING PROTECTED RELEASE**
 
-Updated: 2026-10-10 Asia/Bangkok
+Updated: 2026-10-11 Asia/Bangkok
 
 Repository: `yiwssx/new-www.rcat.ac.th`
 
@@ -365,3 +365,13 @@ Add a dedicated CMS content type for organizational units and personnel structur
 - **New-code CI must pass at the exact final HEAD; earlier successful runs do not validate this fix.** Check Static Quality/Prettier, Unit Tests, Worker, functional tests, Security/Governance and aggregate `quality` on the post-format and post-tracker commit. If the workflow fails, fix it on this branch before signing off.
 - **Remaining manual/release blockers:** independent final PR review; real-device + keyboard/zoom + screen-reader inspection; authorized isolated D1 migration and private backup/restore drill; protected D1 identity, rollback/Time Travel and release authorization. These are not asserted as completed here.
 - Retain one feature branch and one Draft PR; no final merge, production migration/deploy or real personnel population without the approved gates. Phase 10–11 remain PLANNED.
+
+## Feature integration closure — 2026-10-11 Asia/Bangkok
+
+**Phases 0–9 are COMPLETE and MERGED into `main`.** The repository owner explicitly authorized the final merge and will conduct hands-on UI/UX inspection. [PR #553](https://github.com/yiwssx/new-www.rcat.ac.th/pull/553) merged successfully on 2026-10-11 05:10:08 UTC, using the normal GitHub merge path, into commit [`d34ffbacf90b290dcad006fbfe408d08b047d123`](https://github.com/yiwssx/new-www.rcat.ac.th/commit/d34ffbacf90b290dcad006fbfe408d08b047d123).
+
+- Exact final feature HEAD: `c53f22d87fd1b5ac9291af01f1e560dd3acd9d72`; [CI #38113315126](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38113315126) completed SUCCESS in all 10 jobs. PR Prettier autofix also passed; no required checks were bypassed. Post-merge `main` was confirmed identical to merge SHA immediately following the merge.
+- The final code review hardened portable Organization backup Merge UPSERTs against revision-trigger conflicts and added regression coverage for repeat restores of four domain tables.
+- **Owner-performed acceptance is pending:** live device/responsive and screen-reader review; authorized isolated D1 migration/backup rehearsal; protected D1 binding/Time Travel/rollback verification. These items are not presented as completed or waived for production release.
+- **No production migration, Cloudflare Worker deployment, explicit Vercel deployment, remote backup restore or real personnel population was run by this workstream.** Existing external automatic deployment processes, if configured for merges to `main`, must be assessed separately; a repository merge does not demonstrate runtime readiness.
+- Phases 10 (protected production migration/deploy and verification) and 11 (real RCAT content entry) remain **PLANNED**, requiring their own authorization. The historical WIP and Draft-PR notes above document the decisions at those earlier times; this closure is the current source of truth.
