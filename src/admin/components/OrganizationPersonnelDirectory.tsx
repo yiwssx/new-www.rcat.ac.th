@@ -24,7 +24,7 @@ import {
   type OrganizationPersonnelRow,
   type OrganizationPersonnelWrite
 } from "../../features/organization-admin";
-import { appSwal } from "../../utils/swal";
+import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 import OrganizationPersonnelEditorDialog from "./OrganizationPersonnelEditorDialog";
 
 interface Props {
@@ -82,26 +82,39 @@ export default function OrganizationPersonnelDirectory({ canManage, canBrowseMed
   }
 
   async function handleSave(value: OrganizationPersonnelWrite) {
-    if (!canManage) return;
+    if (!canManage || save.isPending) return;
     setEditorError("");
     setError("");
+    setNotice("");
+    const wasEditing = Boolean(editing);
+    showBlockingLoading("กำลังบันทึกบุคลากร");
     try {
-      const wasEditing = Boolean(editing);
       await save.mutateAsync({ row: editing, value });
-      await invalidateOrganizationQueries(client, "personnel");
-      setDialogOpen(false);
-      setEditing(null);
-      setNotice(wasEditing ? "อัปเดตประวัติบุคลากรแล้ว" : "เพิ่มบุคลากรในทะเบียนกลางแล้ว");
     } catch (cause) {
-      if (isAdminStaleRevisionError(cause)) {
-        setDialogOpen(false);
-        setEditing(null);
-        setError("บุคลากรรายนี้มีการเปลี่ยนแปลงจากผู้ใช้อื่น กรุณาโหลดข้อมูลล่าสุดแล้วแก้ไขใหม่");
-        await invalidateOrganizationQueries(client, "personnel");
-      } else {
-        setEditorError(messageFor(cause));
+      await appSwal.close();
+      const stale = isAdminStaleRevisionError(cause);
+      const message = stale
+        ? "ข้อมูลบุคลากรถูกแก้ไขโดยผู้ใช้อื่น กรุณาคัดลอกข้อมูลที่กรอกไว้แล้วปิดฟอร์มเพื่อเปิดข้อมูลล่าสุด"
+        : messageFor(cause);
+      setEditorError(message);
+      if (stale) {
+        setError(message);
+        void invalidateOrganizationQueries(client, "personnel");
       }
+      await showErrorResult("บันทึกบุคลากรไม่สำเร็จ", new Error(message), "กรุณาลองอีกครั้ง");
+      return;
     }
+    await invalidateOrganizationQueries(client, "personnel").catch(() => {
+      setError("บันทึกสำเร็จแล้ว แต่โหลดทะเบียนบุคลากรล่าสุดไม่สำเร็จ กรุณารีเฟรช");
+    });
+    setDialogOpen(false);
+    setEditing(null);
+    setNotice(wasEditing ? "อัปเดตประวัติบุคลากรแล้ว" : "เพิ่มบุคลากรในทะเบียนกลางแล้ว");
+    await appSwal.close();
+    await showSuccessResult(
+      "บันทึกบุคลากรสำเร็จ",
+      wasEditing ? "อัปเดตประวัติบุคลากรแล้ว" : "เพิ่มบุคลากรในทะเบียนกลางแล้ว"
+    );
   }
 
   async function handleRemove(row: OrganizationPersonnelRow) {
@@ -117,16 +130,25 @@ export default function OrganizationPersonnelDirectory({ canManage, canBrowseMed
     if (!confirmed.isConfirmed) return;
     setError("");
     setNotice("");
+    showBlockingLoading("กำลังลบบุคลากร");
     try {
       await remove.mutateAsync(row);
-      await invalidateOrganizationQueries(client, "personnel");
-      setNotice("ลบข้อมูลบุคลากรจากทะเบียนกลางแล้ว");
     } catch (cause) {
-      setError(
-        isAdminStaleRevisionError(cause) ? "Revision ไม่ตรงกับข้อมูลล่าสุด กรุณาตรวจสอบอีกครั้ง" : messageFor(cause)
-      );
+      await appSwal.close();
+      const message = isAdminStaleRevisionError(cause)
+        ? "ข้อมูลบุคลากรถูกแก้ไขโดยผู้ใช้อื่น กรุณาตรวจสอบข้อมูลล่าสุดก่อนลบ"
+        : messageFor(cause);
+      setError(message);
       await invalidateOrganizationQueries(client, "personnel");
+      await showErrorResult("ลบบุคลากรไม่สำเร็จ", new Error(message), "กรุณาลองอีกครั้ง");
+      return;
     }
+    await invalidateOrganizationQueries(client, "personnel").catch(() => {
+      setError("ลบสำเร็จแล้ว แต่โหลดทะเบียนบุคลากรล่าสุดไม่สำเร็จ กรุณารีเฟรช");
+    });
+    setNotice("ลบข้อมูลบุคลากรจากทะเบียนกลางแล้ว");
+    await appSwal.close();
+    await showSuccessResult("ลบบุคลากรสำเร็จ");
   }
 
   return (
