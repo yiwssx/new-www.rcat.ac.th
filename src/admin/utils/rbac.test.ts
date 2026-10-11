@@ -6,6 +6,8 @@ import {
   canManageContent,
   canManageIntegrations,
   canManageMedia,
+  canManageOrganization,
+  canReadOrganization,
   canManageMenu,
   canManageSystemBackup,
   canManageUsers,
@@ -36,6 +38,10 @@ describe("admin capability presentation helpers", () => {
     expect(canManageContent(capabilities("content.read"))).toBe(false);
     expect(canPublishContent(capabilities("content.publish"))).toBe(true);
     expect(canManageMedia(capabilities("media.manage"))).toBe(true);
+    expect(canReadOrganization(capabilities("organization.read"))).toBe(true);
+    expect(canReadOrganization(capabilities("content.read"))).toBe(false);
+    expect(canManageOrganization(capabilities("organization.manage"))).toBe(true);
+    expect(canManageOrganization(capabilities("organization.read"))).toBe(false);
   });
 
   it("keeps unrelated capability groups isolated", () => {
@@ -54,5 +60,6 @@ describe("admin capability presentation helpers", () => {
   it("treats a capability set without mutations as read-only", () => {
     expect(isReadOnlyAdminUser(capabilities("dashboard.read", "content.read"))).toBe(true);
     expect(isReadOnlyAdminUser(capabilities("content.update"))).toBe(false);
+    expect(isReadOnlyAdminUser(capabilities("organization.manage"))).toBe(false);
   });
 });

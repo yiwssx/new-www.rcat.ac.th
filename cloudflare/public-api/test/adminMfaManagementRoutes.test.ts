@@ -128,7 +128,7 @@ beforeEach(() => {
 
 describe("admin MFA management route policy", () => {
   it("keeps the Phase 6 MFA capabilities while later recovery capability remains admin-only", () => {
-    expect(ADMIN_CAPABILITIES).toHaveLength(46);
+    expect(ADMIN_CAPABILITIES).toHaveLength(48);
     expect(getCapabilitiesForRole("admin")).toEqual(
       expect.arrayContaining([
         "auth.reauthenticate-self",

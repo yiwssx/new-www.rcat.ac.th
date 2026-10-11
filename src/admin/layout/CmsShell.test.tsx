@@ -51,8 +51,20 @@ describe("CmsShell capability navigation", () => {
     expect(screen.getByText("แดชบอร์ด")).toBeInTheDocument();
     expect(screen.getByText("เนื้อหา")).toBeInTheDocument();
     expect(screen.getByText("ความปลอดภัยบัญชี")).toBeInTheDocument();
+    expect(screen.queryByText("ผังองค์กร")).not.toBeInTheDocument();
     expect(screen.queryByText("ผู้ใช้งาน")).not.toBeInTheDocument();
     expect(screen.queryByText("สำรองข้อมูล")).not.toBeInTheDocument();
+  });
+
+  it("shows the dedicated Organization menu only when the server grants organization.read", () => {
+    authMock.capabilities.push("organization.read");
+    try {
+      render(<CmsShell />);
+      expect(screen.getByText("ผังองค์กร")).toBeInTheDocument();
+      expect(screen.queryByText("ผู้ใช้งาน")).not.toBeInTheDocument();
+    } finally {
+      authMock.capabilities.pop();
+    }
   });
 
   it("navigates to Login even when server Logout fails", async () => {

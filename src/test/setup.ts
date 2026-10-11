@@ -1,4 +1,19 @@
 if (typeof window !== "undefined") {
+  // @dnd-kit/dom observes draggable geometry during module initialization.
+  // jsdom has no native layout observer; provide the inert browser API seam
+  // before importing components. Real browser/E2E tests use native observers.
+  if (typeof globalThis.ResizeObserver === "undefined") {
+    class JsdomResizeObserver implements ResizeObserver {
+      observe(_target: Element) {}
+      unobserve(_target: Element) {}
+      disconnect() {}
+    }
+    Object.defineProperty(globalThis, "ResizeObserver", {
+      value: JsdomResizeObserver,
+      configurable: true
+    });
+  }
+
   await import("@testing-library/jest-dom/vitest");
 
   if (!window.localStorage || typeof window.localStorage.getItem !== "function") {

@@ -9,6 +9,7 @@ import {
   CarouselPage,
   CmsAuthRouteLayout,
   ContentPage,
+  OrganizationPage,
   DashboardPage,
   DocumentsPage,
   ExternalServicesPage,
@@ -25,6 +26,7 @@ import {
   PublicComplaintPage,
   PublicContactPage,
   PublicContentDetailRoute,
+  PublicOrganizationDetailRoute,
   PublicDepartmentsPage,
   PublicDocumentsPage,
   PublicHomePage,
@@ -41,6 +43,7 @@ import {
 import {
   getCmsRouteHead,
   getPublicContentRouteHead,
+  getPublicOrganizationRouteHead,
   getPublicLayoutRouteHead,
   getRootRouteHead,
   getStaticPublicRouteHead
@@ -50,6 +53,7 @@ import {
   getContentArchiveLoaderInput,
   loadPublicCmsSnapshotData,
   loadPublicContentDetailData,
+  loadPublicOrganizationDetailData,
   loadPublicContentListData,
   loadPublicContentPermalinkData,
   loadPublicDocumentListData,
@@ -207,6 +211,14 @@ const publicContentDetailRoute = createRoute({
   component: PublicContentDetailRoute
 });
 
+const publicOrganizationDetailRoute = createRoute({
+  getParentRoute: () => publicLayoutRoute,
+  path: "organization/$slug",
+  loader: ({ context, params }) => loadPublicOrganizationDetailData(context, params.slug),
+  head: ({ params, loaderData, matches }) => getPublicOrganizationRouteHead(params.slug, loaderData, { matches }),
+  component: PublicOrganizationDetailRoute
+});
+
 const publicPermalinkRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "$slug",
@@ -272,6 +284,16 @@ const adminContentRoute = createRoute({
   component: () => (
     <CapabilityGuard capability="content.read">
       <ContentPage />
+    </CapabilityGuard>
+  )
+});
+
+const adminOrganizationRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: "organization",
+  component: () => (
+    <CapabilityGuard capability="organization.read">
+      <OrganizationPage />
     </CapabilityGuard>
   )
 });
@@ -403,6 +425,7 @@ const routeTree = rootRoute.addChildren([
     publicIta2569Route,
     publicSearchRoute,
     publicContentDetailRoute,
+    publicOrganizationDetailRoute,
     publicPermalinkRoute
   ]),
   cmsAuthLayoutRoute.addChildren([
@@ -413,6 +436,7 @@ const routeTree = rootRoute.addChildren([
       adminDashboardRoute,
       adminSystemHealthRoute,
       adminContentRoute,
+      adminOrganizationRoute,
       adminDocumentsRoute,
       adminCarouselRoute,
       adminExternalServicesRoute,

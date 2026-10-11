@@ -1494,6 +1494,37 @@ describe("M18 admin structured write routes", () => {
     });
   });
 
+  it("prevents generic CMS detail/mutations from touching organization content revisions", async () => {
+    const { db, tables } = createAdminWriteMockDb();
+    tables.contents.push({
+      ...contentInput,
+      type: "organization",
+      status: "published",
+      revision: 3,
+      deleted_at: "",
+      created_at: "2026-10-10T00:00:00.000Z",
+      created_by: cmsActorEmail,
+      updated_by: cmsActorEmail
+    });
+    const id = contentInput.id;
+    const env = makeEnv(db);
+    const paths = [
+      makeRequest(`/api/admin/content/${id}`, { headers: cmsHeaders }),
+      makeJsonRequest(`/api/admin/content/${id}`, { title: "Bypass", type: "news" }, { method: "PATCH" }),
+      makeRequest(`/api/admin/content/${id}`, {
+        method: "DELETE",
+        headers: cmsHeaders
+      }),
+      makeJsonRequest(`/api/admin/content/${id}/publish`, {}, { method: "POST" }),
+      makeJsonRequest(`/api/admin/content/${id}/unpublish`, {}, { method: "POST" })
+    ];
+    for (const request of paths) {
+      const response = await worker.fetch(request, env);
+      expect(response.status).toBe(404);
+    }
+    expect(tables.contents[0]).toMatchObject({ type: "organization", revision: 3, status: "published" });
+  });
+
   it("returns safe errors without stack, SQL, D1 identifiers, tokens, or secrets when D1 fails", async () => {
     const { db, tables } = createAdminWriteMockDb({ failRuns: true });
     const response = await worker.fetch(makeJsonRequest("/api/admin/content", contentInput), makeEnv(db));

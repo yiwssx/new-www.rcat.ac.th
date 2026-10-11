@@ -17,6 +17,8 @@ const EXPECTED_CAPABILITIES = [
   "content.update",
   "content.delete",
   "content.publish",
+  "organization.read",
+  "organization.manage",
   "documents.read",
   "documents.create",
   "documents.update",
@@ -66,6 +68,8 @@ const EXPECTED_EDITOR_CAPABILITIES = [
   "content.update",
   "content.delete",
   "content.publish",
+  "organization.read",
+  "organization.manage",
   "documents.read",
   "documents.create",
   "documents.update",
@@ -112,7 +116,7 @@ const EXPECTED_VIEWER_CAPABILITIES = [
 describe("Admin capability registry", () => {
   it("contains each exact capability once and has no wildcard", () => {
     expect(ADMIN_CAPABILITIES).toEqual(EXPECTED_CAPABILITIES);
-    expect(ADMIN_CAPABILITIES).toHaveLength(46);
+    expect(ADMIN_CAPABILITIES).toHaveLength(48);
     expect(new Set(ADMIN_CAPABILITIES).size).toBe(ADMIN_CAPABILITIES.length);
     expect(ADMIN_CAPABILITIES).not.toContain("*" as AdminCapability);
   });
@@ -125,6 +129,8 @@ describe("Admin capability registry", () => {
   });
 
   it("keeps restricted categories out of the Editor role", () => {
+    expect(hasAdminCapability("editor", "organization.read")).toBe(true);
+    expect(hasAdminCapability("editor", "organization.manage")).toBe(true);
     expect(hasAdminCapability("editor", "external-services.manage")).toBe(false);
     expect(hasAdminCapability("editor", "menu.manage")).toBe(false);
     expect(hasAdminCapability("editor", "settings.manage")).toBe(false);
@@ -141,6 +147,8 @@ describe("Admin capability registry", () => {
   });
 
   it("gives Viewer no mutation capability", () => {
+    expect(hasAdminCapability("viewer", "organization.read")).toBe(false);
+    expect(hasAdminCapability("viewer", "organization.manage")).toBe(false);
     const mutationCapabilities = ADMIN_CAPABILITIES.filter(
       (capability) =>
         !capability.endsWith(".read") &&

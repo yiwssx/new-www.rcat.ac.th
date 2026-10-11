@@ -37,6 +37,7 @@ describe("publicRouteRegistry", () => {
     expect(isReservedPublicRootSlug("news")).toBe(true);
     expect(isReservedPublicRootSlug("/complaint")).toBe(true);
     expect(isReservedPublicRootSlug("admin")).toBe(true);
+    expect(isReservedPublicRootSlug("organization")).toBe(true);
     expect(isReservedPublicRootSlug("content/example")).toBe(true);
     expect(isReservedPublicRootSlug("my-custom-page")).toBe(false);
     expect(PUBLIC_RESERVED_ROOT_SLUGS).toContain("ita2569");

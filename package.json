@@ -84,12 +84,16 @@
     "editor:bundle:check": "node scripts/check-admin-editor-bundle.mjs"
   },
   "dependencies": {
+    "@dnd-kit/helpers": "^0.5.0",
+    "@dnd-kit/react": "^0.5.0",
     "@emotion/cache": "^11.14.0",
     "@emotion/react": "^11.14.0",
     "@emotion/server": "^11.11.0",
     "@emotion/styled": "^11.14.1",
+    "@hookform/resolvers": "^5.2.2",
     "@mui/icons-material": "^9.4.0",
     "@mui/material": "^9.4.0",
+    "@mui/x-tree-view": "^9.15.0",
     "@tanstack/react-query": "^5.104.1",
     "@tanstack/react-router": "^1.170.41",
     "@tanstack/react-table": "^9.2.5",
@@ -122,9 +126,12 @@
     "embla-carousel-react": "^8.6.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
-    "sweetalert2": "^11.26.25"
+    "react-hook-form": "^7.65.0",
+    "sweetalert2": "^11.26.25",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
     "@cloudflare/workers-types": "^5.20261004.1",
     "@commitlint/cli": "21.2.3",
     "@commitlint/config-conventional": "21.2.3",
@@ -137,6 +144,7 @@
     "@types/node": "^24.19.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "@typescript/native": "npm:typescript@^7.0.2",
     "@vitejs/plugin-react": "^6.1.1",
     "@vitest/coverage-v8": "5.0.3",
     "eslint": "^10.12.0",
@@ -156,8 +164,7 @@
     "vite": "^8.3.2",
     "vite-plugin-checker": "^0.14.5",
     "vitest": "^5.0.3",
-    "wrangler": "^4.147.0",
-    "@typescript/native": "npm:typescript@^7.0.2"
+    "wrangler": "^4.147.0"
   },
   "lint-staged": {
     "*.{ts,tsx,js,mjs}": [

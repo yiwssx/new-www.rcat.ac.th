@@ -608,6 +608,7 @@ function contentSql(searchParams: URLSearchParams): AdminPageSql {
     from: "contents",
     filters: compactFilters([
       { clause: "COALESCE(deleted_at, '') = ''", bindings: [] },
+      { clause: "type <> 'organization'", bindings: [] },
       searchFilter(searchParams, ["title", "summary", "slug", "category", "owner", "tags_json"]),
       exactFilter(searchParams, "status", "status"),
       exactFilter(searchParams, "type", "type"),
@@ -1099,6 +1100,7 @@ async function handleDashboardSummary(env: Env) {
       `SELECT status AS key, COUNT(*) AS total
        FROM contents
        WHERE COALESCE(deleted_at, '') = ''
+         AND type <> 'organization'
        GROUP BY status`
     ),
     readAdminRows<{ key: string; total: number | string }>(
@@ -1106,6 +1108,7 @@ async function handleDashboardSummary(env: Env) {
       `SELECT status AS key, COUNT(*) AS total
        FROM documents
        WHERE COALESCE(deleted_at, '') = ''
+         AND type <> 'organization'
        GROUP BY status`
     ),
     readAdminRows<{ total: number | string }>(env, "SELECT COUNT(*) AS total FROM media_assets"),
@@ -1134,6 +1137,7 @@ async function handleDashboardSummary(env: Env) {
       `SELECT COUNT(*) AS total
        FROM contents
        WHERE COALESCE(deleted_at, '') = ''
+         AND type <> 'organization'
          AND ${PUBLISHABLE_CONTENT_SQL}`,
       publishableContentBindings(now)
     ),
@@ -1142,6 +1146,7 @@ async function handleDashboardSummary(env: Env) {
       `SELECT ${CONTENT_LIST_COLUMNS.join(", ")}
        FROM contents
        WHERE COALESCE(deleted_at, '') = ''
+         AND type <> 'organization'
          AND ${PUBLISHABLE_CONTENT_SQL}
        ORDER BY updated_at DESC, id ASC
        LIMIT 10`,
@@ -1152,6 +1157,7 @@ async function handleDashboardSummary(env: Env) {
       `SELECT ${CONTENT_LIST_COLUMNS.join(", ")}
        FROM contents
        WHERE COALESCE(deleted_at, '') = ''
+         AND type <> 'organization'
        ORDER BY updated_at DESC, id ASC
        LIMIT 10`
     ),
@@ -1310,6 +1316,7 @@ async function handlePublishPending(env: Env, identity: AdminIdentity) {
          updated_by = ?,
          revision = revision + 1
        WHERE COALESCE(deleted_at, '') = ''
+         AND type <> 'organization'
          AND ${PUBLISHABLE_CONTENT_SQL}
        RETURNING id`
     )

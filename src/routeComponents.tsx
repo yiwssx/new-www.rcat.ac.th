@@ -16,6 +16,7 @@ export const CalendarPage = lazy(() => import("./admin/pages/CalendarPage"));
 export const BackupPage = lazy(() => import("./admin/pages/BackupPage"));
 export const CarouselPage = lazy(() => import("./admin/pages/CarouselPage"));
 export const ContentPage = lazy(() => import("./admin/pages/PreviewRevisionAutosaveWorkflowPage"));
+export const OrganizationPage = lazy(() => import("./admin/pages/OrganizationPage"));
 export const DashboardPage = lazy(() => import("./admin/pages/AdminDashboardWorkflowPage"));
 export const DocumentsPage = lazy(() => import("./admin/pages/DocumentManagementWorkflowPage"));
 export const ExternalServicesPage = lazy(() => import("./admin/pages/ExternalServicesPage"));
@@ -36,6 +37,7 @@ export const PublicDocumentsPage = lazy(() => import("./public/pages/PublicDocum
 export const PublicHomePage = lazy(() => import("./public/pages/PublicHomePage"));
 export const PublicIta2569Page = lazy(() => import("./public/pages/PublicIta2569Page"));
 export const PublicNewsPage = lazy(() => import("./public/pages/PublicNewsPage"));
+export const PublicOrganizationDetailPage = lazy(() => import("./public/pages/PublicOrganizationDetailPage"));
 export const PublicSearchPage = lazy(() => import("./public/pages/PublicSearchPage"));
 export const ResetPasswordPage = lazy(() => import("./admin/pages/ResetPasswordPage"));
 export const SettingsPage = lazy(() => import("./admin/pages/SettingsHomepageWorkflowPage"));
@@ -105,6 +107,11 @@ export function RootRouteLayout() {
       <RouteOutlet />
     </>
   );
+}
+
+export function PublicOrganizationDetailRoute() {
+  const { slug } = useParams({ strict: false }) as { slug: string };
+  return <PublicOrganizationDetailPage slug={slug} />;
 }
 
 export function PublicContentDetailRoute() {

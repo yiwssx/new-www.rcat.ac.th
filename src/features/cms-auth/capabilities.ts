@@ -7,6 +7,8 @@ export const CMS_CAPABILITIES = Object.freeze([
   "content.update",
   "content.delete",
   "content.publish",
+  "organization.read",
+  "organization.manage",
   "documents.read",
   "documents.create",
   "documents.update",

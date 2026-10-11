@@ -5,6 +5,7 @@ import {
   buildPublicRouteHead,
   getCmsRouteHead,
   getPublicContentRouteHead,
+  getPublicOrganizationRouteHead,
   getPublicLayoutRouteHead,
   getRootRouteHead,
   getStaticPublicRouteHead
@@ -103,6 +104,61 @@ const detailLoaderData = {
 };
 
 describe("public route head metadata", () => {
+  it("builds canonical organization permalink SEO and published ancestor breadcrumbs", () => {
+    const detail = {
+      unit: {
+        contentId: "work",
+        parentContentId: "division",
+        unitKind: "work",
+        sortOrder: 0,
+        slug: "academic-work",
+        title: "งานวิชาการ",
+        summary: "รายละเอียดงานวิชาการ",
+        depth: 1
+      },
+      ancestors: [
+        {
+          contentId: "division",
+          parentContentId: null,
+          unitKind: "division",
+          sortOrder: 0,
+          slug: "academic-division",
+          title: "ฝ่ายวิชาการ",
+          summary: "",
+          depth: 0
+        }
+      ],
+      units: [],
+      positions: [],
+      media: []
+    };
+    const head = getPublicOrganizationRouteHead("academic-work", detail, {
+      loaderData: { siteSettings }
+    });
+    expect(getMetaContent(head, "title")).toBe(`งานวิชาการ | ${siteSettings.siteName}`);
+    expect(getMetaContent(head, "name", "description")).toBe("รายละเอียดงานวิชาการ");
+    expect(head.links).toEqual([
+      {
+        rel: "canonical",
+        href: `${projectSettings.site.publicSiteUrl}/organization/academic-work`
+      }
+    ]);
+    expect(getJsonLd(head, "rcat-organization-page-jsonld")).toMatchObject({
+      "@type": "WebPage",
+      name: "งานวิชาการ"
+    });
+    expect(
+      getJsonLd(head, "rcat-breadcrumb-jsonld").itemListElement.map((item: { name: string }) => item.name)
+    ).toEqual(["หน้าหลัก", "ฝ่ายวิชาการ", "งานวิชาการ"]);
+  });
+
+  it("never indexes a missing or failed organization public loader result", () => {
+    const head = getPublicOrganizationRouteHead("draft", undefined);
+    expect(getMetaContent(head, "name", "robots")).toBe("noindex, nofollow");
+    expect(head.links).toEqual([]);
+    expect(head.scripts).toEqual([]);
+  });
+
   it("keeps the root head limited to the default site title", () => {
     const head = getRootRouteHead();
 

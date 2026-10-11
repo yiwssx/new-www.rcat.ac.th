@@ -5,6 +5,10 @@ import { json, jsonError, methodNotAllowed } from "../responses";
 const BACKUP_TABLES = [
   "contents",
   "media_assets",
+  "organization_units",
+  "personnel",
+  "organization_positions",
+  "organization_assignments",
   "documents",
   "menu_items",
   "carousel_slides",
