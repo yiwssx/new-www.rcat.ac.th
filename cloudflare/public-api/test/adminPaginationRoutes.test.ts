@@ -763,6 +763,7 @@ describe("admin server pagination routes", () => {
     const migrationDirectory = join(dirname(fileURLToPath(import.meta.url)), "../migrations");
     try {
       database.exec(readFileSync(join(migrationDirectory, "0001_public_read_schema.sql"), "utf8"));
+      database.exec(readFileSync(join(migrationDirectory, "0002_public_read_core_batch.sql"), "utf8"));
       database.exec(readFileSync(join(migrationDirectory, "0003_admin_write_batch.sql"), "utf8"));
 
       const insert = database.prepare("INSERT INTO documents (id, title, status, deleted_at) VALUES (?, ?, ?, ?)");
