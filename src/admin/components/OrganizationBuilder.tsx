@@ -809,7 +809,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                         ? assignmentForm.sortOrder
                         : nextOrganizationSortOrder(assignmentsByPosition.get(positionId) ?? [], (item) => item.sort_order);
                       setAssignmentForm({ ...assignmentForm, positionId, sortOrder });
-                    }
+                    }}
                   >
                     {assignmentForm.positionId && !positions.some((row) => row.id === assignmentForm.positionId) && (
                       <MenuItem value={assignmentForm.positionId} disabled>
