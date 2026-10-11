@@ -66,7 +66,13 @@ export default function OrganizationPersonnelEditorDialog({
   });
 
   const input = (
-    name: "displayName" | "personnelType" | "employmentPosition" | "educationQualifications" | "publicEmail" | "publicPhone",
+    name:
+      | "displayName"
+      | "personnelType"
+      | "employmentPosition"
+      | "educationQualifications"
+      | "publicEmail"
+      | "publicPhone",
     label: string
   ) => (
     <Controller

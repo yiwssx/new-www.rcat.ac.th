@@ -114,17 +114,40 @@ describe("Phase 7 responsive public organization renderer", () => {
 
   it("only renders supplied qualifications in a department position", async () => {
     const baseUnit = {
-      contentId: "dept", parentContentId: null, slug: "dept", title: "แผนกวิชา",
-      summary: "", unitKind: "department", sortOrder: 0, depth: 0
+      contentId: "dept",
+      parentContentId: null,
+      slug: "dept",
+      title: "แผนกวิชา",
+      summary: "",
+      unitKind: "department",
+      sortOrder: 0,
+      depth: 0
     };
     const position = {
-      id: "position-1", unitContentId: "dept", title: "ครู", groupLabel: "", groupSortOrder: 0,
-      sortOrder: 0, displayStyle: "default", assignments: [{
-        id: "a-1", dutyDetail: "", sortOrder: 0, person: {
-          id: "person-1", displayName: "ครู ทดสอบ", personnelType: "ครู", employmentPosition: "ครู",
-          educationQualifications: "ปริญญาโท", photoMediaId: null, publicEmail: "", publicPhone: ""
+      id: "position-1",
+      unitContentId: "dept",
+      title: "ครู",
+      groupLabel: "",
+      groupSortOrder: 0,
+      sortOrder: 0,
+      displayStyle: "default",
+      assignments: [
+        {
+          id: "a-1",
+          dutyDetail: "",
+          sortOrder: 0,
+          person: {
+            id: "person-1",
+            displayName: "ครู ทดสอบ",
+            personnelType: "ครู",
+            employmentPosition: "ครู",
+            educationQualifications: "ปริญญาโท",
+            photoMediaId: null,
+            publicEmail: "",
+            publicPhone: ""
+          }
         }
-      }]
+      ]
     };
     mock.data = { unit: baseUnit, ancestors: [], units: [baseUnit], positions: [position], media: [] };
     const screenDepartment = setup();

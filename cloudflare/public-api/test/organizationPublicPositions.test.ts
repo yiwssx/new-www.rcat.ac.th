@@ -119,8 +119,12 @@ describe("Organization Chart public positions and assignments", () => {
     addAssignment("a-department", "person-1", "department-pos");
     addAssignment("a-committee", "person-1", "committee-pos");
     const positions = visiblePositions();
-    expect(positions.find((position) => position.id === "department-pos")?.assignments[0]?.person.educationQualifications).toBe("ปริญญาโท");
-    expect(positions.find((position) => position.id === "committee-pos")?.assignments[0]?.person.educationQualifications).toBe("");
+    expect(
+      positions.find((position) => position.id === "department-pos")?.assignments[0]?.person.educationQualifications
+    ).toBe("ปริญญาโท");
+    expect(
+      positions.find((position) => position.id === "committee-pos")?.assignments[0]?.person.educationQualifications
+    ).toBe("");
   });
 
   it("never exposes unpublished units or positions", () => {

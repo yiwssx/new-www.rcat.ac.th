@@ -48,8 +48,12 @@ describe("Organization Chart server-side write validation", () => {
 
   it("accepts an empty or entered academic qualification but enforces size", () => {
     expect(parsePersonnelWrite({ displayName: "A" }).educationQualifications).toBe("");
-    expect(parsePersonnelWrite({ displayName: "A", educationQualifications: "ปริญญาตรี" }).educationQualifications).toBe("ปริญญาตรี");
-    expect(() => parsePersonnelWrite({ displayName: "A", educationQualifications: "x".repeat(1001) })).toThrow(/educationQualifications/);
+    expect(
+      parsePersonnelWrite({ displayName: "A", educationQualifications: "ปริญญาตรี" }).educationQualifications
+    ).toBe("ปริญญาตรี");
+    expect(() => parsePersonnelWrite({ displayName: "A", educationQualifications: "x".repeat(1001) })).toThrow(
+      /educationQualifications/
+    );
   });
 
   it("rejects injected role, user id, revision, invalid flags and malformed emails", () => {
