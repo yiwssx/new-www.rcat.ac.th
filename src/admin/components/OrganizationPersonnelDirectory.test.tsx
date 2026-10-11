@@ -4,7 +4,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { OrganizationPersonnelRow } from "../../features/organization-admin/api";
 import OrganizationPersonnelDirectory from "./OrganizationPersonnelDirectory";
-import { appSwal } from "../../utils/swal";
+import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 
 const api = vi.hoisted(() => ({
   getCollection: vi.fn(),
@@ -22,7 +22,10 @@ vi.mock("../../features/organization-admin/api", async (importOriginal) => ({
 }));
 
 vi.mock("../../utils/swal", () => ({
-  appSwal: { fire: vi.fn(async () => ({ isConfirmed: true })), close: vi.fn(async () => {}) }
+  appSwal: { fire: vi.fn(async () => ({ isConfirmed: true })), close: vi.fn(async () => {}) },
+  showBlockingLoading: vi.fn(),
+  showSuccessResult: vi.fn(async () => {}),
+  showErrorResult: vi.fn(async () => {})
 }));
 
 vi.mock("./RichTextMediaPickerDialog", () => ({
@@ -149,14 +152,10 @@ describe("Phase 5 canonical personnel directory", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "บันทึกบุคลากร" }));
     await waitFor(() =>
-      expect(appSwal.fire).toHaveBeenCalledWith(
-        expect.objectContaining({ title: "กำลังบันทึกบุคลากร", allowOutsideClick: false })
-      )
+      expect(showBlockingLoading).toHaveBeenCalledWith("กำลังบันทึกบุคลากร")
     );
     await waitFor(() =>
-      expect(appSwal.fire).toHaveBeenCalledWith(
-        expect.objectContaining({ title: "บันทึกบุคลากรสำเร็จ", icon: "success", confirmButtonText: "ตกลง" })
-      )
+      expect(showSuccessResult).toHaveBeenCalledWith("บันทึกบุคลากรสำเร็จ", expect.any(String))
     );
   });
 
@@ -169,9 +168,7 @@ describe("Phase 5 canonical personnel directory", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "บันทึกบุคลากร" }));
     await waitFor(() =>
-      expect(appSwal.fire).toHaveBeenCalledWith(
-        expect.objectContaining({ title: "บันทึกบุคลากรไม่สำเร็จ", icon: "error", text: "cannot save" })
-      )
+      expect(showErrorResult).toHaveBeenCalledWith("บันทึกบุคลากรไม่สำเร็จ", expect.any(Error), "กรุณาลองอีกครั้ง")
     );
     expect(screen.getByRole("textbox", { name: "ชื่อ-นามสกุล" })).toHaveValue("บุคลากร รอแก้ไข");
   });
