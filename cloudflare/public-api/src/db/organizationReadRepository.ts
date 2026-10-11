@@ -67,6 +67,7 @@ export const PUBLIC_ORGANIZATION_POSITIONS_SQL = `
     person.display_name,
     person.personnel_type,
     person.employment_position,
+    CASE WHEN unit.unit_kind = 'department' THEN COALESCE(person.education_qualifications, '') ELSE '' END AS education_qualifications,
     person.photo_media_id,
     CASE WHEN person.show_public_email = 1 THEN person.public_email ELSE '' END AS public_email,
     CASE WHEN person.show_public_phone = 1 THEN person.public_phone ELSE '' END AS public_phone
@@ -140,6 +141,7 @@ export interface PublicOrganizationPositionRow {
   display_name: string | null;
   personnel_type: string | null;
   employment_position: string | null;
+  education_qualifications: string | null;
   photo_media_id: string | null;
   public_email: string | null;
   public_phone: string | null;
@@ -154,6 +156,7 @@ export interface PublicOrganizationPositionAssignment {
     displayName: string;
     personnelType: string;
     employmentPosition: string;
+    educationQualifications: string;
     photoMediaId: string | null;
     publicEmail: string;
     publicPhone: string;
@@ -203,6 +206,7 @@ export function mapPublicOrganizationPositions(
           displayName: row.display_name,
           personnelType: row.personnel_type ?? "",
           employmentPosition: row.employment_position ?? "",
+          educationQualifications: row.education_qualifications ?? "",
           photoMediaId: row.photo_media_id,
           publicEmail: row.public_email ?? "",
           publicPhone: row.public_phone ?? ""
