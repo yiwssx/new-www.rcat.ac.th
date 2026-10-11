@@ -676,26 +676,60 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                     fullWidth
                     value={positionForm.groupLabel}
                     disabled={busy}
-                    onChange={(event) => setPositionForm({ ...positionForm, groupLabel: event.target.value })}
-                  />
-                  <TextField
-                    label="ลำดับกลุ่ม"
-                    type="number"
-                    fullWidth
-                    value={positionForm.groupSortOrder}
-                    disabled={busy}
-                    onChange={(event) =>
-                      setPositionForm({ ...positionForm, groupSortOrder: Number(event.target.value) })
+                    onChange={(event) => {
+                      const groupLabel = event.target.value;
+                      const sortOrder = positionEditing
+                        ? positionForm.sortOrder
+                        : nextOrganizationSortOrder(
+                            positions.filter(
+                              (position) =>
+                                position.unit_content_id === positionForm.unitContentId &&
+                                position.group_label === groupLabel &&
+                                position.group_sort_order === positionForm.groupSortOrder
+                            ),
+                            (position) => position.sort_order
+                          );
+                      setPositionForm({ ...positionForm, groupLabel, sortOrder });
                     }
                   />
-                  <TextField
-                    label="ลำดับตำแหน่ง"
-                    type="number"
-                    fullWidth
-                    value={positionForm.sortOrder}
-                    disabled={busy}
-                    onChange={(event) => setPositionForm({ ...positionForm, sortOrder: Number(event.target.value) })}
-                  />
+                  <Box component="details" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, p: 1.5 }}>
+                    <Box component="summary" sx={{ cursor: "pointer", fontWeight: 600 }}>
+                      ตั้งค่าลำดับด้วยตัวเลข (ขั้นสูง)
+                    </Box>
+                    <Stack spacing={2} sx={{ mt: 2 }}>
+                      <TextField
+                        label="ลำดับกลุ่ม"
+                        type="number"
+                        fullWidth
+                        value={positionForm.groupSortOrder}
+                        disabled={busy}
+                        onChange={(event) => {
+                          const groupSortOrder = Number(event.target.value);
+                          const sortOrder = positionEditing
+                            ? positionForm.sortOrder
+                            : nextOrganizationSortOrder(
+                                positions.filter(
+                                  (position) =>
+                                    position.unit_content_id === positionForm.unitContentId &&
+                                    position.group_label === positionForm.groupLabel &&
+                                    position.group_sort_order === groupSortOrder
+                                ),
+                                (position) => position.sort_order
+                              );
+                          setPositionForm({ ...positionForm, groupSortOrder, sortOrder });
+                        }}
+                      />
+                      <TextField
+                        label="ลำดับตำแหน่ง"
+                        type="number"
+                        fullWidth
+                        value={positionForm.sortOrder}
+                        disabled={busy}
+                        helperText="ค่าในระบบเริ่มที่ 0 แต่รายการแสดงอันดับเริ่มที่ 1"
+                        onChange={(event) => setPositionForm({ ...positionForm, sortOrder: Number(event.target.value) })}
+                      />
+                    </Stack>
+                  </Box>
                   <TextField
                     label="รูปแบบแสดงผล"
                     fullWidth
@@ -717,7 +751,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                     }
                   />
                   <Alert severity="info">
-                    ลากการ์ดเพื่อจัดลำดับ หรือกรอกตัวเลขผ่านคีย์บอร์ดได้ ระบบตรวจสอบ Revision ก่อนบันทึก
+                    ลากการ์ดเพื่อจัดลำดับได้หลังบันทึก หรือใช้ตัวเลขในขั้นสูง ระบบกำหนดลำดับต่อท้ายให้อัตโนมัติเมื่อเพิ่มตำแหน่ง
                   </Alert>
                 </Stack>
               )}
@@ -769,7 +803,13 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                     required
                     disabled={busy}
                     value={assignmentForm.positionId}
-                    onChange={(event) => setAssignmentForm({ ...assignmentForm, positionId: event.target.value })}
+                    onChange={(event) => {
+                      const positionId = event.target.value;
+                      const sortOrder = assignmentEditing
+                        ? assignmentForm.sortOrder
+                        : nextOrganizationSortOrder(assignmentsByPosition.get(positionId) ?? [], (item) => item.sort_order);
+                      setAssignmentForm({ ...assignmentForm, positionId, sortOrder });
+                    }
                   >
                     {assignmentForm.positionId && !positions.some((row) => row.id === assignmentForm.positionId) && (
                       <MenuItem value={assignmentForm.positionId} disabled>
@@ -793,16 +833,23 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                     value={assignmentForm.dutyDetail}
                     onChange={(event) => setAssignmentForm({ ...assignmentForm, dutyDetail: event.target.value })}
                   />
-                  <TextField
-                    label="ลำดับการแสดง"
-                    type="number"
-                    fullWidth
-                    disabled={busy}
-                    value={assignmentForm.sortOrder}
-                    onChange={(event) =>
-                      setAssignmentForm({ ...assignmentForm, sortOrder: Number(event.target.value) })
-                    }
-                  />
+                  <Box component="details" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, p: 1.5 }}>
+                    <Box component="summary" sx={{ cursor: "pointer", fontWeight: 600 }}>
+                      ตั้งค่าลำดับด้วยตัวเลข (ขั้นสูง)
+                    </Box>
+                    <TextField
+                      label="ลำดับการแสดง"
+                      type="number"
+                      fullWidth
+                      sx={{ mt: 2 }}
+                      disabled={busy}
+                      value={assignmentForm.sortOrder}
+                      helperText="ระบบเติมลำดับถัดไปให้อัตโนมัติ และแสดงอันดับเริ่มที่ 1"
+                      onChange={(event) =>
+                        setAssignmentForm({ ...assignmentForm, sortOrder: Number(event.target.value) })
+                      }
+                    />
+                  </Box>
                   <FormControlLabel
                     control={
                       <Checkbox
