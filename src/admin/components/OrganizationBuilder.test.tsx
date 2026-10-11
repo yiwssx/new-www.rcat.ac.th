@@ -159,7 +159,8 @@ describe("Phase 6 accessible Organization builder", () => {
   it("creates a unit-scoped position through the dedicated audited facade", async () => {
     setup(true);
     fireEvent.click(screen.getByText("งานสารบรรณ"));
-    fireEvent.click(await screen.findByRole("button", { name: "เพิ่มตำแหน่ง" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "เพิ่มตำแหน่ง" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "เพิ่มตำแหน่ง" }));
     fireEvent.change(screen.getByRole("textbox", { name: "ชื่อตำแหน่ง" }), {
       target: { value: "ผู้ช่วยหัวหน้างาน" }
     });
@@ -179,7 +180,8 @@ describe("Phase 6 accessible Organization builder", () => {
   it("sets the next position order when a new position joins an existing group", async () => {
     setup(true);
     fireEvent.click(screen.getByText("งานสารบรรณ"));
-    fireEvent.click(await screen.findByRole("button", { name: "เพิ่มตำแหน่ง" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "เพิ่มตำแหน่ง" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "เพิ่มตำแหน่ง" }));
     fireEvent.change(screen.getByRole("textbox", { name: "กลุ่มตำแหน่ง" }), {
       target: { value: "ผู้บริหาร" }
     });
@@ -361,7 +363,8 @@ describe("Phase 6 accessible Organization builder", () => {
   it("confirms a saved position instead of silently closing its editor", async () => {
     setup(true);
     fireEvent.click(screen.getByText("งานสารบรรณ"));
-    fireEvent.click(await screen.findByRole("button", { name: "เพิ่มตำแหน่ง" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "เพิ่มตำแหน่ง" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "เพิ่มตำแหน่ง" }));
     fireEvent.change(screen.getByRole("textbox", { name: "ชื่อตำแหน่ง" }), {
       target: { value: "ผู้ช่วยหัวหน้างาน" }
     });
@@ -374,7 +377,8 @@ describe("Phase 6 accessible Organization builder", () => {
     api.create.mockRejectedValueOnce(new Error("position rejected"));
     setup(true);
     fireEvent.click(screen.getByText("งานสารบรรณ"));
-    fireEvent.click(await screen.findByRole("button", { name: "เพิ่มตำแหน่ง" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "เพิ่มตำแหน่ง" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "เพิ่มตำแหน่ง" }));
     fireEvent.change(screen.getByRole("textbox", { name: "ชื่อตำแหน่ง" }), {
       target: { value: "ตำแหน่งที่ยังไม่สำเร็จ" }
     });
