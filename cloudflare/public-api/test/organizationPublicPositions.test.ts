@@ -2,6 +2,7 @@
 import { DatabaseSync } from "node:sqlite";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import migrationSql from "../migrations/0020_organization_content_foundation.sql?raw";
+import qualificationsMigrationSql from "../migrations/0021_organization_education_qualifications.sql?raw";
 import {
   mapPublicOrganizationPositions,
   PUBLIC_ORGANIZATION_POSITIONS_SQL,
@@ -18,11 +19,11 @@ function addContent(id: string, status = "published") {
   ).run(id, status, id, id);
 }
 
-function addUnit(id: string, parent: string | null = null) {
+function addUnit(id: string, parent: string | null = null, kind = "work") {
   const statement = db.prepare(
-    "INSERT INTO organization_units (content_id, parent_content_id, unit_kind) VALUES (?, ?, 'work')"
+    "INSERT INTO organization_units (content_id, parent_content_id, unit_kind) VALUES (?, ?, ?)"
   );
-  statement.run(id, parent);
+  statement.run(id, parent, kind);
 }
 
 function addPosition(id: string, unitId: string) {
@@ -86,6 +87,7 @@ beforeEach(() => {
     CREATE TABLE media_assets (id TEXT PRIMARY KEY);
   `);
   db.exec(migrationSql);
+  db.exec(qualificationsMigrationSql);
 });
 
 afterEach(() => {
@@ -103,6 +105,22 @@ describe("Organization Chart public positions and assignments", () => {
     addAssignment("assignment-1", "person-1", "pos-work");
 
     expect(visiblePositions()).toEqual([]);
+  });
+
+  it("exposes qualifications for departments, but suppresses them for other unit kinds", () => {
+    addContent("department");
+    addContent("committee");
+    addUnit("department", null, "department");
+    addUnit("committee", null, "subunit");
+    addPosition("department-pos", "department");
+    addPosition("committee-pos", "committee");
+    addPerson("person-1");
+    db.prepare("UPDATE personnel SET education_qualifications = 'ปริญญาโท', revision = 1 WHERE id = 'person-1'").run();
+    addAssignment("a-department", "person-1", "department-pos");
+    addAssignment("a-committee", "person-1", "committee-pos");
+    const positions = visiblePositions();
+    expect(positions.find((position) => position.id === "department-pos")?.assignments[0]?.person.educationQualifications).toBe("ปริญญาโท");
+    expect(positions.find((position) => position.id === "committee-pos")?.assignments[0]?.person.educationQualifications).toBe("");
   });
 
   it("never exposes unpublished units or positions", () => {
