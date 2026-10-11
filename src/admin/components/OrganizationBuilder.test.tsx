@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AdminStaleRevisionError } from "../../features/admin-write/errors";
 import type { OrganizationUnitListRow } from "../../features/organization-admin/api";
 import OrganizationBuilder from "./OrganizationBuilder";
-import { appSwal } from "../../utils/swal";
+import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 
 const api = vi.hoisted(() => ({
   list: vi.fn(),
@@ -20,7 +20,10 @@ vi.mock("../../features/organization-admin/api", async (importOriginal) => ({
   deleteOrganizationRecord: api.remove
 }));
 vi.mock("../../utils/swal", () => ({
-  appSwal: { fire: vi.fn(async () => ({ isConfirmed: true })), close: vi.fn(async () => {}) }
+  appSwal: { fire: vi.fn(async () => ({ isConfirmed: true })), close: vi.fn(async () => {}) },
+  showBlockingLoading: vi.fn(),
+  showSuccessResult: vi.fn(async () => {}),
+  showErrorResult: vi.fn(async () => {})
 }));
 
 const units: OrganizationUnitListRow[] = [
@@ -304,14 +307,10 @@ describe("Phase 6 accessible Organization builder", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "บันทึกตำแหน่ง" }));
     await waitFor(() =>
-      expect(appSwal.fire).toHaveBeenCalledWith(
-        expect.objectContaining({ title: "กำลังบันทึกตำแหน่ง", allowOutsideClick: false })
-      )
+      expect(showBlockingLoading).toHaveBeenCalledWith("กำลังบันทึกตำแหน่ง")
     );
     await waitFor(() =>
-      expect(appSwal.fire).toHaveBeenCalledWith(
-        expect.objectContaining({ title: "บันทึกตำแหน่งสำเร็จ", icon: "success", confirmButtonText: "ตกลง" })
-      )
+      expect(showSuccessResult).toHaveBeenCalledWith("บันทึกตำแหน่งสำเร็จ")
     );
   });
 
@@ -325,9 +324,7 @@ describe("Phase 6 accessible Organization builder", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "บันทึกตำแหน่ง" }));
     await waitFor(() =>
-      expect(appSwal.fire).toHaveBeenCalledWith(
-        expect.objectContaining({ title: "บันทึกตำแหน่งไม่สำเร็จ", icon: "error", text: "position rejected" })
-      )
+      expect(showErrorResult).toHaveBeenCalledWith("บันทึกตำแหน่งไม่สำเร็จ", expect.any(Error), "กรุณาลองอีกครั้ง")
     );
     expect(screen.getByRole("textbox", { name: "ชื่อตำแหน่ง" })).toHaveValue("ตำแหน่งที่ยังไม่สำเร็จ");
   });
