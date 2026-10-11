@@ -93,7 +93,8 @@ export default function OrganizationPage() {
     const ranks = new Map<string, number>();
     const counts = new Map<string, number>();
     for (const unit of [...rows].sort(
-      (a, b) => a.sort_order - b.sort_order || a.title.localeCompare(b.title, "th") || a.content_id.localeCompare(b.content_id)
+      (a, b) =>
+        a.sort_order - b.sort_order || a.title.localeCompare(b.title, "th") || a.content_id.localeCompare(b.content_id)
     )) {
       const parent = unit.parent_content_id ?? "";
       const rank = (counts.get(parent) ?? 0) + 1;
@@ -272,7 +273,12 @@ export default function OrganizationPage() {
                   รีเฟรช
                 </Button>
                 {canManage && (
-                  <Button variant="contained" startIcon={<AddOutlinedIcon />} onClick={startCreate} disabled={units.hasNextPage || units.isPending || units.isError}>
+                  <Button
+                    variant="contained"
+                    startIcon={<AddOutlinedIcon />}
+                    onClick={startCreate}
+                    disabled={units.hasNextPage || units.isPending || units.isError}
+                  >
                     เพิ่มหน่วยงาน
                   </Button>
                 )}

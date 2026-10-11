@@ -155,7 +155,11 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
   }
 
   function openPosition(row: OrganizationPositionRow | null) {
-    if (!canManage || (!row && (!selectedUnit || positionsQuery.hasNextPage || positionsQuery.isPending || positionsQuery.isError))) return;
+    if (
+      !canManage ||
+      (!row && (!selectedUnit || positionsQuery.hasNextPage || positionsQuery.isPending || positionsQuery.isError))
+    )
+      return;
     setDialogError("");
     setError("");
     setPositionEditing(row);
@@ -181,7 +185,11 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
   }
 
   function openAssignment(row: OrganizationAssignmentRow | null, positionId: string) {
-    if (!canManage || (!row && (assignmentsQuery.hasNextPage || assignmentsQuery.isPending || assignmentsQuery.isError))) return;
+    if (
+      !canManage ||
+      (!row && (assignmentsQuery.hasNextPage || assignmentsQuery.isPending || assignmentsQuery.isError))
+    )
+      return;
     setDialogError("");
     setError("");
     setAssignmentEditing(row);
@@ -455,7 +463,13 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                           แก้ไขหน่วยงาน/ลำดับชั้น
                         </Button>
                       )}
-                      <Button variant="contained" disabled={busy || positionsQuery.hasNextPage || positionsQuery.isPending || positionsQuery.isError} onClick={() => openPosition(null)}>
+                      <Button
+                        variant="contained"
+                        disabled={
+                          busy || positionsQuery.hasNextPage || positionsQuery.isPending || positionsQuery.isError
+                        }
+                        onClick={() => openPosition(null)}
+                      >
                         เพิ่มตำแหน่ง
                       </Button>
                     </Stack>
@@ -520,7 +534,11 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                                   {position.group_label && (
                                     <Chip size="small" label={position.group_label} variant="outlined" />
                                   )}
-                                  <Chip size="small" label={"อันดับ " + (siblings.findIndex((row) => row.id === position.id) + 1)} variant="outlined" />
+                                  <Chip
+                                    size="small"
+                                    label={"อันดับ " + (siblings.findIndex((row) => row.id === position.id) + 1)}
+                                    variant="outlined"
+                                  />
                                   {position.occupant_limit !== null &&
                                     !assignmentsQuery.hasNextPage &&
                                     !assignmentsQuery.isPending &&
@@ -597,8 +615,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                                           color="text.secondary"
                                           sx={{ overflowWrap: "anywhere" }}
                                         >
-                                          {assignment.duty_detail || "ยังไม่ระบุหน้าที่"} · ลำดับ{" "}
-                                          {index + 1}
+                                          {assignment.duty_detail || "ยังไม่ระบุหน้าที่"} · ลำดับ {index + 1}
                                           {assignment.enabled === 0 ? " · ปิดการแสดงผล" : ""}
                                         </Typography>
                                       </Box>
@@ -627,7 +644,12 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                             {canManage && (
                               <Button
                                 variant="outlined"
-                                disabled={busy || assignmentsQuery.hasNextPage || assignmentsQuery.isPending || assignmentsQuery.isError}
+                                disabled={
+                                  busy ||
+                                  assignmentsQuery.hasNextPage ||
+                                  assignmentsQuery.isPending ||
+                                  assignmentsQuery.isError
+                                }
                                 onClick={() => openAssignment(null, position.id)}
                               >
                                 มอบหมายบุคลากร
@@ -692,7 +714,10 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                       setPositionForm({ ...positionForm, groupLabel, sortOrder });
                     }}
                   />
-                  <Box component="details" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, p: 1.5 }}>
+                  <Box
+                    component="details"
+                    sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, p: 1.5 }}
+                  >
                     <Box component="summary" sx={{ cursor: "pointer", fontWeight: 600 }}>
                       ตั้งค่าลำดับด้วยตัวเลข (ขั้นสูง)
                     </Box>
@@ -726,7 +751,9 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                         value={positionForm.sortOrder}
                         disabled={busy}
                         helperText="ค่าในระบบเริ่มที่ 0 แต่รายการแสดงอันดับเริ่มที่ 1"
-                        onChange={(event) => setPositionForm({ ...positionForm, sortOrder: Number(event.target.value) })}
+                        onChange={(event) =>
+                          setPositionForm({ ...positionForm, sortOrder: Number(event.target.value) })
+                        }
                       />
                     </Stack>
                   </Box>
@@ -751,7 +778,8 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                     }
                   />
                   <Alert severity="info">
-                    ลากการ์ดเพื่อจัดลำดับได้หลังบันทึก หรือใช้ตัวเลขในขั้นสูง ระบบกำหนดลำดับต่อท้ายให้อัตโนมัติเมื่อเพิ่มตำแหน่ง
+                    ลากการ์ดเพื่อจัดลำดับได้หลังบันทึก หรือใช้ตัวเลขในขั้นสูง
+                    ระบบกำหนดลำดับต่อท้ายให้อัตโนมัติเมื่อเพิ่มตำแหน่ง
                   </Alert>
                 </Stack>
               )}
@@ -807,7 +835,10 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                       const positionId = event.target.value;
                       const sortOrder = assignmentEditing
                         ? assignmentForm.sortOrder
-                        : nextOrganizationSortOrder(assignmentsByPosition.get(positionId) ?? [], (item) => item.sort_order);
+                        : nextOrganizationSortOrder(
+                            assignmentsByPosition.get(positionId) ?? [],
+                            (item) => item.sort_order
+                          );
                       setAssignmentForm({ ...assignmentForm, positionId, sortOrder });
                     }}
                   >
@@ -833,7 +864,10 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                     value={assignmentForm.dutyDetail}
                     onChange={(event) => setAssignmentForm({ ...assignmentForm, dutyDetail: event.target.value })}
                   />
-                  <Box component="details" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, p: 1.5 }}>
+                  <Box
+                    component="details"
+                    sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, p: 1.5 }}
+                  >
                     <Box component="summary" sx={{ cursor: "pointer", fontWeight: 600 }}>
                       ตั้งค่าลำดับด้วยตัวเลข (ขั้นสูง)
                     </Box>

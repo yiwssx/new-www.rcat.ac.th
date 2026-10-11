@@ -178,7 +178,10 @@ export default function OrganizationUnitEditorDialog({ open, initial, units, bus
                     disabled={busy}
                     onChange={(event) => field.onChange(Number(event.target.value))}
                     error={Boolean(errors.sortOrder)}
-                    helperText={errors.sortOrder?.message ?? "ระบบเติมลำดับถัดไปให้อัตโนมัติ (เริ่มบันทึกที่ 0 แต่แสดงอันดับเริ่มที่ 1)"}
+                    helperText={
+                      errors.sortOrder?.message ??
+                      "ระบบเติมลำดับถัดไปให้อัตโนมัติ (เริ่มบันทึกที่ 0 แต่แสดงอันดับเริ่มที่ 1)"
+                    }
                     slotProps={{ htmlInput: { min: 0, step: 1 } }}
                   />
                 )}

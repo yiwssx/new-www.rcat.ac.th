@@ -189,7 +189,9 @@ describe("Phase 6 accessible Organization builder", () => {
       target: { value: "รองหัวหน้างาน" }
     });
     fireEvent.click(screen.getByRole("button", { name: "บันทึกตำแหน่ง" }));
-    await waitFor(() => expect(api.create).toHaveBeenCalledWith("positions", expect.objectContaining({ sortOrder: 1 })));
+    await waitFor(() =>
+      expect(api.create).toHaveBeenCalledWith("positions", expect.objectContaining({ sortOrder: 1 }))
+    );
   });
 
   it("assigns an existing canonical person with audited position input and no duplicate profile", async () => {
@@ -239,9 +241,31 @@ describe("Phase 6 accessible Organization builder", () => {
     api.list.mockImplementation(async (collection: string) => ({
       items:
         collection === "positions"
-          ? [{ id: "position-1", unit_content_id: "work-1", title: "หัวหน้างาน", group_label: "", group_sort_order: 0, sort_order: 0, display_style: "default", occupant_limit: null, revision: 0 }]
+          ? [
+              {
+                id: "position-1",
+                unit_content_id: "work-1",
+                title: "หัวหน้างาน",
+                group_label: "",
+                group_sort_order: 0,
+                sort_order: 0,
+                display_style: "default",
+                occupant_limit: null,
+                revision: 0
+              }
+            ]
           : collection === "assignments"
-            ? [{ id: "assignment-1", position_id: "position-1", personnel_id: "person-1", duty_detail: "", sort_order: 3, enabled: 1, revision: 0 }]
+            ? [
+                {
+                  id: "assignment-1",
+                  position_id: "position-1",
+                  personnel_id: "person-1",
+                  duty_detail: "",
+                  sort_order: 3,
+                  enabled: 1,
+                  revision: 0
+                }
+              ]
             : [{ id: "person-1", display_name: "บุคลากรทดสอบ", active: 1, revision: 0 }],
       nextOffset: null,
       maximumItems: 100,
