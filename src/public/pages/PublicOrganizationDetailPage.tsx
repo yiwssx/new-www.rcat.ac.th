@@ -22,9 +22,11 @@ interface Props {
 
 function PositionGroup({
   position,
-  media
+  media,
+  showEducationQualifications
 }: {
   position: PublicOrganizationPosition;
+  showEducationQualifications: boolean;
   media: Map<string, import("../../types").MediaAsset>;
 }) {
   return (
@@ -91,6 +93,11 @@ function PositionGroup({
                       {person.employmentPosition && (
                         <Typography variant="body2" sx={{ overflowWrap: "anywhere" }}>
                           {person.employmentPosition}
+                        </Typography>
+                      )}
+                      {showEducationQualifications && person.educationQualifications && (
+                        <Typography variant="body2" sx={{ overflowWrap: "anywhere", whiteSpace: "pre-line" }}>
+                          วุฒิการศึกษา: {person.educationQualifications}
                         </Typography>
                       )}
                       {person.publicEmail && (
@@ -208,7 +215,11 @@ export default function PublicOrganizationDetailPage({ slug }: Props) {
                 <Grid container spacing={2} aria-label={`ตำแหน่งของ${unit.title}`}>
                   {positions.map((position) => (
                     <Grid key={position.id} size={{ xs: 12, md: 6, xl: 4 }}>
-                      <PositionGroup position={position} media={media} />
+                      <PositionGroup
+                        position={position}
+                        media={media}
+                        showEducationQualifications={unit.unitKind === "department"}
+                      />
                     </Grid>
                   ))}
                 </Grid>
