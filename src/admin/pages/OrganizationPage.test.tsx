@@ -162,12 +162,8 @@ describe("Phase 4 Organization Admin list/editor", () => {
       target: { value: "write-feedback" }
     });
     fireEvent.click(screen.getByRole("button", { name: "บันทึกหน่วยงาน" }));
-    await waitFor(() =>
-      expect(showBlockingLoading).toHaveBeenCalledWith("กำลังบันทึกหน่วยงาน")
-    );
-    await waitFor(() =>
-      expect(showSuccessResult).toHaveBeenCalledWith("บันทึกหน่วยงานสำเร็จ", expect.any(String))
-    );
+    await waitFor(() => expect(showBlockingLoading).toHaveBeenCalledWith("กำลังบันทึกหน่วยงาน"));
+    await waitFor(() => expect(showSuccessResult).toHaveBeenCalledWith("บันทึกหน่วยงานสำเร็จ", expect.any(String)));
     expect(appSwal.close).toHaveBeenCalled();
     expect(screen.queryByRole("textbox", { name: "ชื่อหน่วยงาน" })).not.toBeInTheDocument();
   });
@@ -189,5 +185,4 @@ describe("Phase 4 Organization Admin list/editor", () => {
     );
     expect(screen.getByRole("textbox", { name: "ชื่อหน่วยงาน" })).toHaveValue("งานไม่ควรหาย");
   });
-
 });

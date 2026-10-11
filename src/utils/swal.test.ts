@@ -121,5 +121,4 @@ describe("blocking loading progress", () => {
     successOptions.didOpen?.(popup);
     expect(container.style.zIndex).toBe("1300");
   });
-
 });

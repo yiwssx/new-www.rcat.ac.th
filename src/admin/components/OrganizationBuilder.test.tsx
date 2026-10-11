@@ -306,12 +306,8 @@ describe("Phase 6 accessible Organization builder", () => {
       target: { value: "ผู้ช่วยหัวหน้างาน" }
     });
     fireEvent.click(screen.getByRole("button", { name: "บันทึกตำแหน่ง" }));
-    await waitFor(() =>
-      expect(showBlockingLoading).toHaveBeenCalledWith("กำลังบันทึกตำแหน่ง")
-    );
-    await waitFor(() =>
-      expect(showSuccessResult).toHaveBeenCalledWith("บันทึกตำแหน่งสำเร็จ")
-    );
+    await waitFor(() => expect(showBlockingLoading).toHaveBeenCalledWith("กำลังบันทึกตำแหน่ง"));
+    await waitFor(() => expect(showSuccessResult).toHaveBeenCalledWith("บันทึกตำแหน่งสำเร็จ"));
   });
 
   it("retains position edits after a failed write and reports the failure", async () => {
@@ -328,5 +324,4 @@ describe("Phase 6 accessible Organization builder", () => {
     );
     expect(screen.getByRole("textbox", { name: "ชื่อตำแหน่ง" })).toHaveValue("ตำแหน่งที่ยังไม่สำเร็จ");
   });
-
 });

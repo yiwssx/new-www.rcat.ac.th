@@ -151,12 +151,8 @@ describe("Phase 5 canonical personnel directory", () => {
       target: { value: "บุคลากร ใหม่" }
     });
     fireEvent.click(screen.getByRole("button", { name: "บันทึกบุคลากร" }));
-    await waitFor(() =>
-      expect(showBlockingLoading).toHaveBeenCalledWith("กำลังบันทึกบุคลากร")
-    );
-    await waitFor(() =>
-      expect(showSuccessResult).toHaveBeenCalledWith("บันทึกบุคลากรสำเร็จ", expect.any(String))
-    );
+    await waitFor(() => expect(showBlockingLoading).toHaveBeenCalledWith("กำลังบันทึกบุคลากร"));
+    await waitFor(() => expect(showSuccessResult).toHaveBeenCalledWith("บันทึกบุคลากรสำเร็จ", expect.any(String)));
   });
 
   it("shows an error result without discarding entered personnel", async () => {
@@ -172,5 +168,4 @@ describe("Phase 5 canonical personnel directory", () => {
     );
     expect(screen.getByRole("textbox", { name: "ชื่อ-นามสกุล" })).toHaveValue("บุคลากร รอแก้ไข");
   });
-
 });
