@@ -108,11 +108,23 @@ export function buildRecoveryUpsertSql(table: string, columns: string[], primary
   const placeholders = columns.map(() => "?").join(", ");
   const conflictTarget = primaryKey.map(quoteIdentifier).join(", ");
   const updateColumns = columns.filter((column) => !primaryKey.includes(column));
-  const conflictAction = updateColumns.length
-    ? `DO UPDATE SET ${updateColumns
-        .map((column) => `${quoteIdentifier(column)} = excluded.${quoteIdentifier(column)}`)
-        .join(", ")}`
-    : "DO NOTHING";
+  const revisionGuarded = new Set([
+    "organization_units",
+    "personnel",
+    "organization_positions",
+    "organization_assignments"
+  ]).has(table);
+  // Organization triggers require exactly +1 on every UPDATE. A snapshot's
+  // revision can equal (or predate) the destination revision, so restoring
+  // excluded.revision would reject otherwise valid, repeatable merge restores.
+  // Advance the destination revision instead to invalidate stale admin forms.
+  const updateAssignments = updateColumns
+    .filter((column) => !revisionGuarded || column !== "revision")
+    .map((column) => `${quoteIdentifier(column)} = excluded.${quoteIdentifier(column)}`);
+  if (revisionGuarded && updateColumns.length > 0) {
+    updateAssignments.push(`"revision" = ${quotedTable}."revision" + 1`);
+  }
+  const conflictAction = updateAssignments.length ? `DO UPDATE SET ${updateAssignments.join(", ")}` : "DO NOTHING";
 
   return `INSERT INTO ${quotedTable} (${quotedColumns.join(", ")}) VALUES (${placeholders}) ON CONFLICT (${conflictTarget}) ${conflictAction}`;
 }
