@@ -18,6 +18,7 @@ export interface PublicOrganizationPerson {
   displayName: string;
   personnelType: string;
   employmentPosition: string;
+  educationQualifications: string;
   photoMediaId: string | null;
   publicEmail: string;
   publicPhone: string;
