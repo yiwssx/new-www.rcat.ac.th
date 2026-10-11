@@ -28,7 +28,7 @@ import {
   type OrganizationUnitWrite
 } from "../../features/organization-admin";
 import { isAdminStaleRevisionError } from "../../features/admin-write/errors";
-import { appSwal } from "../../utils/swal";
+import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 import OrganizationUnitEditorDialog from "../components/OrganizationUnitEditorDialog";
 import OrganizationPersonnelDirectory from "../components/OrganizationPersonnelDirectory";
 import OrganizationBuilder from "../components/OrganizationBuilder";
@@ -126,27 +126,39 @@ export default function OrganizationPage() {
   }
 
   async function handleSave(input: OrganizationUnitWrite) {
-    if (!canManage) return;
+    if (!canManage || saveMutation.isPending) return;
     setEditorError("");
     setError("");
     setSuccess("");
+    const wasEditing = Boolean(editing);
+    showBlockingLoading("กำลังบันทึกหน่วยงาน");
     try {
-      const wasEditing = Boolean(editing);
       await saveMutation.mutateAsync(input);
-      await invalidateOrganizationQueries(client);
-      setEditorOpen(false);
-      setEditing(null);
-      setSuccess(wasEditing ? "บันทึกการแก้ไขหน่วยงานแล้ว" : "เพิ่มหน่วยงานเรียบร้อยแล้ว");
     } catch (cause) {
-      if (isAdminStaleRevisionError(cause)) {
-        setEditorOpen(false);
-        setEditing(null);
-        setError("ข้อมูลหน่วยงานถูกเปลี่ยนโดยผู้อื่น ระบบกำลังโหลดข้อมูลล่าสุด โปรดเปิดแก้ไขใหม่");
-        await invalidateOrganizationQueries(client);
-      } else {
-        setEditorError(humanError(cause));
+      await appSwal.close();
+      const stale = isAdminStaleRevisionError(cause);
+      const message = stale
+        ? "ข้อมูลหน่วยงานถูกเปลี่ยนโดยผู้อื่น กรุณาคัดลอกข้อมูลที่แก้ไขไว้แล้วปิดฟอร์มเพื่อเปิดข้อมูลล่าสุด"
+        : humanError(cause);
+      setEditorError(message);
+      if (stale) {
+        setError(message);
+        void invalidateOrganizationQueries(client);
       }
+      await showErrorResult("บันทึกหน่วยงานไม่สำเร็จ", new Error(message), "กรุณาลองอีกครั้ง");
+      return;
     }
+    await invalidateOrganizationQueries(client).catch(() => {
+      setError("บันทึกสำเร็จแล้ว แต่โหลดรายการหน่วยงานล่าสุดไม่สำเร็จ กรุณารีเฟรช");
+    });
+    setEditorOpen(false);
+    setEditing(null);
+    setSuccess(wasEditing ? "บันทึกการแก้ไขหน่วยงานแล้ว" : "เพิ่มหน่วยงานเรียบร้อยแล้ว");
+    await appSwal.close();
+    await showSuccessResult(
+      "บันทึกหน่วยงานสำเร็จ",
+      wasEditing ? "บันทึกการแก้ไขหน่วยงานแล้ว" : "เพิ่มหน่วยงานในระบบแล้ว"
+    );
   }
 
   async function handleDelete(unit: OrganizationUnitListRow) {
@@ -162,18 +174,25 @@ export default function OrganizationPage() {
     if (!confirmation.isConfirmed) return;
     setError("");
     setSuccess("");
+    showBlockingLoading("กำลังลบหน่วยงาน");
     try {
       await deleteMutation.mutateAsync(unit);
-      await invalidateOrganizationQueries(client);
-      setSuccess("ลบหน่วยงานแล้ว");
     } catch (cause) {
-      setError(
-        isAdminStaleRevisionError(cause)
-          ? "ข้อมูลหน่วยงานเปลี่ยนแปลงแล้ว กรุณาตรวจสอบข้อมูลล่าสุดก่อนลบ"
-          : humanError(cause)
-      );
+      await appSwal.close();
+      const message = isAdminStaleRevisionError(cause)
+        ? "ข้อมูลหน่วยงานเปลี่ยนแปลงแล้ว กรุณาตรวจสอบข้อมูลล่าสุดก่อนลบ"
+        : humanError(cause);
+      setError(message);
       await invalidateOrganizationQueries(client);
+      await showErrorResult("ลบหน่วยงานไม่สำเร็จ", new Error(message), "กรุณาลองอีกครั้ง");
+      return;
     }
+    await invalidateOrganizationQueries(client).catch(() => {
+      setError("ลบสำเร็จแล้ว แต่โหลดรายการล่าสุดไม่สำเร็จ กรุณารีเฟรช");
+    });
+    setSuccess("ลบหน่วยงานแล้ว");
+    await appSwal.close();
+    await showSuccessResult("ลบหน่วยงานสำเร็จ");
   }
 
   return (
