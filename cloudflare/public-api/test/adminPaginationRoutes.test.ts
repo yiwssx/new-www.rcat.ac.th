@@ -1,4 +1,8 @@
 // @vitest-environment node
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
 
 const authenticateCmsSessionMock = vi.hoisted(() => vi.fn());
@@ -739,6 +743,41 @@ describe("admin server pagination routes", () => {
       );
 
       expect(response.status, `admin ${entity}`).toBe(200);
+    }
+  });
+
+  it("runs dashboard document counts against the real D1 documents schema in SQLite", async () => {
+    const state = createPaginationDb(allEntityRows());
+    const response = await worker.fetch(request("/api/admin/dashboard-summary", { role: "viewer" }), {
+      ...baseEnv,
+      DB: state.db
+    });
+    expect(response.status).toBe(200);
+
+    const documentCountSql = state.calls.find(
+      ({ query }) => /FROM documents/i.test(query) && /GROUP BY status/i.test(query)
+    )?.query;
+    expect(documentCountSql).toBeDefined();
+
+    const database = new DatabaseSync(":memory:");
+    const migrationDirectory = join(dirname(fileURLToPath(import.meta.url)), "../migrations");
+    try {
+      database.exec(readFileSync(join(migrationDirectory, "0001_public_read_schema.sql"), "utf8"));
+      database.exec(readFileSync(join(migrationDirectory, "0002_public_read_core_batch.sql"), "utf8"));
+      database.exec(readFileSync(join(migrationDirectory, "0003_admin_write_batch.sql"), "utf8"));
+
+      const insert = database.prepare("INSERT INTO documents (id, title, status, deleted_at) VALUES (?, ?, ?, ?)");
+      insert.run("doc-draft", "Draft document", "draft", "");
+      insert.run("doc-published", "Published document", "published", "");
+      insert.run("doc-deleted", "Archived document", "draft", "2026-10-11T00:00:00Z");
+
+      const counts = database.prepare(documentCountSql!).all() as Array<{ key: string; total: number }>;
+      expect(Object.fromEntries(counts.map(({ key, total }) => [key, total]))).toEqual({
+        draft: 1,
+        published: 1
+      });
+    } finally {
+      database.close();
     }
   });
 
