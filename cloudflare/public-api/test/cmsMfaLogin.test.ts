@@ -147,15 +147,19 @@ function mfaEnv() {
   };
 }
 
-function verificationRequest(challenge: string, body: Record<string, unknown>) {
+function verificationRequest(
+  challenge: string,
+  body: Record<string, unknown>,
+  metadata: { clientIp?: string; userAgent?: string } = {}
+) {
   return new Request("https://worker.invalid/api/internal/cms-auth/mfa/verify", {
     method: "POST",
     headers: {
       [CMS_AUTH_PROXY_SECRET_HEADER]: "S".repeat(40),
       [CMS_MFA_CHALLENGE_TOKEN_HEADER]: challenge,
       "Content-Type": "application/json",
-      "X-RCAT-CMS-Client-IP": "192.0.2.1",
-      "X-RCAT-CMS-User-Agent": "test"
+      "X-RCAT-CMS-Client-IP": metadata.clientIp ?? "192.0.2.1",
+      "X-RCAT-CMS-User-Agent": metadata.userAgent ?? "test"
     },
     body: JSON.stringify(body)
   });
@@ -287,6 +291,46 @@ describe("CMS MFA login", () => {
     expect(mfaRepository.completeLoginChallenge).toHaveBeenCalledWith(
       expect.objectContaining({ proof: expect.objectContaining({ type: "totp" }) })
     );
+  });
+
+  it("accepts a valid MFA code after mobile IP rotation while retaining token and browser binding", async () => {
+    const { repository: mfaRepository } = await workingMfaRepository();
+    const login = await handleCmsAuthInternal(loginRequest(), mfaEnv(), {
+      now: () => now,
+      mfaRepository,
+      verifyCredential: vi.fn(async () => successfulCredential())
+    });
+    expect(login?.status).toBe(202);
+    const challenge = login?.headers.get(CMS_NEW_MFA_CHALLENGE_TOKEN_HEADER) ?? "";
+    const validCode = await generateTotpCode(totpSecret, now.getTime());
+    const verified = await handleCmsAuthInternal(
+      verificationRequest(challenge, { totpCode: validCode }, { clientIp: "198.51.100.77" }),
+      mfaEnv(),
+      { now: () => now, mfaRepository }
+    );
+
+    expect(verified?.status).toBe(200);
+    expect(verified?.headers.get(CMS_NEW_SESSION_TOKEN_HEADER)).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(mfaRepository.completeLoginChallenge).toHaveBeenCalledOnce();
+  });
+
+  it("rejects a valid MFA code when the User-Agent changes", async () => {
+    const { repository: mfaRepository } = await workingMfaRepository();
+    const login = await handleCmsAuthInternal(loginRequest(), mfaEnv(), {
+      now: () => now,
+      mfaRepository,
+      verifyCredential: vi.fn(async () => successfulCredential())
+    });
+    const challenge = login?.headers.get(CMS_NEW_MFA_CHALLENGE_TOKEN_HEADER) ?? "";
+    const validCode = await generateTotpCode(totpSecret, now.getTime());
+    const verified = await handleCmsAuthInternal(
+      verificationRequest(challenge, { totpCode: validCode }, { userAgent: "another-browser" }),
+      mfaEnv(),
+      { now: () => now, mfaRepository }
+    );
+
+    expect(verified?.status).toBe(401);
+    expect(mfaRepository.completeLoginChallenge).not.toHaveBeenCalled();
   });
 
   it("completes Login with one Recovery Code and rejects Challenge reuse", async () => {
