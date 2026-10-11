@@ -571,7 +571,7 @@ jobs:
           ')"
           curl --fail --silent --show-error --retry 3 --max-time 45 -H "Authorization: Bearer $oidc"             -o "$private/bundle.zip" https://sb-407gn2auzb81.vercel.run/bundle
           unset oidc
-          printf '%s  %s\n' "15cc800810b1617fc476e06815cef9356cdd1971e6df233690dc3743823e78b6" "$private/bundle.zip" | sha256sum -c --status
+          printf '%s  %s\n' "dd4b340539cd7a156673bf8206b09856593c82ca9285ef8938ee49853d1cec02" "$private/bundle.zip" | sha256sum -c --status
           unzip -q "$private/bundle.zip" -d "$private"
           node - "$private" <<'NODE'
           const fs = require('fs'), path = require('path'), crypto = require('crypto');
@@ -596,6 +596,17 @@ jobs:
           test -n "$CLOUDFLARE_ACCOUNT_ID" && test -n "$CLOUDFLARE_API_TOKEN" && test -n "$RCAT_PRODUCTION_D1_DATABASE_ID"
           pnpm wrangler d1 list --json > "$RUNNER_TEMP/d1-list.json"
           node cloudflare/public-api/scripts/worker-production-preflight.mjs --database-list "$RUNNER_TEMP/d1-list.json" --verify-identity-only
+          # Fill the protected D1 UUID only in a runner-local copy. The tracked
+          # wrangler.toml intentionally retains production-placeholder.
+          node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync } from "node:fs";
+          import { createProductionWranglerConfig } from "./cloudflare/public-api/scripts/productionDeployGuard.mjs";
+          const source = readFileSync("cloudflare/public-api/wrangler.toml", "utf8");
+          const config = createProductionWranglerConfig(source, process.env.RCAT_PRODUCTION_D1_DATABASE_ID);
+          writeFileSync("cloudflare/public-api/.wrangler.organization-v3-production.toml", config, {mode: 0o600});
+          NODE
+          D1_CONFIG=cloudflare/public-api/.wrangler.organization-v3-production.toml
+          echo "D1_CONFIG=$D1_CONFIG" >> "$GITHUB_ENV"
           pnpm wrangler d1 execute "$D1_NAME" --remote --env production --config "$D1_CONFIG"             --command "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('contents','organization_units','personnel','organization_positions','organization_assignments') ORDER BY name;"             --json > "$RUNNER_TEMP/d1-tables.json"
           pnpm wrangler d1 execute "$D1_NAME" --remote --env production --config "$D1_CONFIG"             --command "SELECT COUNT(*) AS invalid FROM contents WHERE slug LIKE 'rcat-2569-%' AND (type <> 'organization' OR status <> 'draft');"             --json > "$RUNNER_TEMP/d1-conflicts.json"
           node - "$RUNNER_TEMP" <<'NODE'
