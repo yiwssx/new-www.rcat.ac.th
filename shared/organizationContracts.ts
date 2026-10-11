@@ -102,7 +102,6 @@ export function projectOrganizationPersonPublic(person: OrganizationPerson) {
     displayName: person.displayName,
     personnelType: person.personnelType,
     employmentPosition: person.employmentPosition,
-    educationQualifications: person.educationQualifications,
     photoMediaId: person.photoMediaId,
     publicEmail: person.showPublicEmail ? person.publicEmail : "",
     publicPhone: person.showPublicPhone ? person.publicPhone : ""
