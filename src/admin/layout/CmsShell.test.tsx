@@ -67,6 +67,19 @@ describe("CmsShell capability navigation", () => {
     }
   });
 
+  it("uses different icons for Organization and Menu navigation", () => {
+    authMock.capabilities.push("organization.read", "menu.read");
+    try {
+      render(<CmsShell />);
+      expect(screen.getByText("ผังองค์กร")).toBeInTheDocument();
+      expect(screen.getByText("เมนู")).toBeInTheDocument();
+      expect(screen.getByTestId("CorporateFareOutlinedIcon")).toBeInTheDocument();
+      expect(screen.getByTestId("AccountTreeOutlinedIcon")).toBeInTheDocument();
+    } finally {
+      authMock.capabilities.splice(-2);
+    }
+  });
+
   it("navigates to Login even when server Logout fails", async () => {
     authMock.logout.mockRejectedValueOnce(new Error("network"));
     render(<CmsShell />);
