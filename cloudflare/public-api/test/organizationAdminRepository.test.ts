@@ -2,6 +2,7 @@
 import { DatabaseSync } from "node:sqlite";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import migrationSql from "../migrations/0020_organization_content_foundation.sql?raw";
+import qualificationsMigrationSql from "../migrations/0021_organization_education_qualifications.sql?raw";
 import {
   createOrganizationAssignmentRow,
   createOrganizationPositionRow,
@@ -64,6 +65,7 @@ const person: PersonnelRow = {
   display_name: "Alice",
   personnel_type: "teacher",
   employment_position: "Instructor",
+  education_qualifications: "",
   photo_media_id: null,
   public_email: "alice@example.invalid",
   public_phone: "0000000000",
@@ -112,6 +114,7 @@ beforeEach(() => {
     INSERT INTO contents (id, type) VALUES ('division', 'organization');
   `);
   db.exec(migrationSql);
+  db.exec(qualificationsMigrationSql);
   env = { DB: d1Fixture() };
 });
 
