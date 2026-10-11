@@ -1,6 +1,6 @@
 # Organization Content Workstream Tracker
 
-Status: **PHASES 0–9 COMPLETE / MERGED TO `main` VIA PR #553 / PHASES 10–11 PENDING PROTECTED RELEASE**
+Status: **DEVELOPMENT CLOSED / PHASES 0–9 COMPLETE & MERGED / PHASE 10 OWNER-CONFIRMED RELEASE / PHASE 11 CONTENT OPERATIONS OUT OF SCOPE**
 
 Updated: 2026-10-11 Asia/Bangkok
 
@@ -94,8 +94,8 @@ Add a dedicated CMS content type for organizational units and personnel structur
 | 7     | Public renderer + permalink/SSR/SEO                  | COMPLETE     | Published organization slugs resolve through public routing, hierarchy/breadcrumbs render, draft/private fields remain inaccessible                           |
 | 8     | Menu/search/sitemap integration                      | COMPLETE     | Menu can link to organization pages; search/sitemap behavior is deliberate and tested; generic content lists do not leak organization records unintentionally |
 | 9     | Quality, accessibility, performance, backup coverage | COMPLETE     | Unit/integration/functional tests, format/lint/build/worker checks, responsive/mobile verification, backup counts/download include new tables where required  |
-| 10    | Production migration + release verification          | PLANNED      | Protected migration/deploy sequence completed once, browser verification passes, tracker records release evidence                                             |
-| 11    | RCAT content population                              | PLANNED      | Real divisions, works, departments, personnel, positions, and assignments entered only after runtime feature verification                                     |
+| 10    | Production migration + release verification          | RELEASED     | Protected migration/deploy sequence completed once, browser verification passes, tracker records release evidence                                             |
+| 11    | RCAT content population                              | OUT-OF-SCOPE | Real divisions, works, departments, personnel, positions, and assignments entered only after runtime feature verification                                     |
 
 ## Branch and merge policy — user direction 2026-10-09
 
@@ -375,3 +375,12 @@ Add a dedicated CMS content type for organizational units and personnel structur
 - **Owner-performed acceptance is pending:** live device/responsive and screen-reader review; authorized isolated D1 migration/backup rehearsal; protected D1 binding/Time Travel/rollback verification. These items are not presented as completed or waived for production release.
 - **No production migration, Cloudflare Worker deployment, explicit Vercel deployment, remote backup restore or real personnel population was run by this workstream.** Existing external automatic deployment processes, if configured for merges to `main`, must be assessed separately; a repository merge does not demonstrate runtime readiness.
 - Phases 10 (protected production migration/deploy and verification) and 11 (real RCAT content entry) remain **PLANNED**, requiring their own authorization. The historical WIP and Draft-PR notes above document the decisions at those earlier times; this closure is the current source of truth.
+
+## Final development workstream closure — 2026-10-11 Asia/Bangkok
+
+**Status: CLOSED.** At the repository owner's explicit request, this Organization Chart development workstream is completed and archived as historical execution evidence. Do not reopen, extend, or create a replacement tracker automatically; the owner will open a separate task and tracker if later UI/UX or functional changes are required.
+
+- **Development complete:** Phases 0–9 were delivered and merged with [PR #553](https://github.com/yiwssx/new-www.rcat.ac.th/pull/553). The final tracker handoff [PR #558](https://github.com/yiwssx/new-www.rcat.ac.th/pull/558) is merged. The last Organization menu icon adjustment [PR #559](https://github.com/yiwssx/new-www.rcat.ac.th/pull/559) is merged with exact-head CI #38118575339 successful (all ten jobs) and Prettier passed. The matching Vercel Production deployment of merge commit `315e2d38d07fe61a2e88a8b371f5df37811f9e3b` reached READY.
+- **Phase 10 production release: owner-confirmed.** On 2026-10-11 the owner reported that the protected Worker production preflight and release both passed and that the Organization menu is visible in the live Admin interface. This is an **operator report**, not an independently inspected Cloudflare workflow run or complete real-device, Time Travel/backup, and screen-reader acceptance record; do not fabricate such evidence or silently waive the production safeguards.
+- **Phase 11 intentionally outside the development workstream.** Population or ongoing maintenance of real RCAT organizational and personnel data is an operational content-management activity, not an unfinished code deliverable. No claim is made that real-personnel data entry is complete; it is not tracked as pending development here.
+- **Final ownership:** No further Organization Chart development, follow-up issue, new tracker, or production operation is authorized by this closure. Future requested improvements will be handled under a new owner-created task/tracker. Historical phase instructions above are retained for audit only; this section and the header/status table are the final development disposition.
