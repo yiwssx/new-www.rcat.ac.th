@@ -569,7 +569,7 @@ jobs:
             let input = ""; process.stdin.on("data", x => input += x);
             process.stdin.on("end", () => process.stdout.write(JSON.parse(input).value));
           ')"
-          curl --fail --silent --show-error --retry 3 --max-time 45 -H "Authorization: Bearer $oidc"             -o "$private/bundle.zip" https://sb-407gn2auzb81.vercel.run/bundle
+          curl --fail --silent --show-error --retry 3 --max-time 45 -H "Authorization: Bearer $oidc"             -o "$private/bundle.zip" https://rcat-org-fy2569-v3-private-transfer.vercel.app/api/bundle
           unset oidc
           printf '%s  %s\n' "dd4b340539cd7a156673bf8206b09856593c82ca9285ef8938ee49853d1cec02" "$private/bundle.zip" | sha256sum -c --status
           unzip -q "$private/bundle.zip" -d "$private"
