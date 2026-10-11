@@ -35,7 +35,7 @@ import {
   type OrganizationPositionWrite,
   type OrganizationUnitListRow
 } from "../../features/organization-admin";
-import { appSwal } from "../../utils/swal";
+import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 import { OrganizationSortableRow } from "./OrganizationSortableRow";
 import {
   enabledDistinctOccupants,
@@ -204,27 +204,39 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
     }
     setBusy(true);
     setDialogError("");
+    setNotice("");
+    const wasEditing = Boolean(positionEditing);
+    showBlockingLoading("กำลังบันทึกตำแหน่ง");
     try {
       if (positionEditing) {
         await updateOrganizationRecord("positions", positionEditing.id, positionEditing.revision, positionForm);
       } else {
         await createOrganizationRecord("positions", positionForm);
       }
-      await refresh();
-      setPositionForm(null);
-      setPositionEditing(null);
-      setNotice("บันทึกตำแหน่งของหน่วยงานแล้ว");
     } catch (cause) {
-      if (isAdminStaleRevisionError(cause)) {
-        setPositionForm(null);
-        setError("ตำแหน่งถูกเปลี่ยนแปลงโดยผู้ดูแลอื่น กรุณาโหลดใหม่ก่อนแก้ไข");
-        await refresh();
-      } else {
-        setDialogError(asMessage(cause));
+      await appSwal.close();
+      const stale = isAdminStaleRevisionError(cause);
+      const message = stale
+        ? "ตำแหน่งถูกเปลี่ยนแปลงโดยผู้ดูแลอื่น กรุณาคัดลอกข้อมูลที่แก้ไขไว้แล้วปิดฟอร์มเพื่อเปิดข้อมูลล่าสุด"
+        : asMessage(cause);
+      setDialogError(message);
+      if (stale) {
+        setError(message);
+        void refresh();
       }
-    } finally {
       setBusy(false);
+      await showErrorResult("บันทึกตำแหน่งไม่สำเร็จ", new Error(message), "กรุณาลองอีกครั้ง");
+      return;
     }
+    await refresh().catch(() => {
+      setError("บันทึกสำเร็จแล้ว แต่โหลดตำแหน่งล่าสุดไม่สำเร็จ กรุณารีเฟรช");
+    });
+    setPositionForm(null);
+    setPositionEditing(null);
+    setNotice(wasEditing ? "แก้ไขตำแหน่งแล้ว" : "เพิ่มตำแหน่งของหน่วยงานแล้ว");
+    setBusy(false);
+    await appSwal.close();
+    await showSuccessResult("บันทึกตำแหน่งสำเร็จ");
   }
 
   async function saveAssignment() {
@@ -239,27 +251,39 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
     }
     setBusy(true);
     setDialogError("");
+    setNotice("");
+    const wasEditing = Boolean(assignmentEditing);
+    showBlockingLoading("กำลังบันทึกการมอบหมายหน้าที่");
     try {
       if (assignmentEditing) {
         await updateOrganizationRecord("assignments", assignmentEditing.id, assignmentEditing.revision, assignmentForm);
       } else {
         await createOrganizationRecord("assignments", assignmentForm);
       }
-      await refresh();
-      setAssignmentForm(null);
-      setAssignmentEditing(null);
-      setNotice("บันทึกการมอบหมายหน้าที่แล้ว");
     } catch (cause) {
-      if (isAdminStaleRevisionError(cause)) {
-        setAssignmentForm(null);
-        setError("หน้าที่ถูกเปลี่ยนแปลงโดยผู้ดูแลอื่น กรุณาโหลดใหม่ก่อนแก้ไข");
-        await refresh();
-      } else {
-        setDialogError(asMessage(cause));
+      await appSwal.close();
+      const stale = isAdminStaleRevisionError(cause);
+      const message = stale
+        ? "หน้าที่ถูกเปลี่ยนแปลงโดยผู้ดูแลอื่น กรุณาคัดลอกข้อมูลที่แก้ไขไว้แล้วปิดฟอร์มเพื่อเปิดข้อมูลล่าสุด"
+        : asMessage(cause);
+      setDialogError(message);
+      if (stale) {
+        setError(message);
+        void refresh();
       }
-    } finally {
       setBusy(false);
+      await showErrorResult("บันทึกหน้าที่ไม่สำเร็จ", new Error(message), "กรุณาลองอีกครั้ง");
+      return;
     }
+    await refresh().catch(() => {
+      setError("บันทึกสำเร็จแล้ว แต่โหลดการมอบหมายล่าสุดไม่สำเร็จ กรุณารีเฟรช");
+    });
+    setAssignmentForm(null);
+    setAssignmentEditing(null);
+    setNotice(wasEditing ? "แก้ไขการมอบหมายหน้าที่แล้ว" : "บันทึกการมอบหมายหน้าที่แล้ว");
+    setBusy(false);
+    await appSwal.close();
+    await showSuccessResult("บันทึกหน้าที่สำเร็จ");
   }
 
   async function remove(kind: "positions" | "assignments", row: OrganizationPositionRow | OrganizationAssignmentRow) {
@@ -278,16 +302,28 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
     if (!confirmed.isConfirmed) return;
     setBusy(true);
     setError("");
+    setNotice("");
+    showBlockingLoading(kind === "positions" ? "กำลังลบตำแหน่ง" : "กำลังลบหน้าที่");
     try {
       await deleteOrganizationRecord(kind, row.id, row.revision);
-      await refresh();
-      setNotice("ลบรายการแล้ว");
     } catch (cause) {
-      setError(isAdminStaleRevisionError(cause) ? "Revision เปลี่ยนแปลง กรุณาโหลดข้อมูลใหม่" : asMessage(cause));
+      await appSwal.close();
+      const message = isAdminStaleRevisionError(cause)
+        ? "รายการถูกเปลี่ยนแปลงโดยผู้ดูแลอื่น กรุณาโหลดข้อมูลล่าสุดก่อนลบ"
+        : asMessage(cause);
+      setError(message);
       await refresh();
-    } finally {
       setBusy(false);
+      await showErrorResult("ลบรายการไม่สำเร็จ", new Error(message), "กรุณาลองอีกครั้ง");
+      return;
     }
+    await refresh().catch(() => {
+      setError("ลบสำเร็จแล้ว แต่โหลดรายการล่าสุดไม่สำเร็จ กรุณารีเฟรช");
+    });
+    setNotice("ลบรายการแล้ว");
+    setBusy(false);
+    await appSwal.close();
+    await showSuccessResult("ลบรายการสำเร็จ");
   }
 
   async function saveReorder(
@@ -300,6 +336,8 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
     if (!canManage || busy || rows.length < 2 || rows.length > 500) return;
     setBusy(true);
     setError("");
+    setNotice("");
+    showBlockingLoading("กำลังจัดลำดับรายการ");
     try {
       await reorderOrganizationRecords(
         collection,
@@ -308,16 +346,24 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
         groupLabel,
         groupSortOrder
       );
-      await refresh();
-      setNotice("จัดลำดับและบันทึกเรียบร้อยแล้ว");
     } catch (cause) {
-      setError(
-        isAdminStaleRevisionError(cause) ? "รายการถูกเปลี่ยนโดยผู้ดูแลอื่น กรุณาโหลดใหม่ก่อนจัดลำดับ" : asMessage(cause)
-      );
+      await appSwal.close();
+      const message = isAdminStaleRevisionError(cause)
+        ? "รายการถูกเปลี่ยนโดยผู้ดูแลอื่น กรุณาโหลดข้อมูลล่าสุดก่อนจัดลำดับ"
+        : asMessage(cause);
+      setError(message);
       await refresh();
-    } finally {
       setBusy(false);
+      await showErrorResult("จัดลำดับไม่สำเร็จ", new Error(message), "กรุณาลองอีกครั้ง");
+      return;
     }
+    await refresh().catch(() => {
+      setError("จัดลำดับสำเร็จแล้ว แต่โหลดรายการล่าสุดไม่สำเร็จ กรุณารีเฟรช");
+    });
+    setNotice("จัดลำดับและบันทึกเรียบร้อยแล้ว");
+    setBusy(false);
+    await appSwal.close();
+    await showSuccessResult("จัดลำดับสำเร็จ");
   }
 
   const positionGroupKey = (position: OrganizationPositionRow) =>
