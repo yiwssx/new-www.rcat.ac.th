@@ -79,7 +79,8 @@ export async function validateCmsMfaChallenge(input: {
     challenge.user_session_version !== user.session_version ||
     user.status !== "active" ||
     input.now.getTime() >= Date.parse(challenge.expires_at) ||
-    !fixedSizeBase64UrlEqual(challenge.ip_hash, metadata.ipHash) ||
+    // Mobile networks can rotate IPs during the short-lived MFA challenge.
+    // Keep the stored IP hash for security audit, but enforce the stable User-Agent binding.
     !fixedSizeBase64UrlEqual(challenge.user_agent_hash, metadata.userAgentHash);
   if (invalid) {
     if (input.recordFailure) {
