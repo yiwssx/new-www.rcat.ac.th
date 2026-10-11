@@ -33,6 +33,7 @@ export interface PersonnelRow {
   display_name: OrganizationPerson["displayName"];
   personnel_type: string;
   employment_position: string;
+  education_qualifications: string;
   photo_media_id: string | null;
   public_email: string;
   public_phone: string;
@@ -49,6 +50,7 @@ export const PERSONNEL_ROW_COLUMNS = [
   "display_name",
   "personnel_type",
   "employment_position",
+  "education_qualifications",
   "photo_media_id",
   "public_email",
   "public_phone",
