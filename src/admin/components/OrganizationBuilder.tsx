@@ -40,6 +40,7 @@ import { OrganizationSortableRow } from "./OrganizationSortableRow";
 import {
   enabledDistinctOccupants,
   flattenOrganizationHierarchy,
+  nextOrganizationSortOrder,
   organizationTreeItems,
   positionsForUnit
 } from "./organizationBuilderModel";
@@ -57,21 +58,21 @@ type PositionForm = Required<Omit<OrganizationPositionWrite, "occupantLimit">> &
 
 type AssignmentForm = Required<OrganizationAssignmentWrite>;
 
-const emptyPosition = (unitContentId: string): PositionForm => ({
+const emptyPosition = (unitContentId: string, sortOrder = 0): PositionForm => ({
   unitContentId,
   title: "",
   groupLabel: "",
   groupSortOrder: 0,
-  sortOrder: 0,
+  sortOrder,
   displayStyle: "default",
   occupantLimit: null
 });
 
-const emptyAssignment = (positionId: string): AssignmentForm => ({
+const emptyAssignment = (positionId: string, sortOrder = 0): AssignmentForm => ({
   personnelId: "",
   positionId,
   dutyDetail: "",
-  sortOrder: 0,
+  sortOrder,
   enabled: true
 });
 
@@ -154,7 +155,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
   }
 
   function openPosition(row: OrganizationPositionRow | null) {
-    if (!canManage || (!row && !selectedUnit)) return;
+    if (!canManage || (!row && (!selectedUnit || positionsQuery.hasNextPage || positionsQuery.isPending || positionsQuery.isError))) return;
     setDialogError("");
     setError("");
     setPositionEditing(row);
@@ -169,12 +170,18 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
             displayStyle: row.display_style,
             occupantLimit: row.occupant_limit
           }
-        : emptyPosition(selectedUnit?.content_id ?? "")
+        : emptyPosition(
+            selectedUnit?.content_id ?? "",
+            nextOrganizationSortOrder(
+              visiblePositions.filter((position) => position.group_label === "" && position.group_sort_order === 0),
+              (position) => position.sort_order
+            )
+          )
     );
   }
 
   function openAssignment(row: OrganizationAssignmentRow | null, positionId: string) {
-    if (!canManage) return;
+    if (!canManage || (!row && (assignmentsQuery.hasNextPage || assignmentsQuery.isPending || assignmentsQuery.isError))) return;
     setDialogError("");
     setError("");
     setAssignmentEditing(row);
@@ -187,7 +194,10 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
             sortOrder: row.sort_order,
             enabled: row.enabled === 1
           }
-        : emptyAssignment(positionId)
+        : emptyAssignment(
+            positionId,
+            nextOrganizationSortOrder(assignmentsByPosition.get(positionId) ?? [], (item) => item.sort_order)
+          )
     );
   }
 
@@ -445,7 +455,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                           แก้ไขหน่วยงาน/ลำดับชั้น
                         </Button>
                       )}
-                      <Button variant="contained" disabled={busy} onClick={() => openPosition(null)}>
+                      <Button variant="contained" disabled={busy || positionsQuery.hasNextPage || positionsQuery.isPending || positionsQuery.isError} onClick={() => openPosition(null)}>
                         เพิ่มตำแหน่ง
                       </Button>
                     </Stack>
@@ -510,7 +520,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                                   {position.group_label && (
                                     <Chip size="small" label={position.group_label} variant="outlined" />
                                   )}
-                                  <Chip size="small" label={"ลำดับ " + position.sort_order} variant="outlined" />
+                                  <Chip size="small" label={"อันดับ " + (siblings.findIndex((row) => row.id === position.id) + 1)} variant="outlined" />
                                   {position.occupant_limit !== null &&
                                     !assignmentsQuery.hasNextPage &&
                                     !assignmentsQuery.isPending &&
@@ -588,7 +598,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                                           sx={{ overflowWrap: "anywhere" }}
                                         >
                                           {assignment.duty_detail || "ยังไม่ระบุหน้าที่"} · ลำดับ{" "}
-                                          {assignment.sort_order}
+                                          {index + 1}
                                           {assignment.enabled === 0 ? " · ปิดการแสดงผล" : ""}
                                         </Typography>
                                       </Box>
@@ -617,7 +627,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                             {canManage && (
                               <Button
                                 variant="outlined"
-                                disabled={busy}
+                                disabled={busy || assignmentsQuery.hasNextPage || assignmentsQuery.isPending || assignmentsQuery.isError}
                                 onClick={() => openAssignment(null, position.id)}
                               >
                                 มอบหมายบุคลากร
@@ -643,6 +653,8 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
           {(positionsQuery.hasNextPage || assignmentsQuery.hasNextPage || personnelQuery.hasNextPage) && (
             <Alert severity="info">
               ข้อมูลบางประเภทยังโหลดไม่ครบ กรุณาโหลดหน้าถัดไปก่อนตรวจสอบจำนวนผู้ดำรงตำแหน่งหรือเลือกบุคลากร
+              {(positionsQuery.hasNextPage || assignmentsQuery.hasNextPage) &&
+                " และโหลดตำแหน่ง/หน้าที่ให้ครบก่อนเพิ่มรายการใหม่ เพื่อกำหนดอันดับถัดไปอย่างถูกต้อง"}
             </Alert>
           )}
           <Dialog open={positionForm !== null} onClose={() => !busy && setPositionForm(null)} fullWidth maxWidth="sm">
