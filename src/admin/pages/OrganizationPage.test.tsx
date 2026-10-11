@@ -165,7 +165,7 @@ describe("Phase 4 Organization Admin list/editor", () => {
     await waitFor(() => expect(showBlockingLoading).toHaveBeenCalledWith("กำลังบันทึกหน่วยงาน"));
     await waitFor(() => expect(showSuccessResult).toHaveBeenCalledWith("บันทึกหน่วยงานสำเร็จ", expect.any(String)));
     expect(appSwal.close).toHaveBeenCalled();
-    expect(screen.queryByRole("textbox", { name: "ชื่อหน่วยงาน" })).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole("textbox", { name: "ชื่อหน่วยงาน" })).not.toBeInTheDocument());
   });
 
   it("reports a failed save and retains the entered unit form for retry", async () => {
