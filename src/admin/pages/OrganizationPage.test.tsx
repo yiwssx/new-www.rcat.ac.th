@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AdminStaleRevisionError } from "../../features/admin-write/errors";
 import type { OrganizationUnitListRow } from "../../features/organization-admin/api";
 import OrganizationPage from "./OrganizationPage";
+import { appSwal } from "../../utils/swal";
 
 const auth = vi.hoisted(() => ({ capabilities: ["organization.read"] as string[] }));
 const api = vi.hoisted(() => ({
@@ -24,7 +25,7 @@ vi.mock("../../features/organization-admin/api", async (importOriginal) => ({
   deleteOrganizationRecord: api.remove
 }));
 vi.mock("../../utils/swal", () => ({
-  appSwal: { fire: vi.fn(async () => ({ isConfirmed: true })) }
+  appSwal: { fire: vi.fn(async () => ({ isConfirmed: true })), close: vi.fn(async () => {}) }
 }));
 
 const existing: OrganizationUnitListRow = {
@@ -147,4 +148,49 @@ describe("Phase 4 Organization Admin list/editor", () => {
     );
     expect(await screen.findByText(/ข้อมูลหน่วยงานถูกเปลี่ยนโดยผู้อื่น/)).toBeInTheDocument();
   });
+  it("shows blocking feedback followed by an acknowledged unit-save success", async () => {
+    auth.capabilities = ["organization.read", "organization.manage"];
+    renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: "เพิ่มหน่วยงาน" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "ชื่อหน่วยงาน" }), {
+      target: { value: "งานทดสอบการบันทึก" }
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: "Slug" }), {
+      target: { value: "write-feedback" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกหน่วยงาน" }));
+    await waitFor(() =>
+      expect(appSwal.fire).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "กำลังบันทึกหน่วยงาน", allowOutsideClick: false })
+      )
+    );
+    await waitFor(() =>
+      expect(appSwal.fire).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "บันทึกหน่วยงานสำเร็จ", icon: "success", confirmButtonText: "ตกลง" })
+      )
+    );
+    expect(appSwal.close).toHaveBeenCalled();
+    expect(screen.queryByRole("textbox", { name: "ชื่อหน่วยงาน" })).not.toBeInTheDocument();
+  });
+
+  it("reports a failed save and retains the entered unit form for retry", async () => {
+    auth.capabilities = ["organization.read", "organization.manage"];
+    api.create.mockRejectedValueOnce(new Error("server unavailable"));
+    renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: "เพิ่มหน่วยงาน" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "ชื่อหน่วยงาน" }), {
+      target: { value: "งานไม่ควรหาย" }
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: "Slug" }), {
+      target: { value: "keep-draft" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกหน่วยงาน" }));
+    await waitFor(() =>
+      expect(appSwal.fire).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "บันทึกหน่วยงานไม่สำเร็จ", icon: "error", text: "server unavailable" })
+      )
+    );
+    expect(screen.getByRole("textbox", { name: "ชื่อหน่วยงาน" })).toHaveValue("งานไม่ควรหาย");
+  });
+
 });
