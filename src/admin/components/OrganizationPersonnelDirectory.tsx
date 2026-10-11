@@ -98,7 +98,6 @@ export default function OrganizationPersonnelDirectory({ canManage, canBrowseMed
         : messageFor(cause);
       setEditorError(message);
       if (stale) {
-        setError(message);
         void invalidateOrganizationQueries(client, "personnel");
       }
       await showErrorResult("บันทึกบุคลากรไม่สำเร็จ", new Error(message), "กรุณาลองอีกครั้ง");
