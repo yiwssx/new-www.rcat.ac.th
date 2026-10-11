@@ -199,7 +199,8 @@ describe("Phase 6 accessible Organization builder", () => {
   it("assigns an existing canonical person with audited position input and no duplicate profile", async () => {
     setup(true);
     fireEvent.click(screen.getByText("งานสารบรรณ"));
-    fireEvent.click(await screen.findByRole("button", { name: "มอบหมายบุคลากร" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "มอบหมายบุคลากร" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "มอบหมายบุคลากร" }));
     fireEvent.mouseDown(screen.getByRole("combobox", { name: "บุคลากรจากทะเบียนกลาง" }));
     fireEvent.click(await screen.findByRole("option", { name: "บุคลากรทดสอบ" }));
     fireEvent.change(screen.getByRole("textbox", { name: "รายละเอียดหน้าที่" }), {
@@ -275,7 +276,8 @@ describe("Phase 6 accessible Organization builder", () => {
     }));
     setup(true);
     fireEvent.click(screen.getByText("งานสารบรรณ"));
-    fireEvent.click(await screen.findByRole("button", { name: "มอบหมายบุคลากร" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "มอบหมายบุคลากร" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "มอบหมายบุคลากร" }));
     fireEvent.click(screen.getByText("ตั้งค่าลำดับด้วยตัวเลข (ขั้นสูง)"));
     expect(screen.getByRole("spinbutton", { name: "ลำดับการแสดง" })).toHaveValue(4);
   });
@@ -283,7 +285,8 @@ describe("Phase 6 accessible Organization builder", () => {
   it("does not offer assignment period inputs and allows explicit manual visibility", async () => {
     setup(true);
     fireEvent.click(screen.getByText("งานสารบรรณ"));
-    fireEvent.click(await screen.findByRole("button", { name: "มอบหมายบุคลากร" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "มอบหมายบุคลากร" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "มอบหมายบุคลากร" }));
     const dialog = screen.getByRole("dialog", { name: "มอบหมายบุคลากร" });
     expect(dialog).toBeInTheDocument();
     expect(screen.queryByLabelText(/เริ่มดำรงหน้าที่|สิ้นสุดหน้าที่|วาระ/)).not.toBeInTheDocument();
@@ -295,7 +298,8 @@ describe("Phase 6 accessible Organization builder", () => {
   it("exposes assignment to canonical personnel rather than creating a second person", async () => {
     setup(true);
     fireEvent.click(screen.getByText("งานสารบรรณ"));
-    fireEvent.click(await screen.findByRole("button", { name: "มอบหมายบุคลากร" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "มอบหมายบุคลากร" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "มอบหมายบุคลากร" }));
     expect(screen.getByRole("dialog", { name: "มอบหมายบุคลากร" })).toBeInTheDocument();
     expect(screen.getByText(/บันทึกบุคลากรคนเดิมซ้ำในหลายตำแหน่ง/)).toBeInTheDocument();
     expect(api.create).not.toHaveBeenCalled();
