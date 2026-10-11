@@ -90,6 +90,7 @@ export interface PersonnelWriteInput {
   displayName: string;
   personnelType: string;
   employmentPosition: string;
+  educationQualifications: string;
   photoMediaId: string | null;
   publicEmail: string;
   publicPhone: string;
@@ -104,6 +105,7 @@ export function parsePersonnelWrite(value: unknown): PersonnelWriteInput {
     "displayName",
     "personnelType",
     "employmentPosition",
+    "educationQualifications",
     "photoMediaId",
     "publicEmail",
     "publicPhone",
@@ -120,6 +122,7 @@ export function parsePersonnelWrite(value: unknown): PersonnelWriteInput {
     displayName: text(input, "displayName", 200, true),
     personnelType: text(input, "personnelType", 120),
     employmentPosition: text(input, "employmentPosition", 200),
+    educationQualifications: text(input, "educationQualifications", 1000),
     photoMediaId: optionalId(input, "photoMediaId"),
     publicEmail,
     publicPhone: text(input, "publicPhone", 40),

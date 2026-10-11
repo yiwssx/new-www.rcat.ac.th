@@ -23,6 +23,7 @@ export interface OrganizationPersonnelRow {
   display_name: string;
   personnel_type: string;
   employment_position: string;
+  education_qualifications: string;
   photo_media_id: string | null;
   public_email: string;
   public_phone: string;
@@ -96,6 +97,7 @@ export type OrganizationPersonnelWrite = {
   displayName: string;
   personnelType?: string;
   employmentPosition?: string;
+  educationQualifications?: string;
   photoMediaId?: string | null;
   publicEmail?: string;
   publicPhone?: string;

@@ -21,6 +21,7 @@ export interface OrganizationPerson {
   displayName: string;
   personnelType: string;
   employmentPosition: string;
+  educationQualifications: string;
   photoMediaId: string | null;
   publicEmail: string;
   publicPhone: string;

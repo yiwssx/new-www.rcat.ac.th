@@ -66,7 +66,13 @@ export default function OrganizationPersonnelEditorDialog({
   });
 
   const input = (
-    name: "displayName" | "personnelType" | "employmentPosition" | "publicEmail" | "publicPhone",
+    name:
+      | "displayName"
+      | "personnelType"
+      | "employmentPosition"
+      | "educationQualifications"
+      | "publicEmail"
+      | "publicPhone",
     label: string
   ) => (
     <Controller
@@ -79,6 +85,8 @@ export default function OrganizationPersonnelEditorDialog({
           fullWidth
           disabled={busy}
           required={name === "displayName"}
+          multiline={name === "educationQualifications"}
+          minRows={name === "educationQualifications" ? 2 : undefined}
           error={Boolean(errors[name])}
           helperText={errors[name]?.message}
         />
@@ -109,6 +117,7 @@ export default function OrganizationPersonnelEditorDialog({
               {input("displayName", "ชื่อ-นามสกุล")}
               {input("personnelType", "ประเภทบุคลากร")}
               {input("employmentPosition", "ตำแหน่งงาน/วิชาการ")}
+              {input("educationQualifications", "วุฒิการศึกษา (ไม่บังคับ แสดงเฉพาะแผนกวิชา)")}
               <Controller
                 name="photoMediaId"
                 control={control}

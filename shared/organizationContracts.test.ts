@@ -53,6 +53,7 @@ describe("Organization Chart shared contracts", () => {
       displayName: "Sample Staff",
       personnelType: "teacher",
       employmentPosition: "Instructor",
+      educationQualifications: "ปริญญาตรี",
       photoMediaId: null,
       publicEmail: "test@example.invalid",
       publicPhone: "0000000000",

@@ -2,6 +2,7 @@
 import { DatabaseSync } from "node:sqlite";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import migrationSql from "../migrations/0020_organization_content_foundation.sql?raw";
+import qualificationsMigrationSql from "../migrations/0021_organization_education_qualifications.sql?raw";
 import {
   ORGANIZATION_ASSIGNMENT_ROW_COLUMNS,
   ORGANIZATION_POSITION_ROW_COLUMNS,
@@ -50,6 +51,7 @@ beforeEach(() => {
     CREATE TABLE media_assets (id TEXT PRIMARY KEY);
   `);
   db.exec(migrationSql);
+  db.exec(qualificationsMigrationSql);
 });
 
 afterEach(() => {

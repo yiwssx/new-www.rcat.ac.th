@@ -48,6 +48,7 @@ const person: OrganizationPersonnelRow = {
   display_name: "บุคลากร ทดสอบ",
   personnel_type: "ครู",
   employment_position: "ครูชำนาญการ",
+  education_qualifications: "",
   photo_media_id: null,
   public_email: "private@example.invalid",
   public_phone: "0990000000",

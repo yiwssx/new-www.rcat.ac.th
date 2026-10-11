@@ -33,6 +33,7 @@ export interface PersonnelRow {
   display_name: OrganizationPerson["displayName"];
   personnel_type: string;
   employment_position: string;
+  education_qualifications: string;
   photo_media_id: string | null;
   public_email: string;
   public_phone: string;
@@ -57,7 +58,8 @@ export const PERSONNEL_ROW_COLUMNS = [
   "active",
   "revision",
   "created_at",
-  "updated_at"
+  "updated_at",
+  "education_qualifications"
 ] as const satisfies readonly (keyof PersonnelRow)[];
 
 export interface OrganizationPositionRow {
