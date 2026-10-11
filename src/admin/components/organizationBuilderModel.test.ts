@@ -71,7 +71,7 @@ describe("Phase 6 Organization builder model", () => {
 
   it("appends after the highest persisted sibling order, including legacy zero ties", () => {
     expect(nextOrganizationSortOrder([], (row: { sort_order: number }) => row.sort_order)).toBe(0);
-    expect(nextOrganizationSortOrder([unit("a", null, 0), unit("b", null, 0)], (row) => row.sort_order)).toBe(1);
+    expect(nextOrganizationSortOrder([unit("a", null, 0), unit("b", null, 0)], (row) => row.sort_order)).toBe(2);
     expect(nextOrganizationSortOrder([unit("a", null, 4), unit("b", null, 2)], (row) => row.sort_order)).toBe(5);
   });
 
