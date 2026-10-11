@@ -258,7 +258,7 @@ export async function updateAuditedPersonnelRow(
   const update = db
     .prepare(
       `UPDATE personnel
-       SET display_name = ?, personnel_type = ?, employment_position = ?, photo_media_id = ?,
+       SET display_name = ?, personnel_type = ?, employment_position = ?, education_qualifications = ?, photo_media_id = ?,
            public_email = ?, public_phone = ?, show_public_email = ?, show_public_phone = ?,
            active = ?, updated_at = ?, revision = revision + 1
        WHERE id = ? AND revision = ?`
@@ -267,6 +267,7 @@ export async function updateAuditedPersonnelRow(
       row.display_name,
       row.personnel_type,
       row.employment_position,
+      row.education_qualifications,
       row.photo_media_id,
       row.public_email,
       row.public_phone,
