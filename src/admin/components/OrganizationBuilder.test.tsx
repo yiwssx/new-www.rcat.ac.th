@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AdminStaleRevisionError } from "../../features/admin-write/errors";
 import type { OrganizationUnitListRow } from "../../features/organization-admin/api";
 import OrganizationBuilder from "./OrganizationBuilder";
-import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
+import { showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 
 const api = vi.hoisted(() => ({
   list: vi.fn(),
