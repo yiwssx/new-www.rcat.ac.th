@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AdminStaleRevisionError } from "../../features/admin-write/errors";
 import type { OrganizationUnitListRow } from "../../features/organization-admin/api";
 import OrganizationBuilder from "./OrganizationBuilder";
+import { showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 
 const api = vi.hoisted(() => ({
   list: vi.fn(),
@@ -19,7 +20,10 @@ vi.mock("../../features/organization-admin/api", async (importOriginal) => ({
   deleteOrganizationRecord: api.remove
 }));
 vi.mock("../../utils/swal", () => ({
-  appSwal: { fire: vi.fn(async () => ({ isConfirmed: true })) }
+  appSwal: { fire: vi.fn(async () => ({ isConfirmed: true })), close: vi.fn(async () => {}) },
+  showBlockingLoading: vi.fn(),
+  showSuccessResult: vi.fn(async () => {}),
+  showErrorResult: vi.fn(async () => {})
 }));
 
 const units: OrganizationUnitListRow[] = [
@@ -293,5 +297,31 @@ describe("Phase 6 accessible Organization builder", () => {
       )
     );
     expect(await screen.findByText(/ตำแหน่งถูกเปลี่ยนแปลงโดยผู้ดูแลอื่น/)).toBeInTheDocument();
+  });
+  it("confirms a saved position instead of silently closing its editor", async () => {
+    setup(true);
+    fireEvent.click(screen.getByText("งานสารบรรณ"));
+    fireEvent.click(await screen.findByRole("button", { name: "เพิ่มตำแหน่ง" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "ชื่อตำแหน่ง" }), {
+      target: { value: "ผู้ช่วยหัวหน้างาน" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกตำแหน่ง" }));
+    await waitFor(() => expect(showBlockingLoading).toHaveBeenCalledWith("กำลังบันทึกตำแหน่ง"));
+    await waitFor(() => expect(showSuccessResult).toHaveBeenCalledWith("บันทึกตำแหน่งสำเร็จ"));
+  });
+
+  it("retains position edits after a failed write and reports the failure", async () => {
+    api.create.mockRejectedValueOnce(new Error("position rejected"));
+    setup(true);
+    fireEvent.click(screen.getByText("งานสารบรรณ"));
+    fireEvent.click(await screen.findByRole("button", { name: "เพิ่มตำแหน่ง" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "ชื่อตำแหน่ง" }), {
+      target: { value: "ตำแหน่งที่ยังไม่สำเร็จ" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกตำแหน่ง" }));
+    await waitFor(() =>
+      expect(showErrorResult).toHaveBeenCalledWith("บันทึกตำแหน่งไม่สำเร็จ", expect.any(Error), "กรุณาลองอีกครั้ง")
+    );
+    expect(screen.getByRole("textbox", { name: "ชื่อตำแหน่ง" })).toHaveValue("ตำแหน่งที่ยังไม่สำเร็จ");
   });
 });

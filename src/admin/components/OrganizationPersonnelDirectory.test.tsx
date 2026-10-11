@@ -4,6 +4,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { OrganizationPersonnelRow } from "../../features/organization-admin/api";
 import OrganizationPersonnelDirectory from "./OrganizationPersonnelDirectory";
+import { showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 
 const api = vi.hoisted(() => ({
   getCollection: vi.fn(),
@@ -21,7 +22,10 @@ vi.mock("../../features/organization-admin/api", async (importOriginal) => ({
 }));
 
 vi.mock("../../utils/swal", () => ({
-  appSwal: { fire: vi.fn(async () => ({ isConfirmed: true })) }
+  appSwal: { fire: vi.fn(async () => ({ isConfirmed: true })), close: vi.fn(async () => {}) },
+  showBlockingLoading: vi.fn(),
+  showSuccessResult: vi.fn(async () => {}),
+  showErrorResult: vi.fn(async () => {})
 }));
 
 vi.mock("./RichTextMediaPickerDialog", () => ({
@@ -139,5 +143,29 @@ describe("Phase 5 canonical personnel directory", () => {
     show(true);
     fireEvent.click(await screen.findByRole("button", { name: "ลบ" }));
     await waitFor(() => expect(api.remove).toHaveBeenCalledWith("personnel", "person-1", 3));
+  });
+  it("requires acknowledgment after a successful personnel save", async () => {
+    show(true);
+    fireEvent.click(await screen.findByRole("button", { name: "เพิ่มบุคลากร" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "ชื่อ-นามสกุล" }), {
+      target: { value: "บุคลากร ใหม่" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกบุคลากร" }));
+    await waitFor(() => expect(showBlockingLoading).toHaveBeenCalledWith("กำลังบันทึกบุคลากร"));
+    await waitFor(() => expect(showSuccessResult).toHaveBeenCalledWith("บันทึกบุคลากรสำเร็จ", expect.any(String)));
+  });
+
+  it("shows an error result without discarding entered personnel", async () => {
+    api.create.mockRejectedValueOnce(new Error("cannot save"));
+    show(true);
+    fireEvent.click(await screen.findByRole("button", { name: "เพิ่มบุคลากร" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "ชื่อ-นามสกุล" }), {
+      target: { value: "บุคลากร รอแก้ไข" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกบุคลากร" }));
+    await waitFor(() =>
+      expect(showErrorResult).toHaveBeenCalledWith("บันทึกบุคลากรไม่สำเร็จ", expect.any(Error), "กรุณาลองอีกครั้ง")
+    );
+    expect(screen.getByRole("textbox", { name: "ชื่อ-นามสกุล" })).toHaveValue("บุคลากร รอแก้ไข");
   });
 });
