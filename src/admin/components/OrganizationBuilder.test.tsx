@@ -176,6 +176,22 @@ describe("Phase 6 accessible Organization builder", () => {
     );
   });
 
+  it("sets the next position order when a new position joins an existing group", async () => {
+    setup(true);
+    fireEvent.click(screen.getByText("งานสารบรรณ"));
+    fireEvent.click(await screen.findByRole("button", { name: "เพิ่มตำแหน่ง" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "กลุ่มตำแหน่ง" }), {
+      target: { value: "ผู้บริหาร" }
+    });
+    fireEvent.click(screen.getByText("ตั้งค่าลำดับด้วยตัวเลข (ขั้นสูง)"));
+    expect(screen.getByRole("spinbutton", { name: "ลำดับตำแหน่ง" })).toHaveValue(1);
+    fireEvent.change(screen.getByRole("textbox", { name: "ชื่อตำแหน่ง" }), {
+      target: { value: "รองหัวหน้างาน" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกตำแหน่ง" }));
+    await waitFor(() => expect(api.create).toHaveBeenCalledWith("positions", expect.objectContaining({ sortOrder: 1 })));
+  });
+
   it("assigns an existing canonical person with audited position input and no duplicate profile", async () => {
     setup(true);
     fireEvent.click(screen.getByText("งานสารบรรณ"));
@@ -204,6 +220,7 @@ describe("Phase 6 accessible Organization builder", () => {
     setup(true);
     fireEvent.click(screen.getByText("งานสารบรรณ"));
     fireEvent.click(await screen.findByRole("button", { name: "แก้ไขตำแหน่ง" }));
+    fireEvent.click(screen.getByText("ตั้งค่าลำดับด้วยตัวเลข (ขั้นสูง)"));
     fireEvent.change(screen.getByRole("spinbutton", { name: "ลำดับตำแหน่ง" }), {
       target: { value: "2" }
     });
@@ -216,6 +233,25 @@ describe("Phase 6 accessible Organization builder", () => {
         expect.objectContaining({ sortOrder: 2, unitContentId: "work-1" })
       )
     );
+  });
+
+  it("appends a new assignment after loaded occupants of the selected position", async () => {
+    api.list.mockImplementation(async (collection: string) => ({
+      items:
+        collection === "positions"
+          ? [{ id: "position-1", unit_content_id: "work-1", title: "หัวหน้างาน", group_label: "", group_sort_order: 0, sort_order: 0, display_style: "default", occupant_limit: null, revision: 0 }]
+          : collection === "assignments"
+            ? [{ id: "assignment-1", position_id: "position-1", personnel_id: "person-1", duty_detail: "", sort_order: 3, enabled: 1, revision: 0 }]
+            : [{ id: "person-1", display_name: "บุคลากรทดสอบ", active: 1, revision: 0 }],
+      nextOffset: null,
+      maximumItems: 100,
+      generatedAt: ""
+    }));
+    setup(true);
+    fireEvent.click(screen.getByText("งานสารบรรณ"));
+    fireEvent.click(await screen.findByRole("button", { name: "มอบหมายบุคลากร" }));
+    fireEvent.click(screen.getByText("ตั้งค่าลำดับด้วยตัวเลข (ขั้นสูง)"));
+    expect(screen.getByRole("spinbutton", { name: "ลำดับการแสดง" })).toHaveValue(4);
   });
 
   it("does not offer assignment period inputs and allows explicit manual visibility", async () => {
