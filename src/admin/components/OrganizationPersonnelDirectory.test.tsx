@@ -4,7 +4,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { OrganizationPersonnelRow } from "../../features/organization-admin/api";
 import OrganizationPersonnelDirectory from "./OrganizationPersonnelDirectory";
-import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
+import { showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 
 const api = vi.hoisted(() => ({
   getCollection: vi.fn(),
