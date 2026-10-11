@@ -113,7 +113,7 @@ jobs:
             file="$RUNNER_TEMP/org-v3/rcat_organization_2569_v3_$part.sql"
             test -s "$file"
             echo "Applying batch $part"
-            pnpm wrangler d1 execute "$D1_NAME" --remote --env production --config "$D1_CONFIG" --file "$file" > "$RUNNER_TEMP/import-$part.log"
+            pnpm wrangler d1 execute "$D1_NAME" --remote --env production --config "$D1_CONFIG" --file "$file" > "$RUNNER_TEMP/import-$part.log" 2>&1
           done
 
       - name: Verify all imported organization pages remain Draft
