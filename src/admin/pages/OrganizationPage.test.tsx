@@ -103,7 +103,8 @@ describe("Phase 4 Organization Admin list/editor", () => {
   it("creates a unit from the isolated form with validated fields", async () => {
     auth.capabilities = ["organization.read", "organization.manage"];
     renderPage();
-    fireEvent.click(await screen.findByRole("button", { name: "เพิ่มหน่วยงาน" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "เพิ่มหน่วยงาน" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "เพิ่มหน่วยงาน" }));
     fireEvent.change(screen.getByRole("textbox", { name: "ชื่อหน่วยงาน" }), {
       target: { value: "งานพัสดุ" }
     });
@@ -181,7 +182,8 @@ describe("Phase 4 Organization Admin list/editor", () => {
   it("shows blocking feedback followed by an acknowledged unit-save success", async () => {
     auth.capabilities = ["organization.read", "organization.manage"];
     renderPage();
-    fireEvent.click(await screen.findByRole("button", { name: "เพิ่มหน่วยงาน" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "เพิ่มหน่วยงาน" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "เพิ่มหน่วยงาน" }));
     fireEvent.change(screen.getByRole("textbox", { name: "ชื่อหน่วยงาน" }), {
       target: { value: "งานทดสอบการบันทึก" }
     });
@@ -199,7 +201,8 @@ describe("Phase 4 Organization Admin list/editor", () => {
     auth.capabilities = ["organization.read", "organization.manage"];
     api.create.mockRejectedValueOnce(new Error("server unavailable"));
     renderPage();
-    fireEvent.click(await screen.findByRole("button", { name: "เพิ่มหน่วยงาน" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "เพิ่มหน่วยงาน" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "เพิ่มหน่วยงาน" }));
     fireEvent.change(screen.getByRole("textbox", { name: "ชื่อหน่วยงาน" }), {
       target: { value: "งานไม่ควรหาย" }
     });
