@@ -49,7 +49,6 @@ describe("backup recovery UPSERT builder", () => {
     );
   });
 
-
   it("replays the same Organization snapshot without violating monotonic revision triggers", () => {
     const database = new DatabaseSync(":memory:");
     try {
