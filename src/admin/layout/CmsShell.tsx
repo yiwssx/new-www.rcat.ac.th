@@ -19,6 +19,7 @@ import { useTheme } from "@mui/material/styles";
 import { designTokens } from "../../design-system/tokens";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
+import CorporateFareOutlinedIcon from "@mui/icons-material/CorporateFareOutlined";
 import AppsOutlinedIcon from "@mui/icons-material/AppsOutlined";
 import BackupOutlinedIcon from "@mui/icons-material/BackupOutlined";
 import CloudSyncOutlinedIcon from "@mui/icons-material/CloudSyncOutlined";
@@ -75,7 +76,7 @@ const navItems: NavItem[] = [
   {
     label: "ผังองค์กร",
     to: "/admin/organization",
-    icon: <AccountTreeOutlinedIcon />,
+    icon: <CorporateFareOutlinedIcon />,
     capabilities: ["organization.read"]
   },
   {
