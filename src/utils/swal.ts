@@ -163,7 +163,8 @@ export async function showSuccessResult(title: string, text?: string) {
     icon: "success",
     title,
     ...(text ? { text } : {}),
-    confirmButtonText: "ตกลง"
+    confirmButtonText: "ตกลง",
+    didOpen: alignBlockingContainerWithMuiModalStack
   });
 }
 
@@ -172,6 +173,7 @@ export async function showErrorResult(title: string, error: unknown, fallback: s
     icon: "error",
     title,
     text: getSwalErrorText(error, fallback),
-    confirmButtonText: "ตกลง"
+    confirmButtonText: "ตกลง",
+    didOpen: alignBlockingContainerWithMuiModalStack
   });
 }
