@@ -142,7 +142,6 @@ export default function OrganizationPage() {
         : humanError(cause);
       setEditorError(message);
       if (stale) {
-        setError(message);
         void invalidateOrganizationQueries(client);
       }
       await showErrorResult("บันทึกหน่วยงานไม่สำเร็จ", new Error(message), "กรุณาลองอีกครั้ง");
