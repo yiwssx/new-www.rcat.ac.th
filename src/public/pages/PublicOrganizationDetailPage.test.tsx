@@ -112,6 +112,31 @@ describe("Phase 7 responsive public organization renderer", () => {
     expect(screen.queryByText(/อีเมล:|โทรศัพท์:/)).not.toBeInTheDocument();
   });
 
+  it("only renders supplied qualifications in a department position", async () => {
+    const baseUnit = {
+      contentId: "dept", parentContentId: null, slug: "dept", title: "แผนกวิชา",
+      summary: "", unitKind: "department", sortOrder: 0, depth: 0
+    };
+    const position = {
+      id: "position-1", unitContentId: "dept", title: "ครู", groupLabel: "", groupSortOrder: 0,
+      sortOrder: 0, displayStyle: "default", assignments: [{
+        id: "a-1", dutyDetail: "", sortOrder: 0, person: {
+          id: "person-1", displayName: "ครู ทดสอบ", personnelType: "ครู", employmentPosition: "ครู",
+          educationQualifications: "ปริญญาโท", photoMediaId: null, publicEmail: "", publicPhone: ""
+        }
+      }]
+    };
+    mock.data = { unit: baseUnit, ancestors: [], units: [baseUnit], positions: [position], media: [] };
+    const screenDepartment = setup();
+    expect(await screen.findByText("วุฒิการศึกษา: ปริญญาโท")).toBeInTheDocument();
+    screenDepartment.unmount();
+    const workUnit = { ...baseUnit, unitKind: "work" };
+    mock.data = { unit: workUnit, ancestors: [], units: [workUnit], positions: [position], media: [] };
+    setup();
+    expect(await screen.findByText("ครู ทดสอบ")).toBeInTheDocument();
+    expect(screen.queryByText("วุฒิการศึกษา: ปริญญาโท")).not.toBeInTheDocument();
+  });
+
   it("does not invent personnel or positions when the published unit is empty", async () => {
     mock.data = {
       unit: {
