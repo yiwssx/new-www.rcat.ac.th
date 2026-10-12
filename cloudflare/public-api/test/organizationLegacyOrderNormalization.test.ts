@@ -15,7 +15,10 @@ beforeEach(() => {
       id TEXT PRIMARY KEY,
       type TEXT NOT NULL,
       title TEXT NOT NULL,
-      deleted_at TEXT NOT NULL DEFAULT ''
+      deleted_at TEXT NOT NULL DEFAULT '',
+      revision INTEGER NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL DEFAULT '',
+      updated_by TEXT NOT NULL DEFAULT ''
     );
     CREATE TABLE media_assets (id TEXT PRIMARY KEY);
   `);
@@ -82,6 +85,11 @@ describe("one-time legacy organization order normalization", () => {
 
     expect(order("organization_units", "a-root")).toMatchObject({ sort_order: 0, revision: 0 });
     expect(order("organization_units", "b-root")).toMatchObject({ sort_order: 1, revision: 1 });
+    expect(db.prepare("SELECT revision, updated_by FROM contents WHERE id = 'b-root'").get()).toMatchObject({
+      revision: 1,
+      updated_by: "organization-legacy-order-normalization"
+    });
+    expect(db.prepare("SELECT revision FROM contents WHERE id = 'a-root'").get()).toMatchObject({ revision: 0 });
     expect(order("organization_units", "a-child")).toMatchObject({ sort_order: 0, revision: 0 });
     expect(order("organization_units", "b-child")).toMatchObject({ sort_order: 0, revision: 0 });
     expect(order("organization_positions", "post-1")).toMatchObject({ sort_order: 0, revision: 0 });
@@ -99,13 +107,15 @@ describe("one-time legacy organization order normalization", () => {
     const snapshot = {
       units: db.prepare("SELECT * FROM organization_units ORDER BY content_id").all(),
       positions: db.prepare("SELECT * FROM organization_positions ORDER BY id").all(),
-      assignments: db.prepare("SELECT * FROM organization_assignments ORDER BY id").all()
+      assignments: db.prepare("SELECT * FROM organization_assignments ORDER BY id").all(),
+      contents: db.prepare("SELECT * FROM contents ORDER BY id").all()
     };
     db.exec(applySql);
     expect(db.prepare(previewSql).all()).toEqual([]);
     expect(db.prepare("SELECT * FROM organization_units ORDER BY content_id").all()).toEqual(snapshot.units);
     expect(db.prepare("SELECT * FROM organization_positions ORDER BY id").all()).toEqual(snapshot.positions);
     expect(db.prepare("SELECT * FROM organization_assignments ORDER BY id").all()).toEqual(snapshot.assignments);
+    expect(db.prepare("SELECT * FROM contents ORDER BY id").all()).toEqual(snapshot.contents);
   });
 
   it("does not change sparse but collision-free manually assigned ranks", () => {
