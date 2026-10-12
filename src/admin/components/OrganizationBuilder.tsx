@@ -54,11 +54,11 @@ interface Props {
   view?: "legacy" | "positions" | "assignments" | "charts";
 }
 
-type PositionForm = Required<Omit<OrganizationPositionWrite, "occupantLimit">> & {
+type PositionForm = Required<Omit<OrganizationPositionWrite, "occupantLimit" | "autoSortOrder">> & {
   occupantLimit: number | null;
 };
 
-type AssignmentForm = Required<OrganizationAssignmentWrite>;
+type AssignmentForm = Required<Omit<OrganizationAssignmentWrite, "autoSortOrder">>;
 
 const emptyPosition = (unitContentId: string, sortOrder = 0): PositionForm => ({
   unitContentId,
