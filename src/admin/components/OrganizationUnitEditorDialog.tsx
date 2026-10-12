@@ -63,9 +63,10 @@ export default function OrganizationUnitEditorDialog({ open, initial, units, bus
     enabled: open && parentSearchDebounced.length > 0,
     queryFn: () => getOrganizationCollection("units", 25, 0, { includeTotal: true, search: parentSearchDebounced })
   });
-  const missingParentId = initial?.parent_content_id && !units.some((unit) => unit.content_id === initial.parent_content_id)
-    ? initial.parent_content_id
-    : null;
+  const missingParentId =
+    initial?.parent_content_id && !units.some((unit) => unit.content_id === initial.parent_content_id)
+      ? initial.parent_content_id
+      : null;
   const missingParentQuery = useQuery({
     queryKey: ["admin-organization", "units", "parent-detail", missingParentId],
     enabled: open && Boolean(missingParentId),
@@ -80,7 +81,11 @@ export default function OrganizationUnitEditorDialog({ open, initial, units, bus
   }, [initial, nextRootOrder, open, reset]);
   const canSelectParent = useMemo(() => {
     const allowedLocal = availableOrganizationParents(units, initial?.content_id ?? null);
-    const blockedLocal = new Set(units.filter((unit) => !allowedLocal.some((item) => item.content_id === unit.content_id)).map((unit) => unit.content_id));
+    const blockedLocal = new Set(
+      units
+        .filter((unit) => !allowedLocal.some((item) => item.content_id === unit.content_id))
+        .map((unit) => unit.content_id)
+    );
     const candidates = new Map(allowedLocal.map((unit) => [unit.content_id, unit]));
     for (const candidate of parentSearchQuery.data?.items ?? []) {
       if (candidate.content_id !== initial?.content_id && !blockedLocal.has(candidate.content_id)) {
@@ -189,10 +194,14 @@ export default function OrganizationUnitEditorDialog({ open, initial, units, bus
               slotProps={{ htmlInput: { maxLength: 160 } }}
             />
             {parentSearch && parentSearch !== parentSearchDebounced && (
-              <Typography role="status" variant="caption">กำลังเตรียมค้นหาหน่วยงานแม่…</Typography>
+              <Typography role="status" variant="caption">
+                กำลังเตรียมค้นหาหน่วยงานแม่…
+              </Typography>
             )}
             {parentSearchQuery.isFetching && parentSearchDebounced && (
-              <Typography role="status" variant="caption">กำลังค้นหาหน่วยงานแม่…</Typography>
+              <Typography role="status" variant="caption">
+                กำลังค้นหาหน่วยงานแม่…
+              </Typography>
             )}
             {parentSearchQuery.isError && parentSearchDebounced && (
               <Alert severity="error">ค้นหาหน่วยงานแม่ไม่สำเร็จ กรุณาลองใหม่</Alert>
