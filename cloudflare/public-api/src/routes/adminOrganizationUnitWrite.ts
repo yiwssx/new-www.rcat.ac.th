@@ -47,7 +47,8 @@ function inputFromEditor(row: NonNullable<Awaited<ReturnType<typeof getOrganizat
     parentContentId: row.parent_content_id,
     unitKind: row.unit_kind,
     sortOrder: row.sort_order,
-    chartMode: row.chart_mode
+    chartMode: row.chart_mode,
+    chartLayout: JSON.parse(row.chart_layout) as Record<string, unknown>
   };
 }
 
