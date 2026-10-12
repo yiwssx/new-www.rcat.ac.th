@@ -81,7 +81,7 @@ describe("Phase 4 Organization Admin list/editor", () => {
     ["charts", "จัดผังองค์กร", "HubOutlinedIcon"]
   ] as const)("uses the appropriate non-menu heading icon for %s", (view, title, icon) => {
     renderPage(view);
-    const heading = screen.getByRole("heading", { name: title });
+    const heading = screen.getByRole("heading", { name: title, level: 1 });
     const headingRow = heading.parentElement;
     expect(headingRow).not.toBeNull();
     expect(within(headingRow as HTMLElement).getByTestId(icon)).toBeInTheDocument();
