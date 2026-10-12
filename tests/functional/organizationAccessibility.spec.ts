@@ -164,8 +164,8 @@ test.describe("Organization public accessibility and responsive regression", () 
         if (mode === "tree") {
           await expect(page.getByRole("region", { name: /ผังสายบังคับบัญชา/ })).toBeVisible();
         } else {
-          await expect(page.getByRole("region", { name: "ระดับ 1 แถว 1" })).toBeVisible();
-          await expect(page.getByRole("region", { name: "ระดับ 2 แถว 1" })).toBeVisible();
+          await expect(page.getByRole("region", { name: "ระดับ 1 แถว 1", exact: true })).toBeVisible();
+          await expect(page.getByRole("region", { name: "ระดับ 2 แถว 1", exact: true })).toBeVisible();
         }
         await expect
           .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1))
