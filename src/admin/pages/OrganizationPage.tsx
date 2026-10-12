@@ -475,7 +475,7 @@ export default function OrganizationPage({ view = "legacy" }: { view?: Organizat
           view={view === "positions" || view === "assignments" || view === "charts" ? view : "legacy"}
         />
       )}
-      {canManage && needUnits && (
+      {canManage && needUnits && editorOpen && (
         <OrganizationUnitEditorDialog
           open={editorOpen}
           initial={editing}

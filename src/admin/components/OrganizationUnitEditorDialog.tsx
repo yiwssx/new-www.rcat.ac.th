@@ -54,7 +54,7 @@ export default function OrganizationUnitEditorDialog({ open, initial, units, bus
     defaultValues: editorDefaults(initial),
     mode: "onBlur"
   });
-  const [autoSortOrder, setAutoSortOrder] = useState(true);
+  const [autoSortOrder, setAutoSortOrder] = useState(!initial);
   const [parentSearch, setParentSearch] = useState("");
   const [parentSearchDebounced, setParentSearchDebounced] = useState("");
   useEffect(() => {
@@ -80,10 +80,7 @@ export default function OrganizationUnitEditorDialog({ open, initial, units, bus
     (unit) => unit.sort_order
   );
   useEffect(() => {
-    if (open) {
-      setAutoSortOrder(!initial);
-      reset({ ...editorDefaults(initial), sortOrder: initial?.sort_order ?? nextRootOrder });
-    }
+    if (open) reset({ ...editorDefaults(initial), sortOrder: initial?.sort_order ?? nextRootOrder });
   }, [initial, nextRootOrder, open, reset]);
   const canSelectParent = useMemo(() => {
     const allowedLocal = availableOrganizationParents(units, initial?.content_id ?? null);
