@@ -112,7 +112,7 @@ function UnitBranch({ branch }: { branch: PublicOrganizationUnitBranch }) {
               ? {
                   content: '""',
                   position: "absolute",
-                  top: 16,
+                  top: -16,
                   width: "50%",
                   borderTop: "2px solid",
                   borderColor: "divider"
