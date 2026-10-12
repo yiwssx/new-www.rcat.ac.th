@@ -57,7 +57,7 @@ const units: OrganizationUnitListRow[] = [
   }
 ];
 
-function setup(canManage: boolean, view: "legacy" | "positions" = "legacy") {
+function setup(canManage: boolean, view: "legacy" | "positions" | "charts" = "legacy") {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } }
   });
@@ -117,6 +117,19 @@ describe("Phase 6 accessible Organization builder", () => {
     expect(api.list.mock.calls.some(([collection]) => collection === "assignments" || collection === "personnel")).toBe(
       false
     );
+  });
+
+  it("keeps the chart submenu focused on the layout editor without duplicate duty cards", async () => {
+    setup(false, "charts");
+    fireEvent.click(screen.getByText("งานสารบรรณ"));
+    expect(await screen.findByText("จัดระดับและผังบุคลากร")).toBeInTheDocument();
+    expect(screen.queryByText("อันดับ 1")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "แก้ไขตำแหน่ง" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "มอบหมายบุคลากร" })).not.toBeInTheDocument();
+    expect(api.list).toHaveBeenCalledWith("positions", 100, 0, {
+      includeTotal: true,
+      unitContentId: "work-1"
+    });
   });
 
   it("shows a nested unit navigator and position details to read-only editors without writes", async () => {

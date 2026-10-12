@@ -587,7 +587,8 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                         : "ยังไม่มีตำแหน่งในหน่วยงานนี้"}
                     </Alert>
                   )}
-                <DragDropProvider
+                {view !== "charts" && (
+                  <DragDropProvider
                   onDragEnd={({ operation, canceled }) => {
                     if (canceled || !isSortable(operation.source)) return;
                     const source = operation.source;
@@ -756,15 +757,23 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                       </OrganizationSortableRow>
                     );
                   })}
-                </DragDropProvider>
+                  </DragDropProvider>
+                )}
               </Stack>
             </Box>
           </Stack>
           {selectedUnit && (positionsQuery.isPending || positionsQuery.hasNextPage) && (
             <Alert severity="info">
-              กรุณาโหลดรายการตำแหน่งให้ครบก่อนจัดผัง เพื่อป้องกันค่าที่กำลังแก้ไขถูกรีเซ็ตระหว่างโหลดข้อมูล
+              กรุณาโหลดรายการตำแหน่งให้ครบก่อนจัดผัง เพื่อป้องกันการบันทึกโครงสร้างที่มีข้อมูลไม่ครบ
             </Alert>
           )}
+          {view === "charts" && selectedUnit &&
+            (assignmentsQuery.isPending || personnelQuery.isPending || assignmentsQuery.hasNextPage || personnelQuery.hasNextPage || assignmentsQuery.isError || personnelQuery.isError) && (
+              <Alert severity="warning" role="status">
+                ตัวอย่างผังอาจแสดงบุคลากรไม่ครบ กรุณาโหลดรายการหน้าที่และบุคลากรทั้งหมดของหน่วยงานนี้
+                หรือแก้ไขข้อผิดพลาดในการโหลดข้อมูลก่อนตรวจสอบ Preview
+              </Alert>
+            )}
           {(view === "legacy" || view === "charts") &&
             selectedUnit &&
             !positionsQuery.isPending &&
@@ -791,9 +800,8 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
           </Stack>
           {(positionsQuery.hasNextPage || assignmentsQuery.hasNextPage || personnelQuery.hasNextPage) && (
             <Alert severity="info">
-              ข้อมูลบางประเภทยังโหลดไม่ครบ กรุณาโหลดหน้าถัดไปก่อนตรวจสอบจำนวนผู้ดำรงตำแหน่งหรือเลือกบุคลากร
-              {(positionsQuery.hasNextPage || assignmentsQuery.hasNextPage) &&
-                " และโหลดตำแหน่ง/หน้าที่ให้ครบก่อนเพิ่มรายการใหม่ เพื่อกำหนดอันดับถัดไปอย่างถูกต้อง"}
+              ข้อมูลบางประเภทยังโหลดไม่ครบ สามารถเพิ่มรายการใหม่ต่อท้ายโดยให้เซิร์ฟเวอร์กำหนดลำดับได้
+              แต่ควรโหลดข้อมูลที่เหลือก่อนตรวจสอบผู้ดำรงตำแหน่งหรือดูตัวอย่างผังให้ครบถ้วน
             </Alert>
           )}
           <Dialog open={positionForm !== null} onClose={() => !busy && setPositionForm(null)} fullWidth maxWidth="sm">
