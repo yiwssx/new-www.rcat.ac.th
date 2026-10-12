@@ -49,3 +49,12 @@
 - Latest examined authored CI #38234307252: Dependency Preflight, Dependencies, Build, Worker, Integration Tests, Governance SUCCESS; Static Quality FAILURE on unformatted OrganizationBuilder.tsx; Unit/E2E IN PROGRESS. Autofix #38234307264 was active. This is **not** a passed gate and CI on newest head must be verified.
 - PR #577 remains draft and should not be merged; no verified production Worker release, Vercel deploy, or UAT for V2.1.
 - Next: inspect autofix and latest authored CI results, fix any new test/type failures, complete unfinished Phase 2/3/4 then acceptance gates, release Worker safely ahead of frontend code.
+
+## 2026-10-12 — Incremental QA fix: legacy pagination
+
+- Focus: Phase 5 regression repairs only; no workflow or production changes.
+- Feature commit: `70306568486c49a5ad7f16370a32c926b60894b5`.
+- Corrected duplicate unit “load more” buttons when the legacy combined view renders both list and builder; keep the dedicated button for the new builder-only routes.
+- Kept the legacy three-argument `getOrganizationCollection` call in the builder; scoped V2.1 queries retain their fourth options argument.
+- Evidence: prior full CI `38234599814` failed exactly two Organization unit tests, and Static Quality failed because this tracker had unformatted Markdown. An autofix commit subsequently appeared.
+- New CI `38236207097` and Prettier autofix `38236207188` were queued when recorded. **Verification pending:** check the latest post-autofix branch commit, Static Quality, Unit Tests and all other required jobs before treating this checkpoint as accepted.
