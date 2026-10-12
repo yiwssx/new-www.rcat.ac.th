@@ -82,7 +82,7 @@ export async function handleAdminOrganizationRead(request: Request, env: Env, se
   if (page === null) return jsonError("invalid organization page parameters", 400, { resource: "organization" });
   const { limit, offset, search, includeTotal, unitContentId, positionId } = page;
   if (
-    (unitContentId && !["positions", "assignments"].includes(collection)) ||
+    (unitContentId && !["personnel", "positions", "assignments"].includes(collection)) ||
     (positionId && collection !== "assignments")
   ) {
     return jsonError("invalid organization filter", 400, { resource: "organization" });

@@ -61,12 +61,16 @@ export async function searchAdminOrganizationPage(
     values.push(...fields.map(() => search.trim()));
   }
   if (unitContentId) {
-    if (collection === "positions") {
+    if (collection === "personnel") {
+      clauses.push(
+        "r.id IN (SELECT a.personnel_id FROM organization_assignments AS a JOIN organization_positions AS p ON p.id = a.position_id WHERE p.unit_content_id = ?)"
+      );
+    } else if (collection === "positions") {
       clauses.push("r.unit_content_id = ?");
     } else if (collection === "assignments") {
       clauses.push("r.position_id IN (SELECT id FROM organization_positions WHERE unit_content_id = ?)");
     } else {
-      throw new RangeError("unit filter is only valid for positions and assignments");
+      throw new RangeError("unit filter is only valid for personnel, positions and assignments");
     }
     values.push(unitContentId);
   }
