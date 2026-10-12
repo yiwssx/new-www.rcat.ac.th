@@ -28,6 +28,44 @@ describe("Organization CMS unit mutation validation", () => {
     ).toMatchObject({ slug: "ฝ่ายบริหาร-1", unitKind: "work", sortOrder: 2 });
   });
 
+  it("accepts per-unit rows and reporting links while rejecting invalid layouts", () => {
+    const valid = {
+      ...required,
+      chartMode: "tree",
+      chartLayout: {
+        director: { level: 1, row: 1, order: 0, parentPositionId: null },
+        head: { level: 2, row: 1, order: 0, parentPositionId: "director" }
+      }
+    };
+    expect(parseOrganizationContentUnitWrite(valid, NOW)).toMatchObject({
+      chartMode: "tree",
+      chartLayout: valid.chartLayout
+    });
+    expect(parseOrganizationContentUnitWrite({ ...valid, chartMode: "rows" }, NOW).chartMode).toBe("rows");
+    expect(parseOrganizationContentUnitWrite(required, NOW)).toMatchObject({
+      chartMode: "cards",
+      chartLayout: {}
+    });
+    expect(() => parseOrganizationContentUnitWrite({ ...required, chartMode: "invalid" }, NOW)).toThrow(
+      /chartMode/
+    );
+    expect(() =>
+      parseOrganizationContentUnitWrite({
+        ...valid,
+        chartLayout: {
+          director: { level: 1, row: 1, order: 0, parentPositionId: "head" },
+          head: { level: 2, row: 1, order: 0, parentPositionId: "director" }
+        }
+      }, NOW)
+    ).toThrow(/higher level/);
+    expect(() =>
+      parseOrganizationContentUnitWrite({
+        ...valid,
+        chartLayout: { outsider: { level: 1, row: 0, order: 0, parentPositionId: null } }
+      }, NOW)
+    ).toThrow(/invalid chart row/);
+  });
+
   it("blocks reserved routes and protected CMS-managed fields", () => {
     for (const slug of ["api", "admin", "organization", "../admin", "a/b", "slug?x"]) {
       expect(() => parseOrganizationContentUnitWrite({ ...required, slug }, NOW)).toThrow(/slug/);
