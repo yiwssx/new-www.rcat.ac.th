@@ -35,7 +35,13 @@ describe("Vercel SSR cutover routing", () => {
     expect(destinationFor("/complaint")).toBe("/api/ssr?_rcatPath=/complaint");
     expect(destinationFor("/ita2569")).toBe("/api/ssr?_rcatPath=/ita2569");
     expect(destinationFor("/content/:slug")).toBe("/api/ssr?_rcatPath=/content/:slug");
+    expect(destinationFor("/organization/:slug")).toBe("/api/ssr?_rcatPath=/organization/:slug");
+    expect(destinationFor("/organization/:slug/:child")).toBeUndefined();
     expect(destinationFor("/:slug")).toBe("/api/ssr?_rcatPath=/:slug");
+
+    const organizationIndex = rewrites.findIndex(({ source }) => source === "/organization/:slug");
+    expect(organizationIndex).toBeGreaterThan(rewrites.findIndex(({ source }) => source === "/content/:slug"));
+    expect(organizationIndex).toBeLessThan(rewrites.findIndex(({ source }) => source === "/:slug"));
 
     expect(destinationFor("/(.*)")).toBeUndefined();
     expect(rewrites.at(-1)?.source).toBe("/:slug");

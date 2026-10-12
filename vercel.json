@@ -315,6 +315,10 @@
       "destination": "/api/ssr?_rcatPath=/content/:slug"
     },
     {
+      "source": "/organization/:slug",
+      "destination": "/api/ssr?_rcatPath=/organization/:slug"
+    },
+    {
       "source": "/:slug",
       "destination": "/api/ssr?_rcatPath=/:slug"
     }
