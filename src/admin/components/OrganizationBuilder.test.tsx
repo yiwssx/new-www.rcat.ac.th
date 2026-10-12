@@ -114,7 +114,9 @@ describe("Phase 6 accessible Organization builder", () => {
       includeTotal: true,
       unitContentId: "work-1"
     });
-    expect(api.list.mock.calls.some(([collection]) => collection === "assignments" || collection === "personnel")).toBe(false);
+    expect(api.list.mock.calls.some(([collection]) => collection === "assignments" || collection === "personnel")).toBe(
+      false
+    );
   });
 
   it("shows a nested unit navigator and position details to read-only editors without writes", async () => {
@@ -229,7 +231,10 @@ describe("Phase 6 accessible Organization builder", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "บันทึกตำแหน่ง" }));
     await waitFor(() =>
-      expect(api.create).toHaveBeenCalledWith("positions", expect.objectContaining({ autoSortOrder: true, sortOrder: undefined }))
+      expect(api.create).toHaveBeenCalledWith(
+        "positions",
+        expect.objectContaining({ autoSortOrder: true, sortOrder: undefined })
+      )
     );
   });
 
