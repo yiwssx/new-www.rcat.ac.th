@@ -135,7 +135,6 @@ describe("Organization unit + CMS content transactional lifecycle", () => {
     expect(count("admin_audit_log")).toBe(2);
   });
 
-
   it("confirms a publish-to-draft save once and rejects a stale replay", async () => {
     await createAuditedOrganizationUnit(env, "org1", input, "editor", NOW);
     const publishedAt = "2026-10-12T03:31:00.000Z";
