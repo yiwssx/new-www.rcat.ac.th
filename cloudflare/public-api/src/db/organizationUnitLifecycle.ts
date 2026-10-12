@@ -42,8 +42,8 @@ export function getOrganizationUnitEditor(env: Env, id: string) {
       parent_content_id: string | null;
       unit_kind: string;
       sort_order: number;
-      chart_mode: string;
-      chart_layout: string;
+      chart_mode?: string;
+      chart_layout?: string;
       unit_revision: number;
       unit_created_at: string;
     }>();
@@ -274,7 +274,7 @@ export async function unpublishOrganizationUnit(env: Env, id: string, revision: 
       unitKind: current.unit_kind,
       sortOrder: current.sort_order,
       chartMode: current.chart_mode === "rows" || current.chart_mode === "tree" ? current.chart_mode : "cards",
-      chartLayout: JSON.parse(current.chart_layout) as OrganizationChartLayout
+      chartLayout: JSON.parse(current.chart_layout || "{}") as OrganizationChartLayout
     },
     revision,
     actor,
