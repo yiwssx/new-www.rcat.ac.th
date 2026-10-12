@@ -423,7 +423,13 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
         <Stack spacing={2}>
           <Box>
             <Typography variant="h2" sx={{ fontSize: "1.25rem" }}>
-              {view === "charts" ? "จัดผังองค์กร" : view === "assignments" ? "มอบหมายหน้าที่" : view === "positions" ? "จัดการตำแหน่ง" : "ตัวจัดโครงสร้างองค์กร"}
+              {view === "charts"
+                ? "จัดผังองค์กร"
+                : view === "assignments"
+                  ? "มอบหมายหน้าที่"
+                  : view === "positions"
+                    ? "จัดการตำแหน่ง"
+                    : "ตัวจัดโครงสร้างองค์กร"}
             </Typography>
             <Typography color="text.secondary" variant="body2">
               เลือกฝ่าย งาน หรือแผนก แล้วกำหนดตำแหน่งและหน้าที่ของบุคลากรคนเดียวในหลายหน่วยงานได้
@@ -485,15 +491,17 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                           แก้ไขหน่วยงาน/ลำดับชั้น
                         </Button>
                       )}
-                      {view !== "assignments" && <Button
-                        variant="contained"
-                        disabled={
-                          busy || positionsQuery.hasNextPage || positionsQuery.isPending || positionsQuery.isError
-                        }
-                        onClick={() => openPosition(null)}
-                      >
-                        เพิ่มตำแหน่ง
-                      </Button>}
+                      {view !== "assignments" && (
+                        <Button
+                          variant="contained"
+                          disabled={
+                            busy || positionsQuery.hasNextPage || positionsQuery.isPending || positionsQuery.isError
+                          }
+                          onClick={() => openPosition(null)}
+                        >
+                          เพิ่มตำแหน่ง
+                        </Button>
+                      )}
                     </Stack>
                   )}
                 </Stack>

@@ -108,7 +108,9 @@ describe("Organization Chart Admin read boundary", () => {
       total: 145
     });
     const response = await handleAdminOrganizationRead(
-      new Request("https://example.invalid/api/admin/organization/personnel?limit=1&offset=3&search=%E0%B8%84%E0%B8%A3%E0%B8%B9&includeTotal=1"),
+      new Request(
+        "https://example.invalid/api/admin/organization/personnel?limit=1&offset=3&search=%E0%B8%84%E0%B8%A3%E0%B8%B9&includeTotal=1"
+      ),
       env,
       ["organization", "personnel"]
     );
