@@ -86,10 +86,15 @@ function safeNumber(value: number, min: number, max: number) {
   return Number.isSafeInteger(value) && value >= min && value <= max;
 }
 
-function pageQuery(collection: "positions" | "assignments" | "personnel", unitId: string | null, legacy: boolean) {
+function pageQuery(
+  collection: "positions" | "assignments" | "personnel",
+  unitId: string | null,
+  legacy: boolean,
+  load = true
+) {
   return {
     queryKey: ["admin-organization", collection, "builder", "pages", legacy ? "legacy" : unitId],
-    enabled: legacy || Boolean(unitId),
+    enabled: load && (legacy || Boolean(unitId)),
     initialPageParam: 0,
     queryFn: ({ pageParam }: { pageParam: number }) =>
       legacy
@@ -142,8 +147,10 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
     queryFn: () => getOrganizationCollection("units", 25, 0, { includeTotal: true, search: unitSearchDebounced })
   });
   const positionsQuery = useInfiniteQuery(pageQuery("positions", selectedUnitId, legacy));
-  const assignmentsQuery = useInfiniteQuery(pageQuery("assignments", selectedUnitId, legacy));
-  const personnelQuery = useInfiniteQuery(pageQuery("personnel", selectedUnitId, legacy));
+  // The positions page reads only positions; assignment/personnel joins belong to the
+  // assignments and chart pages, not every submenu destination.
+  const assignmentsQuery = useInfiniteQuery(pageQuery("assignments", selectedUnitId, legacy, view !== "positions"));
+  const personnelQuery = useInfiniteQuery(pageQuery("personnel", selectedUnitId, legacy, view !== "positions"));
   const personnelLookup = useQuery({
     queryKey: ["admin-organization", "personnel", "lookup", personnelSearchDebounced],
     enabled: assignmentForm !== null,
@@ -776,8 +783,8 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
             )}
           <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
             {pageControl("ตำแหน่ง", positionsQuery)}
-            {pageControl("หน้าที่", assignmentsQuery)}
-            {pageControl("บุคลากร", personnelQuery)}
+            {view !== "positions" && pageControl("หน้าที่", assignmentsQuery)}
+            {view !== "positions" && pageControl("บุคลากร", personnelQuery)}
             <Button onClick={() => void refresh()} disabled={busy}>
               รีเฟรชข้อมูล
             </Button>

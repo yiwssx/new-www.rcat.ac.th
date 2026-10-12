@@ -57,13 +57,13 @@ const units: OrganizationUnitListRow[] = [
   }
 ];
 
-function setup(canManage: boolean) {
+function setup(canManage: boolean, view: "legacy" | "positions" = "legacy") {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } }
   });
   return render(
     <QueryClientProvider client={client}>
-      <OrganizationBuilder units={units} allUnitsLoaded canManage={canManage} />
+      <OrganizationBuilder units={units} allUnitsLoaded canManage={canManage} view={view} />
     </QueryClientProvider>
   );
 }
@@ -106,6 +106,17 @@ beforeEach(() => {
 });
 
 describe("Phase 6 accessible Organization builder", () => {
+  it("keeps the positions submenu independent of assignment and personnel list queries", async () => {
+    setup(false, "positions");
+    fireEvent.click(screen.getByText("งานสารบรรณ"));
+    expect(await screen.findByText("หัวหน้างาน")).toBeInTheDocument();
+    expect(api.list).toHaveBeenCalledWith("positions", 100, 0, {
+      includeTotal: true,
+      unitContentId: "work-1"
+    });
+    expect(api.list.mock.calls.some(([collection]) => collection === "assignments" || collection === "personnel")).toBe(false);
+  });
+
   it("shows a nested unit navigator and position details to read-only editors without writes", async () => {
     setup(false);
     fireEvent.click(screen.getByText("งานสารบรรณ"));
@@ -202,7 +213,7 @@ describe("Phase 6 accessible Organization builder", () => {
     );
   });
 
-  it("sets the next position order when a new position joins an existing group", async () => {
+  it("uses server-owned append for new grouped positions without trusting partial client order", async () => {
     setup(true);
     fireEvent.click(screen.getByText("งานสารบรรณ"));
     await waitFor(() => expect(screen.getByRole("button", { name: "เพิ่มตำแหน่ง" })).toBeEnabled());
@@ -211,13 +222,14 @@ describe("Phase 6 accessible Organization builder", () => {
       target: { value: "ผู้บริหาร" }
     });
     fireEvent.click(screen.getByText("ตั้งค่าลำดับด้วยตัวเลข (ขั้นสูง)"));
-    expect(screen.getByRole("spinbutton", { name: "ลำดับตำแหน่ง" })).toHaveValue(1);
+    expect(screen.getByRole("checkbox", { name: "เพิ่มต่อท้ายอัตโนมัติจากข้อมูลบนเซิร์ฟเวอร์" })).toBeChecked();
+    expect(screen.getByRole("spinbutton", { name: "ลำดับตำแหน่ง" })).toBeDisabled();
     fireEvent.change(screen.getByRole("textbox", { name: "ชื่อตำแหน่ง" }), {
       target: { value: "รองหัวหน้างาน" }
     });
     fireEvent.click(screen.getByRole("button", { name: "บันทึกตำแหน่ง" }));
     await waitFor(() =>
-      expect(api.create).toHaveBeenCalledWith("positions", expect.objectContaining({ sortOrder: 1 }))
+      expect(api.create).toHaveBeenCalledWith("positions", expect.objectContaining({ autoSortOrder: true, sortOrder: undefined }))
     );
   });
 
@@ -265,7 +277,7 @@ describe("Phase 6 accessible Organization builder", () => {
     );
   });
 
-  it("appends a new assignment after loaded occupants of the selected position", async () => {
+  it("appends assignments on the server instead of relying on loaded occupants", async () => {
     api.list.mockImplementation(async (collection: string) => ({
       items:
         collection === "positions"
@@ -304,7 +316,8 @@ describe("Phase 6 accessible Organization builder", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: "มอบหมายบุคลากร" })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: "มอบหมายบุคลากร" }));
     fireEvent.click(screen.getByText("ตั้งค่าลำดับด้วยตัวเลข (ขั้นสูง)"));
-    expect(screen.getByRole("spinbutton", { name: "ลำดับการแสดง" })).toHaveValue(4);
+    expect(screen.getByRole("checkbox", { name: "เพิ่มต่อท้ายอัตโนมัติจากข้อมูลบนเซิร์ฟเวอร์" })).toBeChecked();
+    expect(screen.getByRole("spinbutton", { name: "ลำดับการแสดง" })).toBeDisabled();
   });
 
   it("does not offer assignment period inputs and allows explicit manual visibility", async () => {
