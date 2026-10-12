@@ -92,6 +92,10 @@ describe("Organization Chart published hierarchy reads", () => {
       parent_content_id: null,
       unit_kind: "division",
       sort_order: 0,
+      chart_mode: "rows",
+      chart_layout: JSON.stringify({
+        "p1": { level: 1, row: 1, order: 0, parentPositionId: null }
+      }),
       slug: "division",
       title: "Division",
       summary: "",
@@ -102,6 +106,8 @@ describe("Organization Chart published hierarchy reads", () => {
       parentContentId: null,
       unitKind: "division",
       sortOrder: 0,
+      chartMode: "rows",
+      chartLayout: { p1: { level: 1, row: 1, order: 0, parentPositionId: null } },
       slug: "division",
       title: "Division",
       summary: "",
