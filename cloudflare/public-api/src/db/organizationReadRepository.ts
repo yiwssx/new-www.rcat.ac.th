@@ -1,3 +1,4 @@
+import { parseOrganizationChartLayout, type OrganizationChartLayout } from "../../../../shared/organizationChartLayout";
 import type { Env } from "../env";
 import { requireD1Database } from "./documentsRepository";
 
@@ -16,6 +17,7 @@ const PUBLIC_ORGANIZATION_CTE = `
       unit.unit_kind,
       unit.sort_order,
       COALESCE(json_extract(unit.settings_json, '$.chartMode'), 'cards') AS chart_mode,
+      COALESCE(json_extract(unit.settings_json, '$.chartLayout'), '{}') AS chart_layout,
       content.slug,
       content.title,
       content.summary
@@ -30,12 +32,12 @@ const PUBLIC_ORGANIZATION_CTE = `
       AND (COALESCE(content.publish_at, '') = '' OR datetime(content.publish_at) <= datetime(?1))
       AND (COALESCE(content.unpublish_at, '') = '' OR datetime(content.unpublish_at) > datetime(?1))
   ),
-  visible (content_id, parent_content_id, unit_kind, sort_order, chart_mode, slug, title, summary, depth) AS (
-    SELECT content_id, parent_content_id, unit_kind, sort_order, chart_mode, slug, title, summary, 0
+  visible (content_id, parent_content_id, unit_kind, sort_order, chart_mode, chart_layout, slug, title, summary, depth) AS (
+    SELECT content_id, parent_content_id, unit_kind, sort_order, chart_mode, chart_layout, slug, title, summary, 0
     FROM eligible
     WHERE parent_content_id IS NULL
     UNION ALL
-    SELECT child.content_id, child.parent_content_id, child.unit_kind, child.sort_order, child.chart_mode,
+    SELECT child.content_id, child.parent_content_id, child.unit_kind, child.sort_order, child.chart_mode, child.chart_layout,
            child.slug, child.title, child.summary, parent.depth + 1
     FROM eligible AS child
     JOIN visible AS parent ON parent.content_id = child.parent_content_id
@@ -44,7 +46,7 @@ const PUBLIC_ORGANIZATION_CTE = `
 
 export const PUBLIC_ORGANIZATION_HIERARCHY_SQL = `
   ${PUBLIC_ORGANIZATION_CTE}
-  SELECT content_id, parent_content_id, unit_kind, sort_order, chart_mode, slug, title, summary, depth
+  SELECT content_id, parent_content_id, unit_kind, sort_order, chart_mode, chart_layout, slug, title, summary, depth
   FROM visible
   ORDER BY depth ASC, sort_order ASC, title COLLATE NOCASE ASC, content_id ASC
 `;
@@ -89,6 +91,7 @@ export interface PublicOrganizationUnitRow {
   unit_kind: string;
   sort_order: number;
   chart_mode: string;
+  chart_layout: string;
   slug: string;
   title: string;
   summary: string;
@@ -101,6 +104,7 @@ export interface PublicOrganizationUnit {
   unitKind: string;
   sortOrder: number;
   chartMode: "cards" | "rows" | "tree";
+  chartLayout: OrganizationChartLayout;
   slug: string;
   title: string;
   summary: string;
@@ -114,6 +118,7 @@ export function mapPublicOrganizationUnit(row: PublicOrganizationUnitRow): Publi
     unitKind: row.unit_kind,
     sortOrder: row.sort_order,
     chartMode: row.chart_mode === "rows" || row.chart_mode === "tree" ? row.chart_mode : "cards",
+    chartLayout: parseOrganizationChartLayout(JSON.parse(row.chart_layout)),
     slug: row.slug,
     title: row.title,
     summary: row.summary,
