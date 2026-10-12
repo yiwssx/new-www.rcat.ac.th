@@ -1,3 +1,4 @@
+import { parseOrganizationChartLayout } from "../../../../shared/organizationChartLayout";
 import type { OrganizationUnitInput } from "../db/organizationUnitLifecycle";
 import { isValidOrganizationPublicSlug } from "../../../../shared/organizationContracts";
 import { OrganizationInputError, parseOrganizationUnitWrite } from "./organizationWriteValidation";
@@ -50,7 +51,9 @@ export function parseOrganizationContentUnitWrite(
     "unpublishAt",
     "parentContentId",
     "unitKind",
-    "sortOrder"
+    "sortOrder",
+    "chartMode",
+    "chartLayout"
   ]);
   const protectedKey = Object.keys(body).find((field) => !allowed.has(field));
   if (protectedKey) throw new OrganizationInputError(`unknown or protected field: ${protectedKey}`);
@@ -78,7 +81,21 @@ export function parseOrganizationContentUnitWrite(
     sortOrder: body.sortOrder
   });
 
+  const chartMode = body.chartMode ?? "cards";
+  if (chartMode !== "cards" && chartMode !== "rows" && chartMode !== "tree") {
+    throw new OrganizationInputError("invalid chartMode");
+  }
+
+  let chartLayout;
+  try {
+    chartLayout = parseOrganizationChartLayout(body.chartLayout);
+  } catch (error) {
+    throw new OrganizationInputError(error instanceof Error ? error.message : "invalid chartLayout");
+  }
+
   return {
+    chartLayout,
+    chartMode,
     slug,
     title: optionalText(body.title, "title", 250, true),
     summary: optionalText(body.summary, "summary", 2000),

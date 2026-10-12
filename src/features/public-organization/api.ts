@@ -1,3 +1,4 @@
+import type { OrganizationChartLayout } from "../../../shared/organizationChartLayout";
 import type { MediaAsset } from "../../types";
 import { isValidOrganizationPublicSlug } from "../../../shared/organizationContracts";
 import { isPublicReadNotFoundError } from "../public-read/errors";
@@ -8,6 +9,8 @@ export interface PublicOrganizationUnit {
   parentContentId: string | null;
   unitKind: string;
   sortOrder: number;
+  chartMode?: "cards" | "rows" | "tree";
+  chartLayout?: OrganizationChartLayout;
   slug: string;
   title: string;
   summary: string;

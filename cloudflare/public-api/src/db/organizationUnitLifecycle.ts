@@ -1,3 +1,4 @@
+import type { OrganizationChartLayout } from "../../../../shared/organizationChartLayout";
 import type { ContentRow } from "./schema";
 import { CONTENT_ADMIN_ROW_COLUMNS } from "./schema";
 import type { Env } from "../env";
@@ -17,6 +18,8 @@ export function getOrganizationUnitEditor(env: Env, id: string) {
               c.publish_at, c.unpublish_at, c.revision AS content_revision,
               c.created_at AS content_created_at, c.deleted_at,
               u.parent_content_id, u.unit_kind, u.sort_order,
+              COALESCE(json_extract(u.settings_json, '$.chartMode'), 'cards') AS chart_mode,
+              COALESCE(json_extract(u.settings_json, '$.chartLayout'), '{}') AS chart_layout,
               u.revision AS unit_revision, u.created_at AS unit_created_at
        FROM organization_units AS u
        JOIN contents AS c ON c.id = u.content_id
@@ -39,6 +42,8 @@ export function getOrganizationUnitEditor(env: Env, id: string) {
       parent_content_id: string | null;
       unit_kind: string;
       sort_order: number;
+      chart_mode?: string;
+      chart_layout?: string;
       unit_revision: number;
       unit_created_at: string;
     }>();
@@ -54,6 +59,8 @@ export interface OrganizationUnitInput {
   parentContentId: string | null;
   unitKind: string;
   sortOrder: number;
+  chartMode?: "cards" | "rows" | "tree";
+  chartLayout?: OrganizationChartLayout;
 }
 
 function contentForCreate(id: string, input: OrganizationUnitInput, actor: string, now: string): ContentRow {
@@ -96,7 +103,7 @@ function unitForCreate(id: string, input: OrganizationUnitInput, now: string): O
     parent_content_id: input.parentContentId,
     unit_kind: input.unitKind,
     sort_order: input.sortOrder,
-    settings_json: "{}",
+    settings_json: JSON.stringify({ chartMode: input.chartMode ?? "cards", chartLayout: input.chartLayout ?? {} }),
     revision: 0,
     created_at: now,
     updated_at: now
@@ -207,13 +214,25 @@ export async function updateAuditedOrganizationUnit(
     .prepare(
       `UPDATE organization_units
        SET parent_content_id = ?, unit_kind = ?, sort_order = ?,
-           updated_at = ?, revision = revision + 1
+           settings_json = json_set(settings_json, '$.chartMode', ?, '$.chartLayout', json(?)), updated_at = ?, revision = revision + 1
        WHERE content_id = ? AND revision = ?
          AND EXISTS (
            SELECT 1 FROM contents WHERE id = ? AND revision = ? AND updated_at = ?
          )`
     )
-    .bind(input.parentContentId, input.unitKind, input.sortOrder, now, id, revision, id, revision + 1, now);
+    .bind(
+      input.parentContentId,
+      input.unitKind,
+      input.sortOrder,
+      input.chartMode ?? "cards",
+      JSON.stringify(input.chartLayout ?? {}),
+      now,
+      id,
+      revision,
+      id,
+      revision + 1,
+      now
+    );
   // D1 meta.changes uses sqlite3_total_changes(), including the immutable
   // content-revision snapshot trigger. It can exceed 1 for a single UPDATE;
   // checking === 1 falsely returns HTTP 409 after a successful COMMIT.
@@ -253,7 +272,9 @@ export async function unpublishOrganizationUnit(env: Env, id: string, revision: 
       unpublishAt: "",
       parentContentId: current.parent_content_id,
       unitKind: current.unit_kind,
-      sortOrder: current.sort_order
+      sortOrder: current.sort_order,
+      chartMode: current.chart_mode === "rows" || current.chart_mode === "tree" ? current.chart_mode : "cards",
+      chartLayout: JSON.parse(current.chart_layout || "{}") as OrganizationChartLayout
     },
     revision,
     actor,

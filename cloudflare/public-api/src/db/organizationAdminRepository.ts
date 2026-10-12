@@ -132,6 +132,8 @@ export function listAdminOrganizationContentUnits(env: Env, limit = 100, offset 
     .prepare(
       `
       SELECT u.content_id, u.parent_content_id, u.unit_kind, u.sort_order,
+             COALESCE(json_extract(u.settings_json, '$.chartMode'), 'cards') AS chart_mode,
+             COALESCE(json_extract(u.settings_json, '$.chartLayout'), '{}') AS chart_layout,
              u.revision AS unit_revision,
              c.slug, c.title, c.summary, c.status, c.publish_at, c.unpublish_at,
              c.revision AS content_revision
@@ -148,6 +150,8 @@ export function listAdminOrganizationContentUnits(env: Env, limit = 100, offset 
       parent_content_id: string | null;
       unit_kind: string;
       sort_order: number;
+      chart_mode: string;
+      chart_layout: string;
       unit_revision: number;
       slug: string;
       title: string;
