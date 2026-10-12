@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AdminStaleRevisionError } from "../../features/admin-write/errors";
 import type { OrganizationUnitListRow } from "../../features/organization-admin/api";
@@ -72,6 +72,22 @@ beforeEach(() => {
 });
 
 describe("Phase 4 Organization Admin list/editor", () => {
+  it.each([
+    ["overview", "ภาพรวมองค์กร", "CorporateFareOutlinedIcon"],
+    ["units", "จัดการหน่วยงาน", "BusinessOutlinedIcon"],
+    ["personnel", "ทะเบียนบุคลากร", "BadgeOutlinedIcon"],
+    ["positions", "จัดการตำแหน่ง", "WorkOutlineOutlinedIcon"],
+    ["assignments", "มอบหมายหน้าที่", "AssignmentIndOutlinedIcon"],
+    ["charts", "จัดผังองค์กร", "HubOutlinedIcon"]
+  ] as const)("uses the appropriate non-menu heading icon for %s", (view, title, icon) => {
+    renderPage(view);
+    const heading = screen.getByRole("heading", { name: title });
+    const headingRow = heading.parentElement;
+    expect(headingRow).not.toBeNull();
+    expect(within(headingRow as HTMLElement).getByTestId(icon)).toBeInTheDocument();
+    expect(within(headingRow as HTMLElement).queryByTestId("AccountTreeOutlinedIcon")).not.toBeInTheDocument();
+  });
+
   it("searches all organization units on the server beyond the initially loaded page", async () => {
     api.getCollection.mockImplementation(
       async (collection: string, _limit: number, _offset = 0, options?: { search?: string }) => ({

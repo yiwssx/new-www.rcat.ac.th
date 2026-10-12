@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -10,7 +10,12 @@ import Grid from "@mui/material/Grid";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
+import AssignmentIndOutlinedIcon from "@mui/icons-material/AssignmentIndOutlined";
+import BadgeOutlinedIcon from "@mui/icons-material/BadgeOutlined";
+import BusinessOutlinedIcon from "@mui/icons-material/BusinessOutlined";
+import CorporateFareOutlinedIcon from "@mui/icons-material/CorporateFareOutlined";
+import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
+import WorkOutlineOutlinedIcon from "@mui/icons-material/WorkOutlineOutlined";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
@@ -40,6 +45,16 @@ function humanError(error: unknown) {
 
 export type OrganizationManagementView =
   "overview" | "units" | "personnel" | "positions" | "assignments" | "charts" | "legacy";
+
+const organizationPageHeadings: Record<OrganizationManagementView, { title: string; icon: ReactNode }> = {
+  overview: { title: "ภาพรวมองค์กร", icon: <CorporateFareOutlinedIcon color="primary" /> },
+  units: { title: "จัดการหน่วยงาน", icon: <BusinessOutlinedIcon color="primary" /> },
+  personnel: { title: "ทะเบียนบุคลากร", icon: <BadgeOutlinedIcon color="primary" /> },
+  positions: { title: "จัดการตำแหน่ง", icon: <WorkOutlineOutlinedIcon color="primary" /> },
+  assignments: { title: "มอบหมายหน้าที่", icon: <AssignmentIndOutlinedIcon color="primary" /> },
+  charts: { title: "จัดผังองค์กร", icon: <HubOutlinedIcon color="primary" /> },
+  legacy: { title: "ผังองค์กร", icon: <CorporateFareOutlinedIcon color="primary" /> }
+};
 
 export default function OrganizationPage({ view = "legacy" }: { view?: OrganizationManagementView }) {
   const { capabilities } = useAuth();
@@ -248,21 +263,9 @@ export default function OrganizationPage({ view = "legacy" }: { view?: Organizat
     <Stack spacing={3} sx={{ width: "100%", minWidth: 0 }}>
       <Box>
         <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-          <AccountTreeOutlinedIcon color="primary" />
+          {organizationPageHeadings[view].icon}
           <Typography variant="h1" sx={{ fontSize: { xs: "1.5rem", md: "2rem" } }}>
-            {view === "overview"
-              ? "ภาพรวมองค์กร"
-              : view === "units"
-                ? "จัดการหน่วยงาน"
-                : view === "personnel"
-                  ? "ทะเบียนบุคลากร"
-                  : view === "positions"
-                    ? "จัดการตำแหน่ง"
-                    : view === "assignments"
-                      ? "มอบหมายหน้าที่"
-                      : view === "charts"
-                        ? "จัดผังองค์กร"
-                        : "ผังองค์กร"}
+            {organizationPageHeadings[view].title}
           </Typography>
         </Stack>
         <Typography color="text.secondary" sx={{ mt: 1 }}>
