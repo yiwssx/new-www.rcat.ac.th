@@ -132,8 +132,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
   const searchedUnits = useQuery({
     queryKey: ["admin-organization", "units", "search", unitSearchDebounced],
     enabled: !legacy && unitSearchDebounced.length > 0,
-    queryFn: () =>
-      getOrganizationCollection("units", 25, 0, { includeTotal: true, search: unitSearchDebounced })
+    queryFn: () => getOrganizationCollection("units", 25, 0, { includeTotal: true, search: unitSearchDebounced })
   });
   const positionsQuery = useInfiniteQuery(pageQuery("positions", selectedUnitId, legacy));
   const assignmentsQuery = useInfiniteQuery(pageQuery("assignments", selectedUnitId, legacy));
