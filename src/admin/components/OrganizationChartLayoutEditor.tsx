@@ -67,6 +67,9 @@ export default function OrganizationChartLayoutEditor({
     );
   });
   const [busy, setBusy] = useState(false);
+  // A successful write advances the server revision. Never resubmit the old revision
+  // while the parent query is refreshing or if that refresh failed.
+  const [awaitingLatestRevision, setAwaitingLatestRevision] = useState(false);
   const [error, setError] = useState("");
   const [savedMode, setSavedMode] = useState(unit.chart_mode ?? "cards");
   const byPerson = useMemo(() => new Map(personnel.map((item) => [item.id, item])), [personnel]);
@@ -123,7 +126,7 @@ export default function OrganizationChartLayoutEditor({
   }
 
   async function save() {
-    if (busy || !canManage || !allPositionsLoaded) return;
+    if (busy || !canManage || !allPositionsLoaded || awaitingLatestRevision) return;
     let validated: OrganizationChartLayout;
     try {
       validated = parseOrganizationChartLayout(layout);
@@ -139,18 +142,27 @@ export default function OrganizationChartLayoutEditor({
         chartMode: mode,
         chartLayout: validated
       });
-      await onSaved();
-      setSavedMode(mode);
-      await appSwal.close();
-      await showSuccessResult("บันทึกผังองค์กรสำเร็จ");
     } catch (cause) {
       await appSwal.close();
       const message = cause instanceof Error ? cause.message : "ไม่สามารถบันทึกผังองค์กร";
       setError(message);
-      await showErrorResult("บันทึกผังองค์กรไม่สำเร็จ", new Error(message), "โหลดหน่วยงานล่าสุดแล้วลองอีกครั้ง");
-    } finally {
       setBusy(false);
+      await showErrorResult("บันทึกผังองค์กรไม่สำเร็จ", new Error(message), "โหลดหน่วยงานล่าสุดแล้วลองอีกครั้ง");
+      return;
     }
+
+    // The database commit has succeeded. A separate refresh failure must never
+    // be reported as a failed save or retried with the now-stale revision.
+    setAwaitingLatestRevision(true);
+    setSavedMode(mode);
+    try {
+      await onSaved();
+    } catch {
+      setError("บันทึกผังองค์กรแล้ว แต่โหลด Revision ล่าสุดไม่สำเร็จ กรุณารีเฟรชหน้านี้ก่อนแก้ไขอีกครั้ง");
+    }
+    await appSwal.close();
+    setBusy(false);
+    await showSuccessResult("บันทึกผังองค์กรสำเร็จ");
   }
 
   return (
@@ -181,6 +193,11 @@ export default function OrganizationChartLayoutEditor({
           {error && (
             <Alert severity="error" role="alert">
               {error}
+            </Alert>
+          )}
+          {awaitingLatestRevision && !error && (
+            <Alert severity="info" role="status">
+              บันทึกผังแล้ว กำลังโหลด Revision ล่าสุดก่อนอนุญาตให้แก้ไขอีกครั้ง
             </Alert>
           )}
           {(mode === "rows" || mode === "tree") && (
@@ -313,7 +330,11 @@ export default function OrganizationChartLayoutEditor({
               </Typography>
             </>
           )}
-          <Button variant="contained" disabled={!canManage || busy || !allPositionsLoaded} onClick={() => void save()}>
+          <Button
+            variant="contained"
+            disabled={!canManage || busy || !allPositionsLoaded || awaitingLatestRevision}
+            onClick={() => void save()}
+          >
             {busy ? "กำลังบันทึก..." : "บันทึกโครงสร้างผัง"}
           </Button>
           {savedMode !== mode && <Typography variant="caption">มีการเปลี่ยนรูปแบบที่ยังไม่ได้บันทึก</Typography>}
