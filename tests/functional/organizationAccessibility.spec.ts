@@ -217,7 +217,6 @@ test.describe("Organization public accessibility and responsive regression", () 
   });
 });
 
-
 test.describe("Organization V2.2 horizontal inter-unit chart", () => {
   for (const width of [390, 768, 1280, 1440]) {
     test("sibling branches remain horizontal and page-bounded at " + width + "px", async ({ page }) => {
@@ -246,7 +245,9 @@ test.describe("Organization V2.2 horizontal inter-unit chart", () => {
       expect(Math.abs(locations[0]!.y - locations[1]!.y)).toBeLessThanOrEqual(2);
       expect(Math.abs(locations[1]!.y - locations[2]!.y)).toBeLessThanOrEqual(2);
 
-      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+      await expect
+        .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1))
+        .toBe(true);
       if (width === 390) {
         expect(await region.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
         await region.focus();
