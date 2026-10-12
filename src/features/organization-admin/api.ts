@@ -96,6 +96,7 @@ export type OrganizationUnitWrite = {
   parentContentId?: string | null;
   unitKind: string;
   sortOrder?: number;
+  autoSortOrder?: boolean;
   chartMode?: "cards" | "rows" | "tree";
   chartLayout?: OrganizationChartLayout;
 };
@@ -119,6 +120,7 @@ export type OrganizationPositionWrite = {
   groupLabel?: string;
   groupSortOrder?: number;
   sortOrder?: number;
+  autoSortOrder?: boolean;
   displayStyle?: string;
   occupantLimit?: number | null;
 };
@@ -128,6 +130,7 @@ export type OrganizationAssignmentWrite = {
   positionId: string;
   dutyDetail?: string;
   sortOrder?: number;
+  autoSortOrder?: boolean;
   enabled?: boolean;
 };
 
@@ -159,17 +162,25 @@ function revisionHeaders(revision: number) {
 export async function getOrganizationCollection<K extends OrganizationCollection>(
   collection: K,
   limit = 100,
-  offset = 0
+  offset = 0,
+  options?: { includeTotal?: boolean; search?: string; unitContentId?: string; positionId?: string }
 ) {
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100) throw new RangeError("invalid organization limit");
   if (!Number.isSafeInteger(offset) || offset < 0 || offset > 999999)
     throw new RangeError("invalid organization offset");
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (offset) params.set("offset", String(offset));
+  if (options?.includeTotal) params.set("includeTotal", "1");
+  if (options?.search?.trim()) params.set("search", options.search.trim());
+  if (options?.unitContentId) params.set("unitContentId", options.unitContentId);
+  if (options?.positionId) params.set("positionId", options.positionId);
   return requestCloudflareAdmin<{
     items: OrganizationRecordByCollection[K][];
+    total?: number;
     nextOffset: number | null;
     maximumItems: number;
     generatedAt: string;
-  }>(`${collectionPath(collection)}?limit=${limit}${offset ? `&offset=${offset}` : ""}`);
+  }>(`${collectionPath(collection)}?${params.toString()}`);
 }
 
 export async function getOrganizationDetail<K extends OrganizationCollection>(collection: K, id: string) {

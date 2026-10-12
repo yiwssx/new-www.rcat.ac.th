@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DragDropProvider } from "@dnd-kit/react";
 import { arrayMove } from "@dnd-kit/helpers";
 import { isSortable } from "@dnd-kit/react/sortable";
@@ -51,13 +51,14 @@ interface Props {
   allUnitsLoaded: boolean;
   canManage: boolean;
   onEditUnit?: (unit: OrganizationUnitListRow) => void;
+  view?: "legacy" | "positions" | "assignments" | "charts";
 }
 
-type PositionForm = Required<Omit<OrganizationPositionWrite, "occupantLimit">> & {
+type PositionForm = Required<Omit<OrganizationPositionWrite, "occupantLimit" | "autoSortOrder">> & {
   occupantLimit: number | null;
 };
 
-type AssignmentForm = Required<OrganizationAssignmentWrite>;
+type AssignmentForm = Required<Omit<OrganizationAssignmentWrite, "autoSortOrder">>;
 
 const emptyPosition = (unitContentId: string, sortOrder = 0): PositionForm => ({
   unitContentId,
@@ -85,11 +86,23 @@ function safeNumber(value: number, min: number, max: number) {
   return Number.isSafeInteger(value) && value >= min && value <= max;
 }
 
-function pageQuery(collection: "positions" | "assignments" | "personnel") {
+function pageQuery(
+  collection: "positions" | "assignments" | "personnel",
+  unitId: string | null,
+  legacy: boolean,
+  load = true
+) {
   return {
-    queryKey: ["admin-organization", collection, "builder", "pages"],
+    queryKey: ["admin-organization", collection, "builder", "pages", legacy ? "legacy" : unitId],
+    enabled: load && (legacy || Boolean(unitId)),
     initialPageParam: 0,
-    queryFn: ({ pageParam }: { pageParam: number }) => getOrganizationCollection(collection, 100, pageParam),
+    queryFn: ({ pageParam }: { pageParam: number }) =>
+      legacy
+        ? getOrganizationCollection(collection, 100, pageParam)
+        : getOrganizationCollection(collection, 100, pageParam, {
+            includeTotal: true,
+            unitContentId: unitId ?? undefined
+          }),
     getNextPageParam: (lastPage: { nextOffset: number | null }) => lastPage.nextOffset ?? undefined
   };
 }
@@ -99,9 +112,24 @@ function pageQuery(collection: "positions" | "assignments" | "personnel") {
  * value is editable with keyboard/touch. The Worker owns revisions, capacity
  * checks, referential integrity and the immutable audit boundary.
  */
-export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, onEditUnit }: Props) {
+export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, onEditUnit, view = "legacy" }: Props) {
   const client = useQueryClient();
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
+  const [selectedUnitSnapshot, setSelectedUnitSnapshot] = useState<OrganizationUnitListRow | null>(null);
+  const [unitSearch, setUnitSearch] = useState("");
+  const [unitSearchDebounced, setUnitSearchDebounced] = useState("");
+  useEffect(() => {
+    const timer = window.setTimeout(() => setUnitSearchDebounced(unitSearch.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [unitSearch]);
+  const [personnelSearch, setPersonnelSearch] = useState("");
+  const [personnelSearchDebounced, setPersonnelSearchDebounced] = useState("");
+  useEffect(() => {
+    const timer = window.setTimeout(() => setPersonnelSearchDebounced(personnelSearch.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [personnelSearch]);
+  const [positionAutoOrder, setPositionAutoOrder] = useState(false);
+  const [assignmentAutoOrder, setAssignmentAutoOrder] = useState(false);
   const [collapsedUnitIds, setCollapsedUnitIds] = useState<string[]>([]);
   const [positionEditing, setPositionEditing] = useState<OrganizationPositionRow | null>(null);
   const [positionForm, setPositionForm] = useState<PositionForm | null>(null);
@@ -112,9 +140,23 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
   const [dialogError, setDialogError] = useState("");
   const [notice, setNotice] = useState("");
 
-  const positionsQuery = useInfiniteQuery(pageQuery("positions"));
-  const assignmentsQuery = useInfiniteQuery(pageQuery("assignments"));
-  const personnelQuery = useInfiniteQuery(pageQuery("personnel"));
+  const legacy = view === "legacy";
+  const searchedUnits = useQuery({
+    queryKey: ["admin-organization", "units", "search", unitSearchDebounced],
+    enabled: !legacy && unitSearchDebounced.length > 0,
+    queryFn: () => getOrganizationCollection("units", 25, 0, { includeTotal: true, search: unitSearchDebounced })
+  });
+  const positionsQuery = useInfiniteQuery(pageQuery("positions", selectedUnitId, legacy));
+  // The positions page reads only positions; assignment/personnel joins belong to the
+  // assignments and chart pages, not every submenu destination.
+  const assignmentsQuery = useInfiniteQuery(pageQuery("assignments", selectedUnitId, legacy, view !== "positions"));
+  const personnelQuery = useInfiniteQuery(pageQuery("personnel", selectedUnitId, legacy, view !== "positions"));
+  const personnelLookup = useQuery({
+    queryKey: ["admin-organization", "personnel", "lookup", personnelSearchDebounced],
+    enabled: assignmentForm !== null,
+    queryFn: () =>
+      getOrganizationCollection("personnel", 25, 0, { includeTotal: true, search: personnelSearchDebounced })
+  });
   const positions = useMemo(
     () => (positionsQuery.data?.pages.flatMap((page) => page.items) ?? []) as OrganizationPositionRow[],
     [positionsQuery.data]
@@ -133,7 +175,9 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
     () => hierarchy.map(({ unit }) => unit.content_id).filter((id) => !collapsedUnitIds.includes(id)),
     [hierarchy, collapsedUnitIds]
   );
-  const selectedUnit = units.find((unit) => unit.content_id === selectedUnitId) ?? null;
+  const selectedUnit =
+    units.find((unit) => unit.content_id === selectedUnitId) ??
+    (selectedUnitSnapshot?.content_id === selectedUnitId ? selectedUnitSnapshot : null);
   const visiblePositions = useMemo(
     () => positionsForUnit(positions, selectedUnit?.content_id ?? ""),
     [positions, selectedUnit?.content_id]
@@ -149,21 +193,27 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
     return result;
   }, [assignments]);
   const byPerson = useMemo(() => new Map(personnel.map((person) => [person.id, person])), [personnel]);
-  const byUnit = useMemo(() => new Map(units.map((unit) => [unit.content_id, unit])), [units]);
+  const personnelOptions = useMemo(() => {
+    const options = new Map(personnel.map((person) => [person.id, person]));
+    for (const person of personnelLookup.data?.items ?? []) options.set(person.id, person);
+    return [...options.values()];
+  }, [personnel, personnelLookup.data]);
+  const byUnit = useMemo(() => {
+    const map = new Map(units.map((unit) => [unit.content_id, unit]));
+    if (selectedUnit) map.set(selectedUnit.content_id, selectedUnit);
+    return map;
+  }, [units, selectedUnit]);
 
   async function refresh() {
     await invalidateOrganizationQueries(client);
   }
 
   function openPosition(row: OrganizationPositionRow | null) {
-    if (
-      !canManage ||
-      (!row && (!selectedUnit || positionsQuery.hasNextPage || positionsQuery.isPending || positionsQuery.isError))
-    )
-      return;
+    if (!canManage || (!row && (!selectedUnit || positionsQuery.isPending || positionsQuery.isError))) return;
     setDialogError("");
     setError("");
     setPositionEditing(row);
+    setPositionAutoOrder(!row);
     setPositionForm(
       row
         ? {
@@ -186,14 +236,12 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
   }
 
   function openAssignment(row: OrganizationAssignmentRow | null, positionId: string) {
-    if (
-      !canManage ||
-      (!row && (assignmentsQuery.hasNextPage || assignmentsQuery.isPending || assignmentsQuery.isError))
-    )
-      return;
+    if (!canManage || (!row && (assignmentsQuery.isPending || assignmentsQuery.isError))) return;
     setDialogError("");
     setError("");
     setAssignmentEditing(row);
+    setAssignmentAutoOrder(!row);
+    setPersonnelSearch("");
     setAssignmentForm(
       row
         ? {
@@ -230,7 +278,10 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
       if (positionEditing) {
         await updateOrganizationRecord("positions", positionEditing.id, positionEditing.revision, positionForm);
       } else {
-        await createOrganizationRecord("positions", positionForm);
+        await createOrganizationRecord(
+          "positions",
+          positionAutoOrder ? { ...positionForm, sortOrder: undefined, autoSortOrder: true } : positionForm
+        );
       }
     } catch (cause) {
       await appSwal.close();
@@ -276,7 +327,10 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
       if (assignmentEditing) {
         await updateOrganizationRecord("assignments", assignmentEditing.id, assignmentEditing.revision, assignmentForm);
       } else {
-        await createOrganizationRecord("assignments", assignmentForm);
+        await createOrganizationRecord(
+          "assignments",
+          assignmentAutoOrder ? { ...assignmentForm, sortOrder: undefined, autoSortOrder: true } : assignmentForm
+        );
       }
     } catch (cause) {
       await appSwal.close();
@@ -402,7 +456,13 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
         <Stack spacing={2}>
           <Box>
             <Typography variant="h2" sx={{ fontSize: "1.25rem" }}>
-              ตัวจัดโครงสร้างองค์กร
+              {view === "charts"
+                ? "จัดผังองค์กร"
+                : view === "assignments"
+                  ? "มอบหมายหน้าที่"
+                  : view === "positions"
+                    ? "จัดการตำแหน่ง"
+                    : "ตัวจัดโครงสร้างองค์กร"}
             </Typography>
             <Typography color="text.secondary" variant="body2">
               เลือกฝ่าย งาน หรือแผนก แล้วกำหนดตำแหน่งและหน้าที่ของบุคลากรคนเดียวในหลายหน่วยงานได้
@@ -420,7 +480,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
           )}
           {!allUnitsLoaded && (
             <Alert severity="warning">
-              รายการหน่วยงานยังโหลดไม่ครบ กรุณาโหลดหน่วยงานเพิ่มเติมด้านบนก่อนเลือกจัดโครงสร้าง
+              เลือกหน่วยงานที่ปรากฏได้ทันที หรือโหลดหน่วยงานเพิ่มเติมเพื่อค้นหาหน่วยงานอื่น
             </Alert>
           )}
           {(positionsQuery.isError || assignmentsQuery.isError || personnelQuery.isError) && (
@@ -431,6 +491,45 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
               <Typography variant="h3" sx={{ fontSize: "1rem", mb: 1 }}>
                 ลำดับชั้นหน่วยงาน
               </Typography>
+              {!legacy && (
+                <Stack spacing={1} sx={{ mb: 2 }}>
+                  <TextField
+                    label="ค้นหาหน่วยงานทั้งหมด"
+                    size="small"
+                    value={unitSearch}
+                    onChange={(event) => setUnitSearch(event.target.value)}
+                    slotProps={{ htmlInput: { maxLength: 160 } }}
+                    helperText="ค้นหาจากเซิร์ฟเวอร์ โดยไม่ต้องโหลดทุกหน่วยงาน"
+                  />
+                  {searchedUnits.isFetching && unitSearchDebounced && (
+                    <Typography variant="caption">กำลังค้นหาหน่วยงาน…</Typography>
+                  )}
+                  {searchedUnits.isError && <Alert severity="error">ค้นหาหน่วยงานไม่สำเร็จ</Alert>}
+                  {searchedUnits.data && unitSearchDebounced && (
+                    <Box component="nav" aria-label="ผลการค้นหาหน่วยงาน" sx={{ maxHeight: 240, overflowY: "auto" }}>
+                      <Typography variant="caption" color="text.secondary">
+                        พบ {searchedUnits.data.total ?? searchedUnits.data.items.length} รายการ (แสดงสูงสุด 25)
+                      </Typography>
+                      {searchedUnits.data.items.map((unit) => (
+                        <Button
+                          key={unit.content_id}
+                          size="small"
+                          fullWidth
+                          variant={selectedUnitId === unit.content_id ? "contained" : "text"}
+                          sx={{ justifyContent: "flex-start", textAlign: "left" }}
+                          onClick={() => {
+                            setSelectedUnitId(unit.content_id);
+                            setSelectedUnitSnapshot(unit);
+                            setError("");
+                          }}
+                        >
+                          {unit.title}
+                        </Button>
+                      ))}
+                    </Box>
+                  )}
+                </Stack>
+              )}
               <Box component="nav" aria-label="โครงสร้างหน่วยงาน" sx={{ maxHeight: 480, overflowY: "auto" }}>
                 <RichTreeView
                   items={treeItems}
@@ -445,6 +544,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                   onSelectedItemsChange={(_event, id) => {
                     if (typeof id !== "string") return;
                     setSelectedUnitId(id);
+                    setSelectedUnitSnapshot(units.find((unit) => unit.content_id === id) ?? null);
                     setError("");
                   }}
                   sx={{ "& .MuiTreeItem-label": { whiteSpace: "normal", overflowWrap: "anywhere" } }}
@@ -457,26 +557,26 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                   <Typography variant="h3" sx={{ fontSize: "1rem", overflowWrap: "anywhere" }}>
                     {selectedUnit ? "ตำแหน่งใน " + selectedUnit.title : "เลือกหน่วยงานจากรายการด้านซ้าย"}
                   </Typography>
-                  {selectedUnit && canManage && (
+                  {selectedUnit && canManage && view !== "charts" && (
                     <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
-                      {onEditUnit && (
+                      {onEditUnit && view === "legacy" && (
                         <Button variant="outlined" disabled={busy} onClick={() => onEditUnit(selectedUnit)}>
                           แก้ไขหน่วยงาน/ลำดับชั้น
                         </Button>
                       )}
-                      <Button
-                        variant="contained"
-                        disabled={
-                          busy || positionsQuery.hasNextPage || positionsQuery.isPending || positionsQuery.isError
-                        }
-                        onClick={() => openPosition(null)}
-                      >
-                        เพิ่มตำแหน่ง
-                      </Button>
+                      {view !== "assignments" && (
+                        <Button
+                          variant="contained"
+                          disabled={busy || positionsQuery.isPending || positionsQuery.isError}
+                          onClick={() => openPosition(null)}
+                        >
+                          เพิ่มตำแหน่ง
+                        </Button>
+                      )}
                     </Stack>
                   )}
                 </Stack>
-                {positionsQuery.isPending && <Typography role="status">กำลังโหลดตำแหน่ง…</Typography>}
+                {selectedUnit && positionsQuery.isPending && <Typography role="status">กำลังโหลดตำแหน่ง…</Typography>}
                 {selectedUnit &&
                   visiblePositions.length === 0 &&
                   !positionsQuery.isPending &&
@@ -487,214 +587,227 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                         : "ยังไม่มีตำแหน่งในหน่วยงานนี้"}
                     </Alert>
                   )}
-                <DragDropProvider
-                  onDragEnd={({ operation, canceled }) => {
-                    if (canceled || !isSortable(operation.source)) return;
-                    const source = operation.source;
-                    if (source.initialGroup !== source.group || source.initialIndex === source.index) return;
-                    const group = visiblePositions.filter((row) => positionGroupKey(row) === source.initialGroup);
-                    if (source.initialIndex < 0 || source.index < 0 || source.index >= group.length) return;
-                    const first = group[0];
-                    if (first) {
-                      void saveReorder(
-                        "positions",
-                        first.unit_content_id,
-                        arrayMove(group, source.initialIndex, source.index),
-                        first.group_label,
-                        first.group_sort_order
+                {view !== "charts" && (
+                  <DragDropProvider
+                    onDragEnd={({ operation, canceled }) => {
+                      if (canceled || !isSortable(operation.source)) return;
+                      const source = operation.source;
+                      if (source.initialGroup !== source.group || source.initialIndex === source.index) return;
+                      const group = visiblePositions.filter((row) => positionGroupKey(row) === source.initialGroup);
+                      if (source.initialIndex < 0 || source.index < 0 || source.index >= group.length) return;
+                      const first = group[0];
+                      if (first) {
+                        void saveReorder(
+                          "positions",
+                          first.unit_content_id,
+                          arrayMove(group, source.initialIndex, source.index),
+                          first.group_label,
+                          first.group_sort_order
+                        );
+                      }
+                    }}
+                  >
+                    {visiblePositions.map((position) => {
+                      const assigned = assignmentsByPosition.get(position.id) ?? [];
+                      const siblings = visiblePositions.filter(
+                        (row) => positionGroupKey(row) === positionGroupKey(position)
                       );
-                    }
-                  }}
-                >
-                  {visiblePositions.map((position) => {
-                    const assigned = assignmentsByPosition.get(position.id) ?? [];
-                    const siblings = visiblePositions.filter(
-                      (row) => positionGroupKey(row) === positionGroupKey(position)
-                    );
-                    return (
-                      <OrganizationSortableRow
-                        key={position.id}
-                        id={position.id}
-                        index={siblings.findIndex((row) => row.id === position.id)}
-                        group={positionGroupKey(position)}
-                        label={position.title}
-                        disabled={!canManage || busy || Boolean(positionsQuery.hasNextPage) || siblings.length < 2}
-                      >
-                        <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2 }}>
-                          <Stack spacing={1}>
-                            <Stack
-                              direction={{ xs: "column", sm: "row" }}
-                              spacing={1}
-                              sx={{ justifyContent: "space-between" }}
-                            >
-                              <Box sx={{ minWidth: 0 }}>
-                                <Typography sx={{ fontWeight: 700, overflowWrap: "anywhere" }}>
-                                  {position.title}
-                                </Typography>
-                                <Stack direction="row" spacing={0.5} useFlexGap sx={{ flexWrap: "wrap" }}>
-                                  {position.group_label && (
-                                    <Chip size="small" label={position.group_label} variant="outlined" />
-                                  )}
-                                  <Chip
-                                    size="small"
-                                    label={"อันดับ " + (siblings.findIndex((row) => row.id === position.id) + 1)}
-                                    variant="outlined"
-                                  />
-                                  {position.occupant_limit !== null &&
-                                    !assignmentsQuery.hasNextPage &&
-                                    !assignmentsQuery.isPending &&
-                                    !assignmentsQuery.isError && (
-                                      <Chip
-                                        size="small"
-                                        label={
-                                          "ผู้ดำรงตำแหน่ง " +
-                                          enabledDistinctOccupants(assignments, position.id) +
-                                          "/" +
-                                          position.occupant_limit
-                                        }
-                                        variant="outlined"
-                                      />
+                      return (
+                        <OrganizationSortableRow
+                          key={position.id}
+                          id={position.id}
+                          index={siblings.findIndex((row) => row.id === position.id)}
+                          group={positionGroupKey(position)}
+                          label={position.title}
+                          disabled={!canManage || busy || Boolean(positionsQuery.hasNextPage) || siblings.length < 2}
+                        >
+                          <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2 }}>
+                            <Stack spacing={1}>
+                              <Stack
+                                direction={{ xs: "column", sm: "row" }}
+                                spacing={1}
+                                sx={{ justifyContent: "space-between" }}
+                              >
+                                <Box sx={{ minWidth: 0 }}>
+                                  <Typography sx={{ fontWeight: 700, overflowWrap: "anywhere" }}>
+                                    {position.title}
+                                  </Typography>
+                                  <Stack direction="row" spacing={0.5} useFlexGap sx={{ flexWrap: "wrap" }}>
+                                    {position.group_label && (
+                                      <Chip size="small" label={position.group_label} variant="outlined" />
                                     )}
-                                </Stack>
-                              </Box>
-                              {canManage && (
-                                <Stack direction="row" useFlexGap sx={{ flexWrap: "wrap" }}>
-                                  <Button onClick={() => openPosition(position)} disabled={busy}>
-                                    แก้ไขตำแหน่ง
-                                  </Button>
-                                  <Button
-                                    color="error"
-                                    onClick={() => void remove("positions", position)}
-                                    disabled={busy}
+                                    <Chip
+                                      size="small"
+                                      label={"อันดับ " + (siblings.findIndex((row) => row.id === position.id) + 1)}
+                                      variant="outlined"
+                                    />
+                                    {position.occupant_limit !== null &&
+                                      !assignmentsQuery.hasNextPage &&
+                                      !assignmentsQuery.isPending &&
+                                      !assignmentsQuery.isError && (
+                                        <Chip
+                                          size="small"
+                                          label={
+                                            "ผู้ดำรงตำแหน่ง " +
+                                            enabledDistinctOccupants(assignments, position.id) +
+                                            "/" +
+                                            position.occupant_limit
+                                          }
+                                          variant="outlined"
+                                        />
+                                      )}
+                                  </Stack>
+                                </Box>
+                                {canManage && (view === "legacy" || view === "positions") && (
+                                  <Stack direction="row" useFlexGap sx={{ flexWrap: "wrap" }}>
+                                    <Button onClick={() => openPosition(position)} disabled={busy}>
+                                      แก้ไขตำแหน่ง
+                                    </Button>
+                                    <Button
+                                      color="error"
+                                      onClick={() => void remove("positions", position)}
+                                      disabled={busy}
+                                    >
+                                      ลบตำแหน่ง
+                                    </Button>
+                                  </Stack>
+                                )}
+                              </Stack>
+                              <DragDropProvider
+                                onDragEnd={({ operation, canceled }) => {
+                                  if (canceled || !isSortable(operation.source)) return;
+                                  const source = operation.source;
+                                  if (
+                                    source.initialIndex === source.index ||
+                                    source.index < 0 ||
+                                    source.index >= assigned.length
+                                  )
+                                    return;
+                                  void saveReorder(
+                                    "assignments",
+                                    position.id,
+                                    arrayMove(assigned, source.initialIndex, source.index)
+                                  );
+                                }}
+                              >
+                                {assigned.map((assignment, index) => (
+                                  <OrganizationSortableRow
+                                    key={assignment.id}
+                                    id={assignment.id}
+                                    index={index}
+                                    group={position.id}
+                                    label={byPerson.get(assignment.personnel_id)?.display_name ?? assignment.id}
+                                    disabled={
+                                      !canManage || busy || Boolean(assignmentsQuery.hasNextPage) || assigned.length < 2
+                                    }
                                   >
-                                    ลบตำแหน่ง
-                                  </Button>
-                                </Stack>
+                                    <Box sx={{ bgcolor: "action.hover", borderRadius: 1, p: 1 }}>
+                                      <Stack
+                                        direction={{ xs: "column", sm: "row" }}
+                                        spacing={1}
+                                        sx={{ justifyContent: "space-between" }}
+                                      >
+                                        <Box sx={{ minWidth: 0 }}>
+                                          <Typography sx={{ overflowWrap: "anywhere" }}>
+                                            {byPerson.get(assignment.personnel_id)?.display_name ??
+                                              "บุคลากร " + assignment.personnel_id}
+                                          </Typography>
+                                          <Typography
+                                            variant="body2"
+                                            color="text.secondary"
+                                            sx={{ overflowWrap: "anywhere" }}
+                                          >
+                                            {assignment.duty_detail || "ยังไม่ระบุหน้าที่"} · ลำดับ {index + 1}
+                                            {assignment.enabled === 0 ? " · ปิดการแสดงผล" : ""}
+                                          </Typography>
+                                        </Box>
+                                        {canManage && (view === "legacy" || view === "assignments") && (
+                                          <Stack direction="row" useFlexGap sx={{ flexWrap: "wrap" }}>
+                                            <Button
+                                              disabled={busy}
+                                              onClick={() => openAssignment(assignment, position.id)}
+                                            >
+                                              แก้ไขหน้าที่
+                                            </Button>
+                                            <Button
+                                              color="error"
+                                              disabled={busy}
+                                              onClick={() => void remove("assignments", assignment)}
+                                            >
+                                              ลบหน้าที่
+                                            </Button>
+                                          </Stack>
+                                        )}
+                                      </Stack>
+                                    </Box>
+                                  </OrganizationSortableRow>
+                                ))}
+                              </DragDropProvider>
+                              {canManage && (view === "legacy" || view === "assignments") && (
+                                <Button
+                                  variant="outlined"
+                                  disabled={busy || assignmentsQuery.isPending || assignmentsQuery.isError}
+                                  onClick={() => openAssignment(null, position.id)}
+                                >
+                                  มอบหมายบุคลากร
+                                </Button>
                               )}
                             </Stack>
-                            <DragDropProvider
-                              onDragEnd={({ operation, canceled }) => {
-                                if (canceled || !isSortable(operation.source)) return;
-                                const source = operation.source;
-                                if (
-                                  source.initialIndex === source.index ||
-                                  source.index < 0 ||
-                                  source.index >= assigned.length
-                                )
-                                  return;
-                                void saveReorder(
-                                  "assignments",
-                                  position.id,
-                                  arrayMove(assigned, source.initialIndex, source.index)
-                                );
-                              }}
-                            >
-                              {assigned.map((assignment, index) => (
-                                <OrganizationSortableRow
-                                  key={assignment.id}
-                                  id={assignment.id}
-                                  index={index}
-                                  group={position.id}
-                                  label={byPerson.get(assignment.personnel_id)?.display_name ?? assignment.id}
-                                  disabled={
-                                    !canManage || busy || Boolean(assignmentsQuery.hasNextPage) || assigned.length < 2
-                                  }
-                                >
-                                  <Box sx={{ bgcolor: "action.hover", borderRadius: 1, p: 1 }}>
-                                    <Stack
-                                      direction={{ xs: "column", sm: "row" }}
-                                      spacing={1}
-                                      sx={{ justifyContent: "space-between" }}
-                                    >
-                                      <Box sx={{ minWidth: 0 }}>
-                                        <Typography sx={{ overflowWrap: "anywhere" }}>
-                                          {byPerson.get(assignment.personnel_id)?.display_name ??
-                                            "บุคลากร " + assignment.personnel_id}
-                                        </Typography>
-                                        <Typography
-                                          variant="body2"
-                                          color="text.secondary"
-                                          sx={{ overflowWrap: "anywhere" }}
-                                        >
-                                          {assignment.duty_detail || "ยังไม่ระบุหน้าที่"} · ลำดับ {index + 1}
-                                          {assignment.enabled === 0 ? " · ปิดการแสดงผล" : ""}
-                                        </Typography>
-                                      </Box>
-                                      {canManage && (
-                                        <Stack direction="row" useFlexGap sx={{ flexWrap: "wrap" }}>
-                                          <Button
-                                            disabled={busy}
-                                            onClick={() => openAssignment(assignment, position.id)}
-                                          >
-                                            แก้ไขหน้าที่
-                                          </Button>
-                                          <Button
-                                            color="error"
-                                            disabled={busy}
-                                            onClick={() => void remove("assignments", assignment)}
-                                          >
-                                            ลบหน้าที่
-                                          </Button>
-                                        </Stack>
-                                      )}
-                                    </Stack>
-                                  </Box>
-                                </OrganizationSortableRow>
-                              ))}
-                            </DragDropProvider>
-                            {canManage && (
-                              <Button
-                                variant="outlined"
-                                disabled={
-                                  busy ||
-                                  assignmentsQuery.hasNextPage ||
-                                  assignmentsQuery.isPending ||
-                                  assignmentsQuery.isError
-                                }
-                                onClick={() => openAssignment(null, position.id)}
-                              >
-                                มอบหมายบุคลากร
-                              </Button>
-                            )}
-                          </Stack>
-                        </Box>
-                      </OrganizationSortableRow>
-                    );
-                  })}
-                </DragDropProvider>
+                          </Box>
+                        </OrganizationSortableRow>
+                      );
+                    })}
+                  </DragDropProvider>
+                )}
               </Stack>
             </Box>
           </Stack>
           {selectedUnit && (positionsQuery.isPending || positionsQuery.hasNextPage) && (
             <Alert severity="info">
-              กรุณาโหลดรายการตำแหน่งให้ครบก่อนจัดผัง เพื่อป้องกันค่าที่กำลังแก้ไขถูกรีเซ็ตระหว่างโหลดข้อมูล
+              กรุณาโหลดรายการตำแหน่งให้ครบก่อนจัดผัง เพื่อป้องกันการบันทึกโครงสร้างที่มีข้อมูลไม่ครบ
             </Alert>
           )}
-          {selectedUnit && !positionsQuery.isPending && !positionsQuery.hasNextPage && !positionsQuery.isError && (
-            <OrganizationChartLayoutEditor
-              key={`${selectedUnit.content_id}:${selectedUnit.unit_revision}:${visiblePositions.length}`}
-              unit={selectedUnit}
-              positions={visiblePositions}
-              assignments={assignments}
-              personnel={personnel}
-              canManage={canManage}
-              allPositionsLoaded={!positionsQuery.hasNextPage && !positionsQuery.isPending && !positionsQuery.isError}
-              onSaved={refresh}
-            />
-          )}
+          {view === "charts" &&
+            selectedUnit &&
+            (assignmentsQuery.isPending ||
+              personnelQuery.isPending ||
+              assignmentsQuery.hasNextPage ||
+              personnelQuery.hasNextPage ||
+              assignmentsQuery.isError ||
+              personnelQuery.isError) && (
+              <Alert severity="warning" role="status">
+                ตัวอย่างผังอาจแสดงบุคลากรไม่ครบ กรุณาโหลดรายการหน้าที่และบุคลากรทั้งหมดของหน่วยงานนี้
+                หรือแก้ไขข้อผิดพลาดในการโหลดข้อมูลก่อนตรวจสอบ Preview
+              </Alert>
+            )}
+          {(view === "legacy" || view === "charts") &&
+            selectedUnit &&
+            !positionsQuery.isPending &&
+            !positionsQuery.hasNextPage &&
+            !positionsQuery.isError && (
+              <OrganizationChartLayoutEditor
+                key={`${selectedUnit.content_id}:${selectedUnit.unit_revision}:${visiblePositions.length}`}
+                unit={selectedUnit}
+                positions={visiblePositions}
+                assignments={assignments}
+                personnel={personnel}
+                canManage={canManage}
+                allPositionsLoaded={!positionsQuery.hasNextPage && !positionsQuery.isPending && !positionsQuery.isError}
+                onSaved={refresh}
+              />
+            )}
           <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
             {pageControl("ตำแหน่ง", positionsQuery)}
-            {pageControl("หน้าที่", assignmentsQuery)}
-            {pageControl("บุคลากร", personnelQuery)}
+            {view !== "positions" && pageControl("หน้าที่", assignmentsQuery)}
+            {view !== "positions" && pageControl("บุคลากร", personnelQuery)}
             <Button onClick={() => void refresh()} disabled={busy}>
               รีเฟรชข้อมูล
             </Button>
           </Stack>
           {(positionsQuery.hasNextPage || assignmentsQuery.hasNextPage || personnelQuery.hasNextPage) && (
             <Alert severity="info">
-              ข้อมูลบางประเภทยังโหลดไม่ครบ กรุณาโหลดหน้าถัดไปก่อนตรวจสอบจำนวนผู้ดำรงตำแหน่งหรือเลือกบุคลากร
-              {(positionsQuery.hasNextPage || assignmentsQuery.hasNextPage) &&
-                " และโหลดตำแหน่ง/หน้าที่ให้ครบก่อนเพิ่มรายการใหม่ เพื่อกำหนดอันดับถัดไปอย่างถูกต้อง"}
+              ข้อมูลบางประเภทยังโหลดไม่ครบ สามารถเพิ่มรายการใหม่ต่อท้ายโดยให้เซิร์ฟเวอร์กำหนดลำดับได้
+              แต่ควรโหลดข้อมูลที่เหลือก่อนตรวจสอบผู้ดำรงตำแหน่งหรือดูตัวอย่างผังให้ครบถ้วน
             </Alert>
           )}
           <Dialog open={positionForm !== null} onClose={() => !busy && setPositionForm(null)} fullWidth maxWidth="sm">
@@ -762,13 +875,27 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                           setPositionForm({ ...positionForm, groupSortOrder, sortOrder });
                         }}
                       />
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={positionAutoOrder}
+                            disabled={busy || Boolean(positionEditing)}
+                            onChange={(_, checked) => setPositionAutoOrder(checked)}
+                          />
+                        }
+                        label="เพิ่มต่อท้ายอัตโนมัติจากข้อมูลบนเซิร์ฟเวอร์"
+                      />
                       <TextField
                         label="ลำดับตำแหน่ง"
                         type="number"
                         fullWidth
-                        value={positionForm.sortOrder}
-                        disabled={busy}
-                        helperText="ค่าในระบบเริ่มที่ 0 แต่รายการแสดงอันดับเริ่มที่ 1"
+                        value={positionAutoOrder ? "" : positionForm.sortOrder}
+                        disabled={busy || positionAutoOrder}
+                        helperText={
+                          positionAutoOrder
+                            ? "เซิร์ฟเวอร์กำหนดลำดับจริงเมื่อบันทึก"
+                            : "ค่าในระบบเริ่มที่ 0 แต่รายการแสดงอันดับเริ่มที่ 1"
+                        }
                         onChange={(event) =>
                           setPositionForm({ ...positionForm, sortOrder: Number(event.target.value) })
                         }
@@ -823,6 +950,15 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                 <Stack spacing={2} sx={{ mt: 1 }}>
                   {dialogError && <Alert severity="error">{dialogError}</Alert>}
                   <TextField
+                    label="ค้นหาบุคลากรในทะเบียนกลาง"
+                    value={personnelSearch}
+                    onChange={(event) => setPersonnelSearch(event.target.value)}
+                    size="small"
+                    fullWidth
+                    slotProps={{ htmlInput: { maxLength: 160 } }}
+                    helperText="ค้นหาผ่านเซิร์ฟเวอร์โดยไม่ต้องโหลดบุคลากรทั้งหมด"
+                  />
+                  <TextField
                     label="บุคลากรจากทะเบียนกลาง"
                     select
                     fullWidth
@@ -831,12 +967,13 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                     value={assignmentForm.personnelId}
                     onChange={(event) => setAssignmentForm({ ...assignmentForm, personnelId: event.target.value })}
                   >
-                    {assignmentForm.personnelId && !byPerson.has(assignmentForm.personnelId) && (
-                      <MenuItem value={assignmentForm.personnelId} disabled>
-                        รหัสบุคลากร {assignmentForm.personnelId} (ยังไม่ได้โหลดข้อมูล)
-                      </MenuItem>
-                    )}
-                    {personnel.map((person) => (
+                    {assignmentForm.personnelId &&
+                      !personnelOptions.some((person) => person.id === assignmentForm.personnelId) && (
+                        <MenuItem value={assignmentForm.personnelId} disabled>
+                          รหัสบุคลากร {assignmentForm.personnelId} (ยังไม่ได้โหลดข้อมูล)
+                        </MenuItem>
+                      )}
+                    {personnelOptions.map((person) => (
                       <MenuItem key={person.id} value={person.id}>
                         {person.display_name}
                       </MenuItem>
@@ -889,14 +1026,26 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                     <Box component="summary" sx={{ cursor: "pointer", fontWeight: 600 }}>
                       ตั้งค่าลำดับด้วยตัวเลข (ขั้นสูง)
                     </Box>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={assignmentAutoOrder}
+                          disabled={busy || Boolean(assignmentEditing)}
+                          onChange={(_, checked) => setAssignmentAutoOrder(checked)}
+                        />
+                      }
+                      label="เพิ่มต่อท้ายอัตโนมัติจากข้อมูลบนเซิร์ฟเวอร์"
+                    />
                     <TextField
                       label="ลำดับการแสดง"
                       type="number"
                       fullWidth
                       sx={{ mt: 2 }}
-                      disabled={busy}
-                      value={assignmentForm.sortOrder}
-                      helperText="ระบบเติมลำดับถัดไปให้อัตโนมัติ และแสดงอันดับเริ่มที่ 1"
+                      disabled={busy || assignmentAutoOrder}
+                      value={assignmentAutoOrder ? "" : assignmentForm.sortOrder}
+                      helperText={
+                        assignmentAutoOrder ? "เซิร์ฟเวอร์กำหนดลำดับจริงเมื่อบันทึก" : "ระบบแสดงอันดับเริ่มที่ 1"
+                      }
                       onChange={(event) =>
                         setAssignmentForm({ ...assignmentForm, sortOrder: Number(event.target.value) })
                       }

@@ -1,8 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
+import Checkbox from "@mui/material/Checkbox";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
@@ -12,7 +15,12 @@ import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import type { OrganizationUnitListRow, OrganizationUnitWrite } from "../../features/organization-admin/api";
+import {
+  getOrganizationCollection,
+  getOrganizationDetail,
+  type OrganizationUnitListRow,
+  type OrganizationUnitWrite
+} from "../../features/organization-admin/api";
 import { nextOrganizationSortOrder } from "./organizationBuilderModel";
 import {
   availableOrganizationParents,
@@ -46,6 +54,27 @@ export default function OrganizationUnitEditorDialog({ open, initial, units, bus
     defaultValues: editorDefaults(initial),
     mode: "onBlur"
   });
+  const [autoSortOrder, setAutoSortOrder] = useState(!initial);
+  const [parentSearch, setParentSearch] = useState("");
+  const [parentSearchDebounced, setParentSearchDebounced] = useState("");
+  useEffect(() => {
+    const timer = window.setTimeout(() => setParentSearchDebounced(parentSearch.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [parentSearch]);
+  const parentSearchQuery = useQuery({
+    queryKey: ["admin-organization", "units", "parent-search", parentSearchDebounced],
+    enabled: open && parentSearchDebounced.length > 0,
+    queryFn: () => getOrganizationCollection("units", 25, 0, { includeTotal: true, search: parentSearchDebounced })
+  });
+  const missingParentId =
+    initial?.parent_content_id && !units.some((unit) => unit.content_id === initial.parent_content_id)
+      ? initial.parent_content_id
+      : null;
+  const missingParentQuery = useQuery({
+    queryKey: ["admin-organization", "units", "parent-detail", missingParentId],
+    enabled: open && Boolean(missingParentId),
+    queryFn: () => getOrganizationDetail("units", missingParentId ?? "")
+  });
   const nextRootOrder = nextOrganizationSortOrder(
     units.filter((unit) => unit.parent_content_id === null),
     (unit) => unit.sort_order
@@ -53,10 +82,25 @@ export default function OrganizationUnitEditorDialog({ open, initial, units, bus
   useEffect(() => {
     if (open) reset({ ...editorDefaults(initial), sortOrder: initial?.sort_order ?? nextRootOrder });
   }, [initial, nextRootOrder, open, reset]);
-  const canSelectParent = availableOrganizationParents(units, initial?.content_id ?? null);
+  const canSelectParent = useMemo(() => {
+    const allowedLocal = availableOrganizationParents(units, initial?.content_id ?? null);
+    const blockedLocal = new Set(
+      units
+        .filter((unit) => !allowedLocal.some((item) => item.content_id === unit.content_id))
+        .map((unit) => unit.content_id)
+    );
+    const candidates = new Map(allowedLocal.map((unit) => [unit.content_id, unit]));
+    for (const candidate of parentSearchQuery.data?.items ?? []) {
+      if (candidate.content_id !== initial?.content_id && !blockedLocal.has(candidate.content_id)) {
+        candidates.set(candidate.content_id, candidate);
+      }
+    }
+    return [...candidates.values()];
+  }, [units, initial?.content_id, parentSearchQuery.data]);
   const status = useWatch({ control, name: "status" });
   const save = handleSubmit(async (form) => {
-    await onSave(toOrganizationUnitWrite(form));
+    const payload = toOrganizationUnitWrite(form);
+    await onSave(!initial && autoSortOrder ? { ...payload, sortOrder: undefined, autoSortOrder: true } : payload);
   });
 
   const textField = (key: "title" | "slug" | "summary", label: string, multiline = false) => (
@@ -143,6 +187,29 @@ export default function OrganizationUnitEditorDialog({ open, initial, units, bus
                 </TextField>
               )}
             />
+            <TextField
+              label="ค้นหาหน่วยงานแม่"
+              size="small"
+              fullWidth
+              disabled={busy}
+              value={parentSearch}
+              onChange={(event) => setParentSearch(event.target.value)}
+              helperText="ค้นหาหน่วยงานในระบบทั้งหมด ไม่จำกัดเฉพาะหน้าที่โหลดอยู่"
+              slotProps={{ htmlInput: { maxLength: 160 } }}
+            />
+            {parentSearch && parentSearch !== parentSearchDebounced && (
+              <Typography role="status" variant="caption">
+                กำลังเตรียมค้นหาหน่วยงานแม่…
+              </Typography>
+            )}
+            {parentSearchQuery.isFetching && parentSearchDebounced && (
+              <Typography role="status" variant="caption">
+                กำลังค้นหาหน่วยงานแม่…
+              </Typography>
+            )}
+            {parentSearchQuery.isError && parentSearchDebounced && (
+              <Alert severity="error">ค้นหาหน่วยงานแม่ไม่สำเร็จ กรุณาลองใหม่</Alert>
+            )}
             <Controller
               name="parentContentId"
               control={control}
@@ -171,6 +238,11 @@ export default function OrganizationUnitEditorDialog({ open, initial, units, bus
                   helperText={errors.parentContentId?.message ?? "ปล่อยว่างสำหรับหน่วยงานระดับบนสุด"}
                 >
                   <MenuItem value="">ระดับบนสุด (ไม่มีหน่วยงานแม่)</MenuItem>
+                  {missingParentId && !canSelectParent.some((unit) => unit.content_id === missingParentId) && (
+                    <MenuItem value={missingParentId}>
+                      {missingParentQuery.data?.item.title ?? "หน่วยงานเดิม: " + missingParentId}
+                    </MenuItem>
+                  )}
                   {canSelectParent.map((unit) => (
                     <MenuItem key={unit.content_id} value={unit.content_id}>
                       {unit.title}
@@ -179,6 +251,18 @@ export default function OrganizationUnitEditorDialog({ open, initial, units, bus
                 </TextField>
               )}
             />
+            {!initial && (
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={autoSortOrder}
+                    disabled={busy}
+                    onChange={(_, checked) => setAutoSortOrder(checked)}
+                  />
+                }
+                label="จัดลำดับต่อท้ายอัตโนมัติจากเซิร์ฟเวอร์"
+              />
+            )}
             <Box component="details" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, p: 1.5 }}>
               <Box component="summary" sx={{ cursor: "pointer", fontWeight: 600 }}>
                 ตั้งค่าลำดับด้วยตัวเลข (ขั้นสูง)
@@ -193,7 +277,7 @@ export default function OrganizationUnitEditorDialog({ open, initial, units, bus
                     fullWidth
                     sx={{ mt: 2 }}
                     label="ลำดับแสดงผล"
-                    disabled={busy}
+                    disabled={busy || (!initial && autoSortOrder)}
                     onChange={(event) => field.onChange(Number(event.target.value))}
                     error={Boolean(errors.sortOrder)}
                     helperText={

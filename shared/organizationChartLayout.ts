@@ -63,7 +63,7 @@ export function chartPlacement(
 ): OrganizationChartPlacement {
   return (
     layout?.[position.id] ?? {
-      level: Math.min(100, Math.max(1, position.groupSortOrder + 1)),
+      level: 1,
       row: 1,
       order: position.sortOrder,
       parentPositionId: null

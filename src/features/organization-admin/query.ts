@@ -9,10 +9,14 @@ export const organizationAdminQueryKeys = {
   detail: (collection: OrganizationCollection, id: string) => ["admin-organization", collection, "detail", id] as const
 };
 
-export function organizationCollectionQueryOptions<K extends OrganizationCollection>(collection: K, limit = 100) {
+export function organizationCollectionQueryOptions<K extends OrganizationCollection>(
+  collection: K,
+  limit = 100,
+  includeTotal = false
+) {
   return queryOptions({
-    queryKey: organizationAdminQueryKeys.list(collection, limit),
-    queryFn: () => getOrganizationCollection(collection, limit)
+    queryKey: [...organizationAdminQueryKeys.list(collection, limit), includeTotal],
+    queryFn: () => getOrganizationCollection(collection, limit, 0, includeTotal ? { includeTotal: true } : undefined)
   });
 }
 

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -38,57 +38,93 @@ function humanError(error: unknown) {
   return error instanceof Error ? error.message : "เกิดข้อผิดพลาดในการบันทึก กรุณาลองอีกครั้ง";
 }
 
-export default function OrganizationPage() {
+export type OrganizationManagementView =
+  "overview" | "units" | "personnel" | "positions" | "assignments" | "charts" | "legacy";
+
+export default function OrganizationPage({ view = "legacy" }: { view?: OrganizationManagementView }) {
   const { capabilities } = useAuth();
   const canManage = hasCmsCapability(capabilities, "organization.manage");
   const canBrowseMedia = hasCmsCapability(capabilities, "media.read");
   const client = useQueryClient();
+  const showUnits = view === "units" || view === "legacy";
+  const showBuilder = view === "positions" || view === "assignments" || view === "charts" || view === "legacy";
+  const showOverview = view === "overview" || view === "legacy";
+  const needUnits = showUnits || showBuilder;
   const units = useInfiniteQuery({
     queryKey: ["admin-organization", "units", "pages"],
+    enabled: needUnits,
     initialPageParam: 0,
     queryFn: ({ pageParam }) => getOrganizationCollection("units", 100, pageParam),
     getNextPageParam: (lastPage) => lastPage.nextOffset ?? undefined
   });
-  const personnel = useQuery(organizationCollectionQueryOptions("personnel"));
-  const positions = useQuery(organizationCollectionQueryOptions("positions"));
-  const assignments = useQuery(organizationCollectionQueryOptions("assignments"));
+  const unitsSummary = useQuery({ ...organizationCollectionQueryOptions("units", 1, true), enabled: showOverview });
+  const personnel = useQuery({ ...organizationCollectionQueryOptions("personnel", 1, true), enabled: showOverview });
+  const positions = useQuery({ ...organizationCollectionQueryOptions("positions", 1, true), enabled: showOverview });
+  const assignments = useQuery({
+    ...organizationCollectionQueryOptions("assignments", 1, true),
+    enabled: showOverview
+  });
   const rows = useMemo(() => units.data?.pages.flatMap((page) => page.items) ?? [], [units.data]);
   const collections = [
-    { label: "หน่วยงาน", count: rows.length, isPending: units.isPending, isError: units.isError },
+    {
+      label: "หน่วยงาน",
+      count: unitsSummary.data?.total ?? rows.length,
+      isPending: unitsSummary.isPending,
+      isError: unitsSummary.isError
+    },
     {
       label: "บุคลากร",
-      count: personnel.data?.items.length ?? 0,
+      count: personnel.data?.total ?? personnel.data?.items.length ?? 0,
       isPending: personnel.isPending,
       isError: personnel.isError
     },
     {
       label: "ตำแหน่ง",
-      count: positions.data?.items.length ?? 0,
+      count: positions.data?.total ?? positions.data?.items.length ?? 0,
       isPending: positions.isPending,
       isError: positions.isError
     },
     {
       label: "การมอบหมายหน้าที่",
-      count: assignments.data?.items.length ?? 0,
+      count: assignments.data?.total ?? assignments.data?.items.length ?? 0,
       isPending: assignments.isPending,
       isError: assignments.isError
     }
   ];
 
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+  const searchedUnits = useInfiniteQuery({
+    queryKey: ["admin-organization", "units", "server-search", debouncedSearch],
+    enabled: view === "units" && debouncedSearch.length > 0,
+    initialPageParam: 0,
+    queryFn: ({ pageParam }) =>
+      getOrganizationCollection("units", 100, pageParam, { includeTotal: true, search: debouncedSearch }),
+    getNextPageParam: (lastPage) => lastPage.nextOffset ?? undefined
+  });
+  const serverSearching = view === "units" && search.trim().length > 0;
+  const searchReady = search.trim() === debouncedSearch;
+  const searchPending = serverSearching && (!searchReady || searchedUnits.isPending);
   const [editing, setEditing] = useState<OrganizationUnitListRow | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [error, setError] = useState("");
   const [editorError, setEditorError] = useState("");
   const [success, setSuccess] = useState("");
   const filtered = useMemo(() => {
+    if (serverSearching) {
+      return searchReady ? (searchedUnits.data?.pages.flatMap((page) => page.items) ?? []) : [];
+    }
     const term = search.trim().toLocaleLowerCase("th");
     return rows
       .filter(
         (unit) => !term || [unit.title, unit.slug, unit.unit_kind].some((s) => s.toLocaleLowerCase("th").includes(term))
       )
       .sort((a, b) => a.sort_order - b.sort_order || a.title.localeCompare(b.title, "th"));
-  }, [rows, search]);
+  }, [rows, search, serverSearching, searchReady, searchedUnits.data]);
   const unitRanks = useMemo(() => {
     const ranks = new Map<string, number>();
     const counts = new Map<string, number>();
@@ -124,7 +160,7 @@ export default function OrganizationPage() {
   });
 
   function startCreate() {
-    if (!canManage || units.hasNextPage || units.isPending || units.isError) return;
+    if (!canManage || units.isPending || units.isError) return;
     setEditing(null);
     setEditorError("");
     setError("");
@@ -214,7 +250,19 @@ export default function OrganizationPage() {
         <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
           <AccountTreeOutlinedIcon color="primary" />
           <Typography variant="h1" sx={{ fontSize: { xs: "1.5rem", md: "2rem" } }}>
-            ผังองค์กร
+            {view === "overview"
+              ? "ภาพรวมองค์กร"
+              : view === "units"
+                ? "จัดการหน่วยงาน"
+                : view === "personnel"
+                  ? "ทะเบียนบุคลากร"
+                  : view === "positions"
+                    ? "จัดการตำแหน่ง"
+                    : view === "assignments"
+                      ? "มอบหมายหน้าที่"
+                      : view === "charts"
+                        ? "จัดผังองค์กร"
+                        : "ผังองค์กร"}
           </Typography>
         </Stack>
         <Typography color="text.secondary" sx={{ mt: 1 }}>
@@ -234,144 +282,200 @@ export default function OrganizationPage() {
           {success}
         </Alert>
       )}
-      <Grid container spacing={2}>
-        {collections.map(({ label, count, isPending, isError }) => (
-          <Grid key={label} size={{ xs: 12, sm: 6, lg: 3 }}>
-            <Card variant="outlined" sx={{ height: "100%" }}>
-              <CardContent>
-                <Typography color="text.secondary" variant="body2">
-                  {label}
+      {showOverview && (
+        <Grid container spacing={2}>
+          {collections.map(({ label, count, isPending, isError }) => (
+            <Grid key={label} size={{ xs: 12, sm: 6, lg: 3 }}>
+              <Card variant="outlined" sx={{ height: "100%" }}>
+                <CardContent>
+                  <Typography color="text.secondary" variant="body2">
+                    {label}
+                  </Typography>
+                  <Typography variant="h3" sx={{ mt: 1, fontWeight: 700 }}>
+                    {isPending ? "…" : isError ? "—" : count}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {(label === "หน่วยงาน"
+                      ? unitsSummary.data
+                      : label === "บุคลากร"
+                        ? personnel.data
+                        : label === "ตำแหน่ง"
+                          ? positions.data
+                          : assignments.data
+                    )?.total !== undefined
+                      ? "จำนวนทั้งหมดในระบบ"
+                      : "จำนวนตัวอย่างที่โหลด"}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      )}
+      {showUnits && (
+        <Card variant="outlined">
+          <CardContent>
+            <Stack spacing={2}>
+              <Stack
+                direction={{ xs: "column", sm: "row" }}
+                spacing={2}
+                sx={{ justifyContent: "space-between", alignItems: { sm: "center" } }}
+              >
+                <Typography variant="h2" sx={{ fontSize: "1.25rem" }}>
+                  รายการหน่วยงาน
                 </Typography>
-                <Typography variant="h3" sx={{ mt: 1, fontWeight: 700 }}>
-                  {isPending ? "…" : isError ? "—" : count}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {label === "หน่วยงาน" ? "จำนวนที่โหลด (100 รายการต่อหน้า)" : "จำนวนที่โหลด (สูงสุด 100 รายการ)"}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
-      <Card variant="outlined">
-        <CardContent>
-          <Stack spacing={2}>
-            <Stack
-              direction={{ xs: "column", sm: "row" }}
-              spacing={2}
-              sx={{ justifyContent: "space-between", alignItems: { sm: "center" } }}
-            >
-              <Typography variant="h2" sx={{ fontSize: "1.25rem" }}>
-                รายการหน่วยงาน
-              </Typography>
-              <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }}>
-                <Button
-                  startIcon={<RefreshOutlinedIcon />}
-                  onClick={() => void units.refetch()}
-                  disabled={units.isFetching}
-                >
-                  รีเฟรช
-                </Button>
-                {canManage && (
+                <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }}>
                   <Button
-                    variant="contained"
-                    startIcon={<AddOutlinedIcon />}
-                    onClick={startCreate}
-                    disabled={units.hasNextPage || units.isPending || units.isError}
+                    startIcon={<RefreshOutlinedIcon />}
+                    onClick={() => void units.refetch()}
+                    disabled={units.isFetching}
                   >
-                    เพิ่มหน่วยงาน
+                    รีเฟรช
                   </Button>
-                )}
-              </Stack>
-            </Stack>
-            <TextField
-              label="ค้นหาชื่อ, Slug หรือประเภทหน่วยงาน"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              fullWidth
-              slotProps={{ htmlInput: { maxLength: 160 } }}
-            />
-            {units.hasNextPage && canManage && (
-              <Alert severity="info">โหลดหน่วยงานเพิ่มเติมให้ครบก่อนเพิ่มรายการ เพื่อคำนวณลำดับต่อท้ายได้ถูกต้อง</Alert>
-            )}
-            {units.isPending && <Typography role="status">กำลังโหลดหน่วยงาน…</Typography>}
-            {units.isError && <Alert severity="error">โหลดรายการหน่วยงานไม่สำเร็จ กรุณาลองใหม่</Alert>}
-            {rows.length === 0 && !units.isPending && !units.isError && (
-              <Alert severity="info">ยังไม่มีข้อมูลหน่วยงาน</Alert>
-            )}
-            {rows.length > 0 && filtered.length === 0 && (
-              <Typography color="text.secondary">ไม่พบหน่วยงานที่ตรงกับคำค้น</Typography>
-            )}
-            {filtered.map((unit) => (
-              <Box key={unit.content_id} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2 }}>
-                <Stack
-                  direction={{ xs: "column", sm: "row" }}
-                  spacing={1.5}
-                  sx={{ alignItems: { sm: "center" }, justifyContent: "space-between" }}
-                >
-                  <Box sx={{ minWidth: 0 }}>
-                    <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap", alignItems: "center" }}>
-                      <Typography sx={{ fontWeight: 700, overflowWrap: "anywhere" }}>{unit.title}</Typography>
-                      <Chip
-                        size="small"
-                        label={
-                          ORGANIZATION_KIND_LABELS[unit.unit_kind as keyof typeof ORGANIZATION_KIND_LABELS] ??
-                          unit.unit_kind
-                        }
-                        variant="outlined"
-                      />
-                      <Chip
-                        size="small"
-                        color={unit.status === "published" ? "success" : "default"}
-                        label={ORGANIZATION_STATUS_LABELS[unit.status] ?? unit.status}
-                      />
-                    </Stack>
-                    <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: "anywhere", mt: 0.5 }}>
-                      /{unit.slug} · อันดับ {unitRanks.get(unit.content_id) ?? 1}
-                      {unit.parent_content_id
-                        ? ` · อยู่ภายใต้ ${rows.find((item) => item.content_id === unit.parent_content_id)?.title ?? "หน่วยงานอื่น"}`
-                        : ""}
-                    </Typography>
-                  </Box>
                   {canManage && (
-                    <Stack direction="row" spacing={1}>
-                      <Button
-                        startIcon={<EditOutlinedIcon />}
-                        onClick={() => startEdit(unit)}
-                        disabled={saveMutation.isPending || deleteMutation.isPending}
-                      >
-                        แก้ไข
-                      </Button>
-                      <Button
-                        startIcon={<DeleteOutlineOutlinedIcon />}
-                        color="error"
-                        onClick={() => void handleDelete(unit)}
-                        disabled={saveMutation.isPending || deleteMutation.isPending}
-                      >
-                        ลบ
-                      </Button>
-                    </Stack>
+                    <Button
+                      variant="contained"
+                      startIcon={<AddOutlinedIcon />}
+                      onClick={startCreate}
+                      disabled={units.isPending || units.isError}
+                    >
+                      เพิ่มหน่วยงาน
+                    </Button>
                   )}
                 </Stack>
-              </Box>
-            ))}
-            {units.hasNextPage && (
-              <Button variant="outlined" onClick={() => void units.fetchNextPage()} disabled={units.isFetchingNextPage}>
-                {units.isFetchingNextPage ? "กำลังโหลดเพิ่มเติม…" : "โหลดหน่วยงานเพิ่มเติม"}
-              </Button>
-            )}
-            {units.isFetchNextPageError && <Alert severity="error">โหลดหน้าถัดไปไม่สำเร็จ กรุณาลองใหม่</Alert>}
-          </Stack>
-        </CardContent>
-      </Card>
-      <OrganizationPersonnelDirectory canManage={canManage} canBrowseMedia={canBrowseMedia} />
-      <OrganizationBuilder
-        units={rows}
-        allUnitsLoaded={!units.hasNextPage && !units.isPending && !units.isError}
-        canManage={canManage}
-        onEditUnit={startEdit}
-      />
-      {canManage && (
+              </Stack>
+              <TextField
+                label="ค้นหาชื่อ, Slug หรือประเภทหน่วยงาน"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                fullWidth
+                slotProps={{ htmlInput: { maxLength: 160 } }}
+              />
+              {units.hasNextPage && canManage && (
+                <Alert severity="info">
+                  สามารถเพิ่มหน่วยงานได้ทันที ระบบจัดลำดับอัตโนมัติจากข้อมูลจริงบนเซิร์ฟเวอร์
+                </Alert>
+              )}
+              {serverSearching && searchPending && <Typography role="status">กำลังค้นหาหน่วยงาน…</Typography>}
+              {serverSearching && searchReady && searchedUnits.isError && (
+                <Alert severity="error">ค้นหาหน่วยงานไม่สำเร็จ กรุณาลองอีกครั้ง</Alert>
+              )}
+              {!serverSearching && units.isPending && <Typography role="status">กำลังโหลดหน่วยงาน…</Typography>}
+              {!serverSearching && units.isError && (
+                <Alert severity="error">โหลดรายการหน่วยงานไม่สำเร็จ กรุณาลองใหม่</Alert>
+              )}
+              {!serverSearching && rows.length === 0 && !units.isPending && !units.isError && (
+                <Alert severity="info">ยังไม่มีข้อมูลหน่วยงาน</Alert>
+              )}
+              {!searchPending &&
+                !searchedUnits.isError &&
+                (rows.length > 0 || serverSearching) &&
+                filtered.length === 0 && <Typography color="text.secondary">ไม่พบหน่วยงานที่ตรงกับคำค้น</Typography>}
+              {serverSearching && searchReady && searchedUnits.data?.pages[0]?.total !== undefined && (
+                <Typography variant="body2" color="text.secondary">
+                  พบ {searchedUnits.data.pages[0].total} หน่วยงานจากการค้นหาทั้งระบบ
+                </Typography>
+              )}
+              {filtered.map((unit) => (
+                <Box key={unit.content_id} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2 }}>
+                  <Stack
+                    direction={{ xs: "column", sm: "row" }}
+                    spacing={1.5}
+                    sx={{ alignItems: { sm: "center" }, justifyContent: "space-between" }}
+                  >
+                    <Box sx={{ minWidth: 0 }}>
+                      <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap", alignItems: "center" }}>
+                        <Typography sx={{ fontWeight: 700, overflowWrap: "anywhere" }}>{unit.title}</Typography>
+                        <Chip
+                          size="small"
+                          label={
+                            ORGANIZATION_KIND_LABELS[unit.unit_kind as keyof typeof ORGANIZATION_KIND_LABELS] ??
+                            unit.unit_kind
+                          }
+                          variant="outlined"
+                        />
+                        <Chip
+                          size="small"
+                          color={unit.status === "published" ? "success" : "default"}
+                          label={ORGANIZATION_STATUS_LABELS[unit.status] ?? unit.status}
+                        />
+                      </Stack>
+                      <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: "anywhere", mt: 0.5 }}>
+                        /{unit.slug} · อันดับ{" "}
+                        {serverSearching && !unitRanks.has(unit.content_id)
+                          ? "—"
+                          : (unitRanks.get(unit.content_id) ?? 1)}
+                        {unit.parent_content_id
+                          ? ` · อยู่ภายใต้ ${rows.find((item) => item.content_id === unit.parent_content_id)?.title ?? "หน่วยงานอื่น"}`
+                          : ""}
+                      </Typography>
+                    </Box>
+                    {canManage && (
+                      <Stack direction="row" spacing={1}>
+                        <Button
+                          startIcon={<EditOutlinedIcon />}
+                          onClick={() => startEdit(unit)}
+                          disabled={saveMutation.isPending || deleteMutation.isPending}
+                        >
+                          แก้ไข
+                        </Button>
+                        <Button
+                          startIcon={<DeleteOutlineOutlinedIcon />}
+                          color="error"
+                          onClick={() => void handleDelete(unit)}
+                          disabled={saveMutation.isPending || deleteMutation.isPending}
+                        >
+                          ลบ
+                        </Button>
+                      </Stack>
+                    )}
+                  </Stack>
+                </Box>
+              ))}
+              {serverSearching && searchReady && searchedUnits.hasNextPage && (
+                <Button
+                  variant="outlined"
+                  onClick={() => void searchedUnits.fetchNextPage()}
+                  disabled={searchedUnits.isFetchingNextPage}
+                >
+                  {searchedUnits.isFetchingNextPage ? "กำลังโหลดผลค้นหา…" : "โหลดผลค้นหาเพิ่มเติม"}
+                </Button>
+              )}
+              {serverSearching && searchedUnits.isFetchNextPageError && (
+                <Alert severity="error">โหลดผลค้นหาหน้าถัดไปไม่สำเร็จ กรุณาลองใหม่</Alert>
+              )}
+              {!serverSearching && units.hasNextPage && (
+                <Button
+                  variant="outlined"
+                  onClick={() => void units.fetchNextPage()}
+                  disabled={units.isFetchingNextPage}
+                >
+                  {units.isFetchingNextPage ? "กำลังโหลดเพิ่มเติม…" : "โหลดหน่วยงานเพิ่มเติม"}
+                </Button>
+              )}
+              {units.isFetchNextPageError && <Alert severity="error">โหลดหน้าถัดไปไม่สำเร็จ กรุณาลองใหม่</Alert>}
+            </Stack>
+          </CardContent>
+        </Card>
+      )}
+      {(view === "personnel" || view === "legacy") && (
+        <OrganizationPersonnelDirectory canManage={canManage} canBrowseMedia={canBrowseMedia} />
+      )}
+      {showBuilder && !showUnits && units.hasNextPage && (
+        <Button variant="outlined" onClick={() => void units.fetchNextPage()} disabled={units.isFetchingNextPage}>
+          {units.isFetchingNextPage ? "กำลังโหลดหน่วยงาน…" : "โหลดหน่วยงานเพิ่มเติม"}
+        </Button>
+      )}
+      {showBuilder && (
+        <OrganizationBuilder
+          units={rows}
+          allUnitsLoaded={!units.hasNextPage && !units.isPending && !units.isError}
+          canManage={canManage}
+          onEditUnit={startEdit}
+          view={view === "positions" || view === "assignments" || view === "charts" ? view : "legacy"}
+        />
+      )}
+      {canManage && needUnits && editorOpen && (
         <OrganizationUnitEditorDialog
           open={editorOpen}
           initial={editing}

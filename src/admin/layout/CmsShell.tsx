@@ -4,6 +4,7 @@ import AppBar from "@mui/material/AppBar";
 import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
+import Collapse from "@mui/material/Collapse";
 import Drawer from "@mui/material/Drawer";
 import IconButton from "@mui/material/IconButton";
 import List from "@mui/material/List";
@@ -20,6 +21,8 @@ import { designTokens } from "../../design-system/tokens";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import CorporateFareOutlinedIcon from "@mui/icons-material/CorporateFareOutlined";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AppsOutlinedIcon from "@mui/icons-material/AppsOutlined";
 import BackupOutlinedIcon from "@mui/icons-material/BackupOutlined";
 import CloudSyncOutlinedIcon from "@mui/icons-material/CloudSyncOutlined";
@@ -47,6 +50,11 @@ type AdminPath =
   | "/admin/external-services"
   | "/admin/content"
   | "/admin/organization"
+  | "/admin/organization/units"
+  | "/admin/organization/personnel"
+  | "/admin/organization/positions"
+  | "/admin/organization/assignments"
+  | "/admin/organization/charts"
   | "/admin/documents"
   | "/admin/media"
   | "/admin/calendar"
@@ -64,6 +72,15 @@ interface NavItem {
   capabilities: readonly CmsCapability[];
 }
 
+const organizationSubmenu: Pick<NavItem, "label" | "to">[] = [
+  { label: "ภาพรวม", to: "/admin/organization" },
+  { label: "หน่วยงาน", to: "/admin/organization/units" },
+  { label: "บุคลากร", to: "/admin/organization/personnel" },
+  { label: "ตำแหน่ง", to: "/admin/organization/positions" },
+  { label: "มอบหมายหน้าที่", to: "/admin/organization/assignments" },
+  { label: "จัดผังองค์กร", to: "/admin/organization/charts" }
+];
+
 const navItems: NavItem[] = [
   { label: "แดชบอร์ด", to: "/admin", icon: <DashboardOutlinedIcon />, capabilities: ["dashboard.read"] },
   {
@@ -74,7 +91,7 @@ const navItems: NavItem[] = [
   },
   { label: "เนื้อหา", to: "/admin/content", icon: <ArticleOutlinedIcon />, capabilities: ["content.read"] },
   {
-    label: "ผังองค์กร",
+    label: "องค์กร",
     to: "/admin/organization",
     icon: <CorporateFareOutlinedIcon />,
     capabilities: ["organization.read"]
@@ -129,12 +146,15 @@ const navItems: NavItem[] = [
 
 export default function CmsShell() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [organizationExpanded, setOrganizationExpanded] = useState<boolean | null>(null);
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up("lg"));
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const { capabilities, session, logout } = useAuth();
   const visibleNavItems = navItems.filter((item) => hasAnyCmsCapability(capabilities, item.capabilities));
+  const organizationActive = pathname === "/admin/organization" || pathname.startsWith("/admin/organization/");
+  const organizationOpen = organizationExpanded ?? organizationActive;
   const permissionLabel = capabilities.some((capability) => !capability.endsWith(".read"))
     ? "สิทธิ์การจัดการกำหนดโดยเซิร์ฟเวอร์"
     : "สิทธิ์อ่านข้อมูลกำหนดโดยเซิร์ฟเวอร์";
@@ -206,6 +226,38 @@ export default function CmsShell() {
       <List sx={{ px: 1.5, py: 2 }}>
         {visibleNavItems.map((item) => {
           const selected = item.to === "/admin" ? pathname === item.to : pathname.startsWith(item.to);
+
+          if (item.to === "/admin/organization") {
+            return (
+              <Box key={item.to}>
+                <ListItemButton
+                  selected={organizationActive}
+                  aria-expanded={organizationOpen}
+                  aria-controls="organization-management-submenu"
+                  onClick={() => setOrganizationExpanded(!organizationOpen)}
+                  sx={{ minHeight: 48, mb: 0.5, borderRadius: designTokens.radius.medium }}
+                >
+                  <ListItemIcon sx={{ color: "inherit", minWidth: 40 }}>{item.icon}</ListItemIcon>
+                  <ListItemText primary={item.label} />
+                  {organizationOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                </ListItemButton>
+                <Collapse in={organizationOpen} timeout="auto" unmountOnExit>
+                  <List id="organization-management-submenu" disablePadding aria-label="เมนูย่อยองค์กร">
+                    {organizationSubmenu.map((child) => (
+                      <ListItemButton
+                        key={child.to}
+                        selected={pathname === child.to}
+                        onClick={() => handleNavigate(child.to)}
+                        sx={{ pl: 6, minHeight: 44, mb: 0.25, borderRadius: designTokens.radius.medium }}
+                      >
+                        <ListItemText primary={child.label} />
+                      </ListItemButton>
+                    ))}
+                  </List>
+                </Collapse>
+              </Box>
+            );
+          }
 
           return (
             <ListItemButton

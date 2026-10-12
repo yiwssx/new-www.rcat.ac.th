@@ -46,13 +46,13 @@ const existing: OrganizationUnitListRow = {
   unit_revision: 2
 };
 
-function renderPage() {
+function renderPage(view: "legacy" | "units" = "legacy") {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } }
   });
   return render(
     <QueryClientProvider client={client}>
-      <OrganizationPage />
+      <OrganizationPage view={view} />
     </QueryClientProvider>
   );
 }
@@ -72,6 +72,30 @@ beforeEach(() => {
 });
 
 describe("Phase 4 Organization Admin list/editor", () => {
+  it("searches all organization units on the server beyond the initially loaded page", async () => {
+    api.getCollection.mockImplementation(
+      async (collection: string, _limit: number, _offset = 0, options?: { search?: string }) => ({
+        items:
+          collection === "units" && options?.search === "การเงิน"
+            ? [{ ...existing, content_id: "unit-140", title: "งานการเงิน", slug: "finance" }]
+            : collection === "units"
+              ? [existing]
+              : [],
+        total: 141,
+        nextOffset: null,
+        maximumItems: 100,
+        generatedAt: ""
+      })
+    );
+    renderPage("units");
+    fireEvent.change(screen.getByRole("textbox", { name: "ค้นหาชื่อ, Slug หรือประเภทหน่วยงาน" }), {
+      target: { value: "การเงิน" }
+    });
+    expect(await screen.findByText("งานการเงิน")).toBeInTheDocument();
+    expect(api.getCollection).toHaveBeenCalledWith("units", 100, 0, { includeTotal: true, search: "การเงิน" });
+    expect(screen.queryByText("ฝ่ายบริหารทรัพยากร")).not.toBeInTheDocument();
+  });
+
   it("displays organizational titles but hides all mutations from read-only users", async () => {
     renderPage();
     expect(await screen.findByRole("treeitem", { name: "ฝ่ายบริหารทรัพยากร" })).toBeInTheDocument();
@@ -150,7 +174,79 @@ describe("Phase 4 Organization Admin list/editor", () => {
       target: { value: "new-work" }
     });
     fireEvent.click(screen.getByRole("button", { name: "บันทึกหน่วยงาน" }));
-    await waitFor(() => expect(api.create).toHaveBeenCalledWith("units", expect.objectContaining({ sortOrder: 5 })));
+    await waitFor(() =>
+      expect(api.create).toHaveBeenCalledWith(
+        "units",
+        expect.objectContaining({ autoSortOrder: true, sortOrder: undefined })
+      )
+    );
+  });
+
+  it("permits creating the next unit even while more than 100 units remain on later pages", async () => {
+    auth.capabilities = ["organization.read", "organization.manage"];
+    api.getCollection.mockImplementation(async (collection: string) => ({
+      items: collection === "units" ? [existing] : [],
+      nextOffset: collection === "units" ? 100 : null,
+      maximumItems: 100,
+      generatedAt: ""
+    }));
+    renderPage("units");
+    const add = await screen.findByRole("button", { name: "เพิ่มหน่วยงาน" });
+    await waitFor(() => expect(add).toBeEnabled());
+    fireEvent.click(add);
+    fireEvent.change(screen.getByRole("textbox", { name: "ชื่อหน่วยงาน" }), {
+      target: { value: "หน่วยงานใหม่เกิน 100" }
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: "Slug" }), {
+      target: { value: "new-after-hundred" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกหน่วยงาน" }));
+    await waitFor(() =>
+      expect(api.create).toHaveBeenCalledWith(
+        "units",
+        expect.objectContaining({ autoSortOrder: true, sortOrder: undefined })
+      )
+    );
+  });
+
+  it("offers a server-search parent unit beyond the initial page when editing", async () => {
+    auth.capabilities = ["organization.read", "organization.manage"];
+    api.getCollection.mockImplementation(
+      async (collection: string, _limit: number, _offset = 0, options?: { search?: string }) => ({
+        items:
+          collection === "units" && options?.search === "ฝ่ายวิชาการ"
+            ? [{ ...existing, content_id: "unit-140", title: "ฝ่ายวิชาการ", slug: "academic" }]
+            : collection === "units"
+              ? [existing]
+              : [],
+        nextOffset: null,
+        maximumItems: 100,
+        total: 142,
+        generatedAt: ""
+      })
+    );
+    renderPage("units");
+    fireEvent.click(await screen.findByRole("button", { name: "แก้ไข" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "ค้นหาหน่วยงานแม่" }), {
+      target: { value: "ฝ่ายวิชาการ" }
+    });
+    await waitFor(() =>
+      expect(api.getCollection).toHaveBeenCalledWith("units", 25, 0, {
+        includeTotal: true,
+        search: "ฝ่ายวิชาการ"
+      })
+    );
+    fireEvent.mouseDown(screen.getByRole("combobox", { name: "หน่วยงานแม่" }));
+    fireEvent.click(await screen.findByRole("option", { name: "ฝ่ายวิชาการ" }));
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกหน่วยงาน" }));
+    await waitFor(() =>
+      expect(api.update).toHaveBeenCalledWith(
+        "units",
+        "unit-1",
+        2,
+        expect.objectContaining({ parentContentId: "unit-140" })
+      )
+    );
   });
 
   it("only deletes units after user confirmation with the exact server revision", async () => {
