@@ -59,8 +59,8 @@ pnpm wrangler d1 export "$D1_NAME" --remote \
 test -s "$OPS_DIR/before-normalization.sql"
 
 # READ ONLY. Unit/content revision parity must be clean before any write.
-pnpm wrangler d1 execute "$D1_NAME" --remote \\
-  --env production --config "$RCAT_D1_OPS_CONFIG" \\
+pnpm wrangler d1 execute "$D1_NAME" --remote \
+  --env production --config "$RCAT_D1_OPS_CONFIG" \
   --command "SELECT COUNT(*) AS mismatched_revisions FROM organization_units AS u JOIN contents AS c ON c.id = u.content_id WHERE u.revision <> c.revision;" --json > "$OPS_DIR/revision-parity.json"
 
 # READ ONLY. Review counts and every affected ID before proceeding.
