@@ -132,15 +132,30 @@ export default function OrganizationChartView({ positions, layout, media, showEd
               ระดับ {group.level}
               {group.row > 1 ? ` · แถว ${group.row}` : ""}
             </Typography>
-            <Box sx={{ overflowX: "auto", maxWidth: "100%", pb: 1 }} tabIndex={0}
-              role="region" aria-label={`แถวระดับ ${group.level} แถว ${group.row} เลื่อนแนวนอนได้`}>
-              <Box sx={{
-                display: "flex", flexWrap: "nowrap", justifyContent: "center", alignItems: "stretch",
-                width: "max-content", minWidth: "100%", gap: 2
-              }}>
+            <Box
+              sx={{ overflowX: "auto", maxWidth: "100%", pb: 1 }}
+              tabIndex={0}
+              role="region"
+              aria-label={`แถวระดับ ${group.level} แถว ${group.row} เลื่อนแนวนอนได้`}
+            >
+              <Box
+                sx={{
+                  display: "flex",
+                  flexWrap: "nowrap",
+                  justifyContent: "center",
+                  alignItems: "stretch",
+                  width: "max-content",
+                  minWidth: "100%",
+                  gap: 2
+                }}
+              >
                 {group.positions.map((position) => (
-                  <PeopleCard key={position.id} position={position} media={media}
-                    showEducationQualifications={showEducationQualifications} />
+                  <PeopleCard
+                    key={position.id}
+                    position={position}
+                    media={media}
+                    showEducationQualifications={showEducationQualifications}
+                  />
                 ))}
               </Box>
             </Box>
