@@ -270,6 +270,7 @@ export async function deleteAuditedOrganizationUnit(
   now: string
 ) {
   const db = requireD1Database(env);
+  const auditId = `audit-${crypto.randomUUID()}`;
   const audit = db
     .prepare(
       `INSERT INTO admin_audit_log (id, entity_type, entity_id, action, actor, created_at, metadata_json)
@@ -279,16 +280,7 @@ export async function deleteAuditedOrganizationUnit(
          WHERE c.id = ? AND c.revision = ? AND u.revision = ? AND c.deleted_at = ''
        )`
     )
-    .bind(
-      `audit-${crypto.randomUUID()}`,
-      id,
-      actor,
-      now,
-      JSON.stringify({ expectedRevision: revision }),
-      id,
-      revision,
-      revision
-    );
+    .bind(auditId, id, actor, now, JSON.stringify({ expectedRevision: revision }), id, revision, revision);
   const removeUnit = db
     .prepare(
       `DELETE FROM organization_units WHERE content_id = ? AND revision = ?
@@ -303,6 +295,22 @@ export async function deleteAuditedOrganizationUnit(
          AND NOT EXISTS (SELECT 1 FROM organization_units WHERE content_id = ?)`
     )
     .bind(`__deleted__:${id}`, now, now, actor, id, revision, id);
-  const result = await db.batch([audit, removeUnit, tombstone]);
-  return Number(result[1]?.meta.changes ?? 0) === 1 && Number(result[2]?.meta.changes ?? 0) === 1;
+  // Tombstoning content invokes its immutable revision-history trigger.
+  // D1 meta.changes includes trigger writes, so a committed delete can report
+  // more than one change. Verify the final tombstone and its unique audit
+  // in the same atomic batch, without relaxing either revision CAS guard.
+  const verify = db
+    .prepare(
+      `SELECT COUNT(*) AS confirmed
+       FROM contents AS c
+       JOIN admin_audit_log AS a ON a.entity_id = c.id
+       WHERE c.id = ? AND c.slug = ? AND c.deleted_at = ?
+         AND c.status = 'draft' AND c.revision = ? AND c.updated_at = ? AND c.updated_by = ?
+         AND a.id = ? AND a.entity_type = 'organization_unit' AND a.action = 'delete'
+         AND NOT EXISTS (SELECT 1 FROM organization_units AS u WHERE u.content_id = c.id)`
+    )
+    .bind(id, `__deleted__:${id}`, now, revision + 1, now, actor, auditId);
+  const result = await db.batch([audit, removeUnit, tombstone, verify]);
+  const confirmation = result[3]?.results?.[0] as { confirmed?: number } | undefined;
+  return Number(confirmation?.confirmed ?? 0) === 1;
 }
