@@ -7,6 +7,7 @@ import {
 } from "../db/organizationAdminRepository";
 import { getAdminOrganizationPositionById, getAdminOrganizationAssignmentById } from "../db/organizationDutyRepository";
 import type { Env } from "../env";
+import { searchAdminOrganizationPage } from "../db/organizationSearchRepository";
 import { json, jsonError } from "../responses";
 
 const COLLECTIONS = ["units", "personnel", "positions", "assignments"] as const;
@@ -16,9 +17,27 @@ function isCollection(value: string | undefined): value is Collection {
   return COLLECTIONS.some((collection) => collection === value);
 }
 
-function readPageParams(request: Request): { limit: number; offset: number } | null {
+function readPageParams(request: Request): {
+  limit: number;
+  offset: number;
+  search: string;
+  includeTotal: boolean;
+  unitContentId?: string;
+  positionId?: string;
+} | null {
   const params = new URL(request.url).searchParams;
-  if ([...params.keys()].some((key) => key !== "limit" && key !== "offset")) return null;
+  const allowed = new Set(["limit", "offset", "search", "includeTotal", "unitContentId", "positionId"]);
+  if ([...params.keys()].some((key) => !allowed.has(key))) return null;
+  if (["search", "includeTotal", "unitContentId", "positionId"].some((key) => params.getAll(key).length > 1))
+    return null;
+  const search = params.get("search") ?? "";
+  if (search.length > 160 || [...search].some((character) => character.charCodeAt(0) < 32)) return null;
+  const includeTotal = params.get("includeTotal") === "1";
+  if (params.has("includeTotal") && !["0", "1"].includes(params.get("includeTotal") ?? "")) return null;
+  const unitContentId = params.get("unitContentId") || undefined;
+  const positionId = params.get("positionId") || undefined;
+  const validId = (id: string) => /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$/.test(id);
+  if ((unitContentId && !validId(unitContentId)) || (positionId && !validId(positionId))) return null;
   if (params.getAll("limit").length > 1 || params.getAll("offset").length > 1) return null;
   const raw = params.get("limit");
   const rawOffset = params.get("offset");
@@ -26,7 +45,7 @@ function readPageParams(request: Request): { limit: number; offset: number } | n
   if (rawOffset !== null && !/^(0|[1-9]\d{0,5})$/.test(rawOffset)) return null;
   const limit = raw === null ? 100 : Number(raw);
   const offset = rawOffset === null ? 0 : Number(rawOffset);
-  return limit <= 100 && offset <= 999999 ? { limit, offset } : null;
+  return limit <= 100 && offset <= 999999 ? { limit, offset, search, includeTotal, unitContentId, positionId } : null;
 }
 
 /**
@@ -61,7 +80,31 @@ export async function handleAdminOrganizationRead(request: Request, env: Env, se
 
   const page = readPageParams(request);
   if (page === null) return jsonError("invalid organization page parameters", 400, { resource: "organization" });
-  const { limit, offset } = page;
+  const { limit, offset, search, includeTotal, unitContentId, positionId } = page;
+  if (
+    (unitContentId && !["personnel", "positions", "assignments"].includes(collection)) ||
+    (positionId && collection !== "assignments")
+  ) {
+    return jsonError("invalid organization filter", 400, { resource: "organization" });
+  }
+  if (includeTotal || search || unitContentId || positionId) {
+    const result = await searchAdminOrganizationPage(env, collection, {
+      limit,
+      offset,
+      search,
+      unitContentId,
+      positionId
+    });
+    return json(
+      {
+        ...result,
+        maximumItems: limit,
+        nextOffset: offset + result.items.length < result.total ? offset + result.items.length : null,
+        generatedAt: new Date().toISOString()
+      },
+      { headers: { "Cache-Control": "no-store" } }
+    );
+  }
 
   const items =
     collection === "units"

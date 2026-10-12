@@ -155,7 +155,8 @@ export async function createAuditedOrganizationUnit(
   id: string,
   input: OrganizationUnitInput,
   actor: string,
-  now: string
+  now: string,
+  autoSortOrder = false
 ) {
   const db = requireD1Database(env);
   const content = contentForCreate(id, input, actor, now);
@@ -166,12 +167,20 @@ export async function createAuditedOrganizationUnit(
        VALUES (${CONTENT_ADMIN_ROW_COLUMNS.map(() => "?").join(", ")}, ?)`
     )
     .bind(...CONTENT_ADMIN_ROW_COLUMNS.map((column) => content[column]), input.unpublishAt);
+  // The sibling order is allocated by the INSERT itself, under the same
+  // transaction as the CMS content and audit records. NULL means root units.
+  const orderExpression =
+    "(SELECT COALESCE(MAX(sort_order) + 1, 0) FROM organization_units WHERE parent_content_id IS ?)";
   const unitInsert = db
     .prepare(
       `INSERT INTO organization_units (${ORGANIZATION_UNIT_ROW_COLUMNS.join(", ")})
-       VALUES (${ORGANIZATION_UNIT_ROW_COLUMNS.map(() => "?").join(", ")})`
+       VALUES (${ORGANIZATION_UNIT_ROW_COLUMNS.map((column) => (autoSortOrder && column === "sort_order" ? orderExpression : "?")).join(", ")})`
     )
-    .bind(...ORGANIZATION_UNIT_ROW_COLUMNS.map((column) => unit[column]));
+    .bind(
+      ...ORGANIZATION_UNIT_ROW_COLUMNS.flatMap((column) =>
+        autoSortOrder && column === "sort_order" ? [unit.parent_content_id] : [unit[column]]
+      )
+    );
   await db.batch([contentInsert, unitInsert, auditStatement(db, id, "create", actor, now)]);
 }
 

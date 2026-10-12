@@ -55,18 +55,33 @@ async function createAuditedRow(
   env: Env,
   entity: DutyKind,
   row: OrganizationPositionRow | OrganizationAssignmentRow,
-  actor: string
+  actor: string,
+  autoSortOrder = false
 ) {
   const database = requireD1Database(env);
   const model = TABLE[entity];
   const values = row as unknown as Record<string, unknown>;
   const columns: readonly string[] = model.columns;
+  // A single INSERT statement determines the next sibling order on the server.
+  // The INSERT and audit record remain in the same D1 batch transaction.
+  const appendExpression =
+    entity === "position"
+      ? "(SELECT COALESCE(MAX(sort_order) + 1, 0) FROM organization_positions WHERE unit_content_id = ? AND group_label = ? AND group_sort_order = ?)"
+      : "(SELECT COALESCE(MAX(sort_order) + 1, 0) FROM organization_assignments WHERE position_id = ?)";
+  const appendScope =
+    entity === "position"
+      ? [values.unit_content_id, values.group_label, values.group_sort_order]
+      : [values.position_id];
   const insert = database
     .prepare(
       `INSERT INTO ${model.table} (${columns.join(", ")})
-       VALUES (${columns.map(() => "?").join(", ")})`
+       VALUES (${columns.map((column) => (autoSortOrder && column === "sort_order" ? appendExpression : "?")).join(", ")})`
     )
-    .bind(...columns.map((column) => (column === "revision" ? 0 : values[column])));
+    .bind(
+      ...columns.flatMap((column) =>
+        autoSortOrder && column === "sort_order" ? appendScope : [column === "revision" ? 0 : values[column]]
+      )
+    );
   const audit = auditStatement(database, entity, row.id, "create", actor, row.created_at, {});
   await database.batch([insert, audit]);
 }
@@ -106,8 +121,13 @@ async function updateAuditedRow(
   return Number(result[1]?.meta.changes ?? 0) === 1;
 }
 
-export async function createAuditedOrganizationPosition(env: Env, row: OrganizationPositionRow, actor: string) {
-  return createAuditedRow(env, "position", row, actor);
+export async function createAuditedOrganizationPosition(
+  env: Env,
+  row: OrganizationPositionRow,
+  actor: string,
+  autoSortOrder = false
+) {
+  return createAuditedRow(env, "position", row, actor, autoSortOrder);
 }
 
 export async function updateAuditedOrganizationPosition(
@@ -120,8 +140,13 @@ export async function updateAuditedOrganizationPosition(
   return updateAuditedRow(env, "position", row, revision, actor, changedFields);
 }
 
-export async function createAuditedOrganizationAssignment(env: Env, row: OrganizationAssignmentRow, actor: string) {
-  return createAuditedRow(env, "assignment", row, actor);
+export async function createAuditedOrganizationAssignment(
+  env: Env,
+  row: OrganizationAssignmentRow,
+  actor: string,
+  autoSortOrder = false
+) {
+  return createAuditedRow(env, "assignment", row, actor, autoSortOrder);
 }
 
 export async function updateAuditedOrganizationAssignment(
