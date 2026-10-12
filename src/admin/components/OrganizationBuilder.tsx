@@ -691,18 +691,22 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
               กรุณาโหลดรายการตำแหน่งให้ครบก่อนจัดผัง เพื่อป้องกันค่าที่กำลังแก้ไขถูกรีเซ็ตระหว่างโหลดข้อมูล
             </Alert>
           )}
-          {(view === "legacy" || view === "charts") && selectedUnit && !positionsQuery.isPending && !positionsQuery.hasNextPage && !positionsQuery.isError && (
-            <OrganizationChartLayoutEditor
-              key={`${selectedUnit.content_id}:${selectedUnit.unit_revision}:${visiblePositions.length}`}
-              unit={selectedUnit}
-              positions={visiblePositions}
-              assignments={assignments}
-              personnel={personnel}
-              canManage={canManage}
-              allPositionsLoaded={!positionsQuery.hasNextPage && !positionsQuery.isPending && !positionsQuery.isError}
-              onSaved={refresh}
-            />
-          )}
+          {(view === "legacy" || view === "charts") &&
+            selectedUnit &&
+            !positionsQuery.isPending &&
+            !positionsQuery.hasNextPage &&
+            !positionsQuery.isError && (
+              <OrganizationChartLayoutEditor
+                key={`${selectedUnit.content_id}:${selectedUnit.unit_revision}:${visiblePositions.length}`}
+                unit={selectedUnit}
+                positions={visiblePositions}
+                assignments={assignments}
+                personnel={personnel}
+                canManage={canManage}
+                allPositionsLoaded={!positionsQuery.hasNextPage && !positionsQuery.isPending && !positionsQuery.isError}
+                onSaved={refresh}
+              />
+            )}
           <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
             {pageControl("ตำแหน่ง", positionsQuery)}
             {pageControl("หน้าที่", assignmentsQuery)}
@@ -861,11 +865,12 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                     value={assignmentForm.personnelId}
                     onChange={(event) => setAssignmentForm({ ...assignmentForm, personnelId: event.target.value })}
                   >
-                    {assignmentForm.personnelId && !personnelOptions.some((person) => person.id === assignmentForm.personnelId) && (
-                      <MenuItem value={assignmentForm.personnelId} disabled>
-                        รหัสบุคลากร {assignmentForm.personnelId} (ยังไม่ได้โหลดข้อมูล)
-                      </MenuItem>
-                    )}
+                    {assignmentForm.personnelId &&
+                      !personnelOptions.some((person) => person.id === assignmentForm.personnelId) && (
+                        <MenuItem value={assignmentForm.personnelId} disabled>
+                          รหัสบุคลากร {assignmentForm.personnelId} (ยังไม่ได้โหลดข้อมูล)
+                        </MenuItem>
+                      )}
                     {personnelOptions.map((person) => (
                       <MenuItem key={person.id} value={person.id}>
                         {person.display_name}
