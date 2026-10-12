@@ -116,6 +116,17 @@ export default function OrganizationChartLayoutEditor({
     setError("");
   }
 
+  function adjustPlacement(
+    id: string,
+    field: "level" | "row" | "order",
+    delta: number,
+    current: number
+  ) {
+    const min = field === "order" ? 0 : 1;
+    const max = field === "order" ? 1000000 : 100;
+    patch(id, field, Math.max(min, Math.min(max, current + delta)));
+  }
+
   async function save() {
     if (busy || !canManage || !allPositionsLoaded) return;
     let validated: OrganizationChartLayout;
@@ -222,6 +233,28 @@ export default function OrganizationChartLayoutEditor({
                           slotProps={{ htmlInput: { min: 0, max: 1000000, step: 1 } }}
                           onChange={(event) => patch(position.id, "order", Number(event.target.value))}
                         />
+                        <Stack direction="row" spacing={0.5} useFlexGap sx={{ flexWrap: "wrap" }}>
+                          <Button size="small" variant="outlined" disabled={busy || !canManage || placement.level <= 1}
+                            onClick={() => adjustPlacement(position.id, "level", -1, placement.level)}>
+                            ย้ายขึ้น
+                          </Button>
+                          <Button size="small" variant="outlined" disabled={busy || !canManage || placement.level >= 100}
+                            onClick={() => adjustPlacement(position.id, "level", 1, placement.level)}>
+                            ย้ายลง
+                          </Button>
+                          <Button size="small" variant="outlined" disabled={busy || !canManage || placement.row >= 100}
+                            onClick={() => adjustPlacement(position.id, "row", 1, placement.row)}>
+                            เพิ่มแถว
+                          </Button>
+                          <Button size="small" variant="outlined" disabled={busy || !canManage || placement.order <= 0}
+                            onClick={() => adjustPlacement(position.id, "order", -1, placement.order)}>
+                            เลื่อนซ้าย
+                          </Button>
+                          <Button size="small" variant="outlined" disabled={busy || !canManage || placement.order >= 1000000}
+                            onClick={() => adjustPlacement(position.id, "order", 1, placement.order)}>
+                            เลื่อนขวา
+                          </Button>
+                        </Stack>
                         {mode === "tree" && (
                           <TextField
                             size="small"

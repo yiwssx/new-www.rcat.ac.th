@@ -14,6 +14,7 @@ import {
 import { hasAdminCapability } from "../src/auth/adminCapabilities";
 import { resolveAdminRoutePolicy } from "../src/auth/adminRoutePolicy";
 import { handleAdminOrganizationRead } from "../src/routes/adminOrganization";
+import { searchAdminOrganizationPage } from "../src/db/organizationSearchRepository";
 import type { Env } from "../src/env";
 
 vi.mock("../src/db/organizationAdminRepository", () => ({
@@ -29,11 +30,16 @@ vi.mock("../src/db/organizationDutyRepository", () => ({
   getAdminOrganizationAssignmentById: vi.fn()
 }));
 
+vi.mock("../src/db/organizationSearchRepository", () => ({
+  searchAdminOrganizationPage: vi.fn()
+}));
+
 const env = {} as Env;
 
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(listAdminOrganizationContentUnits).mockResolvedValue([]);
+  vi.mocked(searchAdminOrganizationPage).mockResolvedValue({ items: [], total: 0 });
   vi.mocked(listAdminPersonnel).mockResolvedValue([]);
   vi.mocked(listAdminOrganizationPositions).mockResolvedValue([]);
   vi.mocked(listAdminOrganizationAssignments).mockResolvedValue([]);
@@ -94,6 +100,51 @@ describe("Organization Chart Admin read boundary", () => {
       expect(response?.status).toBe(400);
     }
     expect(listAdminPersonnel).not.toHaveBeenCalled();
+  });
+
+  it("queries server-side personnel search and counts without loading every page", async () => {
+    vi.mocked(searchAdminOrganizationPage).mockResolvedValueOnce({
+      items: [{ id: "person-145", display_name: "ผลค้นหา" }],
+      total: 145
+    });
+    const response = await handleAdminOrganizationRead(
+      new Request("https://example.invalid/api/admin/organization/personnel?limit=1&offset=3&search=%E0%B8%84%E0%B8%A3%E0%B8%B9&includeTotal=1"),
+      env,
+      ["organization", "personnel"]
+    );
+    expect(response?.status).toBe(200);
+    expect(response?.headers.get("Cache-Control")).toBe("no-store");
+    expect(await response?.json()).toMatchObject({ total: 145, nextOffset: 4, maximumItems: 1 });
+    expect(searchAdminOrganizationPage).toHaveBeenCalledWith(env, "personnel", {
+      limit: 1,
+      offset: 3,
+      search: "ครู",
+      unitContentId: undefined,
+      positionId: undefined
+    });
+    expect(listAdminPersonnel).not.toHaveBeenCalled();
+  });
+
+  it("bounds unit-scoped searches and rejects filter misuse", async () => {
+    const scoped = await handleAdminOrganizationRead(
+      new Request("https://example.invalid/api/admin/organization/positions?unitContentId=unit-1&limit=10"),
+      env,
+      ["organization", "positions"]
+    );
+    expect(scoped?.status).toBe(200);
+    expect(searchAdminOrganizationPage).toHaveBeenCalledWith(
+      env,
+      "positions",
+      expect.objectContaining({ unitContentId: "unit-1", limit: 10 })
+    );
+    for (const query of ["?search=x&search=y", "?includeTotal=x", "?unitContentId=%2Fbad", "?positionId=person-1"]) {
+      const response = await handleAdminOrganizationRead(
+        new Request("https://example.invalid/api/admin/organization/units" + query),
+        env,
+        ["organization", "units"]
+      );
+      expect(response?.status).toBe(400);
+    }
   });
 
   it("supports offset paging for a reusable personnel directory without leaking other collections", async () => {

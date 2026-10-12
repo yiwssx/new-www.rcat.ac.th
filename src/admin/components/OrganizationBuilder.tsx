@@ -423,7 +423,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
         <Stack spacing={2}>
           <Box>
             <Typography variant="h2" sx={{ fontSize: "1.25rem" }}>
-              ตัวจัดโครงสร้างองค์กร
+              {view === "charts" ? "จัดผังองค์กร" : view === "assignments" ? "มอบหมายหน้าที่" : view === "positions" ? "จัดการตำแหน่ง" : "ตัวจัดโครงสร้างองค์กร"}
             </Typography>
             <Typography color="text.secondary" variant="body2">
               เลือกฝ่าย งาน หรือแผนก แล้วกำหนดตำแหน่งและหน้าที่ของบุคลากรคนเดียวในหลายหน่วยงานได้
@@ -441,7 +441,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
           )}
           {!allUnitsLoaded && (
             <Alert severity="warning">
-              รายการหน่วยงานยังโหลดไม่ครบ กรุณาโหลดหน่วยงานเพิ่มเติมด้านบนก่อนเลือกจัดโครงสร้าง
+              เลือกหน่วยงานที่ปรากฏได้ทันที หรือโหลดหน่วยงานเพิ่มเติมเพื่อค้นหาหน่วยงานอื่น
             </Alert>
           )}
           {(positionsQuery.isError || assignmentsQuery.isError || personnelQuery.isError) && (
@@ -478,14 +478,14 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                   <Typography variant="h3" sx={{ fontSize: "1rem", overflowWrap: "anywhere" }}>
                     {selectedUnit ? "ตำแหน่งใน " + selectedUnit.title : "เลือกหน่วยงานจากรายการด้านซ้าย"}
                   </Typography>
-                  {selectedUnit && canManage && (
+                  {selectedUnit && canManage && view !== "charts" && (
                     <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
-                      {onEditUnit && (
+                      {onEditUnit && view === "legacy" && (
                         <Button variant="outlined" disabled={busy} onClick={() => onEditUnit(selectedUnit)}>
                           แก้ไขหน่วยงาน/ลำดับชั้น
                         </Button>
                       )}
-                      <Button
+                      {view !== "assignments" && <Button
                         variant="contained"
                         disabled={
                           busy || positionsQuery.hasNextPage || positionsQuery.isPending || positionsQuery.isError
@@ -493,11 +493,11 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                         onClick={() => openPosition(null)}
                       >
                         เพิ่มตำแหน่ง
-                      </Button>
+                      </Button>}
                     </Stack>
                   )}
                 </Stack>
-                {positionsQuery.isPending && <Typography role="status">กำลังโหลดตำแหน่ง…</Typography>}
+                {selectedUnit && positionsQuery.isPending && <Typography role="status">กำลังโหลดตำแหน่ง…</Typography>}
                 {selectedUnit &&
                   visiblePositions.length === 0 &&
                   !positionsQuery.isPending &&
@@ -578,7 +578,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                                     )}
                                 </Stack>
                               </Box>
-                              {canManage && (
+                              {canManage && (view === "legacy" || view === "positions") && (
                                 <Stack direction="row" useFlexGap sx={{ flexWrap: "wrap" }}>
                                   <Button onClick={() => openPosition(position)} disabled={busy}>
                                     แก้ไขตำแหน่ง
@@ -641,7 +641,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                                           {assignment.enabled === 0 ? " · ปิดการแสดงผล" : ""}
                                         </Typography>
                                       </Box>
-                                      {canManage && (
+                                      {canManage && (view === "legacy" || view === "assignments") && (
                                         <Stack direction="row" useFlexGap sx={{ flexWrap: "wrap" }}>
                                           <Button
                                             disabled={busy}
@@ -663,7 +663,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                                 </OrganizationSortableRow>
                               ))}
                             </DragDropProvider>
-                            {canManage && (
+                            {canManage && (view === "legacy" || view === "assignments") && (
                               <Button
                                 variant="outlined"
                                 disabled={
