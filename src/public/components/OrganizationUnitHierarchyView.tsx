@@ -164,6 +164,7 @@ export default function OrganizationUnitHierarchyView({ hierarchy }: Props) {
           </Typography>
           <Box
             role="region"
+            className="rcat-focus-ring"
             tabIndex={0}
             aria-label="ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้"
             sx={{
@@ -175,8 +176,7 @@ export default function OrganizationUnitHierarchyView({ hierarchy }: Props) {
               touchAction: "pan-x pan-y",
               overscrollBehaviorX: "contain",
               pb: 2,
-              pt: 1,
-              "&:focus-visible": { outline: "2px solid", outlineColor: "primary.main", outlineOffset: -2 }
+              pt: 1
             }}
           >
             <Box sx={{ display: "flex", justifyContent: "center", width: "max-content", minWidth: "100%" }}>
