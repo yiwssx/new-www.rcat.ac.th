@@ -109,7 +109,7 @@ describe("Organization Chart audited duty D1 operations", () => {
   });
 
   it("allocates consecutive sibling orders in D1 and preserves audited creates", async () => {
-    await createAuditedOrganizationPosition(env, position, "editor", true);
+    await createAuditedOrganizationPosition(env, { ...position, occupant_limit: 2 }, "editor", true);
     await createAuditedOrganizationPosition(env, { ...position, id: "pos2", title: "Deputy" }, "editor", true);
     expect((await getAdminOrganizationPositionById(env, "pos1"))?.sort_order).toBe(0);
     expect((await getAdminOrganizationPositionById(env, "pos2"))?.sort_order).toBe(1);
