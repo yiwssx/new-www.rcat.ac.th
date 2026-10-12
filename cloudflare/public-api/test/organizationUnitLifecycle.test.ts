@@ -114,6 +114,37 @@ describe("Organization unit + CMS content transactional lifecycle", () => {
     expect(count("admin_audit_log")).toBe(1);
   });
 
+  it("persists independent chart modes and reporting rows through audited revision writes", async () => {
+    const initial = {
+      ...input,
+      chartMode: "rows" as const,
+      chartLayout: {
+        director: { level: 1, row: 1, order: 0, parentPositionId: null },
+        deputy: { level: 2, row: 1, order: 1, parentPositionId: "director" }
+      }
+    };
+    await createAuditedOrganizationUnit(env, "org1", initial, "editor", NOW);
+    const created = await getOrganizationUnitEditor(env, "org1");
+    expect(created?.chart_mode).toBe("rows");
+    expect(JSON.parse(created?.chart_layout ?? "{}")).toEqual(initial.chartLayout);
+    const next = {
+      ...initial,
+      chartMode: "tree" as const,
+      chartLayout: { ...initial.chartLayout, deputy: { ...initial.chartLayout.deputy, row: 2 } }
+    };
+    expect(
+      await updateAuditedOrganizationUnit(env, "org1", next, 0, "editor", "2026-10-10T04:31:00.000Z")
+    ).toBe(true);
+    const updated = await getOrganizationUnitEditor(env, "org1");
+    expect(updated).toMatchObject({ chart_mode: "tree", content_revision: 1, unit_revision: 1 });
+    expect(JSON.parse(updated?.chart_layout ?? "{}")).toEqual(next.chartLayout);
+    expect(
+      await updateAuditedOrganizationUnit(env, "org1", initial, 0, "editor", "2026-10-10T04:32:00.000Z")
+    ).toBe(false);
+    expect(JSON.parse((await getOrganizationUnitEditor(env, "org1"))?.chart_layout ?? "{}")).toEqual(next.chartLayout);
+    expect(count("admin_audit_log")).toBe(2);
+  });
+
   it("publishes and unpublishes with synchronized optimistic revisions", async () => {
     await createAuditedOrganizationUnit(env, "org1", input, "editor", NOW);
     const now2 = "2026-10-10T04:31:00.000Z";
