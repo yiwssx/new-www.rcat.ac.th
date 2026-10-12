@@ -94,7 +94,7 @@ describe("Organization Chart published hierarchy reads", () => {
       sort_order: 0,
       chart_mode: "rows",
       chart_layout: JSON.stringify({
-        "p1": { level: 1, row: 1, order: 0, parentPositionId: null }
+        p1: { level: 1, row: 1, order: 0, parentPositionId: null }
       }),
       slug: "division",
       title: "Division",
