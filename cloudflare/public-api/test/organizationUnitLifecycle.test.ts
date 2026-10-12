@@ -19,6 +19,8 @@ import { listAdminOrganizationContentUnits } from "../src/db/organizationAdminRe
 
 let db: DatabaseSync;
 let env: Env;
+let contentUpdateTotalChanges = 0;
+let contentTombstoneTotalChanges = 0;
 const NOW = "2026-10-10T04:30:00.000Z";
 
 const input: OrganizationUnitInput = {
@@ -43,8 +45,20 @@ function d1(): D1Database {
           return this;
         },
         async run() {
-          const result = db.prepare(sql).run(...(values as never[]));
-          return { success: true, meta: { changes: Number(result.changes) } };
+          if (sql.trimStart().toUpperCase().startsWith("SELECT")) {
+            return { success: true, results: db.prepare(sql).all(...(values as never[])), meta: { changes: 0 } };
+          }
+          // Cloudflare D1 reports sqlite3_total_changes() deltas, which include
+          // trigger writes; sqlite3_changes() (StatementSync.run().changes) does not.
+          const before = (db.prepare("SELECT total_changes() AS value").get() as { value: number }).value;
+          db.prepare(sql).run(...(values as never[]));
+          const after = (db.prepare("SELECT total_changes() AS value").get() as { value: number }).value;
+          const changes = after - before;
+          if (sql.trimStart().startsWith("UPDATE contents")) {
+            contentUpdateTotalChanges = changes;
+            if (sql.includes("deleted_at = ?")) contentTombstoneTotalChanges = changes;
+          }
+          return { success: true, results: [], meta: { changes } };
         },
         async first<T>() {
           return (db.prepare(sql).get(...(values as never[])) ?? null) as T | null;
@@ -75,6 +89,8 @@ function count(table: string) {
 
 beforeEach(() => {
   db = new DatabaseSync(":memory:");
+  contentUpdateTotalChanges = 0;
+  contentTombstoneTotalChanges = 0;
   db.exec("PRAGMA foreign_keys = ON;");
   for (const migration of [initialSql, coreSql, adminSql, lifecycleSql, revisionSql, organizationSql]) {
     db.exec(migration);
@@ -117,8 +133,29 @@ describe("Organization unit + CMS content transactional lifecycle", () => {
       unit_revision: 1
     });
     expect(count("content_revisions")).toBe(2);
+    // Updating one content row ALSO inserts the immutable revision snapshot.
+    // D1 reports both changes, even though exactly one CMS row was updated.
+    expect(contentUpdateTotalChanges).toBeGreaterThan(1);
     expect(await updateAuditedOrganizationUnit(env, "org1", input, 0, "editor", now2)).toBe(false);
     expect(count("admin_audit_log")).toBe(2);
+  });
+
+  it("confirms a publish-to-draft save once and rejects a stale replay", async () => {
+    await createAuditedOrganizationUnit(env, "org1", input, "editor", NOW);
+    const publishedAt = "2026-10-12T03:31:00.000Z";
+    const now2 = "2026-10-12T03:32:00.000Z";
+    const published = { ...input, status: "published" as const, publishAt: publishedAt };
+    expect(await updateAuditedOrganizationUnit(env, "org1", published, 0, "editor", publishedAt)).toBe(true);
+    expect(await updateAuditedOrganizationUnit(env, "org1", input, 1, "editor", now2)).toBe(true);
+    expect(await getOrganizationUnitEditor(env, "org1")).toMatchObject({
+      status: "draft",
+      content_revision: 2,
+      unit_revision: 2
+    });
+    expect(count("admin_audit_log")).toBe(3);
+    expect(count("content_revisions")).toBe(3);
+    expect(await updateAuditedOrganizationUnit(env, "org1", published, 1, "editor", now2)).toBe(false);
+    expect(count("admin_audit_log")).toBe(3);
   });
 
   it("provides a CMS-backed Admin unit list with title, slug, publication state and synchronized revisions", async () => {
@@ -173,6 +210,10 @@ describe("Organization unit + CMS content transactional lifecycle", () => {
     await expect(deleteAuditedOrganizationUnit(env, "org1", 0, "editor", NOW)).rejects.toThrow(/FOREIGN KEY/);
     expect((await getOrganizationUnitEditor(env, "org1"))?.slug).toBe("division-a");
     expect(await deleteAuditedOrganizationUnit(env, "org2", 0, "editor", NOW)).toBe(true);
+    // A successful tombstone UPDATE also writes an immutable content snapshot.
+    // The trigger-inclusive D1 change count is not the number of directly
+    // affected rows and must not turn a committed delete into HTTP 409.
+    expect(contentTombstoneTotalChanges).toBeGreaterThan(1);
     expect(await deleteAuditedOrganizationUnit(env, "org1", 0, "editor", NOW)).toBe(true);
     expect(count("organization_units")).toBe(0);
     expect(count("contents")).toBe(2);
