@@ -117,6 +117,29 @@ describe("Phase 6 accessible Organization builder", () => {
     expect(api.create).not.toHaveBeenCalled();
   });
 
+  it("saves a unit-specific chart layout with the current unit revision", async () => {
+    setup(true);
+    fireEvent.click(screen.getByText("งานสารบรรณ"));
+    const mode = await screen.findByRole("combobox", { name: "รูปแบบผัง" });
+    fireEvent.mouseDown(mode);
+    fireEvent.click(await screen.findByRole("option", { name: /แบบ A/ }));
+    fireEvent.change(screen.getByRole("spinbutton", { name: "ระดับชั้น" }), {
+      target: { value: "3" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกโครงสร้างผัง" }));
+    await waitFor(() =>
+      expect(api.update).toHaveBeenCalledWith(
+        "units", "work-1", 0,
+        expect.objectContaining({
+          chartMode: "rows",
+          chartLayout: expect.objectContaining({
+            "position-1": { level: 3, row: 1, order: 0, parentPositionId: null }
+          })
+        })
+      )
+    );
+  });
+
   it("enables drag handles only for editable, complete sibling lists", async () => {
     api.list.mockImplementation(async (collection: string) => ({
       items:
