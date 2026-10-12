@@ -8,6 +8,7 @@ export interface PublicOrganizationUnit {
   parentContentId: string | null;
   unitKind: string;
   sortOrder: number;
+  chartMode?: "cards" | "rows" | "tree";
   slug: string;
   title: string;
   summary: string;
