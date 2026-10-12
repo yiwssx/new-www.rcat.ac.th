@@ -4,7 +4,7 @@
 
 ## Scope
 
-The first stored `sort_order = 0` within a sibling group is valid. This operation only changes rows in groups with *duplicate* stored ranks:
+The first stored `sort_order = 0` within a sibling group is valid. This operation only changes rows in groups with _duplicate_ stored ranks:
 
 - `organization_units`: same `parent_content_id` (including root units).
 - `organization_positions`: same `unit_content_id`, `group_label`, and `group_sort_order`.
@@ -65,7 +65,7 @@ pnpm wrangler d1 execute "$D1_NAME" --remote \
   --json > "$OPS_DIR/preview.json"
 ```
 
-**Stop here** to inspect `"$OPS_DIR/preview.json"` and obtain the protected operation approval. Only then run the following *manual write* against the exact same verified D1 while editing is paused:
+**Stop here** to inspect `"$OPS_DIR/preview.json"` and obtain the protected operation approval. Only then run the following _manual write_ against the exact same verified D1 while editing is paused:
 
 ```bash
 pnpm wrangler d1 execute "$D1_NAME" --remote \
