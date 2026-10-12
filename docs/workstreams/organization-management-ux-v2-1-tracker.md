@@ -40,6 +40,7 @@
 - Production/release evidence **none** for V2.1; do not claim completion.
 
 ## Checkpoint — 2026-10-12 subsequent implementation
+
 - Head at checkpoint read: `d891800e6288ae9f90545adfdab3547860f4e6e4`.
 - Scoped Worker personnel filter: `3ebb19df`; unit-scoped builder and lookup: `23dd25de`.
 - Added filtered-read regression tests and view-specific controls: `ed99617d`.
