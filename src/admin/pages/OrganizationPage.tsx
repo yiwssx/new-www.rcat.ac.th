@@ -160,7 +160,7 @@ export default function OrganizationPage({ view = "legacy" }: { view?: Organizat
   });
 
   function startCreate() {
-    if (!canManage || units.hasNextPage || units.isPending || units.isError) return;
+    if (!canManage || units.isPending || units.isError) return;
     setEditing(null);
     setEditorError("");
     setError("");
@@ -337,7 +337,7 @@ export default function OrganizationPage({ view = "legacy" }: { view?: Organizat
                       variant="contained"
                       startIcon={<AddOutlinedIcon />}
                       onClick={startCreate}
-                      disabled={units.hasNextPage || units.isPending || units.isError}
+                      disabled={units.isPending || units.isError}
                     >
                       เพิ่มหน่วยงาน
                     </Button>
@@ -353,7 +353,7 @@ export default function OrganizationPage({ view = "legacy" }: { view?: Organizat
               />
               {units.hasNextPage && canManage && (
                 <Alert severity="info">
-                  โหลดหน่วยงานเพิ่มเติมให้ครบก่อนเพิ่มรายการ เพื่อคำนวณลำดับต่อท้ายได้ถูกต้อง
+                  สามารถเพิ่มหน่วยงานได้ทันที ระบบจัดลำดับอัตโนมัติจากข้อมูลจริงบนเซิร์ฟเวอร์
                 </Alert>
               )}
               {serverSearching && searchPending && <Typography role="status">กำลังค้นหาหน่วยงาน…</Typography>}

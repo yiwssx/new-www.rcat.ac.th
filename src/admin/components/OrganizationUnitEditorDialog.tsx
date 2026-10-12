@@ -4,6 +4,8 @@ import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
+import Checkbox from "@mui/material/Checkbox";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
@@ -52,6 +54,7 @@ export default function OrganizationUnitEditorDialog({ open, initial, units, bus
     defaultValues: editorDefaults(initial),
     mode: "onBlur"
   });
+  const [autoSortOrder, setAutoSortOrder] = useState(true);
   const [parentSearch, setParentSearch] = useState("");
   const [parentSearchDebounced, setParentSearchDebounced] = useState("");
   useEffect(() => {
@@ -77,7 +80,10 @@ export default function OrganizationUnitEditorDialog({ open, initial, units, bus
     (unit) => unit.sort_order
   );
   useEffect(() => {
-    if (open) reset({ ...editorDefaults(initial), sortOrder: initial?.sort_order ?? nextRootOrder });
+    if (open) {
+      setAutoSortOrder(!initial);
+      reset({ ...editorDefaults(initial), sortOrder: initial?.sort_order ?? nextRootOrder });
+    }
   }, [initial, nextRootOrder, open, reset]);
   const canSelectParent = useMemo(() => {
     const allowedLocal = availableOrganizationParents(units, initial?.content_id ?? null);
@@ -96,7 +102,8 @@ export default function OrganizationUnitEditorDialog({ open, initial, units, bus
   }, [units, initial?.content_id, parentSearchQuery.data]);
   const status = useWatch({ control, name: "status" });
   const save = handleSubmit(async (form) => {
-    await onSave(toOrganizationUnitWrite(form));
+    const payload = toOrganizationUnitWrite(form);
+    await onSave(!initial && autoSortOrder ? { ...payload, sortOrder: undefined, autoSortOrder: true } : payload);
   });
 
   const textField = (key: "title" | "slug" | "summary", label: string, multiline = false) => (
@@ -247,6 +254,18 @@ export default function OrganizationUnitEditorDialog({ open, initial, units, bus
                 </TextField>
               )}
             />
+            {!initial && (
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={autoSortOrder}
+                    disabled={busy}
+                    onChange={(_, checked) => setAutoSortOrder(checked)}
+                  />
+                }
+                label="จัดลำดับต่อท้ายอัตโนมัติจากเซิร์ฟเวอร์"
+              />
+            )}
             <Box component="details" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, p: 1.5 }}>
               <Box component="summary" sx={{ cursor: "pointer", fontWeight: 600 }}>
                 ตั้งค่าลำดับด้วยตัวเลข (ขั้นสูง)
@@ -261,7 +280,7 @@ export default function OrganizationUnitEditorDialog({ open, initial, units, bus
                     fullWidth
                     sx={{ mt: 2 }}
                     label="ลำดับแสดงผล"
-                    disabled={busy}
+                    disabled={busy || (!initial && autoSortOrder)}
                     onChange={(event) => field.onChange(Number(event.target.value))}
                     error={Boolean(errors.sortOrder)}
                     helperText={

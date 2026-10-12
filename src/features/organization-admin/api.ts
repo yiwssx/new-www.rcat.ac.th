@@ -96,6 +96,7 @@ export type OrganizationUnitWrite = {
   parentContentId?: string | null;
   unitKind: string;
   sortOrder?: number;
+  autoSortOrder?: boolean;
   chartMode?: "cards" | "rows" | "tree";
   chartLayout?: OrganizationChartLayout;
 };

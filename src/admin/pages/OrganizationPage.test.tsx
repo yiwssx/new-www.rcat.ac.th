@@ -174,7 +174,37 @@ describe("Phase 4 Organization Admin list/editor", () => {
       target: { value: "new-work" }
     });
     fireEvent.click(screen.getByRole("button", { name: "บันทึกหน่วยงาน" }));
-    await waitFor(() => expect(api.create).toHaveBeenCalledWith("units", expect.objectContaining({ sortOrder: 5 })));
+    await waitFor(() =>
+      expect(api.create).toHaveBeenCalledWith(
+        "units", expect.objectContaining({ autoSortOrder: true, sortOrder: undefined })
+      )
+    );
+  });
+
+  it("permits creating the next unit even while more than 100 units remain on later pages", async () => {
+    auth.capabilities = ["organization.read", "organization.manage"];
+    api.getCollection.mockImplementation(async (collection: string) => ({
+      items: collection === "units" ? [existing] : [],
+      nextOffset: collection === "units" ? 100 : null,
+      maximumItems: 100,
+      generatedAt: ""
+    }));
+    renderPage("units");
+    const add = await screen.findByRole("button", { name: "เพิ่มหน่วยงาน" });
+    await waitFor(() => expect(add).toBeEnabled());
+    fireEvent.click(add);
+    fireEvent.change(screen.getByRole("textbox", { name: "ชื่อหน่วยงาน" }), {
+      target: { value: "หน่วยงานใหม่เกิน 100" }
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: "Slug" }), {
+      target: { value: "new-after-hundred" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกหน่วยงาน" }));
+    await waitFor(() =>
+      expect(api.create).toHaveBeenCalledWith(
+        "units", expect.objectContaining({ autoSortOrder: true, sortOrder: undefined })
+      )
+    );
   });
 
   it("offers a server-search parent unit beyond the initial page when editing", async () => {
