@@ -13,6 +13,7 @@ import Typography from "@mui/material/Typography";
 import type { PublicOrganizationPosition } from "../../features/public-organization";
 import { publicOrganizationDetailQueryOptions } from "../../features/public-organization";
 import PublicResponsiveImage from "../../shared/media/PublicResponsiveImage";
+import OrganizationChartView from "../components/OrganizationChartView";
 import PublicErrorState from "../components/PublicErrorState";
 import PublicLoadingState from "../components/PublicLoadingState";
 
@@ -211,7 +212,16 @@ export default function PublicOrganizationDetailPage({ slug }: Props) {
                   </Link>
                 </Typography>
               )}
-              {positions.length > 0 && (
+              {positions.length > 0 && (unit.chartMode === "rows" || unit.chartMode === "tree") && (
+                <OrganizationChartView
+                  positions={positions}
+                  layout={unit.chartLayout}
+                  media={media}
+                  showEducationQualifications={unit.unitKind === "department"}
+                  mode={unit.chartMode}
+                />
+              )}
+              {positions.length > 0 && unit.chartMode !== "rows" && unit.chartMode !== "tree" && (
                 <Grid container spacing={2} aria-label={`ตำแหน่งของ${unit.title}`}>
                   {positions.map((position) => (
                     <Grid key={position.id} size={{ xs: 12, md: 6, xl: 4 }}>
