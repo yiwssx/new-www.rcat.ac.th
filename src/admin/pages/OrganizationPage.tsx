@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -93,19 +93,38 @@ export default function OrganizationPage({ view = "legacy" }: { view?: Organizat
   ];
 
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+  const searchedUnits = useInfiniteQuery({
+    queryKey: ["admin-organization", "units", "server-search", debouncedSearch],
+    enabled: view === "units" && debouncedSearch.length > 0,
+    initialPageParam: 0,
+    queryFn: ({ pageParam }) =>
+      getOrganizationCollection("units", 100, pageParam, { includeTotal: true, search: debouncedSearch }),
+    getNextPageParam: (lastPage) => lastPage.nextOffset ?? undefined
+  });
+  const serverSearching = view === "units" && search.trim().length > 0;
+  const searchReady = search.trim() === debouncedSearch;
+  const searchPending = serverSearching && (!searchReady || searchedUnits.isPending);
   const [editing, setEditing] = useState<OrganizationUnitListRow | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [error, setError] = useState("");
   const [editorError, setEditorError] = useState("");
   const [success, setSuccess] = useState("");
   const filtered = useMemo(() => {
+    if (serverSearching) {
+      return searchReady ? (searchedUnits.data?.pages.flatMap((page) => page.items) ?? []) : [];
+    }
     const term = search.trim().toLocaleLowerCase("th");
     return rows
       .filter(
         (unit) => !term || [unit.title, unit.slug, unit.unit_kind].some((s) => s.toLocaleLowerCase("th").includes(term))
       )
       .sort((a, b) => a.sort_order - b.sort_order || a.title.localeCompare(b.title, "th"));
-  }, [rows, search]);
+  }, [rows, search, serverSearching, searchReady, searchedUnits.data]);
   const unitRanks = useMemo(() => {
     const ranks = new Map<string, number>();
     const counts = new Map<string, number>();
@@ -337,13 +356,22 @@ export default function OrganizationPage({ view = "legacy" }: { view?: Organizat
                   โหลดหน่วยงานเพิ่มเติมให้ครบก่อนเพิ่มรายการ เพื่อคำนวณลำดับต่อท้ายได้ถูกต้อง
                 </Alert>
               )}
-              {units.isPending && <Typography role="status">กำลังโหลดหน่วยงาน…</Typography>}
-              {units.isError && <Alert severity="error">โหลดรายการหน่วยงานไม่สำเร็จ กรุณาลองใหม่</Alert>}
-              {rows.length === 0 && !units.isPending && !units.isError && (
+              {serverSearching && searchPending && <Typography role="status">กำลังค้นหาหน่วยงาน…</Typography>}
+              {serverSearching && searchReady && searchedUnits.isError && (
+                <Alert severity="error">ค้นหาหน่วยงานไม่สำเร็จ กรุณาลองอีกครั้ง</Alert>
+              )}
+              {!serverSearching && units.isPending && <Typography role="status">กำลังโหลดหน่วยงาน…</Typography>}
+              {!serverSearching && units.isError && <Alert severity="error">โหลดรายการหน่วยงานไม่สำเร็จ กรุณาลองใหม่</Alert>}
+              {!serverSearching && rows.length === 0 && !units.isPending && !units.isError && (
                 <Alert severity="info">ยังไม่มีข้อมูลหน่วยงาน</Alert>
               )}
-              {rows.length > 0 && filtered.length === 0 && (
+              {!searchPending && !searchedUnits.isError && (rows.length > 0 || serverSearching) && filtered.length === 0 && (
                 <Typography color="text.secondary">ไม่พบหน่วยงานที่ตรงกับคำค้น</Typography>
+              )}
+              {serverSearching && searchReady && searchedUnits.data?.pages[0]?.total !== undefined && (
+                <Typography variant="body2" color="text.secondary">
+                  พบ {searchedUnits.data.pages[0].total} หน่วยงานจากการค้นหาทั้งระบบ
+                </Typography>
               )}
               {filtered.map((unit) => (
                 <Box key={unit.content_id} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2 }}>
@@ -370,7 +398,7 @@ export default function OrganizationPage({ view = "legacy" }: { view?: Organizat
                         />
                       </Stack>
                       <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: "anywhere", mt: 0.5 }}>
-                        /{unit.slug} · อันดับ {unitRanks.get(unit.content_id) ?? 1}
+                        /{unit.slug} · อันดับ {serverSearching && !unitRanks.has(unit.content_id) ? "—" : (unitRanks.get(unit.content_id) ?? 1)}
                         {unit.parent_content_id
                           ? ` · อยู่ภายใต้ ${rows.find((item) => item.content_id === unit.parent_content_id)?.title ?? "หน่วยงานอื่น"}`
                           : ""}
@@ -398,7 +426,15 @@ export default function OrganizationPage({ view = "legacy" }: { view?: Organizat
                   </Stack>
                 </Box>
               ))}
-              {units.hasNextPage && (
+              {serverSearching && searchReady && searchedUnits.hasNextPage && (
+                <Button variant="outlined" onClick={() => void searchedUnits.fetchNextPage()} disabled={searchedUnits.isFetchingNextPage}>
+                  {searchedUnits.isFetchingNextPage ? "กำลังโหลดผลค้นหา…" : "โหลดผลค้นหาเพิ่มเติม"}
+                </Button>
+              )}
+              {serverSearching && searchedUnits.isFetchNextPageError && (
+                <Alert severity="error">โหลดผลค้นหาหน้าถัดไปไม่สำเร็จ กรุณาลองใหม่</Alert>
+              )}
+              {!serverSearching && units.hasNextPage && (
                 <Button
                   variant="outlined"
                   onClick={() => void units.fetchNextPage()}
