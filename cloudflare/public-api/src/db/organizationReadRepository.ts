@@ -90,8 +90,8 @@ export interface PublicOrganizationUnitRow {
   parent_content_id: string | null;
   unit_kind: string;
   sort_order: number;
-  chart_mode: string;
-  chart_layout: string;
+  chart_mode?: string;
+  chart_layout?: string;
   slug: string;
   title: string;
   summary: string;
@@ -103,8 +103,8 @@ export interface PublicOrganizationUnit {
   parentContentId: string | null;
   unitKind: string;
   sortOrder: number;
-  chartMode: "cards" | "rows" | "tree";
-  chartLayout: OrganizationChartLayout;
+  chartMode?: "cards" | "rows" | "tree";
+  chartLayout?: OrganizationChartLayout;
   slug: string;
   title: string;
   summary: string;
@@ -118,7 +118,7 @@ export function mapPublicOrganizationUnit(row: PublicOrganizationUnitRow): Publi
     unitKind: row.unit_kind,
     sortOrder: row.sort_order,
     chartMode: row.chart_mode === "rows" || row.chart_mode === "tree" ? row.chart_mode : "cards",
-    chartLayout: parseOrganizationChartLayout(JSON.parse(row.chart_layout)),
+    chartLayout: parseOrganizationChartLayout(JSON.parse(row.chart_layout || "{}")),
     slug: row.slug,
     title: row.title,
     summary: row.summary,
