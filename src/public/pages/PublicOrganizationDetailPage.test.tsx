@@ -105,7 +105,8 @@ describe("Phase 7 responsive public organization renderer", () => {
     expect(await screen.findByRole("heading", { name: "งานสารบรรณ" })).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "ลำดับหน่วยงาน" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "ฝ่ายบริหาร" })).toHaveAttribute("href", "/organization/division");
-    expect(screen.getByRole("heading", { name: "งานย่อย" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "งานย่อย" })).toHaveAttribute("href", "/organization/sub");
     expect(screen.getByText("หัวหน้างาน")).toBeInTheDocument();
     expect(screen.getByText("บุคลากรตัวอย่าง")).toBeInTheDocument();
     expect(screen.getByText("ประสานงาน")).toBeInTheDocument();
