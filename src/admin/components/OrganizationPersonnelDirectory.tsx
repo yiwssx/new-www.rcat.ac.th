@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Alert from "@mui/material/Alert";
 import Avatar from "@mui/material/Avatar";
@@ -39,28 +39,26 @@ function messageFor(error: unknown) {
 export default function OrganizationPersonnelDirectory({ canManage, canBrowseMedia }: Props) {
   const client = useQueryClient();
   const [search, setSearch] = useState("");
+  const [query, setQuery] = useState("");
+  useEffect(() => {
+    const timer = window.setTimeout(() => setQuery(search.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
   const [editing, setEditing] = useState<OrganizationPersonnelRow | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editorError, setEditorError] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const list = useInfiniteQuery({
-    queryKey: ["admin-organization", "personnel", "pages"],
+    queryKey: ["admin-organization", "personnel", "pages", query],
     initialPageParam: 0,
-    queryFn: ({ pageParam }) => getOrganizationCollection("personnel", 100, pageParam),
+    queryFn: ({ pageParam }) => getOrganizationCollection("personnel", 100, pageParam, { includeTotal: true, search: query }),
     getNextPageParam: (lastPage) => lastPage.nextOffset ?? undefined
   });
   const rows = useMemo(() => list.data?.pages.flatMap((page) => page.items) ?? [], [list.data]);
-  const visible = useMemo(() => {
-    const term = search.trim().toLocaleLowerCase("th");
-    return rows.filter(
-      (person) =>
-        !term ||
-        [person.display_name, person.personnel_type, person.employment_position].some((value) =>
-          value.toLocaleLowerCase("th").includes(term)
-        )
-    );
-  }, [rows, search]);
+  // The server searches across all canonical personnel records, not just the loaded page.
+  const visible = rows;
+  const total = list.data?.pages[0]?.total;
 
   const save = useMutation({
     mutationFn: async ({ value, row }: { value: OrganizationPersonnelWrite; row: OrganizationPersonnelRow | null }) =>
@@ -193,20 +191,21 @@ export default function OrganizationPersonnelDirectory({ canManage, canBrowseMed
             </Alert>
           )}
           <TextField
-            label="ค้นหาบุคลากรที่โหลดมา"
+            label="ค้นหาบุคลากรทั้งหมด"
             placeholder="ชื่อ ประเภทบุคลากร หรือตำแหน่ง"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             fullWidth
             slotProps={{ htmlInput: { maxLength: 160 } }}
           />
+          {typeof total === "number" && <Typography variant="body2" color="text.secondary">พบ {total} รายการ</Typography>}
           {list.isPending && <Typography role="status">กำลังโหลดรายชื่อบุคลากร…</Typography>}
           {list.isError && <Alert severity="error">ไม่สามารถโหลดรายชื่อบุคลากร กรุณาลองใหม่</Alert>}
           {!list.isPending && !list.isError && rows.length === 0 && (
             <Alert severity="info">ยังไม่มีบุคลากรในทะเบียนกลาง</Alert>
           )}
           {rows.length > 0 && visible.length === 0 && (
-            <Typography color="text.secondary">ไม่พบข้อมูลที่ตรงกับคำค้นในรายการที่โหลดมา</Typography>
+            <Typography color="text.secondary">ไม่พบบุคลากรที่ตรงกับคำค้น</Typography>
           )}
           {visible.map((row) => (
             <Box key={row.id} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2, minWidth: 0 }}>

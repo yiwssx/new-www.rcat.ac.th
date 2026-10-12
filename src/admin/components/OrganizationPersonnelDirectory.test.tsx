@@ -101,7 +101,23 @@ describe("Phase 5 canonical personnel directory", () => {
     await screen.findByText("บุคลากร ทดสอบ");
     fireEvent.click(screen.getByRole("button", { name: "โหลดบุคลากรเพิ่มเติม" }));
     expect(await screen.findByText("บุคลากร คนที่สอง")).toBeInTheDocument();
-    expect(api.getCollection).toHaveBeenCalledWith("personnel", 100, 1);
+    expect(api.getCollection).toHaveBeenCalledWith("personnel", 100, 1, { includeTotal: true, search: "" });
+  });
+
+  it("searches the canonical directory on the server rather than filtering only loaded rows", async () => {
+    api.getCollection.mockImplementation(async (_collection: string, _limit: number, _offset: number, options: { search: string }) => ({
+      items: options.search ? [{ ...person, id: "person-search", display_name: "ค้นพบจากเซิร์ฟเวอร์" }] : [person],
+      nextOffset: null,
+      total: 1,
+      maximumItems: 100,
+      generatedAt: ""
+    }));
+    show();
+    fireEvent.change(screen.getByRole("textbox", { name: "ค้นหาบุคลากรทั้งหมด" }), { target: { value: "ค้นพบ" } });
+    await waitFor(() =>
+      expect(api.getCollection).toHaveBeenCalledWith("personnel", 100, 0, { includeTotal: true, search: "ค้นพบ" })
+    );
+    expect(await screen.findByText("ค้นพบจากเซิร์ฟเวอร์")).toBeInTheDocument();
   });
 
   it("creates one canonical record with contact visibility disabled by default", async () => {
