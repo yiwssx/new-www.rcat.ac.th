@@ -129,7 +129,9 @@ describe("Phase 6 accessible Organization builder", () => {
     fireEvent.click(screen.getByRole("button", { name: "บันทึกโครงสร้างผัง" }));
     await waitFor(() =>
       expect(api.update).toHaveBeenCalledWith(
-        "units", "work-1", 0,
+        "units",
+        "work-1",
+        0,
         expect.objectContaining({
           chartMode: "rows",
           chartLayout: expect.objectContaining({
