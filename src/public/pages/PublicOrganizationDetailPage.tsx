@@ -1,128 +1,20 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
-import BadgeOutlinedIcon from "@mui/icons-material/BadgeOutlined";
 import Breadcrumbs from "@mui/material/Breadcrumbs";
 import Box from "@mui/material/Box";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
-import Grid from "@mui/material/Grid";
 import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { PublicOrganizationPosition } from "../../features/public-organization";
 import { publicOrganizationDetailQueryOptions } from "../../features/public-organization";
 import { buildPublicOrganizationHierarchy } from "../../features/public-organization/hierarchy";
-import PublicResponsiveImage from "../../shared/media/PublicResponsiveImage";
-import OrganizationChartView from "../components/OrganizationChartView";
 import OrganizationUnitHierarchyView from "../components/OrganizationUnitHierarchyView";
 import PublicErrorState from "../components/PublicErrorState";
 import PublicLoadingState from "../components/PublicLoadingState";
 
 interface Props {
   slug: string;
-}
-
-function PositionGroup({
-  position,
-  media,
-  showEducationQualifications
-}: {
-  position: PublicOrganizationPosition;
-  showEducationQualifications: boolean;
-  media: Map<string, import("../../types").MediaAsset>;
-}) {
-  return (
-    <Card variant="outlined" sx={{ borderRadius: 2, height: "100%" }}>
-      <CardContent>
-        <Stack spacing={1.5}>
-          <Box>
-            <Typography variant="h3" sx={{ fontSize: "1.1rem", fontWeight: 700, overflowWrap: "anywhere" }}>
-              {position.title}
-            </Typography>
-            {position.groupLabel && (
-              <Typography variant="body2" color="text.secondary">
-                {position.groupLabel}
-              </Typography>
-            )}
-          </Box>
-          {position.assignments.length === 0 ? (
-            <Typography color="text.secondary" variant="body2">
-              ยังไม่ได้ระบุผู้ดำรงตำแหน่ง
-            </Typography>
-          ) : (
-            <Stack component="ul" spacing={1.5} sx={{ listStyle: "none", p: 0, m: 0 }}>
-              {position.assignments.map((assignment) => {
-                const person = assignment.person;
-                const portrait = person.photoMediaId ? media.get(person.photoMediaId) : undefined;
-                return (
-                  <Box
-                    component="li"
-                    key={assignment.id}
-                    sx={{ display: "flex", flexDirection: "row", gap: 1.5, alignItems: "flex-start", minWidth: 0 }}
-                  >
-                    <Box
-                      sx={{
-                        flexShrink: 0,
-                        width: { xs: 60, sm: 72 },
-                        height: { xs: 60, sm: 72 },
-                        borderRadius: 1.5,
-                        overflow: "hidden",
-                        bgcolor: "action.hover",
-                        display: "grid",
-                        placeItems: "center"
-                      }}
-                    >
-                      {portrait?.type === "image" ? (
-                        <PublicResponsiveImage
-                          intent="content-body"
-                          source={portrait}
-                          alt={`ภาพของ${person.displayName}`}
-                          width={72}
-                          height={72}
-                          aspectRatio="1 / 1"
-                        />
-                      ) : (
-                        <BadgeOutlinedIcon color="disabled" sx={{ fontSize: 30 }} aria-hidden="true" />
-                      )}
-                    </Box>
-                    <Stack spacing={0.25} sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography sx={{ fontWeight: 600, overflowWrap: "anywhere" }}>{person.displayName}</Typography>
-                      {assignment.dutyDetail && (
-                        <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: "anywhere" }}>
-                          {assignment.dutyDetail}
-                        </Typography>
-                      )}
-                      {person.employmentPosition && (
-                        <Typography variant="body2" sx={{ overflowWrap: "anywhere" }}>
-                          {person.employmentPosition}
-                        </Typography>
-                      )}
-                      {showEducationQualifications && person.educationQualifications && (
-                        <Typography variant="body2" sx={{ overflowWrap: "anywhere", whiteSpace: "pre-line" }}>
-                          วุฒิการศึกษา: {person.educationQualifications}
-                        </Typography>
-                      )}
-                      {person.publicEmail && (
-                        <Typography variant="body2" sx={{ overflowWrap: "anywhere" }}>
-                          อีเมล: {person.publicEmail}
-                        </Typography>
-                      )}
-                      {person.publicPhone && (
-                        <Typography variant="body2" sx={{ overflowWrap: "anywhere" }}>
-                          โทรศัพท์: {person.publicPhone}
-                        </Typography>
-                      )}
-                    </Stack>
-                  </Box>
-                );
-              })}
-            </Stack>
-          )}
-        </Stack>
-      </CardContent>
-    </Card>
-  );
 }
 
 export default function PublicOrganizationDetailPage({ slug }: Props) {
@@ -191,66 +83,7 @@ export default function PublicOrganizationDetailPage({ slug }: Props) {
           )}
         </Box>
       </Stack>
-      <Stack spacing={4} sx={{ minWidth: 0 }}>
-        <OrganizationUnitHierarchyView hierarchy={hierarchy} />
-        {data.positions.length > 0 && (
-          <Box component="section" aria-label="รายละเอียดตำแหน่งและบุคลากร" sx={{ minWidth: 0 }}>
-            <Typography variant="h2" sx={{ fontSize: "1.4rem", fontWeight: 700, mb: 2 }}>
-              รายละเอียดตำแหน่งและบุคลากร
-            </Typography>
-            <Stack spacing={3} sx={{ minWidth: 0 }}>
-              {data.units
-                .filter((unit) => (byUnit.get(unit.contentId)?.length ?? 0) > 0)
-                .map((unit) => {
-                  const positions = byUnit.get(unit.contentId) ?? [];
-                  const isRoot = unit.contentId === data.unit.contentId;
-                  return (
-                    <Box
-                      component="section"
-                      key={unit.contentId}
-                      aria-label={"ตำแหน่งของ" + unit.title}
-                      sx={{ minWidth: 0 }}
-                    >
-                      {!isRoot && (
-                        <Typography variant="h3" sx={{ mb: 1.5, fontSize: "1.25rem", overflowWrap: "anywhere" }}>
-                          <Link
-                            href={"/organization/" + encodeURIComponent(unit.slug)}
-                            underline="hover"
-                            color="inherit"
-                          >
-                            {unit.title}
-                          </Link>
-                        </Typography>
-                      )}
-                      {(unit.chartMode === "rows" || unit.chartMode === "tree") && (
-                        <OrganizationChartView
-                          positions={positions}
-                          layout={unit.chartLayout}
-                          media={media}
-                          showEducationQualifications={unit.unitKind === "department"}
-                          mode={unit.chartMode}
-                        />
-                      )}
-                      {unit.chartMode !== "rows" && unit.chartMode !== "tree" && (
-                        <Grid container spacing={2} aria-label={"ตำแหน่งของ" + unit.title}>
-                          {positions.map((position) => (
-                            <Grid key={position.id} size={{ xs: 12, md: 6, xl: 4 }}>
-                              <PositionGroup
-                                position={position}
-                                media={media}
-                                showEducationQualifications={unit.unitKind === "department"}
-                              />
-                            </Grid>
-                          ))}
-                        </Grid>
-                      )}
-                    </Box>
-                  );
-                })}
-            </Stack>
-          </Box>
-        )}
-      </Stack>
+      <OrganizationUnitHierarchyView hierarchy={hierarchy} positionsByUnit={byUnit} media={media} />
     </Box>
   );
 }
