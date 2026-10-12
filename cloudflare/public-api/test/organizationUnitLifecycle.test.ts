@@ -115,14 +115,48 @@ describe("Organization unit + CMS content transactional lifecycle", () => {
   });
 
   it("allocates consecutive root and child sibling orders without reading all units", async () => {
-    await createAuditedOrganizationUnit(env, "root1", { ...input, slug: "root-one", sortOrder: 50 }, "editor", NOW, true);
-    await createAuditedOrganizationUnit(env, "root2", { ...input, slug: "root-two", sortOrder: 0 }, "editor", NOW, true);
-    await createAuditedOrganizationUnit(env, "child1", {
-      ...input, slug: "child-one", parentContentId: "root1", sortOrder: 23
-    }, "editor", NOW, true);
-    await createAuditedOrganizationUnit(env, "child2", {
-      ...input, slug: "child-two", parentContentId: "root1", sortOrder: 0
-    }, "editor", NOW, true);
+    await createAuditedOrganizationUnit(
+      env,
+      "root1",
+      { ...input, slug: "root-one", sortOrder: 50 },
+      "editor",
+      NOW,
+      true
+    );
+    await createAuditedOrganizationUnit(
+      env,
+      "root2",
+      { ...input, slug: "root-two", sortOrder: 0 },
+      "editor",
+      NOW,
+      true
+    );
+    await createAuditedOrganizationUnit(
+      env,
+      "child1",
+      {
+        ...input,
+        slug: "child-one",
+        parentContentId: "root1",
+        sortOrder: 23
+      },
+      "editor",
+      NOW,
+      true
+    );
+    await createAuditedOrganizationUnit(
+      env,
+      "child2",
+      {
+        ...input,
+        slug: "child-two",
+        parentContentId: "root1",
+        sortOrder: 0
+      },
+      "editor",
+      NOW,
+      true
+    );
     expect((await getOrganizationUnitEditor(env, "root1"))?.sort_order).toBe(0);
     expect((await getOrganizationUnitEditor(env, "root2"))?.sort_order).toBe(1);
     expect((await getOrganizationUnitEditor(env, "child1"))?.sort_order).toBe(0);

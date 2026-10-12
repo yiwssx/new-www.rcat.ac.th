@@ -176,7 +176,8 @@ describe("Phase 4 Organization Admin list/editor", () => {
     fireEvent.click(screen.getByRole("button", { name: "บันทึกหน่วยงาน" }));
     await waitFor(() =>
       expect(api.create).toHaveBeenCalledWith(
-        "units", expect.objectContaining({ autoSortOrder: true, sortOrder: undefined })
+        "units",
+        expect.objectContaining({ autoSortOrder: true, sortOrder: undefined })
       )
     );
   });
@@ -202,7 +203,8 @@ describe("Phase 4 Organization Admin list/editor", () => {
     fireEvent.click(screen.getByRole("button", { name: "บันทึกหน่วยงาน" }));
     await waitFor(() =>
       expect(api.create).toHaveBeenCalledWith(
-        "units", expect.objectContaining({ autoSortOrder: true, sortOrder: undefined })
+        "units",
+        expect.objectContaining({ autoSortOrder: true, sortOrder: undefined })
       )
     );
   });

@@ -78,19 +78,41 @@ describe("Organization unit CMS protected route", () => {
 
   it("requests atomic sibling append only for new units and preserves explicit order", async () => {
     const automatic = await dispatch("POST", "", {
-      slug: "division-b", title: "Division B", unitKind: "division", autoSortOrder: true
+      slug: "division-b",
+      title: "Division B",
+      unitKind: "division",
+      autoSortOrder: true
     });
     expect(automatic?.status).toBe(201);
     expect(createAuditedOrganizationUnit).toHaveBeenCalledWith(
-      env, expect.stringMatching(/^organization-/), expect.objectContaining({ sortOrder: 0 }),
-      "editor", expect.any(String), true
+      env,
+      expect.stringMatching(/^organization-/),
+      expect.objectContaining({ sortOrder: 0 }),
+      "editor",
+      expect.any(String),
+      true
     );
-    expect((await dispatch("POST", "", {
-      slug: "division-c", title: "Division C", unitKind: "division", autoSortOrder: "true"
-    }))?.status).toBe(400);
-    expect((await dispatch("POST", "", {
-      slug: "division-d", title: "Division D", unitKind: "division", autoSortOrder: true, sortOrder: 2
-    }))?.status).toBe(400);
+    expect(
+      (
+        await dispatch("POST", "", {
+          slug: "division-c",
+          title: "Division C",
+          unitKind: "division",
+          autoSortOrder: "true"
+        })
+      )?.status
+    ).toBe(400);
+    expect(
+      (
+        await dispatch("POST", "", {
+          slug: "division-d",
+          title: "Division D",
+          unitKind: "division",
+          autoSortOrder: true,
+          sortOrder: 2
+        })
+      )?.status
+    ).toBe(400);
     expect((await dispatch("PATCH", "/unit-1", { autoSortOrder: true }, "2"))?.status).toBe(400);
   });
 
