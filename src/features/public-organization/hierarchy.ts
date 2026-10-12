@@ -11,13 +11,7 @@ export interface PublicOrganizationUnitBranch {
 }
 
 export type PublicOrganizationHierarchyIssue =
-  | "missing-root"
-  | "duplicate-id"
-  | "missing-parent"
-  | "disconnected"
-  | "cycle"
-  | "depth-limit"
-  | "node-limit";
+  "missing-root" | "duplicate-id" | "missing-parent" | "disconnected" | "cycle" | "depth-limit" | "node-limit";
 
 export interface PublicOrganizationHierarchy {
   root: PublicOrganizationUnitBranch | null;

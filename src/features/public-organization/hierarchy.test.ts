@@ -63,10 +63,7 @@ describe("V2.2 public organization unit hierarchy model", () => {
   });
 
   it("F4: retains over 100 children, sorts them and does not mutate source input", () => {
-    const nodes = [
-      unit("R", null),
-      ...Array.from({ length: 142 }, (_, i) => unit(`u-${i}`, "R", 141 - i))
-    ];
+    const nodes = [unit("R", null), ...Array.from({ length: 142 }, (_, i) => unit(`u-${i}`, "R", 141 - i))];
     const before = nodes.map((node) => node.contentId);
     const result = buildPublicOrganizationHierarchy(nodes, "R");
     expect(result.root?.children).toHaveLength(142);
@@ -122,7 +119,10 @@ describe("V2.2 public organization unit hierarchy model", () => {
   });
 
   it("fails closed on excessive node count and bounds pathological depth without recursion", () => {
-    const tooMany = [unit("R", null), ...Array.from({ length: MAX_PUBLIC_ORGANIZATION_UNITS }, (_, i) => unit(`u${i}`, "R"))];
+    const tooMany = [
+      unit("R", null),
+      ...Array.from({ length: MAX_PUBLIC_ORGANIZATION_UNITS }, (_, i) => unit(`u${i}`, "R"))
+    ];
     const rejected = buildPublicOrganizationHierarchy(tooMany, "R");
     expect(rejected.root).toBeNull();
     expect(rejected.issues).toEqual(["node-limit"]);
