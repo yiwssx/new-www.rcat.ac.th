@@ -105,13 +105,15 @@ describe("Phase 5 canonical personnel directory", () => {
   });
 
   it("searches the canonical directory on the server rather than filtering only loaded rows", async () => {
-    api.getCollection.mockImplementation(async (_collection: string, _limit: number, _offset: number, options: { search: string }) => ({
-      items: options.search ? [{ ...person, id: "person-search", display_name: "ค้นพบจากเซิร์ฟเวอร์" }] : [person],
-      nextOffset: null,
-      total: 1,
-      maximumItems: 100,
-      generatedAt: ""
-    }));
+    api.getCollection.mockImplementation(
+      async (_collection: string, _limit: number, _offset: number, options: { search: string }) => ({
+        items: options.search ? [{ ...person, id: "person-search", display_name: "ค้นพบจากเซิร์ฟเวอร์" }] : [person],
+        nextOffset: null,
+        total: 1,
+        maximumItems: 100,
+        generatedAt: ""
+      })
+    );
     show();
     fireEvent.change(screen.getByRole("textbox", { name: "ค้นหาบุคลากรทั้งหมด" }), { target: { value: "ค้นพบ" } });
     await waitFor(() =>

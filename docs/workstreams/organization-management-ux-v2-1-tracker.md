@@ -6,6 +6,7 @@
 **Baseline:** `4c602089e602c74405127f7f1b1682d68f3e5bb4`
 
 ## Verification-first status
+
 - [x] Current main, V2 #575 merge, existing route/backend architecture inspected.
 - [x] Phase 1 implementation: Organization expandable submenu and six protected admin routes.
 - [ ] Phase 1 acceptance: responsive/keyboard matrix and green CI.
@@ -18,6 +19,7 @@
 - [ ] Phase 6: verify required approvals and CI on authoritative head, merge to main, verify Vercel deployment, protected Worker release, owner UAT and #574 acceptance.
 
 ## Safety / compatibility
+
 - Do not edit workflows or circumvent failed checks.
 - No production D1 writes, test personnel records, destructive migrations or auth relaxation.
 - **Frontend and Worker must be released in a compatible sequence**: admin totals and filtered personnel use the new Worker query contract `includeTotal=1`.
@@ -26,6 +28,7 @@
 - Prettier autofix can advance the branch head; always re-read the current remote SHA before the next mutation.
 
 ## Latest checkpoint — 2026-10-12
+
 - Initial feature commit `c39d9e57` introduced six navigation routes.
 - `02e1a568` introduced bounded Worker search/count and frontend total queries.
 - Prettier advanced head to `af6adbb1`; `ace1d032` implemented searchable personnel directory.

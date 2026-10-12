@@ -52,7 +52,8 @@ export default function OrganizationPersonnelDirectory({ canManage, canBrowseMed
   const list = useInfiniteQuery({
     queryKey: ["admin-organization", "personnel", "pages", query],
     initialPageParam: 0,
-    queryFn: ({ pageParam }) => getOrganizationCollection("personnel", 100, pageParam, { includeTotal: true, search: query }),
+    queryFn: ({ pageParam }) =>
+      getOrganizationCollection("personnel", 100, pageParam, { includeTotal: true, search: query }),
     getNextPageParam: (lastPage) => lastPage.nextOffset ?? undefined
   });
   const rows = useMemo(() => list.data?.pages.flatMap((page) => page.items) ?? [], [list.data]);
@@ -198,7 +199,11 @@ export default function OrganizationPersonnelDirectory({ canManage, canBrowseMed
             fullWidth
             slotProps={{ htmlInput: { maxLength: 160 } }}
           />
-          {typeof total === "number" && <Typography variant="body2" color="text.secondary">พบ {total} รายการ</Typography>}
+          {typeof total === "number" && (
+            <Typography variant="body2" color="text.secondary">
+              พบ {total} รายการ
+            </Typography>
+          )}
           {list.isPending && <Typography role="status">กำลังโหลดรายชื่อบุคลากร…</Typography>}
           {list.isError && <Alert severity="error">ไม่สามารถโหลดรายชื่อบุคลากร กรุณาลองใหม่</Alert>}
           {!list.isPending && !list.isError && rows.length === 0 && (
