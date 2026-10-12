@@ -10,7 +10,7 @@ The first stored `sort_order = 0` within a sibling group is valid. This operatio
 - `organization_positions`: same `unit_content_id`, `group_label`, and `group_sort_order`.
 - `organization_assignments`: same `position_id`.
 
-Ties are resolved using the existing deterministic read order: rank, then unit title/ID or position/assignment ID. Duplicate groups are compacted to `0, 1, 2, ...`. Distinct-order groups, including groups with intentional gaps, remain untouched. Only `sort_order`, `revision`, and `updated_at` change. No personnel profile, role assignment relationship, publication status, workflow, or Worker deployment is modified.
+Ties are resolved using the existing deterministic read order: rank, then unit title/ID or position/assignment ID. Duplicate groups are compacted to `0, 1, 2, ...`. Distinct-order groups, including groups with intentional gaps, remain untouched. Only `sort_order`, `revision`, and `updated_at` change on the three Organization tables. Affected **unit** rows also require synchronized `contents.revision`, `contents.updated_at`, and `contents.updated_by` changes so Admin editing remains valid. No personnel profile, role assignment relationship, publication status, workflow, or Worker deployment is modified.
 
 ## Safety requirements
 
@@ -18,7 +18,7 @@ Ties are resolved using the existing deterministic read order: rank, then unit t
 2. Verify the **physical** D1 resource against the protected production UUID using the repository's existing production-preflight guard. The checked-in Wrangler config has an intentional placeholder and **must not** be used directly for remote writes.
 3. Take a D1 Time Travel checkpoint and private full SQL export before the operation. Keep those files away from public CI artifacts; the SQL backup may contain personal data.
 4. Pause Organization Admin edits while auditing and applying the normalization. Review the proposed changes and make sure they are only duplicate-order siblings.
-5. Confirm the preview is nonempty and appropriate before applying. A zero-row preview means **nothing needs changing**; do not run the apply step merely to eliminate every displayed database zero.
+5. Confirm all Organization unit/content revision pairs already match before any write. A pre-existing mismatch is a blocker. Confirm the preview is nonempty and appropriate before applying. A zero-row preview means **nothing needs changing**; do not run the apply step merely to eliminate every displayed database zero.
 6. Run the apply file once and rerun the read-only preview. The postflight must show zero remaining changes. Check representative unit, position and duty order in Admin.
 7. If there is a mismatch, stop; use the protected incident/Time Travel recovery plan. Do not try an arbitrary repeat or run against another database.
 
@@ -57,6 +57,11 @@ pnpm wrangler d1 export "$D1_NAME" --remote \
   --env production --config "$RCAT_D1_OPS_CONFIG" \
   --output "$OPS_DIR/before-normalization.sql"
 test -s "$OPS_DIR/before-normalization.sql"
+
+# READ ONLY. Unit/content revision parity must be clean before any write.
+pnpm wrangler d1 execute "$D1_NAME" --remote \\
+  --env production --config "$RCAT_D1_OPS_CONFIG" \\
+  --command "SELECT COUNT(*) AS mismatched_revisions FROM organization_units AS u JOIN contents AS c ON c.id = u.content_id WHERE u.revision <> c.revision;" --json > "$OPS_DIR/revision-parity.json"
 
 # READ ONLY. Review counts and every affected ID before proceeding.
 pnpm wrangler d1 execute "$D1_NAME" --remote \
