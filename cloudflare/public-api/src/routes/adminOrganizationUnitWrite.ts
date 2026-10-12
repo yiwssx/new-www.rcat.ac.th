@@ -49,7 +49,7 @@ function inputFromEditor(row: NonNullable<Awaited<ReturnType<typeof getOrganizat
     unitKind: row.unit_kind,
     sortOrder: row.sort_order,
     chartMode: row.chart_mode,
-    chartLayout: JSON.parse(row.chart_layout) as Record<string, unknown>
+    chartLayout: JSON.parse(row.chart_layout || "{}") as Record<string, unknown>
   };
 }
 
