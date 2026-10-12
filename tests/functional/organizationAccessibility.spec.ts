@@ -14,7 +14,7 @@ const sampleUnit = {
   depth: 0
 };
 
-async function installOrganizationFixture(page: Page, mode: "cards" | "rows" | "tree" = "cards") {
+async function installOrganizationFixture(page: Page, mode: "cards" | "rows" | "tree" = "cards", mixed = false) {
   const chartUnit = {
     ...sampleUnit,
     chartMode: mode,
@@ -45,6 +45,7 @@ async function installOrganizationFixture(page: Page, mode: "cards" | "rows" | "
           {
             contentId: "work-1",
             parentContentId: "division-1",
+            chartMode: mixed ? "cards" : undefined,
             unitKind: "work",
             sortOrder: 0,
             slug: "งานทะเบียน",
@@ -55,6 +56,11 @@ async function installOrganizationFixture(page: Page, mode: "cards" | "rows" | "
           {
             contentId: "work-2",
             parentContentId: "division-1",
+            chartMode: mixed ? "tree" : undefined,
+            chartLayout: mixed ? {
+              "work2-lead": { level: 1, row: 1, order: 0, parentPositionId: null },
+              "work2-member": { level: 2, row: 1, order: 0, parentPositionId: "work2-lead" }
+            } : undefined,
             unitKind: "work",
             sortOrder: 1,
             slug: "work-2",
@@ -138,6 +144,71 @@ async function installOrganizationFixture(page: Page, mode: "cards" | "rows" | "
                   ]
                 }
               ])
+          ,
+          ...(mixed
+            ? [
+                {
+                  id: "work1-role",
+                  unitContentId: "work-1",
+                  title: "งานประสานทะเบียน",
+                  groupLabel: "",
+                  groupSortOrder: 0,
+                  sortOrder: 0,
+                  displayStyle: "default",
+                  assignments: [
+                    {
+                      id: "work1-duty",
+                      dutyDetail: "งานทะเบียนควบคู่",
+                      sortOrder: 0,
+                      person: {
+                        id: "person-1",
+                        displayName: "บุคลากรทดสอบ",
+                        personnelType: "teacher",
+                        employmentPosition: "ครู",
+                        photoMediaId: null,
+                        publicEmail: "",
+                        publicPhone: ""
+                      }
+                    }
+                  ]
+                },
+                {
+                  id: "work2-lead",
+                  unitContentId: "work-2",
+                  title: "หัวหน้างานหลักสูตร",
+                  groupLabel: "",
+                  groupSortOrder: 0,
+                  sortOrder: 0,
+                  displayStyle: "default",
+                  assignments: [
+                    {
+                      id: "work2-duty-1",
+                      dutyDetail: "กำกับงานหลักสูตร",
+                      sortOrder: 0,
+                      person: {
+                        id: "person-3",
+                        displayName: "บุคลากรหลักสูตร",
+                        personnelType: "teacher",
+                        employmentPosition: "ครู",
+                        photoMediaId: null,
+                        publicEmail: "",
+                        publicPhone: ""
+                      }
+                    }
+                  ]
+                },
+                {
+                  id: "work2-member",
+                  unitContentId: "work-2",
+                  title: "ผู้ช่วยงานหลักสูตร",
+                  groupLabel: "",
+                  groupSortOrder: 1,
+                  sortOrder: 0,
+                  displayStyle: "default",
+                  assignments: []
+                }
+              ]
+            : [])
         ],
         media: []
       })
@@ -254,6 +325,30 @@ test.describe("Organization V2.2 horizontal inter-unit chart", () => {
         await page.keyboard.press("ArrowRight");
         await expect.poll(() => region.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
       }
+    });
+  }
+});
+
+
+test.describe("Organization V2.2 Phase 3 mixed position charts", () => {
+  for (const width of [390, 1280]) {
+    test("shows rows/tree/cards inside corresponding units without duplicate assignments at " + width + "px", async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await installOrganizationFixture(page, "rows", true);
+      await page.goto("/organization/" + encodeURIComponent(slug));
+      await dismissGateIfVisible(page);
+
+      const hierarchy = page.getByRole("region", { name: "ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้" });
+      await expect(hierarchy).toBeVisible();
+      await expect(hierarchy.getByRole("region", { name: "แถวระดับ 1 แถว 1 เลื่อนแนวนอนได้" })).toBeAttached();
+      await expect(hierarchy.getByRole("region", { name: /ผังสายบังคับบัญชา/ })).toBeAttached();
+      await expect(hierarchy.getByRole("region", { name: /ผังสายบังคับบัญชา/ }).getByText("หัวหน้างานหลักสูตร")).toBeAttached();
+      await expect(hierarchy.getByText("งานประสานทะเบียน")).toBeAttached();
+      await expect(hierarchy.getByText("ยังไม่มีผู้ดำรงตำแหน่ง")).toBeAttached();
+      await expect(hierarchy.getByText("บุคลากรทดสอบ")).toHaveCount(2);
+      await expect(hierarchy.getByText("งานทะเบียนควบคู่")).toHaveCount(1);
+      await expect(page.getByRole("region", { name: "ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้" })).toHaveCount(1);
+      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
     });
   }
 });
