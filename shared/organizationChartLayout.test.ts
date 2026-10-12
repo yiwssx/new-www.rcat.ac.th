@@ -34,9 +34,9 @@ describe("organization chart layout validation", () => {
     );
   });
 
-  it("uses existing group sort order only as a backward-compatible visual fallback", () => {
+  it("defaults to a neutral first level without inferring authority from group sort order", () => {
     expect(chartPlacement(undefined, { id: "p1", groupSortOrder: 2, sortOrder: 9 })).toEqual({
-      level: 3,
+      level: 1,
       row: 1,
       order: 9,
       parentPositionId: null
