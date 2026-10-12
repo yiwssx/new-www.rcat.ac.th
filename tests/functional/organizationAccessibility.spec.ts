@@ -79,29 +79,35 @@ async function installOrganizationFixture(page: Page, mode: "cards" | "rows" | "
               }
             ]
           },
-          ...(mode === "cards" ? [] : [{
-            id: "position-2",
-            unitContentId: "division-1",
-            title: "รองหัวหน้าฝ่าย",
-            groupLabel: "",
-            groupSortOrder: 1,
-            sortOrder: 0,
-            displayStyle: "default",
-            assignments: [{
-              id: "assignment-2",
-              dutyDetail: "ประสานงานแผนก",
-              sortOrder: 0,
-              person: {
-                id: "person-2",
-                displayName: "บุคลากรคนที่สอง",
-                personnelType: "teacher",
-                employmentPosition: "ครู",
-                photoMediaId: null,
-                publicEmail: "",
-                publicPhone: ""
-              }
-            }]
-          }])
+          ...(mode === "cards"
+            ? []
+            : [
+                {
+                  id: "position-2",
+                  unitContentId: "division-1",
+                  title: "รองหัวหน้าฝ่าย",
+                  groupLabel: "",
+                  groupSortOrder: 1,
+                  sortOrder: 0,
+                  displayStyle: "default",
+                  assignments: [
+                    {
+                      id: "assignment-2",
+                      dutyDetail: "ประสานงานแผนก",
+                      sortOrder: 0,
+                      person: {
+                        id: "person-2",
+                        displayName: "บุคลากรคนที่สอง",
+                        personnelType: "teacher",
+                        employmentPosition: "ครู",
+                        photoMediaId: null,
+                        publicEmail: "",
+                        publicPhone: ""
+                      }
+                    }
+                  ]
+                }
+              ])
         ],
         media: []
       })

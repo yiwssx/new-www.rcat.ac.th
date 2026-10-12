@@ -132,15 +132,13 @@ describe("Organization unit + CMS content transactional lifecycle", () => {
       chartMode: "tree" as const,
       chartLayout: { ...initial.chartLayout, deputy: { ...initial.chartLayout.deputy, row: 2 } }
     };
-    expect(
-      await updateAuditedOrganizationUnit(env, "org1", next, 0, "editor", "2026-10-10T04:31:00.000Z")
-    ).toBe(true);
+    expect(await updateAuditedOrganizationUnit(env, "org1", next, 0, "editor", "2026-10-10T04:31:00.000Z")).toBe(true);
     const updated = await getOrganizationUnitEditor(env, "org1");
     expect(updated).toMatchObject({ chart_mode: "tree", content_revision: 1, unit_revision: 1 });
     expect(JSON.parse(updated?.chart_layout ?? "{}")).toEqual(next.chartLayout);
-    expect(
-      await updateAuditedOrganizationUnit(env, "org1", initial, 0, "editor", "2026-10-10T04:32:00.000Z")
-    ).toBe(false);
+    expect(await updateAuditedOrganizationUnit(env, "org1", initial, 0, "editor", "2026-10-10T04:32:00.000Z")).toBe(
+      false
+    );
     expect(JSON.parse((await getOrganizationUnitEditor(env, "org1"))?.chart_layout ?? "{}")).toEqual(next.chartLayout);
     expect(count("admin_audit_log")).toBe(2);
   });
