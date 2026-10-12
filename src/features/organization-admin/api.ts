@@ -8,6 +8,7 @@ export interface OrganizationUnitListRow {
   parent_content_id: string | null;
   unit_kind: string;
   sort_order: number;
+  chart_mode?: "cards" | "rows" | "tree";
   slug: string;
   title: string;
   summary: string;
@@ -66,6 +67,7 @@ export interface OrganizationUnitDetailRow {
   parent_content_id: string | null;
   unit_kind: string;
   sort_order: number;
+  chart_mode?: "cards" | "rows" | "tree";
   content_revision: number;
   unit_revision: number;
 }
@@ -91,6 +93,7 @@ export type OrganizationUnitWrite = {
   parentContentId?: string | null;
   unitKind: string;
   sortOrder?: number;
+  chartMode?: "cards" | "rows" | "tree";
 };
 
 export type OrganizationPersonnelWrite = {
