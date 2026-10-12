@@ -177,6 +177,30 @@ describe("Phase 4 Organization Admin list/editor", () => {
     await waitFor(() => expect(api.create).toHaveBeenCalledWith("units", expect.objectContaining({ sortOrder: 5 })));
   });
 
+  it("offers a server-search parent unit beyond the initial page when editing", async () => {
+    auth.capabilities = ["organization.read", "organization.manage"];
+    api.getCollection.mockImplementation(async (collection: string, _limit: number, _offset = 0, options?: { search?: string }) => ({
+      items: collection === "units" && options?.search === "ฝ่ายวิชาการ"
+        ? [{ ...existing, content_id: "unit-140", title: "ฝ่ายวิชาการ", slug: "academic" }]
+        : collection === "units" ? [existing] : [],
+      nextOffset: null,
+      maximumItems: 100,
+      total: 142,
+      generatedAt: ""
+    }));
+    renderPage("units");
+    fireEvent.click(await screen.findByRole("button", { name: "แก้ไข" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "ค้นหาหน่วยงานแม่" }), {
+      target: { value: "ฝ่ายวิชาการ" }
+    });
+    expect(await screen.findByRole("option", { name: "ฝ่ายวิชาการ" })).toBeInTheDocument();
+    fireEvent.mouseDown(screen.getByRole("combobox", { name: "หน่วยงานแม่" }));
+    fireEvent.click(await screen.findByRole("option", { name: "ฝ่ายวิชาการ" }));
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกหน่วยงาน" }));
+    await waitFor(() => expect(api.update).toHaveBeenCalledWith("units", "unit-1", 2,
+      expect.objectContaining({ parentContentId: "unit-140" })));
+  });
+
   it("only deletes units after user confirmation with the exact server revision", async () => {
     auth.capabilities = ["organization.read", "organization.manage"];
     renderPage();
