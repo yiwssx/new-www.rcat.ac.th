@@ -113,7 +113,7 @@ export async function handleAdminOrganizationUnitWrite(
     const changes = await bodyRecord(request);
     const input = parseOrganizationContentUnitWrite({ ...inputFromEditor(existing), ...changes }, now);
     const layoutIds = Object.keys(input.chartLayout ?? {});
-    if (layoutIds.length) {
+    if (Object.hasOwn(changes, "chartLayout") && layoutIds.length) {
       const rows = await requireD1Database(env)
         .prepare("SELECT id FROM organization_positions WHERE unit_content_id = ? LIMIT 501")
         .bind(id)
