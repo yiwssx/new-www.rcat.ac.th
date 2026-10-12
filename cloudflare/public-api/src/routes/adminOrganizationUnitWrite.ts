@@ -46,7 +46,8 @@ function inputFromEditor(row: NonNullable<Awaited<ReturnType<typeof getOrganizat
     unpublishAt: row.unpublish_at,
     parentContentId: row.parent_content_id,
     unitKind: row.unit_kind,
-    sortOrder: row.sort_order
+    sortOrder: row.sort_order,
+    chartMode: row.chart_mode
   };
 }
 
