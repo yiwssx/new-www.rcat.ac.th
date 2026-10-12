@@ -20,6 +20,7 @@ import { listAdminOrganizationContentUnits } from "../src/db/organizationAdminRe
 let db: DatabaseSync;
 let env: Env;
 let contentUpdateTotalChanges = 0;
+let contentTombstoneTotalChanges = 0;
 const NOW = "2026-10-10T04:30:00.000Z";
 
 const input: OrganizationUnitInput = {
@@ -53,7 +54,10 @@ function d1(): D1Database {
           db.prepare(sql).run(...(values as never[]));
           const after = (db.prepare("SELECT total_changes() AS value").get() as { value: number }).value;
           const changes = after - before;
-          if (sql.trimStart().startsWith("UPDATE contents")) contentUpdateTotalChanges = changes;
+          if (sql.trimStart().startsWith("UPDATE contents")) {
+            contentUpdateTotalChanges = changes;
+            if (sql.includes("deleted_at = ?")) contentTombstoneTotalChanges = changes;
+          }
           return { success: true, results: [], meta: { changes } };
         },
         async first<T>() {
@@ -86,6 +90,7 @@ function count(table: string) {
 beforeEach(() => {
   db = new DatabaseSync(":memory:");
   contentUpdateTotalChanges = 0;
+  contentTombstoneTotalChanges = 0;
   db.exec("PRAGMA foreign_keys = ON;");
   for (const migration of [initialSql, coreSql, adminSql, lifecycleSql, revisionSql, organizationSql]) {
     db.exec(migration);
@@ -205,6 +210,10 @@ describe("Organization unit + CMS content transactional lifecycle", () => {
     await expect(deleteAuditedOrganizationUnit(env, "org1", 0, "editor", NOW)).rejects.toThrow(/FOREIGN KEY/);
     expect((await getOrganizationUnitEditor(env, "org1"))?.slug).toBe("division-a");
     expect(await deleteAuditedOrganizationUnit(env, "org2", 0, "editor", NOW)).toBe(true);
+    // A successful tombstone UPDATE also writes an immutable content snapshot.
+    // The trigger-inclusive D1 change count is not the number of directly
+    // affected rows and must not turn a committed delete into HTTP 409.
+    expect(contentTombstoneTotalChanges).toBeGreaterThan(1);
     expect(await deleteAuditedOrganizationUnit(env, "org1", 0, "editor", NOW)).toBe(true);
     expect(count("organization_units")).toBe(0);
     expect(count("contents")).toBe(2);
