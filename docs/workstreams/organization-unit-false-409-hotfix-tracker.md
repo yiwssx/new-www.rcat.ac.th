@@ -1,6 +1,6 @@
 # Organization Unit False-409 Hotfix Tracker
 
-Status: **ACTIVE — CODE/REGRESSION TEST PREPARED, CI/RELEASE PENDING**
+Status: **CLOSED — CI GREEN, MERGED, WORKER RELEASED, OPERATOR VERIFIED NO 409**
 
 Date: 2026-10-12 Asia/Bangkok
 Repository: `yiwssx/new-www.rcat.ac.th`
@@ -21,13 +21,15 @@ Users on `/admin/organization` report that changing a unit's publication status 
 - Regression: simulate D1 trigger-inclusive changes with SQLite `total_changes()`, prove successful publish/draft save and stale replay rejection.
 - Strictly no changes to `.github/workflows/**`, secrets, D1 data, migrations, unrelated admin forms, deployment configuration, or direct production writes.
 
-## Delivery state
+## Final delivery evidence
 
-- Implementation and regression-test commits prepared on isolated branch.
-- **Pending**: exact-head CI, review/merge, authorized protected **Worker Production Release** on current `main` using the already-existing workflow `Deploy / Worker`, production smoke/revision verification with the operator.
-- A Vercel READY build is not a substitute for protected Worker release; merging code alone cannot fix running Cloudflare Worker.
-- No automatic Worker release or D1 writes are performed here unless the user explicitly authorizes the protected operation. Keep this tracker open until confirmed production resolution.
+- [PR #571](https://github.com/yiwssx/new-www.rcat.ac.th/pull/571) merged into `main` on 2026-10-12 at 04:15:42 UTC; merge SHA `caec29bd7a1ad1d7c3b868d166246ff8c538c436`.
+- [PR CI #38202764392](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38202764392) and [post-merge CI #38203065929](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38203065929): **success**, including regression, quality and Worker checks.
+- [Protected Worker Production Release #38203813337](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38203813337): **success**, targeting the same `main` SHA. Released Worker version `39d9e1da-6867-4fd9-a4e2-bbd912693e56`; migration preflight reported no pending migrations.
+- **Live acceptance:** site operator reported successfully testing the Organization unit save after release and confirmed **no HTTP 409**. This is operator-confirmed acceptance, not an independently executed authenticated browser test by the agent.
+- Existing password step-up (HTTP 428), optimistic revision CAS and immutable audit protections remain enabled.
+- No GitHub workflow edits, direct manual D1 changes, or production configuration changes were made by this hotfix.
 
-## Next
+## Closure
 
-Open a scoped PR; wait for exact-head CI, and fix any failures without relaxing checks. After merge, arrange the protected Worker release using existing workflow only (never edit or bypass it). Confirm new unit save returns 200 and draft status persists, audit and revisions advance exactly once. Avoid re-clicking stale form saves until new release.
+**Closed on 2026-10-12 by operator acceptance.** No additional action is pending in this false-409 workstream. The separate Organization personnel-assignment/pagination usability issue is outside this workstream and is **not** marked resolved here. Open a new scoped task or tracker if that issue requires remediation.
