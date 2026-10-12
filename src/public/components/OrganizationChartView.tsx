@@ -71,6 +71,11 @@ function PeopleCard({
                       {dutyDetail}
                     </Typography>
                   )}
+                  {person.employmentPosition && (
+                    <Typography variant="caption" sx={{ overflowWrap: "anywhere" }}>
+                      {person.employmentPosition}
+                    </Typography>
+                  )}
                   {showEducationQualifications && person.educationQualifications && (
                     <Typography variant="caption" sx={{ overflowWrap: "anywhere", whiteSpace: "pre-line" }}>
                       วุฒิการศึกษา: {person.educationQualifications}
