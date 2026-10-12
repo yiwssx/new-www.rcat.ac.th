@@ -12,8 +12,10 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { PublicOrganizationPosition } from "../../features/public-organization";
 import { publicOrganizationDetailQueryOptions } from "../../features/public-organization";
+import { buildPublicOrganizationHierarchy } from "../../features/public-organization/hierarchy";
 import PublicResponsiveImage from "../../shared/media/PublicResponsiveImage";
 import OrganizationChartView from "../components/OrganizationChartView";
+import OrganizationUnitHierarchyView from "../components/OrganizationUnitHierarchyView";
 import PublicErrorState from "../components/PublicErrorState";
 import PublicLoadingState from "../components/PublicLoadingState";
 
@@ -136,6 +138,10 @@ export default function PublicOrganizationDetailPage({ slug }: Props) {
     return map;
   }, [data?.positions]);
   const media = useMemo(() => new Map((data?.media ?? []).map((asset) => [asset.id, asset])), [data?.media]);
+  const hierarchy = useMemo(
+    () => buildPublicOrganizationHierarchy(data?.units ?? [], data?.unit.contentId ?? ""),
+    [data?.units, data?.unit.contentId]
+  );
 
   if (query.isPending) return <PublicLoadingState variant="listing" />;
   if (query.isError) {
@@ -185,58 +191,65 @@ export default function PublicOrganizationDetailPage({ slug }: Props) {
           )}
         </Box>
       </Stack>
-      <Stack spacing={3}>
-        {data.units.map((unit) => {
-          const positions = byUnit.get(unit.contentId) ?? [];
-          const isRoot = unit.contentId === data.unit.contentId;
-          return (
-            <Box
-              component="section"
-              key={unit.contentId}
-              aria-labelledby={`org-unit-${unit.contentId}`}
-              sx={{
-                pl: isRoot ? 0 : { xs: 1, sm: Math.min(unit.depth - data.unit.depth, 5) * 2 },
-                borderLeft: isRoot ? "none" : "3px solid",
-                borderColor: "divider",
-                minWidth: 0
-              }}
-            >
-              {!isRoot && (
-                <Typography
-                  id={`org-unit-${unit.contentId}`}
-                  variant="h2"
-                  sx={{ mb: 1.5, fontSize: "1.35rem", overflowWrap: "anywhere" }}
-                >
-                  <Link href={`/organization/${encodeURIComponent(unit.slug)}`} underline="hover" color="inherit">
-                    {unit.title}
-                  </Link>
-                </Typography>
-              )}
-              {positions.length > 0 && (unit.chartMode === "rows" || unit.chartMode === "tree") && (
-                <OrganizationChartView
-                  positions={positions}
-                  layout={unit.chartLayout}
-                  media={media}
-                  showEducationQualifications={unit.unitKind === "department"}
-                  mode={unit.chartMode}
-                />
-              )}
-              {positions.length > 0 && unit.chartMode !== "rows" && unit.chartMode !== "tree" && (
-                <Grid container spacing={2} aria-label={`ตำแหน่งของ${unit.title}`}>
-                  {positions.map((position) => (
-                    <Grid key={position.id} size={{ xs: 12, md: 6, xl: 4 }}>
-                      <PositionGroup
-                        position={position}
-                        media={media}
-                        showEducationQualifications={unit.unitKind === "department"}
-                      />
-                    </Grid>
-                  ))}
-                </Grid>
-              )}
-            </Box>
-          );
-        })}
+      <Stack spacing={4} sx={{ minWidth: 0 }}>
+        <OrganizationUnitHierarchyView hierarchy={hierarchy} />
+        {data.positions.length > 0 && (
+          <Box component="section" aria-label="รายละเอียดตำแหน่งและบุคลากร" sx={{ minWidth: 0 }}>
+            <Typography variant="h2" sx={{ fontSize: "1.4rem", fontWeight: 700, mb: 2 }}>
+              รายละเอียดตำแหน่งและบุคลากร
+            </Typography>
+            <Stack spacing={3} sx={{ minWidth: 0 }}>
+              {data.units
+                .filter((unit) => (byUnit.get(unit.contentId)?.length ?? 0) > 0)
+                .map((unit) => {
+                  const positions = byUnit.get(unit.contentId) ?? [];
+                  const isRoot = unit.contentId === data.unit.contentId;
+                  return (
+                    <Box
+                      component="section"
+                      key={unit.contentId}
+                      aria-label={"ตำแหน่งของ" + unit.title}
+                      sx={{ minWidth: 0 }}
+                    >
+                      {!isRoot && (
+                        <Typography variant="h3" sx={{ mb: 1.5, fontSize: "1.25rem", overflowWrap: "anywhere" }}>
+                          <Link
+                            href={"/organization/" + encodeURIComponent(unit.slug)}
+                            underline="hover"
+                            color="inherit"
+                          >
+                            {unit.title}
+                          </Link>
+                        </Typography>
+                      )}
+                      {(unit.chartMode === "rows" || unit.chartMode === "tree") && (
+                        <OrganizationChartView
+                          positions={positions}
+                          layout={unit.chartLayout}
+                          media={media}
+                          showEducationQualifications={unit.unitKind === "department"}
+                          mode={unit.chartMode}
+                        />
+                      )}
+                      {unit.chartMode !== "rows" && unit.chartMode !== "tree" && (
+                        <Grid container spacing={2} aria-label={"ตำแหน่งของ" + unit.title}>
+                          {positions.map((position) => (
+                            <Grid key={position.id} size={{ xs: 12, md: 6, xl: 4 }}>
+                              <PositionGroup
+                                position={position}
+                                media={media}
+                                showEducationQualifications={unit.unitKind === "department"}
+                              />
+                            </Grid>
+                          ))}
+                        </Grid>
+                      )}
+                    </Box>
+                  );
+                })}
+            </Stack>
+          </Box>
+        )}
       </Stack>
     </Box>
   );
