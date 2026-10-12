@@ -84,7 +84,7 @@ export function isPublicSsrPath(pathname: string) {
     return true;
   }
 
-  if (/^\/content\/[^/]+$/.test(pathname)) {
+  if (/^\/(?:content|organization)\/[^/]+$/.test(pathname)) {
     return true;
   }
 
@@ -124,9 +124,9 @@ function withResponseHeaders(response: Response, headers: Headers, body: BodyIni
 export function applyVercelPublicSsrCachePolicy(request: Request, response: Response) {
   const url = new URL(request.url);
   const headers = new Headers(response.headers);
-  const isDynamicContentDetail = /^\/content\/[^/]+$/.test(url.pathname);
+  const isDynamicDetail = /^\/(?:content|organization)\/[^/]+$/.test(url.pathname);
 
-  if (response.status === 200 && isDynamicContentDetail) {
+  if (response.status === 200 && isDynamicDetail) {
     headers.set("Cache-Control", "no-store");
     headers.delete("Vercel-CDN-Cache-Control");
   } else if (response.status === 200 && url.pathname === "/") {
