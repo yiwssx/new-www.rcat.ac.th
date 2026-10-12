@@ -1,6 +1,6 @@
 # Organization Legacy Sort-Order Normalization Tracker
 
-Status: **ACTIVE — SQL PREPARED; PRODUCTION DATA UNCHANGED**
+Status: **ACTIVE — CODE-HEAD CI GREEN; PRODUCTION DATA UNCHANGED**
 
 Updated: 2026-10-12 Asia/Bangkok
 
@@ -20,7 +20,8 @@ The operator is using a phone and has explicitly forbidden changes to GitHub Act
 - Confirmed the column defaults to zero; the actual defect for legacy data is _colliding sibling orders_, not a legitimate first item with `sort_order = 0`.
 - Prepared `scripts/organization/legacy-order-preview.sql` for read-only proposed-row inspection.
 - Prepared `scripts/organization/legacy-order-apply.sql` for **manual, protected, backup-first** normalization. Its organization-table UPDATE statements only affect duplicate-order groups and increment each affected row's optimistic-concurrency `revision`. For affected **units**, the paired CMS `contents` revision and modification metadata are also updated, preventing stale Admin edits; no migrations or Worker redeployment.
-- **Not yet done:** independent SQLite fixture tests; PR CI; production D1 identity/backup/Time Travel; actual private production preview; manual apply; post-apply verification.
+- **Verified:** the migration-backed SQLite normalization regression test is included in the Unit Tests, and PR #569 implementation-head `ddcbe866954dfed492f70a349d21ff60ddb960d4` passed CI run [#38187200973](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38187200973): all unit/integration/E2E, Worker, Build, Static Quality, Governance, Dependency Preflight/Dependencies, CodeQL and aggregate `quality` succeeded. Prettier autofix passed. This documentation checkpoint needs CI confirmation on its own SHA.
+- **Not yet done:** production D1 identity/backup/Time Travel; actual private production preview; manual apply; post-apply verification.
 - **Access boundary:** the connected GitHub tool can inspect/edit repository code but does not provide a protected Cloudflare D1 remote SQL execution session. Do not claim that the D1 records have changed.
 
 ## Protected run sequence — no workflow changes
@@ -34,4 +35,4 @@ The operator is using a phone and has explicitly forbidden changes to GitHub Act
 
 ## Next action
 
-PR #569 is open in draft at https://github.com/yiwssx/new-www.rcat.ac.th/pull/569. Validate exact-head CI for the isolated SQLite fixture tests (including CMS/unit revision parity, no-op groups, multiple sibling scopes and idempotence). Keep the production operation separate from the code merge. Keep the production operation separate from the code merge.
+PR #569 remains Draft and unmerged at https://github.com/yiwssx/new-www.rcat.ac.th/pull/569. Check CI on this documentation checkpoint, then separately authorize protected D1 preview/backup and manual application. Do not change workflows or infer Production data was updated from passing CI.
