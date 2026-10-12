@@ -51,7 +51,7 @@ describe("CmsShell capability navigation", () => {
     expect(screen.getByText("แดชบอร์ด")).toBeInTheDocument();
     expect(screen.getByText("เนื้อหา")).toBeInTheDocument();
     expect(screen.getByText("ความปลอดภัยบัญชี")).toBeInTheDocument();
-    expect(screen.queryByText("ผังองค์กร")).not.toBeInTheDocument();
+    expect(screen.queryByText("องค์กร")).not.toBeInTheDocument();
     expect(screen.queryByText("ผู้ใช้งาน")).not.toBeInTheDocument();
     expect(screen.queryByText("สำรองข้อมูล")).not.toBeInTheDocument();
   });
@@ -60,7 +60,12 @@ describe("CmsShell capability navigation", () => {
     authMock.capabilities.push("organization.read");
     try {
       render(<CmsShell />);
-      expect(screen.getByText("ผังองค์กร")).toBeInTheDocument();
+      expect(screen.getByText("องค์กร")).toBeInTheDocument();
+      fireEvent.click(screen.getByText("องค์กร"));
+      expect(screen.getByText("ภาพรวม")).toBeInTheDocument();
+      expect(screen.getByText("บุคลากร")).toBeInTheDocument();
+      fireEvent.click(screen.getByText("หน่วยงาน"));
+      expect(navigateMock).toHaveBeenCalledWith({ to: "/admin/organization/units" });
       expect(screen.queryByText("ผู้ใช้งาน")).not.toBeInTheDocument();
     } finally {
       authMock.capabilities.pop();
@@ -71,7 +76,7 @@ describe("CmsShell capability navigation", () => {
     authMock.capabilities.push("organization.read", "menu.read");
     try {
       render(<CmsShell />);
-      expect(screen.getByText("ผังองค์กร")).toBeInTheDocument();
+      expect(screen.getByText("องค์กร")).toBeInTheDocument();
       expect(screen.getByText("เมนู")).toBeInTheDocument();
       expect(screen.getByTestId("CorporateFareOutlinedIcon")).toBeInTheDocument();
       expect(screen.getByTestId("AccountTreeOutlinedIcon")).toBeInTheDocument();

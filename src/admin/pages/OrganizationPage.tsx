@@ -56,10 +56,10 @@ export default function OrganizationPage({ view = "legacy" }: { view?: Organizat
     queryFn: ({ pageParam }) => getOrganizationCollection("units", 100, pageParam),
     getNextPageParam: (lastPage) => lastPage.nextOffset ?? undefined
   });
-  const unitsSummary = useQuery({ ...organizationCollectionQueryOptions("units", 1), enabled: showOverview });
-  const personnel = useQuery({ ...organizationCollectionQueryOptions("personnel", 1), enabled: showOverview });
-  const positions = useQuery({ ...organizationCollectionQueryOptions("positions", 1), enabled: showOverview });
-  const assignments = useQuery({ ...organizationCollectionQueryOptions("assignments", 1), enabled: showOverview });
+  const unitsSummary = useQuery({ ...organizationCollectionQueryOptions("units", 1, true), enabled: showOverview });
+  const personnel = useQuery({ ...organizationCollectionQueryOptions("personnel", 1, true), enabled: showOverview });
+  const positions = useQuery({ ...organizationCollectionQueryOptions("positions", 1, true), enabled: showOverview });
+  const assignments = useQuery({ ...organizationCollectionQueryOptions("assignments", 1, true), enabled: showOverview });
   const rows = useMemo(() => units.data?.pages.flatMap((page) => page.items) ?? [], [units.data]);
   const collections = [
     { label: "หน่วยงาน", count: unitsSummary.data?.total ?? rows.length, isPending: unitsSummary.isPending, isError: unitsSummary.isError },
