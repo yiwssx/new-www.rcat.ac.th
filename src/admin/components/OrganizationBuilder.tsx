@@ -665,7 +665,12 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
               </Stack>
             </Box>
           </Stack>
-          {selectedUnit && (
+          {selectedUnit && (positionsQuery.isPending || positionsQuery.hasNextPage) && (
+            <Alert severity="info">
+              กรุณาโหลดรายการตำแหน่งให้ครบก่อนจัดผัง เพื่อป้องกันค่าที่กำลังแก้ไขถูกรีเซ็ตระหว่างโหลดข้อมูล
+            </Alert>
+          )}
+          {selectedUnit && !positionsQuery.isPending && !positionsQuery.hasNextPage && !positionsQuery.isError && (
             <OrganizationChartLayoutEditor
               key={`${selectedUnit.content_id}:${selectedUnit.unit_revision}:${visiblePositions.length}`}
               unit={selectedUnit}
