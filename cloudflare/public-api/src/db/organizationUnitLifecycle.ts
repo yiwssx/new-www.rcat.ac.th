@@ -122,7 +122,7 @@ function auditStatement(db: D1Database, id: string, action: string, actor: strin
        )`
     )
     .bind(
-      `audit-${crypto.randomUUID()}`,
+      auditId,
       id,
       action,
       actor,
@@ -206,9 +206,27 @@ export async function updateAuditedOrganizationUnit(
          )`
     )
     .bind(input.parentContentId, input.unitKind, input.sortOrder, now, id, revision, id, revision + 1, now);
-  const audit = auditStatement(db, id, "update", actor, now, revision);
-  const result = await db.batch([contentUpdate, unitUpdate, audit]);
-  return Number(result[0]?.meta.changes ?? 0) === 1 && Number(result[1]?.meta.changes ?? 0) === 1;
+  // D1 meta.changes uses sqlite3_total_changes(), including the immutable
+  // content-revision snapshot trigger. It can exceed 1 for a single UPDATE;
+  // checking === 1 falsely returns HTTP 409 after a successful COMMIT.
+  // Confirm the paired CAS writes and the audited mutation in the SAME batch.
+  const auditId = `audit-${crypto.randomUUID()}`;
+  const audit = auditStatement(db, id, "update", actor, now, revision, auditId);
+  const verify = db
+    .prepare(
+      `SELECT COUNT(*) AS confirmed
+       FROM contents AS c
+       JOIN organization_units AS u ON u.content_id = c.id
+       JOIN admin_audit_log AS a ON a.entity_id = c.id
+       WHERE c.id = ? AND c.type = 'organization' AND COALESCE(c.deleted_at, '') = ''
+         AND c.revision = ? AND c.updated_at = ? AND c.updated_by = ?
+         AND u.revision = ? AND u.updated_at = ?
+         AND a.id = ? AND a.entity_type = 'organization_unit' AND a.action = 'update'`
+    )
+    .bind(id, revision + 1, now, actor, revision + 1, now, auditId);
+  const result = await db.batch([contentUpdate, unitUpdate, audit, verify]);
+  const confirmation = result[3]?.results?.[0] as { confirmed?: number } | undefined;
+  return Number(confirmation?.confirmed ?? 0) === 1;
 }
 
 /** Archive is safe by default: unpublishes the entire descendant chain. */
