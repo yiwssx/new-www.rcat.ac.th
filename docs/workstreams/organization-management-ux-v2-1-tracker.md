@@ -58,3 +58,11 @@
 - Kept the legacy three-argument `getOrganizationCollection` call in the builder; scoped V2.1 queries retain their fourth options argument.
 - Evidence: prior full CI `38234599814` failed exactly two Organization unit tests, and Static Quality failed because this tracker had unformatted Markdown. An autofix commit subsequently appeared.
 - New CI `38236207097` and Prettier autofix `38236207188` were queued when recorded. **Verification pending:** check the latest post-autofix branch commit, Static Quality, Unit Tests and all other required jobs before treating this checkpoint as accepted.
+
+## 2026-10-12 — CI-only static quality repair
+
+- CI run `38236261959`: all primary jobs passed except Static Quality. Unit Tests, Build, Worker, Integration, E2E, Dependencies and Governance succeeded.
+- Static Quality failure: ESLint `no-control-regex` in `cloudflare/public-api/src/routes/adminOrganization.ts:34`; Prettier passed.
+- Commit `915e5072` replaces the regex with the equivalent control-character code point check; no security rule, workflow or production behavior weakened.
+- Verification: CI run `38236986296` and Prettier autofix `38236986424` started. Their final status remains unverified at this checkpoint.
+- Pause requested by owner after CI is green. PR #577 remains draft; no merge or production deploy.
