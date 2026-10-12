@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import type { PublicOrganizationUnit } from "../../features/public-organization/api";
+import type { PublicOrganizationPosition, PublicOrganizationUnit } from "../../features/public-organization/api";
 import { buildPublicOrganizationHierarchy } from "../../features/public-organization/hierarchy";
 import OrganizationUnitHierarchyView from "./OrganizationUnitHierarchyView";
 
@@ -84,5 +84,125 @@ describe("Organization Unit Hierarchy V2.2 Phase 2", () => {
     setup([unit("orphan", "missing")]);
     expect(screen.queryByRole("region", { name: /ผังลำดับชั้นหน่วยงาน/ })).not.toBeInTheDocument();
     expect(screen.getByText(/ข้อมูลลำดับหน่วยงานไม่ครบถ้วน/)).toBeInTheDocument();
+  });
+});
+
+
+function position(
+  id: string,
+  unitContentId: string,
+  personId: string,
+  displayName = "บุคลากรคนเดียวกัน",
+  qualifications = "ปริญญาโท"
+): PublicOrganizationPosition {
+  return {
+    id,
+    unitContentId,
+    title: "ตำแหน่ง " + id,
+    groupLabel: "",
+    groupSortOrder: 0,
+    sortOrder: 0,
+    displayStyle: "default",
+    assignments: [
+      {
+        id: "assignment-" + id,
+        dutyDetail: "หน้าที่ " + id,
+        sortOrder: 0,
+        person: {
+          id: personId,
+          displayName,
+          personnelType: "teacher",
+          employmentPosition: "ครู",
+          educationQualifications: qualifications,
+          photoMediaId: null,
+          publicEmail: "",
+          publicPhone: ""
+        }
+      }
+    ]
+  };
+}
+
+describe("Organization V2.2 Phase 3 position composition", () => {
+  it("renders each saved mode inside its own unit with a shared person's distinct duty assignments exactly once", () => {
+    const root = {
+      ...unit("root", null),
+      chartMode: "rows" as const,
+      chartLayout: { "lead": { level: 1, row: 1, order: 0, parentPositionId: null } }
+    };
+    const department = {
+      ...unit("department", "root"),
+      unitKind: "department",
+      chartMode: "tree" as const,
+      chartLayout: { "teacher": { level: 1, row: 1, order: 0, parentPositionId: null } }
+    };
+    const work = { ...unit("work", "root"), chartMode: "cards" as const };
+    const units = [root, department, work, unit("empty", "root")];
+    const positionsByUnit = new Map<string, PublicOrganizationPosition[]>([
+      ["root", [position("lead", "root", "person-1")]],
+      ["department", [position("teacher", "department", "person-1")]],
+      ["work", [position("assistant", "work", "person-2", "ผู้ช่วยงาน")]]
+    ]);
+    render(
+      <OrganizationUnitHierarchyView
+        hierarchy={buildPublicOrganizationHierarchy(units, "root")}
+        positionsByUnit={positionsByUnit}
+        media={new Map()}
+      />
+    );
+    const rootPositions = screen.getByRole("region", { name: "ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้" });
+    const leadSection = within(rootPositions).getByRole("region", { name: "แถวระดับ 1 แถว 1 เลื่อนแนวนอนได้" });
+    expect(within(leadSection).getByText("ตำแหน่ง lead")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: /ผังสายบังคับบัญชา/ })).toBeInTheDocument();
+    expect(screen.getAllByText("บุคลากรคนเดียวกัน")).toHaveLength(2);
+    expect(screen.getByText("หน้าที่ lead")).toBeInTheDocument();
+    expect(screen.getByText("หน้าที่ teacher")).toBeInTheDocument();
+    expect(screen.getByText("ผู้ช่วยงาน")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "หน่วยงาน empty" })).toBeInTheDocument();
+    expect(screen.getByText("วุฒิการศึกษา: ปริญญาโท")).toBeInTheDocument();
+    expect(screen.getAllByText("ตำแหน่ง assistant")).toHaveLength(1);
+  });
+
+  it("does not display department-only qualifications within a non-department cards unit", () => {
+    const units = [unit("root", null), { ...unit("work", "root"), chartMode: "cards" as const }];
+    render(
+      <OrganizationUnitHierarchyView
+        hierarchy={buildPublicOrganizationHierarchy(units, "root")}
+        positionsByUnit={new Map([["work", [position("assistant", "work", "person-1")]]])}
+        media={new Map()}
+      />
+    );
+    expect(screen.getByText("บุคลากรคนเดียวกัน")).toBeInTheDocument();
+    expect(screen.queryByText(/วุฒิการศึกษา:/)).not.toBeInTheDocument();
+  });
+
+  it("never draws unrelated or disconnected unit personnel inside the chosen root", () => {
+    const units = [unit("root", null), unit("sub", "root"), unit("orphan", "other")];
+    render(
+      <OrganizationUnitHierarchyView
+        hierarchy={buildPublicOrganizationHierarchy(units, "root")}
+        positionsByUnit={new Map([
+          ["sub", [position("sub-position", "sub", "one", "คนที่เผยแพร่")]],
+          ["orphan", [position("orphan-position", "orphan", "two", "คนที่ไม่อยู่ในผัง")]]
+        ])}
+        media={new Map()}
+      />
+    );
+    expect(screen.getByText("คนที่เผยแพร่")).toBeInTheDocument();
+    expect(screen.queryByText("คนที่ไม่อยู่ในผัง")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "หน่วยงาน orphan" })).not.toBeInTheDocument();
+  });
+
+  it("preserves vacant position placeholders for configured chart modes", () => {
+    const vacant = { ...position("vacant", "root", "nobody"), assignments: [] };
+    render(
+      <OrganizationUnitHierarchyView
+        hierarchy={buildPublicOrganizationHierarchy([{ ...unit("root", null), chartMode: "rows" }], "root")}
+        positionsByUnit={new Map([["root", [vacant]]])}
+        media={new Map()}
+      />
+    );
+    expect(screen.getByText("ยังไม่มีผู้ดำรงตำแหน่ง")).toBeInTheDocument();
+    expect(screen.queryByText("บุคลากรคนเดียวกัน")).not.toBeInTheDocument();
   });
 });
