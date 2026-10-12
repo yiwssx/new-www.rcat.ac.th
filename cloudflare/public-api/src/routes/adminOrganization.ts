@@ -31,7 +31,7 @@ function readPageParams(request: Request): {
   if (["search", "includeTotal", "unitContentId", "positionId"].some((key) => params.getAll(key).length > 1))
     return null;
   const search = params.get("search") ?? "";
-  if (search.length > 160 || /[\x00-\x1f]/.test(search)) return null;
+  if (search.length > 160 || [...search].some((character) => character.charCodeAt(0) < 32)) return null;
   const includeTotal = params.get("includeTotal") === "1";
   if (params.has("includeTotal") && !["0", "1"].includes(params.get("includeTotal") ?? "")) return null;
   const unitContentId = params.get("unitContentId") || undefined;
