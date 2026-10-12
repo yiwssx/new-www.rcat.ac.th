@@ -144,6 +144,20 @@ function stubPublicApi() {
         return Response.json({ item: publishedItem, media: [], relatedItems: [], generatedAt });
       }
 
+      if (url.pathname === "/api/public/organization/rcat-2569-business") {
+        const unit = {
+          contentId: "org-business",
+          parentContentId: null,
+          unitKind: "department",
+          sortOrder: 0,
+          slug: "rcat-2569-business",
+          title: "แผนกวิชาบริหารธุรกิจ",
+          summary: "ผังองค์กรแผนกวิชา",
+          depth: 0
+        };
+        return Response.json({ unit, ancestors: [], units: [unit], positions: [], media: [] });
+      }
+
       if (url.pathname === "/api/public/search") {
         return Response.json({
           query: url.searchParams.get("q") || "",
@@ -182,6 +196,54 @@ describe("Vercel Public SSR production cutover", () => {
     expect(reconstructed?.url).toBe(
       "https://www.rcat.ac.th/news?page=2&tag=%E0%B9%80%E0%B8%81%E0%B8%A9%E0%B8%95%E0%B8%A3"
     );
+  });
+
+  it("reconstructs an organization permalink without admitting unrelated nested paths", () => {
+    const request = new Request(
+      "https://www.rcat.ac.th/api/ssr?_rcatPath=/organization/rcat-2569-business"
+    );
+    expect(reconstructPublicSsrRequest(request)?.url).toBe(
+      "https://www.rcat.ac.th/organization/rcat-2569-business"
+    );
+    expect(
+      reconstructPublicSsrRequest(
+        new Request("https://www.rcat.ac.th/api/ssr?_rcatPath=/admin/organization")
+      )
+    ).toBeNull();
+    expect(
+      reconstructPublicSsrRequest(
+        new Request("https://www.rcat.ac.th/api/ssr?_rcatPath=/organization/one/two")
+      )
+    ).toBeNull();
+  });
+
+  it("renders a published organization permalink via SSR without caching its detail", async () => {
+    const response = await renderVercelPublicSsrRequest(
+      new Request("https://www.rcat.ac.th/api/ssr?_rcatPath=/organization/rcat-2569-business")
+    );
+    const html = await response.text();
+    const requestedPaths = vi
+      .mocked(globalThis.fetch)
+      .mock.calls.map(([input]) => new URL(input instanceof Request ? input.url : String(input)).pathname);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(response.headers.get("Vercel-CDN-Cache-Control")).toBeNull();
+    expect(html).toContain("<!DOCTYPE html>");
+    expect(html).toContain("แผนกวิชาบริหารธุรกิจ");
+    expect(requestedPaths).toContain("/api/public/organization/rcat-2569-business");
+    expect(requestedPaths).not.toContain("/api/public/home");
+  });
+
+  it("does not cache or index an unpublished or missing organization permalink", async () => {
+    const response = await renderVercelPublicSsrRequest(
+      new Request("https://www.rcat.ac.th/api/ssr?_rcatPath=/organization/draft-unit")
+    );
+
+    expect(response.status).toBe(404);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(response.headers.get("Vercel-CDN-Cache-Control")).toBeNull();
+    expect(response.headers.get("X-Robots-Tag")).toBe("noindex, nofollow");
   });
 
   it("returns a bounded no-JavaScript detail document without loading the home snapshot", async () => {
