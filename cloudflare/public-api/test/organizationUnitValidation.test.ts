@@ -46,23 +46,27 @@ describe("Organization CMS unit mutation validation", () => {
       chartMode: "cards",
       chartLayout: {}
     });
-    expect(() => parseOrganizationContentUnitWrite({ ...required, chartMode: "invalid" }, NOW)).toThrow(
-      /chartMode/
-    );
+    expect(() => parseOrganizationContentUnitWrite({ ...required, chartMode: "invalid" }, NOW)).toThrow(/chartMode/);
     expect(() =>
-      parseOrganizationContentUnitWrite({
-        ...valid,
-        chartLayout: {
-          director: { level: 1, row: 1, order: 0, parentPositionId: "head" },
-          head: { level: 2, row: 1, order: 0, parentPositionId: "director" }
-        }
-      }, NOW)
+      parseOrganizationContentUnitWrite(
+        {
+          ...valid,
+          chartLayout: {
+            director: { level: 1, row: 1, order: 0, parentPositionId: "head" },
+            head: { level: 2, row: 1, order: 0, parentPositionId: "director" }
+          }
+        },
+        NOW
+      )
     ).toThrow(/higher level/);
     expect(() =>
-      parseOrganizationContentUnitWrite({
-        ...valid,
-        chartLayout: { outsider: { level: 1, row: 0, order: 0, parentPositionId: null } }
-      }, NOW)
+      parseOrganizationContentUnitWrite(
+        {
+          ...valid,
+          chartLayout: { outsider: { level: 1, row: 0, order: 0, parentPositionId: null } }
+        },
+        NOW
+      )
     ).toThrow(/invalid chart row/);
   });
 
