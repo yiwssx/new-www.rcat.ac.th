@@ -119,6 +119,7 @@ export type OrganizationPositionWrite = {
   groupLabel?: string;
   groupSortOrder?: number;
   sortOrder?: number;
+  autoSortOrder?: boolean;
   displayStyle?: string;
   occupantLimit?: number | null;
 };
@@ -128,6 +129,7 @@ export type OrganizationAssignmentWrite = {
   positionId: string;
   dutyDetail?: string;
   sortOrder?: number;
+  autoSortOrder?: boolean;
   enabled?: boolean;
 };
 

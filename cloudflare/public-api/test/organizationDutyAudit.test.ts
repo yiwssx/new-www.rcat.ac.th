@@ -108,6 +108,18 @@ describe("Organization Chart audited duty D1 operations", () => {
     expect(count("admin_audit_log")).toBe(2);
   });
 
+  it("allocates consecutive sibling orders in D1 and preserves audited creates", async () => {
+    await createAuditedOrganizationPosition(env, position, "editor", true);
+    await createAuditedOrganizationPosition(env, { ...position, id: "pos2", title: "Deputy" }, "editor", true);
+    expect((await getAdminOrganizationPositionById(env, "pos1"))?.sort_order).toBe(0);
+    expect((await getAdminOrganizationPositionById(env, "pos2"))?.sort_order).toBe(1);
+    await createAuditedOrganizationAssignment(env, assignment, "editor", true);
+    await createAuditedOrganizationAssignment(env, { ...assignment, id: "asg2", personnel_id: "p2" }, "editor", true);
+    expect((await getAdminOrganizationAssignmentById(env, "asg1"))?.sort_order).toBe(0);
+    expect((await getAdminOrganizationAssignmentById(env, "asg2"))?.sort_order).toBe(1);
+    expect(count("admin_audit_log")).toBe(4);
+  });
+
   it("increments both revisions and rejects stale updates without extra audit entries", async () => {
     await createAuditedOrganizationPosition(env, position, "editor");
     await createAuditedOrganizationAssignment(env, assignment, "editor");

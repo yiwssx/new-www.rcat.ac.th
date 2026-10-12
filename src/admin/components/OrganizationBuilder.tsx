@@ -118,6 +118,13 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
     return () => window.clearTimeout(timer);
   }, [unitSearch]);
   const [personnelSearch, setPersonnelSearch] = useState("");
+  const [personnelSearchDebounced, setPersonnelSearchDebounced] = useState("");
+  useEffect(() => {
+    const timer = window.setTimeout(() => setPersonnelSearchDebounced(personnelSearch.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [personnelSearch]);
+  const [positionAutoOrder, setPositionAutoOrder] = useState(false);
+  const [assignmentAutoOrder, setAssignmentAutoOrder] = useState(false);
   const [collapsedUnitIds, setCollapsedUnitIds] = useState<string[]>([]);
   const [positionEditing, setPositionEditing] = useState<OrganizationPositionRow | null>(null);
   const [positionForm, setPositionForm] = useState<PositionForm | null>(null);
@@ -138,9 +145,10 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
   const assignmentsQuery = useInfiniteQuery(pageQuery("assignments", selectedUnitId, legacy));
   const personnelQuery = useInfiniteQuery(pageQuery("personnel", selectedUnitId, legacy));
   const personnelLookup = useQuery({
-    queryKey: ["admin-organization", "personnel", "lookup", personnelSearch],
+    queryKey: ["admin-organization", "personnel", "lookup", personnelSearchDebounced],
     enabled: assignmentForm !== null,
-    queryFn: () => getOrganizationCollection("personnel", 25, 0, { includeTotal: true, search: personnelSearch })
+    queryFn: () =>
+      getOrganizationCollection("personnel", 25, 0, { includeTotal: true, search: personnelSearchDebounced })
   });
   const positions = useMemo(
     () => (positionsQuery.data?.pages.flatMap((page) => page.items) ?? []) as OrganizationPositionRow[],
@@ -196,12 +204,13 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
   function openPosition(row: OrganizationPositionRow | null) {
     if (
       !canManage ||
-      (!row && (!selectedUnit || positionsQuery.hasNextPage || positionsQuery.isPending || positionsQuery.isError))
+      (!row && (!selectedUnit || positionsQuery.isPending || positionsQuery.isError))
     )
       return;
     setDialogError("");
     setError("");
     setPositionEditing(row);
+    setPositionAutoOrder(!row);
     setPositionForm(
       row
         ? {
@@ -226,12 +235,13 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
   function openAssignment(row: OrganizationAssignmentRow | null, positionId: string) {
     if (
       !canManage ||
-      (!row && (assignmentsQuery.hasNextPage || assignmentsQuery.isPending || assignmentsQuery.isError))
+      (!row && (assignmentsQuery.isPending || assignmentsQuery.isError))
     )
       return;
     setDialogError("");
     setError("");
     setAssignmentEditing(row);
+    setAssignmentAutoOrder(!row);
     setPersonnelSearch("");
     setAssignmentForm(
       row
@@ -269,7 +279,10 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
       if (positionEditing) {
         await updateOrganizationRecord("positions", positionEditing.id, positionEditing.revision, positionForm);
       } else {
-        await createOrganizationRecord("positions", positionForm);
+        await createOrganizationRecord(
+          "positions",
+          positionAutoOrder ? { ...positionForm, sortOrder: undefined, autoSortOrder: true } : positionForm
+        );
       }
     } catch (cause) {
       await appSwal.close();
@@ -315,7 +328,10 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
       if (assignmentEditing) {
         await updateOrganizationRecord("assignments", assignmentEditing.id, assignmentEditing.revision, assignmentForm);
       } else {
-        await createOrganizationRecord("assignments", assignmentForm);
+        await createOrganizationRecord(
+          "assignments",
+          assignmentAutoOrder ? { ...assignmentForm, sortOrder: undefined, autoSortOrder: true } : assignmentForm
+        );
       }
     } catch (cause) {
       await appSwal.close();
@@ -553,7 +569,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                         <Button
                           variant="contained"
                           disabled={
-                            busy || positionsQuery.hasNextPage || positionsQuery.isPending || positionsQuery.isError
+                            busy || positionsQuery.isPending || positionsQuery.isError
                           }
                           onClick={() => openPosition(null)}
                         >
@@ -733,10 +749,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                               <Button
                                 variant="outlined"
                                 disabled={
-                                  busy ||
-                                  assignmentsQuery.hasNextPage ||
-                                  assignmentsQuery.isPending ||
-                                  assignmentsQuery.isError
+                                  busy || assignmentsQuery.isPending || assignmentsQuery.isError
                                 }
                                 onClick={() => openAssignment(null, position.id)}
                               >
@@ -853,13 +866,23 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                           setPositionForm({ ...positionForm, groupSortOrder, sortOrder });
                         }}
                       />
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={positionAutoOrder}
+                            disabled={busy || Boolean(positionEditing)}
+                            onChange={(_, checked) => setPositionAutoOrder(checked)}
+                          />
+                        }
+                        label="เพิ่มต่อท้ายอัตโนมัติจากข้อมูลบนเซิร์ฟเวอร์"
+                      />
                       <TextField
                         label="ลำดับตำแหน่ง"
                         type="number"
                         fullWidth
-                        value={positionForm.sortOrder}
-                        disabled={busy}
-                        helperText="ค่าในระบบเริ่มที่ 0 แต่รายการแสดงอันดับเริ่มที่ 1"
+                        value={positionAutoOrder ? "" : positionForm.sortOrder}
+                        disabled={busy || positionAutoOrder}
+                        helperText={positionAutoOrder ? "เซิร์ฟเวอร์กำหนดลำดับจริงเมื่อบันทึก" : "ค่าในระบบเริ่มที่ 0 แต่รายการแสดงอันดับเริ่มที่ 1"}
                         onChange={(event) =>
                           setPositionForm({ ...positionForm, sortOrder: Number(event.target.value) })
                         }
@@ -990,14 +1013,24 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                     <Box component="summary" sx={{ cursor: "pointer", fontWeight: 600 }}>
                       ตั้งค่าลำดับด้วยตัวเลข (ขั้นสูง)
                     </Box>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={assignmentAutoOrder}
+                          disabled={busy || Boolean(assignmentEditing)}
+                          onChange={(_, checked) => setAssignmentAutoOrder(checked)}
+                        />
+                      }
+                      label="เพิ่มต่อท้ายอัตโนมัติจากข้อมูลบนเซิร์ฟเวอร์"
+                    />
                     <TextField
                       label="ลำดับการแสดง"
                       type="number"
                       fullWidth
                       sx={{ mt: 2 }}
-                      disabled={busy}
-                      value={assignmentForm.sortOrder}
-                      helperText="ระบบเติมลำดับถัดไปให้อัตโนมัติ และแสดงอันดับเริ่มที่ 1"
+                      disabled={busy || assignmentAutoOrder}
+                      value={assignmentAutoOrder ? "" : assignmentForm.sortOrder}
+                      helperText={assignmentAutoOrder ? "เซิร์ฟเวอร์กำหนดลำดับจริงเมื่อบันทึก" : "ระบบแสดงอันดับเริ่มที่ 1"}
                       onChange={(event) =>
                         setAssignmentForm({ ...assignmentForm, sortOrder: Number(event.target.value) })
                       }

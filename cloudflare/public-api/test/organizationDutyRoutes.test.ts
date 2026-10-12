@@ -102,6 +102,23 @@ describe("Organization Chart protected position and assignment writes", () => {
     expect(input?.id).toMatch(/^org-/);
   });
 
+  it("requests audited atomic append without loading every sibling", async () => {
+    const postPosition = await dispatch("POST", "positions", {
+      unitContentId: "division-1", title: "Deputy", autoSortOrder: true
+    });
+    expect(postPosition?.status).toBe(201);
+    expect(createAuditedOrganizationPosition).toHaveBeenCalledWith(env, expect.any(Object), identity.actor, true);
+    const postAssignment = await dispatch("POST", "assignments", {
+      personnelId: "person-1", positionId: "position-1", autoSortOrder: true
+    });
+    expect(postAssignment?.status).toBe(201);
+    expect(createAuditedOrganizationAssignment).toHaveBeenCalledWith(env, expect.any(Object), identity.actor, true);
+    expect((await dispatch("POST", "positions", {
+      unitContentId: "division-1", title: "Invalid", autoSortOrder: true, sortOrder: 1
+    }))?.status).toBe(400);
+    expect((await dispatch("PATCH", "positions/position-1", { autoSortOrder: true }, "3"))?.status).toBe(400);
+  });
+
   it("rejects protected fields, scheduling, and occupant limits without writing", async () => {
     const probes: Array<[string, unknown]> = [
       ["positions", { unitContentId: "division-1", title: "Director", revision: 9 }],

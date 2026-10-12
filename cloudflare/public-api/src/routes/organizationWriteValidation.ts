@@ -138,6 +138,7 @@ export interface OrganizationPositionWriteInput {
   groupLabel: string;
   groupSortOrder: number;
   sortOrder: number;
+  autoSortOrder: boolean;
   displayStyle: string;
   occupantLimit: number | null;
 }
@@ -150,6 +151,7 @@ export function parseOrganizationPositionWrite(value: unknown): OrganizationPosi
     "groupLabel",
     "groupSortOrder",
     "sortOrder",
+    "autoSortOrder",
     "displayStyle",
     "occupantLimit"
   ]);
@@ -165,6 +167,7 @@ export function parseOrganizationPositionWrite(value: unknown): OrganizationPosi
     groupLabel: text(input, "groupLabel", 160),
     groupSortOrder: integer(input, "groupSortOrder", 0),
     sortOrder: integer(input, "sortOrder", 0),
+    autoSortOrder: flag(input, "autoSortOrder", false),
     displayStyle: text(input, "displayStyle", 64) || "default",
     occupantLimit: maxOccupants
   };
@@ -175,17 +178,19 @@ export interface OrganizationAssignmentWriteInput {
   positionId: string;
   dutyDetail: string;
   sortOrder: number;
+  autoSortOrder: boolean;
   enabled: boolean;
 }
 
 export function parseOrganizationAssignmentWrite(value: unknown): OrganizationAssignmentWriteInput {
   const input = asRecord(value);
-  allowOnly(input, ["personnelId", "positionId", "dutyDetail", "sortOrder", "enabled"]);
+  allowOnly(input, ["personnelId", "positionId", "dutyDetail", "sortOrder", "autoSortOrder", "enabled"]);
   return {
     personnelId: requiredId(input, "personnelId"),
     positionId: requiredId(input, "positionId"),
     dutyDetail: text(input, "dutyDetail", 1200),
     sortOrder: integer(input, "sortOrder", 0),
+    autoSortOrder: flag(input, "autoSortOrder", false),
     enabled: flag(input, "enabled", true)
   };
 }
