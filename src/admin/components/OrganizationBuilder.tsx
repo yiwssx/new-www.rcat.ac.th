@@ -202,11 +202,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
   }
 
   function openPosition(row: OrganizationPositionRow | null) {
-    if (
-      !canManage ||
-      (!row && (!selectedUnit || positionsQuery.isPending || positionsQuery.isError))
-    )
-      return;
+    if (!canManage || (!row && (!selectedUnit || positionsQuery.isPending || positionsQuery.isError))) return;
     setDialogError("");
     setError("");
     setPositionEditing(row);
@@ -233,11 +229,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
   }
 
   function openAssignment(row: OrganizationAssignmentRow | null, positionId: string) {
-    if (
-      !canManage ||
-      (!row && (assignmentsQuery.isPending || assignmentsQuery.isError))
-    )
-      return;
+    if (!canManage || (!row && (assignmentsQuery.isPending || assignmentsQuery.isError))) return;
     setDialogError("");
     setError("");
     setAssignmentEditing(row);
@@ -568,9 +560,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                       {view !== "assignments" && (
                         <Button
                           variant="contained"
-                          disabled={
-                            busy || positionsQuery.isPending || positionsQuery.isError
-                          }
+                          disabled={busy || positionsQuery.isPending || positionsQuery.isError}
                           onClick={() => openPosition(null)}
                         >
                           เพิ่มตำแหน่ง
@@ -748,9 +738,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                             {canManage && (view === "legacy" || view === "assignments") && (
                               <Button
                                 variant="outlined"
-                                disabled={
-                                  busy || assignmentsQuery.isPending || assignmentsQuery.isError
-                                }
+                                disabled={busy || assignmentsQuery.isPending || assignmentsQuery.isError}
                                 onClick={() => openAssignment(null, position.id)}
                               >
                                 มอบหมายบุคลากร
@@ -882,7 +870,11 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                         fullWidth
                         value={positionAutoOrder ? "" : positionForm.sortOrder}
                         disabled={busy || positionAutoOrder}
-                        helperText={positionAutoOrder ? "เซิร์ฟเวอร์กำหนดลำดับจริงเมื่อบันทึก" : "ค่าในระบบเริ่มที่ 0 แต่รายการแสดงอันดับเริ่มที่ 1"}
+                        helperText={
+                          positionAutoOrder
+                            ? "เซิร์ฟเวอร์กำหนดลำดับจริงเมื่อบันทึก"
+                            : "ค่าในระบบเริ่มที่ 0 แต่รายการแสดงอันดับเริ่มที่ 1"
+                        }
                         onChange={(event) =>
                           setPositionForm({ ...positionForm, sortOrder: Number(event.target.value) })
                         }
@@ -1030,7 +1022,9 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                       sx={{ mt: 2 }}
                       disabled={busy || assignmentAutoOrder}
                       value={assignmentAutoOrder ? "" : assignmentForm.sortOrder}
-                      helperText={assignmentAutoOrder ? "เซิร์ฟเวอร์กำหนดลำดับจริงเมื่อบันทึก" : "ระบบแสดงอันดับเริ่มที่ 1"}
+                      helperText={
+                        assignmentAutoOrder ? "เซิร์ฟเวอร์กำหนดลำดับจริงเมื่อบันทึก" : "ระบบแสดงอันดับเริ่มที่ 1"
+                      }
                       onChange={(event) =>
                         setAssignmentForm({ ...assignmentForm, sortOrder: Number(event.target.value) })
                       }

@@ -149,7 +149,8 @@ export async function handleAdminOrganizationDutyWrite(
     if (isUpdate && previous && previous.revision !== revision) return errorResponse("stale revision", 409);
 
     const changes = await readJson(request);
-    if (isUpdate && "autoSortOrder" in changes) return errorResponse("automatic order applies only to new records", 400);
+    if (isUpdate && "autoSortOrder" in changes)
+      return errorResponse("automatic order applies only to new records", 400);
     if (isCreate && changes.autoSortOrder === true && "sortOrder" in changes)
       return errorResponse("choose automatic or explicit sort order", 400);
     const now = new Date().toISOString();

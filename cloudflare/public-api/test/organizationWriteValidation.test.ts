@@ -65,10 +65,18 @@ describe("Organization Chart server-side write validation", () => {
   });
 
   it("allows opt-in automatic append but rejects non-boolean flags", () => {
-    expect(parseOrganizationPositionWrite({ unitContentId: "division", title: "Head", autoSortOrder: true }).autoSortOrder).toBe(true);
-    expect(parseOrganizationAssignmentWrite({ personnelId: "p1", positionId: "pos1", autoSortOrder: true }).autoSortOrder).toBe(true);
-    expect(() => parseOrganizationPositionWrite({ unitContentId: "division", title: "Head", autoSortOrder: 1 })).toThrow(/autoSortOrder/);
-    expect(() => parseOrganizationAssignmentWrite({ personnelId: "p1", positionId: "pos1", autoSortOrder: "true" })).toThrow(/autoSortOrder/);
+    expect(
+      parseOrganizationPositionWrite({ unitContentId: "division", title: "Head", autoSortOrder: true }).autoSortOrder
+    ).toBe(true);
+    expect(
+      parseOrganizationAssignmentWrite({ personnelId: "p1", positionId: "pos1", autoSortOrder: true }).autoSortOrder
+    ).toBe(true);
+    expect(() =>
+      parseOrganizationPositionWrite({ unitContentId: "division", title: "Head", autoSortOrder: 1 })
+    ).toThrow(/autoSortOrder/);
+    expect(() =>
+      parseOrganizationAssignmentWrite({ personnelId: "p1", positionId: "pos1", autoSortOrder: "true" })
+    ).toThrow(/autoSortOrder/);
   });
 
   it("enforces position occupant limits and foreign-reference syntax", () => {
