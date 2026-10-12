@@ -51,6 +51,36 @@ async function installOrganizationFixture(page: Page, mode: "cards" | "rows" | "
             title: "งานทะเบียน",
             summary: "",
             depth: 1
+          },
+          {
+            contentId: "work-2",
+            parentContentId: "division-1",
+            unitKind: "work",
+            sortOrder: 1,
+            slug: "work-2",
+            title: "งานพัฒนาหลักสูตรและการเรียนรู้",
+            summary: "หน่วยงานรับผิดชอบงานวางแผนด้านวิชาการ".repeat(4),
+            depth: 1
+          },
+          {
+            contentId: "work-3",
+            parentContentId: "division-1",
+            unitKind: "work",
+            sortOrder: 2,
+            slug: "work-3",
+            title: "งานสื่อสารองค์กร",
+            summary: "",
+            depth: 1
+          },
+          {
+            contentId: "work-2-child",
+            parentContentId: "work-2",
+            unitKind: "subunit",
+            sortOrder: 0,
+            slug: "work-2-child",
+            title: "งานย่อยด้านหลักสูตร",
+            summary: "",
+            depth: 2
           }
         ],
         positions: [
@@ -185,4 +215,44 @@ test.describe("Organization public accessibility and responsive regression", () 
     await expect(page.getByRole("heading", { name: "ไม่พบหน้าที่ต้องการ" })).toBeVisible();
     await expect(page.getByRole("link", { name: "กลับหน้าแรก" })).toBeVisible();
   });
+});
+
+
+test.describe("Organization V2.2 horizontal inter-unit chart", () => {
+  for (const width of [390, 768, 1280, 1440]) {
+    test("sibling branches remain horizontal and page-bounded at " + width + "px", async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await installOrganizationFixture(page);
+      await page.goto("/organization/" + encodeURIComponent(slug));
+      await dismissGateIfVisible(page);
+
+      const region = page.getByRole("region", { name: "ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้" });
+      await expect(region).toBeVisible();
+      await expect(region.getByRole("link", { name: "งานย่อยด้านหลักสูตร" })).toBeAttached();
+
+      const first = region.getByRole("link", { name: "งานทะเบียน" });
+      const second = region.getByRole("link", { name: "งานพัฒนาหลักสูตรและการเรียนรู้" });
+      const third = region.getByRole("link", { name: "งานสื่อสารองค์กร" });
+      const branch = await region.getByRole("link", { name: "ฝ่ายวิชาการ" }).evaluate((link) => {
+        const root = link.closest("li");
+        return root?.querySelectorAll(":scope > ul > li").length ?? 0;
+      });
+      expect(branch).toBe(3);
+
+      const locations = await Promise.all([first, second, third].map((link) => link.boundingBox()));
+      expect(locations.every(Boolean)).toBe(true);
+      expect(locations[0]!.x).toBeLessThan(locations[1]!.x);
+      expect(locations[1]!.x).toBeLessThan(locations[2]!.x);
+      expect(Math.abs(locations[0]!.y - locations[1]!.y)).toBeLessThanOrEqual(2);
+      expect(Math.abs(locations[1]!.y - locations[2]!.y)).toBeLessThanOrEqual(2);
+
+      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+      if (width === 390) {
+        expect(await region.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
+        await region.focus();
+        await page.keyboard.press("ArrowRight");
+        await expect.poll(() => region.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
+      }
+    });
+  }
 });
