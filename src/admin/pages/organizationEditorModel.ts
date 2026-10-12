@@ -34,6 +34,7 @@ export const organizationEditorSchema = z
     unitKind: z.enum(["division", "work", "department", "program", "subunit"]),
     parentContentId: z.string(),
     sortOrder: z.number().int().min(0),
+    chartMode: z.enum(["cards", "rows", "tree"]).optional(),
     status: z.enum(["draft", "review", "scheduled", "published"]),
     publishAt: z.string(),
     unpublishAt: z.string()
@@ -90,6 +91,7 @@ export function editorDefaults(row?: OrganizationUnitListRow | null): Organizati
     unitKind: (row?.unit_kind as OrganizationEditorForm["unitKind"]) ?? "division",
     parentContentId: row?.parent_content_id ?? "",
     sortOrder: row?.sort_order ?? 0,
+    chartMode: row?.chart_mode ?? "cards",
     status: row?.status ?? "draft",
     publishAt: toLocalDateTimeInputValue(row?.publish_at),
     unpublishAt: toLocalDateTimeInputValue(row?.unpublish_at)
@@ -126,6 +128,7 @@ export function toOrganizationUnitWrite(form: OrganizationEditorForm): Organizat
     unitKind: value.unitKind,
     parentContentId: value.parentContentId || null,
     sortOrder: value.sortOrder,
+    chartMode: value.chartMode ?? "cards",
     status: value.status,
     publishAt: effectivePublishAt,
     unpublishAt: unpublish
