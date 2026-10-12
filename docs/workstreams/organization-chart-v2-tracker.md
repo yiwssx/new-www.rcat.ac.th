@@ -31,6 +31,17 @@ This is a new workstream, independent of the closed Organization Content Phases 
 - [ ] V2-05: review edge cases, page sizes/long names/mobile, test public permalink and admin save in staging
 - [ ] V2-06: documented release gate and owner-authorized merge
 
+## Final acceptance and staged release plan
+
+- **Verified code checks:** GitHub CI covers Worker typecheck, build, format, unit tests, integration tests and Playwright. Confirm the **latest** PR head and final `quality` gate are green after each change.
+- **Admin acceptance:** In an isolated test fixture, select one unit, set mode A and edit level/row/order; then switch to mode B and define parent positions. Save at the expected unit revision, refresh, and verify the exact persisted mode/layout.
+- **Responsive acceptance:** On a 390px handset and 1280px desktop, verify people and job titles remain readable, horizontal scroll is confined to the chart, connecting lines have correct direction, and keyboard users can reach chart regions.
+- **Publishing acceptance:** An unpublished unit and a child under an unpublished parent must never appear in public reads. Default legacy `cards` layout must remain intact until an editor explicitly changes mode.
+- **Environment limitation:** The current Cloudflare Worker and D1 are **production-only**. Vercel preview verifies frontend rendering/build only, not real Worker CRUD. Never use production D1 as a staging fixture or interpret the physical suffix `preview` as a safe testing environment.
+- **Deploy coupling:** The main-branch frontend may deploy before the production Worker. Coordinate any future merge and protected Worker release during a planned maintenance window. Do not enable mode A/B for live units until the Worker API with chart fields is deployed and verified.
+- **Rollback:** On a layout-specific failure, return affected units to legacy `cards` mode using normal revision-guarded editor writes (only if the API is healthy). Frontend rollback must use the project's governed Vercel release path; do not overwrite unit settings, remove assignments or revert D1 data manually.
+- **Review gate:** T05 requires owner/operator visual approval and a protected backend test plan. A green CI or READY Vercel preview by itself does not authorize production rollout.
+
 ## Release restrictions
 
 No GitHub Actions workflow edits, bypassed CI, production D1 writes, real RCAT personnel imports,
