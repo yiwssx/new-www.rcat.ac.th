@@ -149,12 +149,7 @@ function UnitBranch({
           }}
         >
           {children.map((child) => (
-            <UnitBranch
-              key={child.unit.contentId}
-              branch={child}
-              positionsByUnit={positionsByUnit}
-              media={media}
-            />
+            <UnitBranch key={child.unit.contentId} branch={child} positionsByUnit={positionsByUnit} media={media} />
           ))}
         </Box>
       )}

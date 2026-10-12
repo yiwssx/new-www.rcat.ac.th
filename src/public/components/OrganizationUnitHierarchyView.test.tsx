@@ -87,7 +87,6 @@ describe("Organization Unit Hierarchy V2.2 Phase 2", () => {
   });
 });
 
-
 function position(
   id: string,
   unitContentId: string,
@@ -128,13 +127,13 @@ describe("Organization V2.2 Phase 3 position composition", () => {
     const root = {
       ...unit("root", null),
       chartMode: "rows" as const,
-      chartLayout: { "lead": { level: 1, row: 1, order: 0, parentPositionId: null } }
+      chartLayout: { lead: { level: 1, row: 1, order: 0, parentPositionId: null } }
     };
     const department = {
       ...unit("department", "root"),
       unitKind: "department",
       chartMode: "tree" as const,
-      chartLayout: { "teacher": { level: 1, row: 1, order: 0, parentPositionId: null } }
+      chartLayout: { teacher: { level: 1, row: 1, order: 0, parentPositionId: null } }
     };
     const work = { ...unit("work", "root"), chartMode: "cards" as const };
     const units = [root, department, work, unit("empty", "root")];
@@ -181,10 +180,12 @@ describe("Organization V2.2 Phase 3 position composition", () => {
     render(
       <OrganizationUnitHierarchyView
         hierarchy={buildPublicOrganizationHierarchy(units, "root")}
-        positionsByUnit={new Map([
-          ["sub", [position("sub-position", "sub", "one", "คนที่เผยแพร่")]],
-          ["orphan", [position("orphan-position", "orphan", "two", "คนที่ไม่อยู่ในผัง")]]
-        ])}
+        positionsByUnit={
+          new Map([
+            ["sub", [position("sub-position", "sub", "one", "คนที่เผยแพร่")]],
+            ["orphan", [position("orphan-position", "orphan", "two", "คนที่ไม่อยู่ในผัง")]]
+          ])
+        }
         media={new Map()}
       />
     );
