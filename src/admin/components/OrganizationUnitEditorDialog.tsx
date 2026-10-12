@@ -108,8 +108,14 @@ export default function OrganizationUnitEditorDialog({ open, initial, units, bus
               name="chartMode"
               control={control}
               render={({ field }) => (
-                <TextField {...field} select fullWidth label="รูปแบบผังบุคลากร" disabled={busy}
-                  helperText="เลือกแยกต่อหน่วยงานได้ โดยไม่เปลี่ยนข้อมูลบุคลากรเดิม">
+                <TextField
+                  {...field}
+                  select
+                  fullWidth
+                  label="รูปแบบผังบุคลากร"
+                  disabled={busy}
+                  helperText="เลือกแยกต่อหน่วยงานได้ โดยไม่เปลี่ยนข้อมูลบุคลากรเดิม"
+                >
                   <MenuItem value="cards">แบบเดิม — รายการตำแหน่ง</MenuItem>
                   <MenuItem value="rows">แบบ A — ผังภาพบุคลากรตามระดับและแถว</MenuItem>
                   <MenuItem value="tree">แบบ B — ผังสายบังคับบัญชาพร้อมเส้นเชื่อม</MenuItem>

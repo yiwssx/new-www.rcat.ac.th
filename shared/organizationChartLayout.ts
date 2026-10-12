@@ -61,10 +61,12 @@ export function chartPlacement(
   layout: OrganizationChartLayout | undefined,
   position: { id: string; groupSortOrder: number; sortOrder: number }
 ): OrganizationChartPlacement {
-  return layout?.[position.id] ?? {
-    level: Math.min(100, Math.max(1, position.groupSortOrder + 1)),
-    row: 1,
-    order: position.sortOrder,
-    parentPositionId: null
-  };
+  return (
+    layout?.[position.id] ?? {
+      level: Math.min(100, Math.max(1, position.groupSortOrder + 1)),
+      row: 1,
+      order: position.sortOrder,
+      parentPositionId: null
+    }
+  );
 }

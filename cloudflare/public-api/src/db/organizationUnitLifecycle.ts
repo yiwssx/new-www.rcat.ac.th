@@ -220,7 +220,19 @@ export async function updateAuditedOrganizationUnit(
            SELECT 1 FROM contents WHERE id = ? AND revision = ? AND updated_at = ?
          )`
     )
-    .bind(input.parentContentId, input.unitKind, input.sortOrder, input.chartMode ?? "cards", JSON.stringify(input.chartLayout ?? {}), now, id, revision, id, revision + 1, now);
+    .bind(
+      input.parentContentId,
+      input.unitKind,
+      input.sortOrder,
+      input.chartMode ?? "cards",
+      JSON.stringify(input.chartLayout ?? {}),
+      now,
+      id,
+      revision,
+      id,
+      revision + 1,
+      now
+    );
   // D1 meta.changes uses sqlite3_total_changes(), including the immutable
   // content-revision snapshot trigger. It can exceed 1 for a single UPDATE;
   // checking === 1 falsely returns HTTP 409 after a successful COMMIT.
