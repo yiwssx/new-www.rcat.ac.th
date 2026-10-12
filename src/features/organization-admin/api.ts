@@ -1,3 +1,4 @@
+import type { OrganizationChartLayout } from "../../../shared/organizationChartLayout";
 import { requestCloudflareAdmin } from "../admin-write/cloudflareApi";
 
 export const ORGANIZATION_COLLECTIONS = ["units", "personnel", "positions", "assignments"] as const;
@@ -9,6 +10,7 @@ export interface OrganizationUnitListRow {
   unit_kind: string;
   sort_order: number;
   chart_mode?: "cards" | "rows" | "tree";
+  chart_layout?: string;
   slug: string;
   title: string;
   summary: string;
@@ -68,6 +70,7 @@ export interface OrganizationUnitDetailRow {
   unit_kind: string;
   sort_order: number;
   chart_mode?: "cards" | "rows" | "tree";
+  chart_layout?: string;
   content_revision: number;
   unit_revision: number;
 }
@@ -94,6 +97,7 @@ export type OrganizationUnitWrite = {
   unitKind: string;
   sortOrder?: number;
   chartMode?: "cards" | "rows" | "tree";
+  chartLayout?: OrganizationChartLayout;
 };
 
 export type OrganizationPersonnelWrite = {
