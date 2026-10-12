@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DragDropProvider } from "@dnd-kit/react";
 import { arrayMove } from "@dnd-kit/helpers";
@@ -110,6 +110,13 @@ function pageQuery(collection: "positions" | "assignments" | "personnel", unitId
 export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, onEditUnit, view = "legacy" }: Props) {
   const client = useQueryClient();
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
+  const [selectedUnitSnapshot, setSelectedUnitSnapshot] = useState<OrganizationUnitListRow | null>(null);
+  const [unitSearch, setUnitSearch] = useState("");
+  const [unitSearchDebounced, setUnitSearchDebounced] = useState("");
+  useEffect(() => {
+    const timer = window.setTimeout(() => setUnitSearchDebounced(unitSearch.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [unitSearch]);
   const [personnelSearch, setPersonnelSearch] = useState("");
   const [collapsedUnitIds, setCollapsedUnitIds] = useState<string[]>([]);
   const [positionEditing, setPositionEditing] = useState<OrganizationPositionRow | null>(null);
@@ -122,6 +129,12 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
   const [notice, setNotice] = useState("");
 
   const legacy = view === "legacy";
+  const searchedUnits = useQuery({
+    queryKey: ["admin-organization", "units", "search", unitSearchDebounced],
+    enabled: !legacy && unitSearchDebounced.length > 0,
+    queryFn: () =>
+      getOrganizationCollection("units", 25, 0, { includeTotal: true, search: unitSearchDebounced })
+  });
   const positionsQuery = useInfiniteQuery(pageQuery("positions", selectedUnitId, legacy));
   const assignmentsQuery = useInfiniteQuery(pageQuery("assignments", selectedUnitId, legacy));
   const personnelQuery = useInfiniteQuery(pageQuery("personnel", selectedUnitId, legacy));
@@ -148,7 +161,9 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
     () => hierarchy.map(({ unit }) => unit.content_id).filter((id) => !collapsedUnitIds.includes(id)),
     [hierarchy, collapsedUnitIds]
   );
-  const selectedUnit = units.find((unit) => unit.content_id === selectedUnitId) ?? null;
+  const selectedUnit =
+    units.find((unit) => unit.content_id === selectedUnitId) ??
+    (selectedUnitSnapshot?.content_id === selectedUnitId ? selectedUnitSnapshot : null);
   const visiblePositions = useMemo(
     () => positionsForUnit(positions, selectedUnit?.content_id ?? ""),
     [positions, selectedUnit?.content_id]
@@ -169,7 +184,11 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
     for (const person of personnelLookup.data?.items ?? []) options.set(person.id, person);
     return [...options.values()];
   }, [personnel, personnelLookup.data]);
-  const byUnit = useMemo(() => new Map(units.map((unit) => [unit.content_id, unit])), [units]);
+  const byUnit = useMemo(() => {
+    const map = new Map(units.map((unit) => [unit.content_id, unit]));
+    if (selectedUnit) map.set(selectedUnit.content_id, selectedUnit);
+    return map;
+  }, [units, selectedUnit]);
 
   async function refresh() {
     await invalidateOrganizationQueries(client);
@@ -458,6 +477,45 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
               <Typography variant="h3" sx={{ fontSize: "1rem", mb: 1 }}>
                 ลำดับชั้นหน่วยงาน
               </Typography>
+              {!legacy && (
+                <Stack spacing={1} sx={{ mb: 2 }}>
+                  <TextField
+                    label="ค้นหาหน่วยงานทั้งหมด"
+                    size="small"
+                    value={unitSearch}
+                    onChange={(event) => setUnitSearch(event.target.value)}
+                    slotProps={{ htmlInput: { maxLength: 160 } }}
+                    helperText="ค้นหาจากเซิร์ฟเวอร์ โดยไม่ต้องโหลดทุกหน่วยงาน"
+                  />
+                  {searchedUnits.isFetching && unitSearchDebounced && (
+                    <Typography variant="caption">กำลังค้นหาหน่วยงาน…</Typography>
+                  )}
+                  {searchedUnits.isError && <Alert severity="error">ค้นหาหน่วยงานไม่สำเร็จ</Alert>}
+                  {searchedUnits.data && unitSearchDebounced && (
+                    <Box component="nav" aria-label="ผลการค้นหาหน่วยงาน" sx={{ maxHeight: 240, overflowY: "auto" }}>
+                      <Typography variant="caption" color="text.secondary">
+                        พบ {searchedUnits.data.total ?? searchedUnits.data.items.length} รายการ (แสดงสูงสุด 25)
+                      </Typography>
+                      {searchedUnits.data.items.map((unit) => (
+                        <Button
+                          key={unit.content_id}
+                          size="small"
+                          fullWidth
+                          variant={selectedUnitId === unit.content_id ? "contained" : "text"}
+                          sx={{ justifyContent: "flex-start", textAlign: "left" }}
+                          onClick={() => {
+                            setSelectedUnitId(unit.content_id);
+                            setSelectedUnitSnapshot(unit);
+                            setError("");
+                          }}
+                        >
+                          {unit.title}
+                        </Button>
+                      ))}
+                    </Box>
+                  )}
+                </Stack>
+              )}
               <Box component="nav" aria-label="โครงสร้างหน่วยงาน" sx={{ maxHeight: 480, overflowY: "auto" }}>
                 <RichTreeView
                   items={treeItems}
@@ -472,6 +530,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                   onSelectedItemsChange={(_event, id) => {
                     if (typeof id !== "string") return;
                     setSelectedUnitId(id);
+                    setSelectedUnitSnapshot(units.find((unit) => unit.content_id === id) ?? null);
                     setError("");
                   }}
                   sx={{ "& .MuiTreeItem-label": { whiteSpace: "normal", overflowWrap: "anywhere" } }}
