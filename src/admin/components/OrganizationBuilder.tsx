@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DragDropProvider } from "@dnd-kit/react";
 import { arrayMove } from "@dnd-kit/helpers";
 import { isSortable } from "@dnd-kit/react/sortable";
@@ -51,6 +51,7 @@ interface Props {
   allUnitsLoaded: boolean;
   canManage: boolean;
   onEditUnit?: (unit: OrganizationUnitListRow) => void;
+  view?: "legacy" | "positions" | "assignments" | "charts";
 }
 
 type PositionForm = Required<Omit<OrganizationPositionWrite, "occupantLimit">> & {
@@ -85,11 +86,18 @@ function safeNumber(value: number, min: number, max: number) {
   return Number.isSafeInteger(value) && value >= min && value <= max;
 }
 
-function pageQuery(collection: "positions" | "assignments" | "personnel") {
+function pageQuery(collection: "positions" | "assignments" | "personnel", unitId: string | null, legacy: boolean) {
   return {
-    queryKey: ["admin-organization", collection, "builder", "pages"],
+    queryKey: ["admin-organization", collection, "builder", "pages", legacy ? "legacy" : unitId],
+    enabled: legacy || Boolean(unitId),
     initialPageParam: 0,
-    queryFn: ({ pageParam }: { pageParam: number }) => getOrganizationCollection(collection, 100, pageParam),
+    queryFn: ({ pageParam }: { pageParam: number }) =>
+      getOrganizationCollection(
+        collection,
+        100,
+        pageParam,
+        !legacy && unitId ? { includeTotal: true, unitContentId: unitId } : undefined
+      ),
     getNextPageParam: (lastPage: { nextOffset: number | null }) => lastPage.nextOffset ?? undefined
   };
 }
@@ -99,9 +107,10 @@ function pageQuery(collection: "positions" | "assignments" | "personnel") {
  * value is editable with keyboard/touch. The Worker owns revisions, capacity
  * checks, referential integrity and the immutable audit boundary.
  */
-export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, onEditUnit }: Props) {
+export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, onEditUnit, view = "legacy" }: Props) {
   const client = useQueryClient();
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
+  const [personnelSearch, setPersonnelSearch] = useState("");
   const [collapsedUnitIds, setCollapsedUnitIds] = useState<string[]>([]);
   const [positionEditing, setPositionEditing] = useState<OrganizationPositionRow | null>(null);
   const [positionForm, setPositionForm] = useState<PositionForm | null>(null);
@@ -112,9 +121,15 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
   const [dialogError, setDialogError] = useState("");
   const [notice, setNotice] = useState("");
 
-  const positionsQuery = useInfiniteQuery(pageQuery("positions"));
-  const assignmentsQuery = useInfiniteQuery(pageQuery("assignments"));
-  const personnelQuery = useInfiniteQuery(pageQuery("personnel"));
+  const legacy = view === "legacy";
+  const positionsQuery = useInfiniteQuery(pageQuery("positions", selectedUnitId, legacy));
+  const assignmentsQuery = useInfiniteQuery(pageQuery("assignments", selectedUnitId, legacy));
+  const personnelQuery = useInfiniteQuery(pageQuery("personnel", selectedUnitId, legacy));
+  const personnelLookup = useQuery({
+    queryKey: ["admin-organization", "personnel", "lookup", personnelSearch],
+    enabled: assignmentForm !== null,
+    queryFn: () => getOrganizationCollection("personnel", 25, 0, { includeTotal: true, search: personnelSearch })
+  });
   const positions = useMemo(
     () => (positionsQuery.data?.pages.flatMap((page) => page.items) ?? []) as OrganizationPositionRow[],
     [positionsQuery.data]
@@ -149,6 +164,11 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
     return result;
   }, [assignments]);
   const byPerson = useMemo(() => new Map(personnel.map((person) => [person.id, person])), [personnel]);
+  const personnelOptions = useMemo(() => {
+    const options = new Map(personnel.map((person) => [person.id, person]));
+    for (const person of personnelLookup.data?.items ?? []) options.set(person.id, person);
+    return [...options.values()];
+  }, [personnel, personnelLookup.data]);
   const byUnit = useMemo(() => new Map(units.map((unit) => [unit.content_id, unit])), [units]);
 
   async function refresh() {
@@ -194,6 +214,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
     setDialogError("");
     setError("");
     setAssignmentEditing(row);
+    setPersonnelSearch("");
     setAssignmentForm(
       row
         ? {
@@ -670,7 +691,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
               กรุณาโหลดรายการตำแหน่งให้ครบก่อนจัดผัง เพื่อป้องกันค่าที่กำลังแก้ไขถูกรีเซ็ตระหว่างโหลดข้อมูล
             </Alert>
           )}
-          {selectedUnit && !positionsQuery.isPending && !positionsQuery.hasNextPage && !positionsQuery.isError && (
+          {(view === "legacy" || view === "charts") && selectedUnit && !positionsQuery.isPending && !positionsQuery.hasNextPage && !positionsQuery.isError && (
             <OrganizationChartLayoutEditor
               key={`${selectedUnit.content_id}:${selectedUnit.unit_revision}:${visiblePositions.length}`}
               unit={selectedUnit}
@@ -823,6 +844,15 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                 <Stack spacing={2} sx={{ mt: 1 }}>
                   {dialogError && <Alert severity="error">{dialogError}</Alert>}
                   <TextField
+                    label="ค้นหาบุคลากรในทะเบียนกลาง"
+                    value={personnelSearch}
+                    onChange={(event) => setPersonnelSearch(event.target.value)}
+                    size="small"
+                    fullWidth
+                    slotProps={{ htmlInput: { maxLength: 160 } }}
+                    helperText="ค้นหาผ่านเซิร์ฟเวอร์โดยไม่ต้องโหลดบุคลากรทั้งหมด"
+                  />
+                  <TextField
                     label="บุคลากรจากทะเบียนกลาง"
                     select
                     fullWidth
@@ -831,12 +861,12 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                     value={assignmentForm.personnelId}
                     onChange={(event) => setAssignmentForm({ ...assignmentForm, personnelId: event.target.value })}
                   >
-                    {assignmentForm.personnelId && !byPerson.has(assignmentForm.personnelId) && (
+                    {assignmentForm.personnelId && !personnelOptions.some((person) => person.id === assignmentForm.personnelId) && (
                       <MenuItem value={assignmentForm.personnelId} disabled>
                         รหัสบุคลากร {assignmentForm.personnelId} (ยังไม่ได้โหลดข้อมูล)
                       </MenuItem>
                     )}
-                    {personnel.map((person) => (
+                    {personnelOptions.map((person) => (
                       <MenuItem key={person.id} value={person.id}>
                         {person.display_name}
                       </MenuItem>

@@ -426,6 +426,7 @@ export default function OrganizationPage({ view = "legacy" }: { view?: Organizat
           allUnitsLoaded={!units.hasNextPage && !units.isPending && !units.isError}
           canManage={canManage}
           onEditUnit={startEdit}
+          view={view === "positions" || view === "assignments" || view === "charts" ? view : "legacy"}
         />
       )}
       {canManage && needUnits && (
