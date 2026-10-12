@@ -193,7 +193,12 @@ describe("Phase 4 Organization Admin list/editor", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "ค้นหาหน่วยงานแม่" }), {
       target: { value: "ฝ่ายวิชาการ" }
     });
-    expect(await screen.findByRole("option", { name: "ฝ่ายวิชาการ" })).toBeInTheDocument();
+    await waitFor(() =>
+      expect(api.getCollection).toHaveBeenCalledWith("units", 25, 0, {
+        includeTotal: true,
+        search: "ฝ่ายวิชาการ"
+      })
+    );
     fireEvent.mouseDown(screen.getByRole("combobox", { name: "หน่วยงานแม่" }));
     fireEvent.click(await screen.findByRole("option", { name: "ฝ่ายวิชาการ" }));
     fireEvent.click(screen.getByRole("button", { name: "บันทึกหน่วยงาน" }));
