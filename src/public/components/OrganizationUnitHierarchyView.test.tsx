@@ -18,9 +18,7 @@ function unit(id: string, parentContentId: string | null, sortOrder = 0): Public
 }
 
 function setup(units: PublicOrganizationUnit[], rootId = "root") {
-  return render(
-    <OrganizationUnitHierarchyView hierarchy={buildPublicOrganizationHierarchy(units, rootId)} />
-  );
+  return render(<OrganizationUnitHierarchyView hierarchy={buildPublicOrganizationHierarchy(units, rootId)} />);
 }
 
 describe("Organization Unit Hierarchy V2.2 Phase 2", () => {
@@ -46,10 +44,7 @@ describe("Organization Unit Hierarchy V2.2 Phase 2", () => {
     const childList = root?.querySelector(":scope > ul");
     expect(childList).not.toBeNull();
     expect(childList?.querySelectorAll(":scope > li")).toHaveLength(3);
-    expect(within(region).getByRole("link", { name: "หน่วยงาน child" })).toHaveAttribute(
-      "href",
-      "/organization/child"
-    );
+    expect(within(region).getByRole("link", { name: "หน่วยงาน child" })).toHaveAttribute("href", "/organization/child");
     expect(region).toHaveAttribute("tabindex", "0");
   });
 

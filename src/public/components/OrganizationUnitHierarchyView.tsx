@@ -4,7 +4,10 @@ import CardContent from "@mui/material/CardContent";
 import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import type { PublicOrganizationHierarchy, PublicOrganizationUnitBranch } from "../../features/public-organization/hierarchy";
+import type {
+  PublicOrganizationHierarchy,
+  PublicOrganizationUnitBranch
+} from "../../features/public-organization/hierarchy";
 
 interface Props {
   hierarchy: PublicOrganizationHierarchy;
@@ -83,7 +86,7 @@ function UnitBranch({ branch }: { branch: PublicOrganizationUnitBranch }) {
               </Typography>
             )}
           </CardContent>
-          </Card>
+        </Card>
       </Box>
       {children.length > 0 && (
         <Box
