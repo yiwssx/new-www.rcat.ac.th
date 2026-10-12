@@ -199,21 +199,13 @@ describe("Vercel Public SSR production cutover", () => {
   });
 
   it("reconstructs an organization permalink without admitting unrelated nested paths", () => {
-    const request = new Request(
-      "https://www.rcat.ac.th/api/ssr?_rcatPath=/organization/rcat-2569-business"
-    );
-    expect(reconstructPublicSsrRequest(request)?.url).toBe(
-      "https://www.rcat.ac.th/organization/rcat-2569-business"
-    );
+    const request = new Request("https://www.rcat.ac.th/api/ssr?_rcatPath=/organization/rcat-2569-business");
+    expect(reconstructPublicSsrRequest(request)?.url).toBe("https://www.rcat.ac.th/organization/rcat-2569-business");
     expect(
-      reconstructPublicSsrRequest(
-        new Request("https://www.rcat.ac.th/api/ssr?_rcatPath=/admin/organization")
-      )
+      reconstructPublicSsrRequest(new Request("https://www.rcat.ac.th/api/ssr?_rcatPath=/admin/organization"))
     ).toBeNull();
     expect(
-      reconstructPublicSsrRequest(
-        new Request("https://www.rcat.ac.th/api/ssr?_rcatPath=/organization/one/two")
-      )
+      reconstructPublicSsrRequest(new Request("https://www.rcat.ac.th/api/ssr?_rcatPath=/organization/one/two"))
     ).toBeNull();
   });
 
