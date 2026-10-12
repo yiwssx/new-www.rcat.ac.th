@@ -27,7 +27,7 @@ This is a new workstream, independent of the closed Organization Content Phases 
 - [x] V2-01: fresh issue and isolated branch
 - [x] V2-02: scoped chart placement contracts, persistence and public projection (implementation)
 - [x] V2-03: row/tree renderers and admin layout editor (implementation)
-- [ ] V2-04: format, lint, typecheck, unit/integration and accessibility regression CI
+- [ ] V2-04: format, lint, typecheck, unit/integration and accessibility regression CI (rerun pending)
 - [ ] V2-05: review edge cases, page sizes/long names/mobile, test public permalink and admin save in staging
 - [ ] V2-06: documented release gate and owner-authorized merge
 
