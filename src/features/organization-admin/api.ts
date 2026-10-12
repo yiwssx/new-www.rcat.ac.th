@@ -166,6 +166,7 @@ export async function getOrganizationCollection<K extends OrganizationCollection
     throw new RangeError("invalid organization offset");
   return requestCloudflareAdmin<{
     items: OrganizationRecordByCollection[K][];
+    total?: number;
     nextOffset: number | null;
     maximumItems: number;
     generatedAt: string;

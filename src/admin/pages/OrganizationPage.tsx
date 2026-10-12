@@ -38,38 +38,46 @@ function humanError(error: unknown) {
   return error instanceof Error ? error.message : "เกิดข้อผิดพลาดในการบันทึก กรุณาลองอีกครั้ง";
 }
 
-export default function OrganizationPage() {
+export type OrganizationManagementView = "overview" | "units" | "personnel" | "positions" | "assignments" | "charts" | "legacy";
+
+export default function OrganizationPage({ view = "legacy" }: { view?: OrganizationManagementView }) {
   const { capabilities } = useAuth();
   const canManage = hasCmsCapability(capabilities, "organization.manage");
   const canBrowseMedia = hasCmsCapability(capabilities, "media.read");
   const client = useQueryClient();
+  const showUnits = view === "units" || view === "legacy";
+  const showBuilder = view === "positions" || view === "assignments" || view === "charts" || view === "legacy";
+  const showOverview = view === "overview" || view === "legacy";
+  const needUnits = showUnits || showBuilder;
   const units = useInfiniteQuery({
     queryKey: ["admin-organization", "units", "pages"],
+    enabled: needUnits,
     initialPageParam: 0,
     queryFn: ({ pageParam }) => getOrganizationCollection("units", 100, pageParam),
     getNextPageParam: (lastPage) => lastPage.nextOffset ?? undefined
   });
-  const personnel = useQuery(organizationCollectionQueryOptions("personnel"));
-  const positions = useQuery(organizationCollectionQueryOptions("positions"));
-  const assignments = useQuery(organizationCollectionQueryOptions("assignments"));
+  const unitsSummary = useQuery({ ...organizationCollectionQueryOptions("units", 1), enabled: showOverview });
+  const personnel = useQuery({ ...organizationCollectionQueryOptions("personnel", 1), enabled: showOverview });
+  const positions = useQuery({ ...organizationCollectionQueryOptions("positions", 1), enabled: showOverview });
+  const assignments = useQuery({ ...organizationCollectionQueryOptions("assignments", 1), enabled: showOverview });
   const rows = useMemo(() => units.data?.pages.flatMap((page) => page.items) ?? [], [units.data]);
   const collections = [
-    { label: "หน่วยงาน", count: rows.length, isPending: units.isPending, isError: units.isError },
+    { label: "หน่วยงาน", count: unitsSummary.data?.total ?? rows.length, isPending: unitsSummary.isPending, isError: unitsSummary.isError },
     {
       label: "บุคลากร",
-      count: personnel.data?.items.length ?? 0,
+      count: personnel.data?.total ?? personnel.data?.items.length ?? 0,
       isPending: personnel.isPending,
       isError: personnel.isError
     },
     {
       label: "ตำแหน่ง",
-      count: positions.data?.items.length ?? 0,
+      count: positions.data?.total ?? positions.data?.items.length ?? 0,
       isPending: positions.isPending,
       isError: positions.isError
     },
     {
       label: "การมอบหมายหน้าที่",
-      count: assignments.data?.items.length ?? 0,
+      count: assignments.data?.total ?? assignments.data?.items.length ?? 0,
       isPending: assignments.isPending,
       isError: assignments.isError
     }
@@ -214,7 +222,7 @@ export default function OrganizationPage() {
         <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
           <AccountTreeOutlinedIcon color="primary" />
           <Typography variant="h1" sx={{ fontSize: { xs: "1.5rem", md: "2rem" } }}>
-            ผังองค์กร
+            {view === "overview" ? "ภาพรวมองค์กร" : view === "units" ? "จัดการหน่วยงาน" : view === "personnel" ? "ทะเบียนบุคลากร" : view === "positions" ? "จัดการตำแหน่ง" : view === "assignments" ? "มอบหมายหน้าที่" : view === "charts" ? "จัดผังองค์กร" : "ผังองค์กร"}
           </Typography>
         </Stack>
         <Typography color="text.secondary" sx={{ mt: 1 }}>
@@ -234,7 +242,7 @@ export default function OrganizationPage() {
           {success}
         </Alert>
       )}
-      <Grid container spacing={2}>
+      {showOverview && <Grid container spacing={2}>
         {collections.map(({ label, count, isPending, isError }) => (
           <Grid key={label} size={{ xs: 12, sm: 6, lg: 3 }}>
             <Card variant="outlined" sx={{ height: "100%" }}>
@@ -246,14 +254,14 @@ export default function OrganizationPage() {
                   {isPending ? "…" : isError ? "—" : count}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {label === "หน่วยงาน" ? "จำนวนที่โหลด (100 รายการต่อหน้า)" : "จำนวนที่โหลด (สูงสุด 100 รายการ)"}
+                  {(label === "หน่วยงาน" ? unitsSummary.data : label === "บุคลากร" ? personnel.data : label === "ตำแหน่ง" ? positions.data : assignments.data)?.total !== undefined ? "จำนวนทั้งหมดในระบบ" : "จำนวนตัวอย่างที่โหลด"}
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
         ))}
-      </Grid>
-      <Card variant="outlined">
+      </Grid>}
+      {showUnits && <Card variant="outlined">
         <CardContent>
           <Stack spacing={2}>
             <Stack
@@ -363,15 +371,20 @@ export default function OrganizationPage() {
             {units.isFetchNextPageError && <Alert severity="error">โหลดหน้าถัดไปไม่สำเร็จ กรุณาลองใหม่</Alert>}
           </Stack>
         </CardContent>
-      </Card>
-      <OrganizationPersonnelDirectory canManage={canManage} canBrowseMedia={canBrowseMedia} />
-      <OrganizationBuilder
+      </Card>}
+      {(view === "personnel" || view === "legacy") && <OrganizationPersonnelDirectory canManage={canManage} canBrowseMedia={canBrowseMedia} />}
+      {showBuilder && units.hasNextPage && (
+        <Button variant="outlined" onClick={() => void units.fetchNextPage()} disabled={units.isFetchingNextPage}>
+          {units.isFetchingNextPage ? "กำลังโหลดหน่วยงาน…" : "โหลดหน่วยงานเพิ่มเติม"}
+        </Button>
+      )}
+      {showBuilder && <OrganizationBuilder
         units={rows}
         allUnitsLoaded={!units.hasNextPage && !units.isPending && !units.isError}
         canManage={canManage}
         onEditUnit={startEdit}
-      />
-      {canManage && (
+      />}
+      {canManage && needUnits && (
         <OrganizationUnitEditorDialog
           open={editorOpen}
           initial={editing}

@@ -293,10 +293,22 @@ const adminOrganizationRoute = createRoute({
   path: "organization",
   component: () => (
     <CapabilityGuard capability="organization.read">
-      <OrganizationPage />
+      <OrganizationPage view="overview" />
     </CapabilityGuard>
   )
 });
+
+const adminOrganizationChildRoutes = (["units", "personnel", "positions", "assignments", "charts"] as const).map((view) =>
+  createRoute({
+    getParentRoute: () => adminRoute,
+    path: `organization/${view}`,
+    component: () => (
+      <CapabilityGuard capability="organization.read">
+        <OrganizationPage view={view} />
+      </CapabilityGuard>
+    )
+  })
+);
 
 const adminDocumentsRoute = createRoute({
   getParentRoute: () => adminRoute,
@@ -437,6 +449,7 @@ const routeTree = rootRoute.addChildren([
       adminSystemHealthRoute,
       adminContentRoute,
       adminOrganizationRoute,
+      ...adminOrganizationChildRoutes,
       adminDocumentsRoute,
       adminCarouselRoute,
       adminExternalServicesRoute,
