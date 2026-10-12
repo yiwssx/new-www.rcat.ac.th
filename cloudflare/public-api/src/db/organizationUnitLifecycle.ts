@@ -103,12 +103,20 @@ function unitForCreate(id: string, input: OrganizationUnitInput, now: string): O
   };
 }
 
-function auditStatement(db: D1Database, id: string, action: string, actor: string, now: string, revision?: number) {
+function auditStatement(
+  db: D1Database,
+  id: string,
+  action: string,
+  actor: string,
+  now: string,
+  revision?: number,
+  auditId = `audit-${crypto.randomUUID()}`
+) {
   const base = `INSERT INTO admin_audit_log (id, entity_type, entity_id, action, actor, created_at, metadata_json)`;
   if (revision === undefined) {
     return db
       .prepare(`${base} VALUES (?, 'organization_unit', ?, ?, ?, ?, '{}')`)
-      .bind(`audit-${crypto.randomUUID()}`, id, action, actor, now);
+      .bind(auditId, id, action, actor, now);
   }
   return db
     .prepare(
