@@ -126,9 +126,10 @@ export function applyVercelPublicSsrCachePolicy(request: Request, response: Resp
   const headers = new Headers(response.headers);
   const isDynamicDetail = /^\/(?:content|organization)\/[^/]+$/.test(url.pathname);
 
-  if (response.status === 200 && isDynamicDetail) {
+  if (isDynamicDetail && (response.status === 200 || response.status === 404)) {
     headers.set("Cache-Control", "no-store");
     headers.delete("Vercel-CDN-Cache-Control");
+    if (response.status === 404) headers.set("X-Robots-Tag", "noindex, nofollow");
   } else if (response.status === 200 && url.pathname === "/") {
     headers.set("Cache-Control", PUBLIC_SSR_BROWSER_CACHE_CONTROL);
     headers.set("Vercel-CDN-Cache-Control", PUBLIC_HOME_SSR_CDN_CACHE_CONTROL);
