@@ -361,13 +361,16 @@ export default function OrganizationPage({ view = "legacy" }: { view?: Organizat
                 <Alert severity="error">ค้นหาหน่วยงานไม่สำเร็จ กรุณาลองอีกครั้ง</Alert>
               )}
               {!serverSearching && units.isPending && <Typography role="status">กำลังโหลดหน่วยงาน…</Typography>}
-              {!serverSearching && units.isError && <Alert severity="error">โหลดรายการหน่วยงานไม่สำเร็จ กรุณาลองใหม่</Alert>}
+              {!serverSearching && units.isError && (
+                <Alert severity="error">โหลดรายการหน่วยงานไม่สำเร็จ กรุณาลองใหม่</Alert>
+              )}
               {!serverSearching && rows.length === 0 && !units.isPending && !units.isError && (
                 <Alert severity="info">ยังไม่มีข้อมูลหน่วยงาน</Alert>
               )}
-              {!searchPending && !searchedUnits.isError && (rows.length > 0 || serverSearching) && filtered.length === 0 && (
-                <Typography color="text.secondary">ไม่พบหน่วยงานที่ตรงกับคำค้น</Typography>
-              )}
+              {!searchPending &&
+                !searchedUnits.isError &&
+                (rows.length > 0 || serverSearching) &&
+                filtered.length === 0 && <Typography color="text.secondary">ไม่พบหน่วยงานที่ตรงกับคำค้น</Typography>}
               {serverSearching && searchReady && searchedUnits.data?.pages[0]?.total !== undefined && (
                 <Typography variant="body2" color="text.secondary">
                   พบ {searchedUnits.data.pages[0].total} หน่วยงานจากการค้นหาทั้งระบบ
@@ -398,7 +401,10 @@ export default function OrganizationPage({ view = "legacy" }: { view?: Organizat
                         />
                       </Stack>
                       <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: "anywhere", mt: 0.5 }}>
-                        /{unit.slug} · อันดับ {serverSearching && !unitRanks.has(unit.content_id) ? "—" : (unitRanks.get(unit.content_id) ?? 1)}
+                        /{unit.slug} · อันดับ{" "}
+                        {serverSearching && !unitRanks.has(unit.content_id)
+                          ? "—"
+                          : (unitRanks.get(unit.content_id) ?? 1)}
                         {unit.parent_content_id
                           ? ` · อยู่ภายใต้ ${rows.find((item) => item.content_id === unit.parent_content_id)?.title ?? "หน่วยงานอื่น"}`
                           : ""}
@@ -427,7 +433,11 @@ export default function OrganizationPage({ view = "legacy" }: { view?: Organizat
                 </Box>
               ))}
               {serverSearching && searchReady && searchedUnits.hasNextPage && (
-                <Button variant="outlined" onClick={() => void searchedUnits.fetchNextPage()} disabled={searchedUnits.isFetchingNextPage}>
+                <Button
+                  variant="outlined"
+                  onClick={() => void searchedUnits.fetchNextPage()}
+                  disabled={searchedUnits.isFetchingNextPage}
+                >
                   {searchedUnits.isFetchingNextPage ? "กำลังโหลดผลค้นหา…" : "โหลดผลค้นหาเพิ่มเติม"}
                 </Button>
               )}

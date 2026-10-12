@@ -73,15 +73,20 @@ beforeEach(() => {
 
 describe("Phase 4 Organization Admin list/editor", () => {
   it("searches all organization units on the server beyond the initially loaded page", async () => {
-    api.getCollection.mockImplementation(async (collection: string, _limit: number, _offset = 0, options?: { search?: string }) => ({
-      items: collection === "units" && options?.search === "การเงิน"
-        ? [{ ...existing, content_id: "unit-140", title: "งานการเงิน", slug: "finance" }]
-        : collection === "units" ? [existing] : [],
-      total: 141,
-      nextOffset: null,
-      maximumItems: 100,
-      generatedAt: ""
-    }));
+    api.getCollection.mockImplementation(
+      async (collection: string, _limit: number, _offset = 0, options?: { search?: string }) => ({
+        items:
+          collection === "units" && options?.search === "การเงิน"
+            ? [{ ...existing, content_id: "unit-140", title: "งานการเงิน", slug: "finance" }]
+            : collection === "units"
+              ? [existing]
+              : [],
+        total: 141,
+        nextOffset: null,
+        maximumItems: 100,
+        generatedAt: ""
+      })
+    );
     renderPage("units");
     fireEvent.change(screen.getByRole("textbox", { name: "ค้นหาชื่อ, Slug หรือประเภทหน่วยงาน" }), {
       target: { value: "การเงิน" }
