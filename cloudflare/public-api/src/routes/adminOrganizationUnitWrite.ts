@@ -5,6 +5,7 @@ import {
   getOrganizationUnitEditor,
   updateAuditedOrganizationUnit
 } from "../db/organizationUnitLifecycle";
+import { requireD1Database } from "../db/documentsRepository";
 import type { Env } from "../env";
 import { json, jsonError } from "../responses";
 import { OrganizationInputError } from "./organizationWriteValidation";
@@ -84,6 +85,9 @@ export async function handleAdminOrganizationUnitWrite(
       const now = new Date().toISOString();
       const input = parseOrganizationContentUnitWrite(await bodyRecord(request), now);
       const id = `organization-${crypto.randomUUID()}`;
+      if (Object.keys(input.chartLayout ?? {}).length) {
+        return fail("new organization cannot contain existing chart positions", 400);
+      }
       await createAuditedOrganizationUnit(env, id, input, identity.actor, now);
       return ok({ id, ...input, revision: 0 }, 201);
     }
@@ -108,6 +112,17 @@ export async function handleAdminOrganizationUnitWrite(
 
     const changes = await bodyRecord(request);
     const input = parseOrganizationContentUnitWrite({ ...inputFromEditor(existing), ...changes }, now);
+    const layoutIds = Object.keys(input.chartLayout ?? {});
+    if (layoutIds.length) {
+      const rows = await requireD1Database(env)
+        .prepare("SELECT id FROM organization_positions WHERE unit_content_id = ? LIMIT 501")
+        .bind(id)
+        .all<{ id: string }>();
+      const owned = new Set((rows.results ?? []).map((row) => row.id));
+      if (layoutIds.some((positionId) => !owned.has(positionId))) {
+        return fail("chart layout references a position outside this unit", 400);
+      }
+    }
     const updated = await updateAuditedOrganizationUnit(env, id, input, revision, identity.actor, now);
     return updated ? ok({ id, ...input, revision: revision + 1 }) : fail("stale organization revision", 409);
   } catch (error) {
