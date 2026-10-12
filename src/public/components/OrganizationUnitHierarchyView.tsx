@@ -30,17 +30,10 @@ function UnitBranch({ branch }: { branch: PublicOrganizationUnitBranch }) {
         px: 1
       }}
     >
-      <Card
-        className="org-unit-card"
-        variant="outlined"
+      <Box
+        className="org-unit-head"
         sx={{
           position: "relative",
-          width: 228,
-          minHeight: 118,
-          borderRadius: 2,
-          bgcolor: branch.level === 0 ? "action.hover" : "background.paper",
-          borderColor: branch.level === 0 ? "primary.main" : "divider",
-          flexShrink: 0,
           "&::before": branch.level
             ? {
                 content: '""',
@@ -54,32 +47,44 @@ function UnitBranch({ branch }: { branch: PublicOrganizationUnitBranch }) {
             : {}
         }}
       >
-        <CardContent sx={{ p: 1.75, "&:last-child": { pb: 1.75 } }}>
-          <Typography
-            component="div"
-            variant="subtitle1"
-            sx={{ fontWeight: 700, lineHeight: 1.4, textAlign: "center", overflowWrap: "anywhere" }}
-          >
-            <Link href={"/organization/" + encodeURIComponent(unit.slug)} underline="hover" color="inherit">
-              {unit.title}
-            </Link>
-          </Typography>
-          {unit.summary && (
+        <Card
+          variant="outlined"
+          sx={{
+            width: 228,
+            minHeight: 118,
+            borderRadius: 2,
+            bgcolor: branch.level === 0 ? "action.hover" : "background.paper",
+            borderColor: branch.level === 0 ? "primary.main" : "divider",
+            flexShrink: 0
+          }}
+        >
+          <CardContent sx={{ p: 1.75, "&:last-child": { pb: 1.75 } }}>
             <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{
-                mt: 1,
-                whiteSpace: "pre-line",
-                overflowWrap: "anywhere",
-                textAlign: "center"
-              }}
+              component="div"
+              variant="subtitle1"
+              sx={{ fontWeight: 700, lineHeight: 1.4, textAlign: "center", overflowWrap: "anywhere" }}
             >
-              {unit.summary}
+              <Link href={"/organization/" + encodeURIComponent(unit.slug)} underline="hover" color="inherit">
+                {unit.title}
+              </Link>
             </Typography>
-          )}
-        </CardContent>
-      </Card>
+            {unit.summary && (
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{
+                  mt: 1,
+                  whiteSpace: "pre-line",
+                  overflowWrap: "anywhere",
+                  textAlign: "center"
+                }}
+              >
+                {unit.summary}
+              </Typography>
+            )}
+          </CardContent>
+          </Card>
+      </Box>
       {children.length > 0 && (
         <Box
           component="ul"
