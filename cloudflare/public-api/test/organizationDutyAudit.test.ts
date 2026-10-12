@@ -108,6 +108,18 @@ describe("Organization Chart audited duty D1 operations", () => {
     expect(count("admin_audit_log")).toBe(2);
   });
 
+  it("allocates consecutive sibling orders in D1 and preserves audited creates", async () => {
+    await createAuditedOrganizationPosition(env, { ...position, occupant_limit: 2 }, "editor", true);
+    await createAuditedOrganizationPosition(env, { ...position, id: "pos2", title: "Deputy" }, "editor", true);
+    expect((await getAdminOrganizationPositionById(env, "pos1"))?.sort_order).toBe(0);
+    expect((await getAdminOrganizationPositionById(env, "pos2"))?.sort_order).toBe(1);
+    await createAuditedOrganizationAssignment(env, assignment, "editor", true);
+    await createAuditedOrganizationAssignment(env, { ...assignment, id: "asg2", personnel_id: "p2" }, "editor", true);
+    expect((await getAdminOrganizationAssignmentById(env, "asg1"))?.sort_order).toBe(0);
+    expect((await getAdminOrganizationAssignmentById(env, "asg2"))?.sort_order).toBe(1);
+    expect(count("admin_audit_log")).toBe(4);
+  });
+
   it("increments both revisions and rejects stale updates without extra audit entries", async () => {
     await createAuditedOrganizationPosition(env, position, "editor");
     await createAuditedOrganizationAssignment(env, assignment, "editor");
@@ -124,6 +136,55 @@ describe("Organization Chart audited duty D1 operations", () => {
     expect(await updateAuditedOrganizationAssignment(env, assignment, 0, "editor", ["dutyDetail"])).toBe(false);
     expect(count("admin_audit_log")).toBe(4);
     expect((await getAdminOrganizationAssignmentById(env, "asg1"))?.duty_detail).toBe("Advisor");
+  });
+
+  it("preserves multiple duties for one canonical person across distinct units and positions", async () => {
+    db.exec(`INSERT INTO contents (id, type) VALUES ('department', 'organization');
+      INSERT INTO organization_units (content_id, unit_kind) VALUES ('department', 'department');`);
+    await createAuditedOrganizationPosition(env, position, "editor");
+    await createAuditedOrganizationPosition(
+      env,
+      {
+        ...position,
+        id: "pos2",
+        unit_content_id: "department",
+        occupant_limit: 1
+      },
+      "editor"
+    );
+    await createAuditedOrganizationAssignment(env, assignment, "editor");
+    await createAuditedOrganizationAssignment(
+      env,
+      {
+        ...assignment,
+        id: "asg2",
+        duty_detail: "Additional duty"
+      },
+      "editor"
+    );
+    await createAuditedOrganizationAssignment(
+      env,
+      {
+        ...assignment,
+        id: "asg3",
+        position_id: "pos2",
+        duty_detail: "Department duty"
+      },
+      "editor"
+    );
+    const personnelCount = db.prepare("SELECT COUNT(*) AS count FROM personnel").get() as { count: number };
+    expect(personnelCount.count).toBe(2);
+    expect(count("organization_assignments")).toBe(3);
+    expect(count("admin_audit_log")).toBe(5);
+    const occupants = db
+      .prepare(
+        "SELECT position_id, COUNT(DISTINCT personnel_id) AS count FROM organization_assignments WHERE enabled = 1 GROUP BY position_id ORDER BY position_id"
+      )
+      .all() as { position_id: string; count: number }[];
+    expect(occupants).toEqual([
+      { position_id: "pos1", count: 1 },
+      { position_id: "pos2", count: 1 }
+    ]);
   });
 
   it("rolls back assignment and audit when occupancy exceeds the position limit", async () => {

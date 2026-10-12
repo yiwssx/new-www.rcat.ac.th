@@ -83,13 +83,23 @@ export async function handleAdminOrganizationUnitWrite(
   try {
     if (create) {
       const now = new Date().toISOString();
-      const input = parseOrganizationContentUnitWrite(await bodyRecord(request), now);
+      const body = await bodyRecord(request);
+      if (body.autoSortOrder !== undefined && typeof body.autoSortOrder !== "boolean") {
+        return fail("invalid automatic organization order", 400);
+      }
+      const autoSortOrder = body.autoSortOrder === true;
+      if (autoSortOrder && Object.hasOwn(body, "sortOrder")) {
+        return fail("choose automatic or explicit sort order", 400);
+      }
+      delete body.autoSortOrder;
+      const input = parseOrganizationContentUnitWrite(body, now);
       const id = `organization-${crypto.randomUUID()}`;
       if (Object.keys(input.chartLayout ?? {}).length) {
         return fail("new organization cannot contain existing chart positions", 400);
       }
-      await createAuditedOrganizationUnit(env, id, input, identity.actor, now);
-      return ok({ id, ...input, revision: 0 }, 201);
+      await createAuditedOrganizationUnit(env, id, input, identity.actor, now, autoSortOrder);
+      const created = autoSortOrder ? await getOrganizationUnitEditor(env, id) : null;
+      return ok({ id, ...input, sortOrder: created?.sort_order ?? input.sortOrder, revision: 0 }, 201);
     }
 
     const id = segments[2];

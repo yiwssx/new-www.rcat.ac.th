@@ -149,12 +149,16 @@ export async function handleAdminOrganizationDutyWrite(
     if (isUpdate && previous && previous.revision !== revision) return errorResponse("stale revision", 409);
 
     const changes = await readJson(request);
+    if (isUpdate && "autoSortOrder" in changes)
+      return errorResponse("automatic order applies only to new records", 400);
+    if (isCreate && changes.autoSortOrder === true && "sortOrder" in changes)
+      return errorResponse("choose automatic or explicit sort order", 400);
     const now = new Date().toISOString();
     if (collection === "positions") {
       const old = previous as OrganizationPositionRow | null;
       const input = parseOrganizationPositionWrite({ ...(old ? inputFromPosition(old) : {}), ...changes });
       const row = toPositionRow(input, id, now, old?.created_at);
-      if (isCreate) await createAuditedOrganizationPosition(env, row, identity.actor);
+      if (isCreate) await createAuditedOrganizationPosition(env, row, identity.actor, input.autoSortOrder);
       else {
         const updated = await updateAuditedOrganizationPosition(
           env,
@@ -165,13 +169,14 @@ export async function handleAdminOrganizationDutyWrite(
         );
         if (!updated) return errorResponse("stale revision", 409);
       }
-      return ok({ ...row, revision: isCreate ? 0 : (revision as number) + 1 }, isCreate ? 201 : 200);
+      const persisted = isCreate && input.autoSortOrder ? await getAdminOrganizationPositionById(env, id) : null;
+      return ok(persisted ?? { ...row, revision: isCreate ? 0 : (revision as number) + 1 }, isCreate ? 201 : 200);
     }
 
     const old = previous as OrganizationAssignmentRow | null;
     const input = parseOrganizationAssignmentWrite({ ...(old ? inputFromAssignment(old) : {}), ...changes });
     const row = toAssignmentRow(input, id, now, old?.created_at);
-    if (isCreate) await createAuditedOrganizationAssignment(env, row, identity.actor);
+    if (isCreate) await createAuditedOrganizationAssignment(env, row, identity.actor, input.autoSortOrder);
     else {
       const updated = await updateAuditedOrganizationAssignment(
         env,
@@ -182,7 +187,8 @@ export async function handleAdminOrganizationDutyWrite(
       );
       if (!updated) return errorResponse("stale revision", 409);
     }
-    return ok({ ...row, revision: isCreate ? 0 : (revision as number) + 1 }, isCreate ? 201 : 200);
+    const persisted = isCreate && input.autoSortOrder ? await getAdminOrganizationAssignmentById(env, id) : null;
+    return ok(persisted ?? { ...row, revision: isCreate ? 0 : (revision as number) + 1 }, isCreate ? 201 : 200);
   } catch (error) {
     if (error instanceof OrganizationInputError) return errorResponse(error.message, 400);
     const integrity = mapIntegrityError(error);
