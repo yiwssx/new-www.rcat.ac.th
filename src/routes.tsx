@@ -298,16 +298,17 @@ const adminOrganizationRoute = createRoute({
   )
 });
 
-const adminOrganizationChildRoutes = (["units", "personnel", "positions", "assignments", "charts"] as const).map((view) =>
-  createRoute({
-    getParentRoute: () => adminRoute,
-    path: `organization/${view}`,
-    component: () => (
-      <CapabilityGuard capability="organization.read">
-        <OrganizationPage view={view} />
-      </CapabilityGuard>
-    )
-  })
+const adminOrganizationChildRoutes = (["units", "personnel", "positions", "assignments", "charts"] as const).map(
+  (view) =>
+    createRoute({
+      getParentRoute: () => adminRoute,
+      path: `organization/${view}`,
+      component: () => (
+        <CapabilityGuard capability="organization.read">
+          <OrganizationPage view={view} />
+        </CapabilityGuard>
+      )
+    })
 );
 
 const adminDocumentsRoute = createRoute({

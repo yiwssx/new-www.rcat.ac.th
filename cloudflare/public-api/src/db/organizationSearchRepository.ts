@@ -82,7 +82,9 @@ export async function searchAdminOrganizationPage(
     .bind(...values)
     .first<{ total: number }>();
   const page = await database
-    .prepare(`SELECT ${columns[collection]} FROM ${tables[collection]}${where} ORDER BY ${ordering[collection]} LIMIT ? OFFSET ?`)
+    .prepare(
+      `SELECT ${columns[collection]} FROM ${tables[collection]}${where} ORDER BY ${ordering[collection]} LIMIT ? OFFSET ?`
+    )
     .bind(...values, limit, offset)
     .all<Record<string, unknown>>();
   return { items: page.results ?? [], total: totalRow?.total ?? 0 };

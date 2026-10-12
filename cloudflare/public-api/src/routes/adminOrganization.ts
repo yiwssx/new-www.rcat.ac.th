@@ -28,7 +28,8 @@ function readPageParams(request: Request): {
   const params = new URL(request.url).searchParams;
   const allowed = new Set(["limit", "offset", "search", "includeTotal", "unitContentId", "positionId"]);
   if ([...params.keys()].some((key) => !allowed.has(key))) return null;
-  if (["search", "includeTotal", "unitContentId", "positionId"].some((key) => params.getAll(key).length > 1)) return null;
+  if (["search", "includeTotal", "unitContentId", "positionId"].some((key) => params.getAll(key).length > 1))
+    return null;
   const search = params.get("search") ?? "";
   if (search.length > 160 || /[\x00-\x1f]/.test(search)) return null;
   const includeTotal = params.get("includeTotal") === "1";
@@ -44,9 +45,7 @@ function readPageParams(request: Request): {
   if (rawOffset !== null && !/^(0|[1-9]\d{0,5})$/.test(rawOffset)) return null;
   const limit = raw === null ? 100 : Number(raw);
   const offset = rawOffset === null ? 0 : Number(rawOffset);
-  return limit <= 100 && offset <= 999999
-    ? { limit, offset, search, includeTotal, unitContentId, positionId }
-    : null;
+  return limit <= 100 && offset <= 999999 ? { limit, offset, search, includeTotal, unitContentId, positionId } : null;
 }
 
 /**
@@ -82,13 +81,19 @@ export async function handleAdminOrganizationRead(request: Request, env: Env, se
   const page = readPageParams(request);
   if (page === null) return jsonError("invalid organization page parameters", 400, { resource: "organization" });
   const { limit, offset, search, includeTotal, unitContentId, positionId } = page;
-  if ((unitContentId && !["positions", "assignments"].includes(collection)) ||
-      (positionId && collection !== "assignments")) {
+  if (
+    (unitContentId && !["positions", "assignments"].includes(collection)) ||
+    (positionId && collection !== "assignments")
+  ) {
     return jsonError("invalid organization filter", 400, { resource: "organization" });
   }
   if (includeTotal || search || unitContentId || positionId) {
     const result = await searchAdminOrganizationPage(env, collection, {
-      limit, offset, search, unitContentId, positionId
+      limit,
+      offset,
+      search,
+      unitContentId,
+      positionId
     });
     return json(
       {
