@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import BadgeOutlinedIcon from "@mui/icons-material/BadgeOutlined";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
@@ -130,7 +130,7 @@ export default function OrganizationChartView({ positions, layout, media, showEd
     byParent.set(target, siblings);
   }
 
-  function branch(parentId: string | null, ancestors: Set<string>): React.ReactNode {
+  function branch(parentId: string | null, ancestors: Set<string>): ReactNode {
     const siblings = byParent.get(parentId) ?? [];
     if (!siblings.length) return null;
     return (
