@@ -38,7 +38,7 @@ function PeopleCard({
             {position.assignments.map(({ id, person, dutyDetail }) => {
               const asset = person.photoMediaId ? media.get(person.photoMediaId) : undefined;
               return (
-                <Stack key={id} spacing={0.5} alignItems="center">
+                <Stack key={id} spacing={0.5} sx={{ alignItems: "center" }}>
                   <Box
                     sx={{
                       width: 94,
