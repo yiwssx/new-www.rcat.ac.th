@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AdminStaleRevisionError } from "../../features/admin-write/errors";
 import type { OrganizationUnitListRow } from "../../features/organization-admin/api";
-import OrganizationPage from "./OrganizationPage";
+import OrganizationPage, { type OrganizationManagementView } from "./OrganizationPage";
 import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 
 const auth = vi.hoisted(() => ({ capabilities: ["organization.read"] as string[] }));
@@ -46,7 +46,7 @@ const existing: OrganizationUnitListRow = {
   unit_revision: 2
 };
 
-function renderPage(view: "legacy" | "units" = "legacy") {
+function renderPage(view: OrganizationManagementView = "legacy") {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } }
   });
