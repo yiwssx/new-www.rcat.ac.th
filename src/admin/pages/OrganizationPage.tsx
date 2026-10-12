@@ -415,7 +415,7 @@ export default function OrganizationPage({ view = "legacy" }: { view?: Organizat
       {(view === "personnel" || view === "legacy") && (
         <OrganizationPersonnelDirectory canManage={canManage} canBrowseMedia={canBrowseMedia} />
       )}
-      {showBuilder && units.hasNextPage && (
+      {showBuilder && !showUnits && units.hasNextPage && (
         <Button variant="outlined" onClick={() => void units.fetchNextPage()} disabled={units.isFetchingNextPage}>
           {units.isFetchingNextPage ? "กำลังโหลดหน่วยงาน…" : "โหลดหน่วยงานเพิ่มเติม"}
         </Button>

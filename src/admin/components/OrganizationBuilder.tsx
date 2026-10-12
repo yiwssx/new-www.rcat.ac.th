@@ -92,12 +92,12 @@ function pageQuery(collection: "positions" | "assignments" | "personnel", unitId
     enabled: legacy || Boolean(unitId),
     initialPageParam: 0,
     queryFn: ({ pageParam }: { pageParam: number }) =>
-      getOrganizationCollection(
-        collection,
-        100,
-        pageParam,
-        !legacy && unitId ? { includeTotal: true, unitContentId: unitId } : undefined
-      ),
+      legacy
+        ? getOrganizationCollection(collection, 100, pageParam)
+        : getOrganizationCollection(collection, 100, pageParam, {
+            includeTotal: true,
+            unitContentId: unitId ?? undefined
+          }),
     getNextPageParam: (lastPage: { nextOffset: number | null }) => lastPage.nextOffset ?? undefined
   };
 }
