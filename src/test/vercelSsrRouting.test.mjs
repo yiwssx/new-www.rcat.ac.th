@@ -36,6 +36,7 @@ describe("Vercel SSR cutover routing", () => {
     expect(destinationFor("/ita2569")).toBe("/api/ssr?_rcatPath=/ita2569");
     expect(destinationFor("/content/:slug")).toBe("/api/ssr?_rcatPath=/content/:slug");
     expect(destinationFor("/organization/:slug")).toBe("/api/ssr?_rcatPath=/organization/:slug");
+    expect(destinationFor("/organization/:slug/:child")).toBeUndefined();
     expect(destinationFor("/:slug")).toBe("/api/ssr?_rcatPath=/:slug");
 
     const organizationIndex = rewrites.findIndex(({ source }) => source === "/organization/:slug");
