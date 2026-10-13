@@ -18,7 +18,8 @@ async function installOrganizationFixture(
   page: Page,
   mode: "cards" | "rows" | "tree" = "cards",
   mixed = false,
-  extraSiblings = 0
+  extraSiblings = 0,
+  twoCardPositions = false
 ) {
   const chartUnit = {
     ...sampleUnit,
@@ -132,7 +133,7 @@ async function installOrganizationFixture(
               }
             ]
           },
-          ...(mode === "cards"
+          ...(mode === "cards" && !twoCardPositions
             ? []
             : [
                 {
@@ -480,5 +481,28 @@ test.describe("Organization V2.2 Phase 5 high-cardinality browser regression", (
         await expect.poll(() => region.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
       }
     );
+  }
+});
+
+test.describe("Organization field regression: Cards positions should not be a vertical list", () => {
+  for (const width of [390, 1440]) {
+    test("shows two Cards-mode positions beside each other at " + width + "px", async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await installOrganizationFixture(page, "cards", false, 0, true);
+      await page.goto("/organization/" + encodeURIComponent(slug));
+      await dismissGateIfVisible(page);
+
+      const rail = page.getByRole("region", { name: "ตำแหน่งของฝ่ายวิชาการ เลื่อนแนวนอนได้" });
+      const left = await rail.getByRole("heading", { name: "หัวหน้าฝ่าย", exact: true }).boundingBox();
+      const right = await rail.getByText("รองหัวหน้าฝ่าย").boundingBox();
+      expect(left).not.toBeNull();
+      expect(right).not.toBeNull();
+      expect(right!.x).toBeGreaterThan(left!.x);
+      expect(Math.abs(right!.y - left!.y)).toBeLessThanOrEqual(2);
+      await expect(rail).toHaveClass(/rcat-focus-ring/);
+      await expect
+        .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1))
+        .toBe(true);
+    });
   }
 });

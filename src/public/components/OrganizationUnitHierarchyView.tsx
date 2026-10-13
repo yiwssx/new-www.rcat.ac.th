@@ -61,8 +61,8 @@ function UnitBranch({
     >
       <Box
         sx={{
-          width: 400,
-          minWidth: 400,
+          width: 288,
+          minWidth: 288,
           px: 1,
           display: "flex",
           flexDirection: "column",
@@ -121,7 +121,7 @@ function UnitBranch({
           </Card>
         </Box>
         {(positionsByUnit.get(unit.contentId)?.length ?? 0) > 0 && (
-          <Box sx={{ mt: 1.5, width: 376, maxWidth: "100%", minWidth: 0 }}>
+          <Box sx={{ mt: 1.5, width: 280, maxWidth: "100%", minWidth: 0 }}>
             <OrganizationUnitPositionContent
               unit={unit}
               positions={positionsByUnit.get(unit.contentId) ?? []}

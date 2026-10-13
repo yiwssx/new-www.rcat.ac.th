@@ -115,7 +115,9 @@ function pageQuery(
  */
 export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, onEditUnit, view = "legacy" }: Props) {
   const client = useQueryClient();
-  const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
+  const [selectedUnitId, setSelectedUnitId] = useState<string | null>(() =>
+    view === "charts" ? ((units.find((unit) => !unit.parent_content_id) ?? units[0])?.content_id ?? null) : null
+  );
   const [selectedUnitSnapshot, setSelectedUnitSnapshot] = useState<OrganizationUnitListRow | null>(null);
   const [unitSearch, setUnitSearch] = useState("");
   const [unitSearchDebounced, setUnitSearchDebounced] = useState("");
@@ -132,6 +134,9 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
   const [positionAutoOrder, setPositionAutoOrder] = useState(false);
   const [assignmentAutoOrder, setAssignmentAutoOrder] = useState(false);
   const [collapsedUnitIds, setCollapsedUnitIds] = useState<string[]>([]);
+  // The nested RichTreeView is a navigation aid, not the horizontal chart canvas.
+  // Keep it available on demand, but never make it the dominant chart default.
+  const [showUnitNavigator, setShowUnitNavigator] = useState(view !== "charts");
   const [positionEditing, setPositionEditing] = useState<OrganizationPositionRow | null>(null);
   const [positionForm, setPositionForm] = useState<PositionForm | null>(null);
   const [assignmentEditing, setAssignmentEditing] = useState<OrganizationAssignmentRow | null>(null);
@@ -487,10 +492,26 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
           {(positionsQuery.isError || assignmentsQuery.isError || personnelQuery.isError) && (
             <Alert severity="error">โหลดข้อมูลตำแหน่ง/หน้าที่/บุคลากรไม่สำเร็จ กรุณารีเฟรช</Alert>
           )}
-          <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ minWidth: 0 }}>
-            <Box sx={{ width: { xs: "100%", md: "35%" }, minWidth: 0 }}>
+          {view === "charts" && selectedUnit && (
+            <OrganizationUnitContextPreview
+              selected={selectedUnit}
+              units={units}
+              allUnitsLoaded={allUnitsLoaded}
+              onSelect={(unit) => {
+                setSelectedUnitId(unit.content_id);
+                setSelectedUnitSnapshot(unit);
+                setError("");
+              }}
+            />
+          )}
+          <Stack
+            direction={view === "charts" ? "column" : { xs: "column", md: "row" }}
+            spacing={2}
+            sx={{ minWidth: 0 }}
+          >
+            <Box sx={{ width: view === "charts" ? "100%" : { xs: "100%", md: "35%" }, minWidth: 0 }}>
               <Typography variant="h3" sx={{ fontSize: "1rem", mb: 1 }}>
-                ลำดับชั้นหน่วยงาน
+                {view === "charts" ? "เลือกหน่วยงานสำหรับจัดผัง" : "ลำดับชั้นหน่วยงาน"}
               </Typography>
               {!legacy && (
                 <Stack spacing={1} sx={{ mb: 2 }}>
@@ -531,32 +552,55 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                   )}
                 </Stack>
               )}
-              <Box component="nav" aria-label="โครงสร้างหน่วยงาน" sx={{ maxHeight: 480, overflowY: "auto" }}>
-                <RichTreeView
-                  items={treeItems}
-                  selectedItems={selectedUnitId}
-                  expandedItems={expandedTreeIds}
+              {view === "charts" && (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  aria-expanded={showUnitNavigator}
+                  aria-controls="organization-vertical-navigator"
+                  onClick={() => setShowUnitNavigator((current) => !current)}
+                  sx={{ mb: 1 }}
+                >
+                  {showUnitNavigator ? "ซ่อนรายการลำดับชั้น" : "เปิดรายการลำดับชั้น (สำหรับเลือกหน่วยงาน)"}
+                </Button>
+              )}
+              {showUnitNavigator && (
+                <Box
+                  id="organization-vertical-navigator"
+                  component="nav"
                   aria-label="โครงสร้างหน่วยงาน"
-                  onExpandedItemsChange={(_event, expanded) => {
-                    setCollapsedUnitIds(
-                      hierarchy.map(({ unit }) => unit.content_id).filter((id) => !expanded.includes(id))
-                    );
-                  }}
-                  onSelectedItemsChange={(_event, id) => {
-                    if (typeof id !== "string") return;
-                    setSelectedUnitId(id);
-                    setSelectedUnitSnapshot(units.find((unit) => unit.content_id === id) ?? null);
-                    setError("");
-                  }}
-                  sx={{ "& .MuiTreeItem-label": { whiteSpace: "normal", overflowWrap: "anywhere" } }}
-                />
-              </Box>
+                  sx={{ maxHeight: 480, overflowY: "auto" }}
+                >
+                  <RichTreeView
+                    items={treeItems}
+                    selectedItems={selectedUnitId}
+                    expandedItems={expandedTreeIds}
+                    aria-label="โครงสร้างหน่วยงาน"
+                    onExpandedItemsChange={(_event, expanded) => {
+                      setCollapsedUnitIds(
+                        hierarchy.map(({ unit }) => unit.content_id).filter((id) => !expanded.includes(id))
+                      );
+                    }}
+                    onSelectedItemsChange={(_event, id) => {
+                      if (typeof id !== "string") return;
+                      setSelectedUnitId(id);
+                      setSelectedUnitSnapshot(units.find((unit) => unit.content_id === id) ?? null);
+                      setError("");
+                    }}
+                    sx={{ "& .MuiTreeItem-label": { whiteSpace: "normal", overflowWrap: "anywhere" } }}
+                  />
+                </Box>
+              )}
             </Box>
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Stack spacing={2}>
                 <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ justifyContent: "space-between" }}>
                   <Typography variant="h3" sx={{ fontSize: "1rem", overflowWrap: "anywhere" }}>
-                    {selectedUnit ? "ตำแหน่งใน " + selectedUnit.title : "เลือกหน่วยงานจากรายการด้านซ้าย"}
+                    {selectedUnit
+                      ? "ตำแหน่งใน " + selectedUnit.title
+                      : view === "charts"
+                        ? "ค้นหาหรือเปิดรายการหน่วยงานเพื่อจัดผัง"
+                        : "เลือกหน่วยงานจากรายการด้านซ้าย"}
                   </Typography>
                   {selectedUnit && canManage && view !== "charts" && (
                     <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
@@ -781,18 +825,6 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                 หรือแก้ไขข้อผิดพลาดในการโหลดข้อมูลก่อนตรวจสอบ Preview
               </Alert>
             )}
-          {view === "charts" && selectedUnit && (
-            <OrganizationUnitContextPreview
-              selected={selectedUnit}
-              units={units}
-              allUnitsLoaded={allUnitsLoaded}
-              onSelect={(unit) => {
-                setSelectedUnitId(unit.content_id);
-                setSelectedUnitSnapshot(unit);
-                setError("");
-              }}
-            />
-          )}
           {(view === "legacy" || view === "charts") &&
             selectedUnit &&
             !positionsQuery.isPending &&

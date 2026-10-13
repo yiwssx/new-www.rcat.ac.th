@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AdminStaleRevisionError } from "../../features/admin-write/errors";
 import type { OrganizationPositionRow, OrganizationUnitListRow } from "../../features/organization-admin";
@@ -132,10 +132,57 @@ describe("Organization Chart layout audited save feedback", () => {
         onSaved={vi.fn()}
       />
     );
-    expect(screen.getByText("ตัวอย่าง Cards (รูปแบบเดิม)")).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "ตำแหน่งของงานธุรการ" })).toBeInTheDocument();
-    expect(screen.getByText("หัวหน้างาน")).toBeInTheDocument();
-    expect(screen.getByText("ยังไม่ได้ระบุผู้ดำรงตำแหน่ง")).toBeInTheDocument();
+    const preview = screen.getByRole("region", { name: "ตัวอย่างผังองค์กรแนวนอน ก่อนบันทึก" });
+    const rail = within(preview).getByRole("region", { name: "ตำแหน่งของงานธุรการ เลื่อนแนวนอนได้" });
+    expect(preview).toHaveAttribute("data-organization-preview", "horizontal");
+    expect(rail).toHaveAttribute("tabindex", "0");
+    expect(within(rail).getByText("หัวหน้างาน")).toBeInTheDocument();
+    expect(within(rail).getByText("ยังไม่ได้ระบุผู้ดำรงตำแหน่ง")).toBeInTheDocument();
+  });
+
+  it("renders the horizontal preview before editing controls and updates the pending layout immediately", () => {
+    render(
+      <OrganizationChartLayoutEditor
+        unit={unit}
+        positions={[position, { ...position, id: "position-2", title: "รองหัวหน้างาน", sort_order: 1 }]}
+        assignments={[]}
+        personnel={[]}
+        canManage
+        allPositionsLoaded
+        onSaved={vi.fn()}
+      />
+    );
+    const preview = screen.getByRole("region", { name: "ตัวอย่างผังองค์กรแนวนอน ก่อนบันทึก" });
+    const rail = within(preview).getByRole("region", { name: "ภาพรวมตำแหน่งแนวนอน เลื่อนดูได้" });
+    expect(
+      preview.compareDocumentPosition(screen.getAllByRole("spinbutton", { name: "ระดับชั้น" })[0]) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(
+      within(rail)
+        .getAllByText(/หัวหน้างาน/)
+        .map((node) => node.textContent)
+    ).toEqual(["หัวหน้างาน", "รองหัวหน้างาน"]);
+    fireEvent.change(screen.getAllByRole("spinbutton", { name: "ระดับชั้น" })[1], { target: { value: "2" } });
+    expect(within(rail).getByText("ระดับ 2 · แถว 1")).toBeInTheDocument();
+    expect(api.update).not.toHaveBeenCalled();
+  });
+
+  it("keeps the horizontal preview available while using tree mode before saving", () => {
+    render(
+      <OrganizationChartLayoutEditor
+        unit={{ ...unit, chart_mode: "tree" }}
+        positions={[position]}
+        assignments={[]}
+        personnel={[]}
+        canManage
+        allPositionsLoaded
+        onSaved={vi.fn()}
+      />
+    );
+    expect(screen.getByRole("region", { name: "ภาพรวมตำแหน่งแนวนอน เลื่อนดูได้" })).toBeInTheDocument();
+    expect(screen.getByTestId("chart-preview")).toBeInTheDocument();
+    expect(api.update).not.toHaveBeenCalled();
   });
 
   it("blocks saving an inconsistent content/unit revision before calling the Worker", () => {
