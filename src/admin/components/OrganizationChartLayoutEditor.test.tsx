@@ -133,11 +133,11 @@ describe("Organization Chart layout audited save feedback", () => {
       />
     );
     const preview = screen.getByRole("region", { name: "ตัวอย่างผังองค์กรแนวนอน ก่อนบันทึก" });
-    const rail = within(preview).getByRole("region", { name: "ภาพรวมตำแหน่งแนวนอน เลื่อนดูได้" });
+    const rail = within(preview).getByRole("region", { name: "ตำแหน่งของงานธุรการ เลื่อนแนวนอนได้" });
     expect(preview).toHaveAttribute("data-organization-preview", "horizontal");
     expect(rail).toHaveAttribute("tabindex", "0");
     expect(within(rail).getByText("หัวหน้างาน")).toBeInTheDocument();
-    expect(within(rail).getByText("ยังไม่มีผู้ดำรงตำแหน่ง")).toBeInTheDocument();
+    expect(within(rail).getByText("ยังไม่ได้ระบุผู้ดำรงตำแหน่ง")).toBeInTheDocument();
   });
 
   it("renders the horizontal preview before editing controls and updates the pending layout immediately", () => {
