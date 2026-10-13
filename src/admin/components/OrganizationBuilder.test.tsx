@@ -127,7 +127,7 @@ describe("Phase 6 accessible Organization builder", () => {
     expect(showNavigator).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(showNavigator);
     expect(screen.getByRole("tree", { name: "โครงสร้างหน่วยงาน" })).toBeInTheDocument();
-    fireEvent.click(screen.getByText("งานสารบรรณ"));
+    fireEvent.click(screen.getByRole("treeitem", { name: "งานสารบรรณ" }));
     fireEvent.click(screen.getByRole("button", { name: "ซ่อนรายการลำดับชั้น" }));
     expect(screen.queryByRole("tree", { name: "โครงสร้างหน่วยงาน" })).not.toBeInTheDocument();
     expect(await screen.findByText("จัดระดับและผังบุคลากร")).toBeInTheDocument();
