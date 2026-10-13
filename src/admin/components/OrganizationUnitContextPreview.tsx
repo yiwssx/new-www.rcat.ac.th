@@ -83,8 +83,7 @@ export default function OrganizationUnitContextPreview({ selected, units, allUni
         1. ผังหน่วยงาน — ความสัมพันธ์ระหว่างฝ่าย งาน และแผนก
       </Typography>
       <Typography variant="body2" color="text.secondary">
-        ดูตำแหน่งของหน่วยงานที่เลือกในโครงสร้างแนวนอน ส่วนรูปแบบ A/B
-        ด้านล่างใช้จัดตำแหน่งบุคลากรภายในหน่วยงานนั้นเท่านั้น
+        แผนผังหน่วยงานไล่จากแม่ทางซ้ายไปหาลูกทางขวา ส่วนรูปแบบ A/B ด้านล่างใช้จัดตำแหน่งบุคลากรภายในหน่วยงานนั้นเท่านั้น
       </Typography>
       {(!allUnitsLoaded || context.missingParent) && (
         <Alert severity="info" role="status">
@@ -104,44 +103,36 @@ export default function OrganizationUnitContextPreview({ selected, units, allUni
         aria-label="ตัวอย่างความสัมพันธ์หน่วยงานแนวนอน เลื่อนดูได้"
         sx={{ maxWidth: "100%", minWidth: 0, overflowX: "auto", overscrollBehaviorX: "contain", pb: 2, pt: 1 }}
       >
-        <Stack sx={{ minWidth: "max-content", alignItems: "center", px: 1 }}>
+
+        <Stack direction="row" sx={{ minWidth: "max-content", alignItems: "flex-start", px: 1 }}>
           <Box component="ul" sx={{ p: 0, m: 0, display: "flex" }}>
             <ContextNode unit={root} selected={root.content_id === selected.content_id} onSelect={onSelect} />
           </Box>
           {children.length > 0 && (
             <>
-              <Box aria-hidden="true" sx={{ height: 20, borderLeft: "2px solid", borderColor: "divider" }} />
+              <Box
+                aria-hidden="true"
+                sx={{ alignSelf: "flex-start", mt: "46px", width: 32, borderTop: "2px solid", borderColor: "divider" }}
+              />
               <Box
                 component="ul"
                 sx={{
                   display: "flex",
-                  justifyContent: "center",
+                  justifyContent: "flex-start",
                   position: "relative",
                   gap: 1.5,
-                  pt: 2.5,
                   m: 0,
                   p: 0,
                   "&::before": {
                     content: '""',
                     position: "absolute",
-                    top: 0,
-                    left: "50%",
-                    height: 20,
-                    borderLeft: "2px solid",
-                    borderColor: "divider"
-                  },
-                  "&::after":
-                    children.length > 1
-                      ? {
-                          content: '""',
-                          position: "absolute",
-                          top: 20,
-                          left: 104,
-                          right: 104,
-                          borderTop: "2px solid",
-                          borderColor: "divider"
-                        }
-                      : {}
+                    top: 46,
+                    left: 0,
+                    right: 0,
+                    borderTop: "2px solid",
+                    borderColor: "divider",
+                    zIndex: 0
+                  }
                 }}
               >
                 {children.map((unit) => (
@@ -155,7 +146,7 @@ export default function OrganizationUnitContextPreview({ selected, units, allUni
               </Box>
             </>
           )}
-        </Stack>
+        </Stack>>
       </Box>
     </Stack>
   );
