@@ -31,66 +31,44 @@ function UnitBranch({ branch }: { branch: PublicOrganizationUnitBranch }) {
       sx={{
         position: "relative",
         display: "flex",
-        flexDirection: "row",
-        alignItems: "flex-start",
+        flexDirection: "column",
+        alignItems: "center",
         flex: "0 0 auto",
         width: "max-content",
-        minWidth: "max-content",
-        "&::before": branch.level
-          ? {
-              content: '""',
-              position: "absolute",
-              top: 58,
-              left: -28,
-              width: 28,
-              borderTop: "2px solid",
-              borderColor: "divider"
-            }
-          : {}
+        minWidth: 228
       }}
     >
-      <Box
+      <Card
+        variant="outlined"
         sx={{
-          flex: "0 0 252px",
-          width: 252,
-          px: 1.5,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center"
+          width: 228,
+          minHeight: 112,
+          borderRadius: 2,
+          bgcolor: branch.level === 0 ? "action.hover" : "background.paper",
+          borderColor: branch.level === 0 ? "primary.main" : "divider"
         }}
       >
-        <Card
-          variant="outlined"
-          sx={{
-            width: 228,
-            minHeight: 112,
-            borderRadius: 2,
-            bgcolor: branch.level === 0 ? "action.hover" : "background.paper",
-            borderColor: branch.level === 0 ? "primary.main" : "divider"
-          }}
-        >
-          <CardContent sx={{ p: 1.75, "&:last-child": { pb: 1.75 } }}>
+        <CardContent sx={{ p: 1.75, "&:last-child": { pb: 1.75 } }}>
+          <Typography
+            component="div"
+            variant="subtitle1"
+            sx={{ fontWeight: 700, lineHeight: 1.4, textAlign: "center", overflowWrap: "anywhere" }}
+          >
+            <Link href={"/organization/" + encodeURIComponent(unit.slug)} underline="hover" color="inherit">
+              {unit.title}
+            </Link>
+          </Typography>
+          {unit.summary && (
             <Typography
-              component="div"
-              variant="subtitle1"
-              sx={{ fontWeight: 700, lineHeight: 1.4, textAlign: "center", overflowWrap: "anywhere" }}
+              variant="body2"
+              color="text.secondary"
+              sx={{ mt: 1, whiteSpace: "pre-line", overflowWrap: "anywhere", textAlign: "center" }}
             >
-              <Link href={"/organization/" + encodeURIComponent(unit.slug)} underline="hover" color="inherit">
-                {unit.title}
-              </Link>
+              {unit.summary}
             </Typography>
-            {unit.summary && (
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ mt: 1, whiteSpace: "pre-line", overflowWrap: "anywhere", textAlign: "center" }}
-              >
-                {unit.summary}
-              </Typography>
-            )}
-          </CardContent>
-        </Card>
-      </Box>
+          )}
+        </CardContent>
+      </Card>
       {children.length > 0 && (
         <Box
           component="ul"
@@ -98,23 +76,24 @@ function UnitBranch({ branch }: { branch: PublicOrganizationUnitBranch }) {
           sx={{
             display: "flex",
             flexDirection: "row",
+            justifyContent: "center",
             alignItems: "flex-start",
+            gap: 2,
             listStyle: "none",
             position: "relative",
             width: "max-content",
-            minWidth: "max-content",
+            minWidth: "100%",
             m: 0,
             p: 0,
-            pl: 3.5,
+            pt: 4,
             "&::before": {
               content: '""',
               position: "absolute",
-              top: 58,
-              left: 0,
-              right: 0,
-              borderTop: "2px solid",
-              borderColor: "divider",
-              zIndex: 0
+              top: 0,
+              left: "50%",
+              height: 32,
+              borderLeft: "2px solid",
+              borderColor: "divider"
             }
           }}
         >
@@ -160,12 +139,12 @@ export default function OrganizationUnitHierarchyView({
       ) : (
         <>
           <Typography variant="body2" color="text.secondary">
-            ผังหน่วยงานไล่จากซ้ายไปขวา เลื่อนภายในกรอบเพื่อดูหน่วยงานที่เหลือ
+            ผังแสดงหน่วยงานแม่ด้านบนและหน่วยงานลูกด้านล่าง หน่วยงานระดับเดียวกันอยู่ข้างกัน
           </Typography>
           <Box
             role="region"
             className="rcat-focus-ring"
-            data-org-direction="left-to-right"
+            data-org-direction="top-down"
             tabIndex={0}
             aria-label="ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้"
             sx={{
@@ -181,7 +160,7 @@ export default function OrganizationUnitHierarchyView({
               pt: 1
             }}
           >
-            <Box sx={{ display: "flex", justifyContent: "flex-start", width: "max-content", minWidth: "100%" }}>
+            <Box sx={{ display: "flex", justifyContent: "center", width: "max-content", minWidth: "100%" }}>
               <Box component="ul" sx={{ listStyle: "none", display: "flex", p: 0, m: 0 }}>
                 <UnitBranch branch={hierarchy.root!} />
               </Box>
