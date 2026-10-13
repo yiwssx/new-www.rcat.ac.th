@@ -154,7 +154,9 @@ export default function OrganizationChartLayoutEditor({
       if (stale) setAwaitingLatestRevision(true);
       const message = stale
         ? "Revision เปลี่ยนแล้ว กรุณารีเฟรชหน่วยงานก่อนบันทึกอีกครั้ง"
-        : cause instanceof Error ? cause.message : "ไม่สามารถบันทึกผังองค์กร";
+        : cause instanceof Error
+          ? cause.message
+          : "ไม่สามารถบันทึกผังองค์กร";
       setError(message);
       setBusy(false);
       await showErrorResult("บันทึกผังองค์กรไม่สำเร็จ", new Error(message), "โหลดหน่วยงานล่าสุดแล้วลองอีกครั้ง");
@@ -187,9 +189,17 @@ export default function OrganizationChartLayoutEditor({
             2. ผังบุคลากรในหน่วยงานนี้ — เลือก A/B หรือ Cards โดยไม่เปลี่ยนลำดับชั้นหน่วยงานแม่–ลูก
           </Typography>
           <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
-            <Chip size="small" variant="outlined" label={"บันทึกแล้ว: " + (savedMode === "rows" ? "แบบ A" : savedMode === "tree" ? "แบบ B" : "Cards")} />
+            <Chip
+              size="small"
+              variant="outlined"
+              label={"บันทึกแล้ว: " + (savedMode === "rows" ? "แบบ A" : savedMode === "tree" ? "แบบ B" : "Cards")}
+            />
             <Chip size="small" variant="outlined" label={"Unit Revision: " + unit.unit_revision} />
-            <Chip size="small" color={isChanged ? "warning" : "default"} label={isChanged ? "มีการแก้ไขที่ยังไม่บันทึก" : "ตรงกับข้อมูลที่บันทึก"} />
+            <Chip
+              size="small"
+              color={isChanged ? "warning" : "default"}
+              label={isChanged ? "มีการแก้ไขที่ยังไม่บันทึก" : "ตรงกับข้อมูลที่บันทึก"}
+            />
           </Stack>
           <TextField
             select
@@ -204,7 +214,9 @@ export default function OrganizationChartLayoutEditor({
             <MenuItem value="tree">แบบ B — สายบังคับบัญชา</MenuItem>
           </TextField>
           {staleRevision && (
-            <Alert severity="warning" role="alert">Revision ของหน่วยงานไม่ตรงกัน กรุณาโหลดหน่วยงานล่าสุดก่อนบันทึกผัง</Alert>
+            <Alert severity="warning" role="alert">
+              Revision ของหน่วยงานไม่ตรงกัน กรุณาโหลดหน่วยงานล่าสุดก่อนบันทึกผัง
+            </Alert>
           )}
           {!allPositionsLoaded && (
             <Alert severity="info">กรุณาโหลดตำแหน่งทั้งหมดก่อนจัดวาง เพื่อไม่ให้บันทึกผังจากข้อมูลไม่ครบ</Alert>

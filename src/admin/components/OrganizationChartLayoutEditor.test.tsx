@@ -153,5 +153,4 @@ describe("Organization Chart layout audited save feedback", () => {
     expect(screen.getByRole("button", { name: "บันทึกโครงสร้างผัง" })).toBeDisabled();
     expect(api.update).not.toHaveBeenCalled();
   });
-
 });

@@ -30,7 +30,10 @@ export function focusedUnitContext(
   const parent = selected.parent_content_id ? (byId.get(selected.parent_content_id) ?? null) : null;
   const siblings = [...byId.values()]
     .filter((unit) => unit.parent_content_id === selected.parent_content_id)
-    .sort((a, b) => a.sort_order - b.sort_order || a.title.localeCompare(b.title, "th") || a.content_id.localeCompare(b.content_id));
+    .sort(
+      (a, b) =>
+        a.sort_order - b.sort_order || a.title.localeCompare(b.title, "th") || a.content_id.localeCompare(b.content_id)
+    );
   return {
     parent,
     peers: siblings,
@@ -92,7 +95,12 @@ export default function OrganizationUnitContextPreview({ selected, units, allUni
     ? context.peers
     : units
         .filter((unit) => unit.parent_content_id === selected.content_id && unit.content_id !== selected.content_id)
-        .sort((a, b) => a.sort_order - b.sort_order || a.title.localeCompare(b.title, "th") || a.content_id.localeCompare(b.content_id));
+        .sort(
+          (a, b) =>
+            a.sort_order - b.sort_order ||
+            a.title.localeCompare(b.title, "th") ||
+            a.content_id.localeCompare(b.content_id)
+        );
 
   return (
     <Stack component="section" aria-label="ตัวอย่างลำดับชั้นหน่วยงาน" spacing={1.5} sx={{ minWidth: 0 }}>
@@ -100,7 +108,8 @@ export default function OrganizationUnitContextPreview({ selected, units, allUni
         1. ผังหน่วยงาน — ความสัมพันธ์ระหว่างฝ่าย งาน และแผนก
       </Typography>
       <Typography variant="body2" color="text.secondary">
-        ดูตำแหน่งของหน่วยงานที่เลือกในโครงสร้างแนวนอน ส่วนรูปแบบ A/B ด้านล่างใช้จัดตำแหน่งบุคลากรภายในหน่วยงานนั้นเท่านั้น
+        ดูตำแหน่งของหน่วยงานที่เลือกในโครงสร้างแนวนอน ส่วนรูปแบบ A/B
+        ด้านล่างใช้จัดตำแหน่งบุคลากรภายในหน่วยงานนั้นเท่านั้น
       </Typography>
       {(!allUnitsLoaded || context.missingParent) && (
         <Alert severity="info" role="status">
@@ -146,17 +155,18 @@ export default function OrganizationUnitContextPreview({ selected, units, allUni
                     borderLeft: "2px solid",
                     borderColor: "divider"
                   },
-                  "&::after": children.length > 1
-                    ? {
-                        content: '""',
-                        position: "absolute",
-                        top: 20,
-                        left: 104,
-                        right: 104,
-                        borderTop: "2px solid",
-                        borderColor: "divider"
-                      }
-                    : {}
+                  "&::after":
+                    children.length > 1
+                      ? {
+                          content: '""',
+                          position: "absolute",
+                          top: 20,
+                          left: 104,
+                          right: 104,
+                          borderTop: "2px solid",
+                          borderColor: "divider"
+                        }
+                      : {}
                 }}
               >
                 {children.map((unit) => (
