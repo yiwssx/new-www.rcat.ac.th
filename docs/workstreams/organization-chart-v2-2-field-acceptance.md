@@ -19,6 +19,9 @@ Related: issue #580, PR #581. Production source of truth is protected `main`.
 ## Owner field-acceptance checklist (after main deployment)
 
 - [ ] Open an actually published `/organization/<slug>` on the production site.
+- [ ] In Admin > Organization > Charts, confirm a horizontal unit-context preview is visible **before** the selector, with the vertical unit tree collapsed by default.
+- [ ] In the A/B/Cards editor, confirm position cards appear **horizontally at the top of Preview**, before numeric controls; moving a position's level/order updates Preview before Save, and does not write data.
+- [ ] Check a second published position on mobile and desktop: horizontal sibling cards must remain in one scrollable rail, not stack one-per-row.
 - [ ] Verify the parent-to-child-to-grandchild chain advances left to right, not top to bottom.
 - [ ] Confirm a parent organization has horizontal sibling units and that a
       three-or-more-level parent-to-child path retains its connecting lines.
