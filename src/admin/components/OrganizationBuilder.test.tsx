@@ -121,6 +121,7 @@ describe("Phase 6 accessible Organization builder", () => {
 
   it("keeps the chart submenu focused on the layout editor without duplicate duty cards", async () => {
     setup(false, "charts");
+    expect(screen.getByText("ตำแหน่งใน ฝ่ายบริหาร")).toBeInTheDocument();
     expect(screen.queryByRole("tree", { name: "โครงสร้างหน่วยงาน" })).not.toBeInTheDocument();
     const showNavigator = screen.getByRole("button", { name: "เปิดรายการลำดับชั้น (สำหรับเลือกหน่วยงาน)" });
     expect(showNavigator).toHaveAttribute("aria-expanded", "false");
