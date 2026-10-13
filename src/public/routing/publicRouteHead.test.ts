@@ -152,6 +152,25 @@ describe("public route head metadata", () => {
     ).toEqual(["หน้าหลัก", "ฝ่ายวิชาการ", "งานวิชาการ"]);
   });
 
+  it("percent-encodes Thai unit slugs in the public canonical and breadcrumb while preserving published names", () => {
+    const slug = "งานทะเบียน-2569";
+    const unit = {
+      contentId: "tha-1", parentContentId: null, unitKind: "work", sortOrder: 0,
+      slug, title: "งานทะเบียนและประมวลผล", summary: "", depth: 0
+    };
+    const head = getPublicOrganizationRouteHead(slug, {
+      unit, ancestors: [], units: [unit], positions: [], media: []
+    }, { loaderData: { siteSettings } });
+    const encoded = encodeURIComponent(slug);
+    expect(head.links).toEqual([
+      { rel: "canonical", href: projectSettings.site.publicSiteUrl + "/organization/" + encoded }
+    ]);
+    expect(getJsonLd(head, "rcat-breadcrumb-jsonld").itemListElement.at(-1)).toMatchObject({
+      name: "งานทะเบียนและประมวลผล"
+    });
+    expect(getMetaContent(head, "name", "robots")).not.toBe("noindex, nofollow");
+  });
+
   it("never indexes a missing or failed organization public loader result", () => {
     const head = getPublicOrganizationRouteHead("draft", undefined);
     expect(getMetaContent(head, "name", "robots")).toBe("noindex, nofollow");
