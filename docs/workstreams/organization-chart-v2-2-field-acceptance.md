@@ -19,21 +19,21 @@ Related: issue #580, PR #581. Production source of truth is protected `main`.
 
 - [ ] Open an actually published `/organization/<slug>` on the production site.
 - [ ] Confirm a parent organization has horizontal sibling units and that a
-  three-or-more-level parent-to-child path retains its connecting lines.
+      three-or-more-level parent-to-child path retains its connecting lines.
 - [ ] On mobile (approximately 390px), scroll the chart horizontally; ensure
-  the entire webpage does not expand horizontally or clip Thai headings.
+      the entire webpage does not expand horizontally or clip Thai headings.
 - [ ] On desktop (approximately 1280–1440px), confirm sibling alignment,
-  connectors and independent chart scroll regions.
+      connectors and independent chart scroll regions.
 - [ ] Verify each unit's saved mode: A/Rows, B/Tree or classic Cards.
-  People and positions must appear inside their assigned unit only.
+      People and positions must appear inside their assigned unit only.
 - [ ] Check one individual assigned to multiple positions or units:
-  each distinct duty should remain visible without duplicate rendering.
+      each distinct duty should remain visible without duplicate rendering.
 - [ ] Check empty positions, missing portraits, and optional qualifications.
-  Education text should appear only for departments when supplied.
+      Education text should appear only for departments when supplied.
 - [ ] In Admin > Organization > Chart, preview hierarchy, choose a unit,
-  save a layout and reload to confirm revision/state. Use owner-approved data.
+      save a layout and reload to confirm revision/state. Use owner-approved data.
 - [ ] Confirm users with read-only organization permissions cannot modify data.
-  Organization remains a six-page submenu with distinct navigation icons.
+      Organization remains a six-page submenu with distinct navigation icons.
 - [ ] Report any live-field regression to issue #580 before closing that issue.
 
 ## Closure boundary
