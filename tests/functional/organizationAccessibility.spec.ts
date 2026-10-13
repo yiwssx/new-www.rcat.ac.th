@@ -493,7 +493,7 @@ test.describe("Organization field regression: Cards positions should not be a ve
       await dismissGateIfVisible(page);
 
       const rail = page.getByRole("region", { name: "ตำแหน่งของฝ่ายวิชาการ เลื่อนแนวนอนได้" });
-      const left = await rail.getByText("หัวหน้าฝ่าย").boundingBox();
+      const left = await rail.getByRole("heading", { name: "หัวหน้าฝ่าย", exact: true }).boundingBox();
       const right = await rail.getByText("รองหัวหน้าฝ่าย").boundingBox();
       expect(left).not.toBeNull();
       expect(right).not.toBeNull();
