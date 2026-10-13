@@ -73,11 +73,26 @@ beforeEach(() => {
 
 describe("Phase 4 Organization Admin list/editor", () => {
   it.each([
-    ["overview", "ภาพรวมองค์กร", "CorporateFareOutlinedIcon", "สรุปจำนวนหน่วยงาน บุคลากร ตำแหน่ง และหน้าที่ที่บันทึกในระบบ"],
-    ["units", "จัดการหน่วยงาน", "BusinessOutlinedIcon", "เพิ่มหรือแก้ไขหน่วยงานและลำดับสังกัด โดยไม่กระทบทะเบียนบุคลากร"],
+    [
+      "overview",
+      "ภาพรวมองค์กร",
+      "CorporateFareOutlinedIcon",
+      "สรุปจำนวนหน่วยงาน บุคลากร ตำแหน่ง และหน้าที่ที่บันทึกในระบบ"
+    ],
+    [
+      "units",
+      "จัดการหน่วยงาน",
+      "BusinessOutlinedIcon",
+      "เพิ่มหรือแก้ไขหน่วยงานและลำดับสังกัด โดยไม่กระทบทะเบียนบุคลากร"
+    ],
     ["personnel", "ทะเบียนบุคลากร", "BadgeOutlinedIcon", "จัดการข้อมูลบุคลากรส่วนกลาง เพื่อใช้ร่วมกันได้ในหลายตำแหน่ง"],
     ["positions", "จัดการตำแหน่ง", "WorkOutlineOutlinedIcon", "เลือกหน่วยงานเพื่อเพิ่ม แก้ไข และจัดลำดับตำแหน่ง"],
-    ["assignments", "มอบหมายหน้าที่", "AssignmentIndOutlinedIcon", "เชื่อมบุคลากรกับตำแหน่งและระบุหน้าที่ โดยไม่สร้างทะเบียนซ้ำ"],
+    [
+      "assignments",
+      "มอบหมายหน้าที่",
+      "AssignmentIndOutlinedIcon",
+      "เชื่อมบุคลากรกับตำแหน่งและระบุหน้าที่ โดยไม่สร้างทะเบียนซ้ำ"
+    ],
     ["charts", "จัดผังองค์กร", "HubOutlinedIcon", "เลือกหน่วยงาน ตรวจตัวอย่าง และปรับระดับหรือสายบังคับบัญชาก่อนบันทึก"]
   ] as const)("uses the appropriate heading and contextual guidance for %s", (view, title, icon, guidance) => {
     renderPage(view);

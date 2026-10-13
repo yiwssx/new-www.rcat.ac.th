@@ -46,7 +46,10 @@ function humanError(error: unknown) {
 export type OrganizationManagementView =
   "overview" | "units" | "personnel" | "positions" | "assignments" | "charts" | "legacy";
 
-const organizationPageHeadings: Record<OrganizationManagementView, { title: string; description: string; icon: ReactNode }> = {
+const organizationPageHeadings: Record<
+  OrganizationManagementView,
+  { title: string; description: string; icon: ReactNode }
+> = {
   overview: {
     title: "ภาพรวมองค์กร",
     description: "สรุปจำนวนหน่วยงาน บุคลากร ตำแหน่ง และหน้าที่ที่บันทึกในระบบ",
