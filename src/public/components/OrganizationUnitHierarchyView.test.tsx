@@ -197,7 +197,7 @@ describe("Organization V2.2 Phase 3 position composition", () => {
     const personnel = screen.getByRole("region", { name: "ผังบุคลากรตามหน่วยงาน" });
     const rows = within(personnel).getByRole("region", { name: "ผังบุคลากรแบบระดับและแถว เลื่อนแนวนอนได้" });
     expect(diagram).not.toContainElement(rows);
-    expect(rows).toHaveAttribute("data-org-position-flow", "left-to-right");
+    expect(rows).toHaveAttribute("data-org-position-flow", "top-down");
     expect(within(personnel).getByText("ตำแหน่ง deputy")).toBeInTheDocument();
   });
 

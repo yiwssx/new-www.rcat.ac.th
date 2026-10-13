@@ -105,6 +105,44 @@ function PeopleCard({
   );
 }
 
+/**
+ * One position may have several personnel assignments. Render them as adjacent
+ * portrait cards; otherwise a single "teacher" slot becomes an endless vertical
+ * column even when the hierarchy itself is correctly top-down.
+ */
+function PositionCards({
+  position,
+  media,
+  showEducationQualifications
+}: Pick<Props, "media" | "showEducationQualifications"> & { position: PublicOrganizationPosition }) {
+  const cards = position.assignments.length
+    ? position.assignments.map((assignment) => ({ ...position, assignments: [assignment] }))
+    : [position];
+
+  return (
+    <Box
+      data-org-position-cards={position.id}
+      sx={{
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "stretch",
+        justifyContent: "center",
+        gap: 2,
+        width: "max-content"
+      }}
+    >
+      {cards.map((card) => (
+        <PeopleCard
+          key={card.assignments[0]?.id ?? position.id}
+          position={card}
+          media={media}
+          showEducationQualifications={showEducationQualifications}
+        />
+      ))}
+    </Box>
+  );
+}
+
 export default function OrganizationChartView({ positions, layout, media, showEducationQualifications, mode }: Props) {
   const sorted = useMemo(
     () =>
@@ -134,27 +172,22 @@ export default function OrganizationChartView({ positions, layout, media, showEd
         role="region"
         tabIndex={0}
         className="rcat-focus-ring"
-        data-org-position-flow="left-to-right"
+        data-org-position-flow="top-down"
         aria-label="ผังบุคลากรแบบระดับและแถว เลื่อนแนวนอนได้"
         sx={{ width: "100%", minWidth: 0, maxWidth: "100%", overflowX: "auto", pb: 2, overscrollBehaviorX: "contain" }}
       >
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "row",
-            alignItems: "flex-start",
-            width: "max-content",
-            minWidth: "100%",
-            gap: 3
-          }}
-        >
-          {rows.map((group) => (
+        <Stack spacing={0} sx={{ alignItems: "center", width: "max-content", minWidth: "100%" }}>
+          {rows.map((group, index) => (
             <Box
               key={group.key}
               component="section"
               aria-label={`ระดับ ${group.level} แถว ${group.row}`}
-              sx={{ minWidth: 218, flex: "0 0 auto" }}
+              data-org-level={group.level}
+              sx={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 210 }}
             >
+              {index > 0 && (
+                <Box aria-hidden="true" sx={{ height: 32, borderLeft: "2px solid", borderColor: "divider" }} />
+              )}
               <Typography variant="h3" sx={{ fontSize: "1rem", fontWeight: 700, textAlign: "center", mb: 1.5 }}>
                 ระดับ {group.level}
                 {group.row > 1 ? ` · แถว ${group.row}` : ""}
@@ -164,13 +197,20 @@ export default function OrganizationChartView({ positions, layout, media, showEd
                 tabIndex={0}
                 className="rcat-focus-ring"
                 aria-label={`แถวระดับ ${group.level} แถว ${group.row} เลื่อนแนวนอนได้`}
-                sx={{ maxWidth: "100%", minWidth: 0, overflowX: "auto", pb: 1 }}
+                sx={{ maxWidth: "100%", minWidth: 0, pb: 1 }}
               >
                 <Box
-                  sx={{ display: "flex", flexDirection: "row", gap: 2, alignItems: "stretch", width: "max-content" }}
+                  sx={{
+                    display: "flex",
+                    flexDirection: "row",
+                    justifyContent: "center",
+                    gap: 2,
+                    alignItems: "stretch",
+                    width: "max-content"
+                  }}
                 >
                   {group.positions.map((position) => (
-                    <PeopleCard
+                    <PositionCards
                       key={position.id}
                       position={position}
                       media={media}
@@ -181,7 +221,7 @@ export default function OrganizationChartView({ positions, layout, media, showEd
               </Box>
             </Box>
           ))}
-        </Box>
+        </Stack>
       </Box>
     );
   }
@@ -205,14 +245,27 @@ export default function OrganizationChartView({ positions, layout, media, showEd
         sx={{
           display: "flex",
           flexDirection: "row",
+          justifyContent: "center",
           alignItems: "flex-start",
-          gap: 2,
+          position: "relative",
           listStyle: "none",
-          p: 0,
-          m: 0,
           width: "max-content",
-          minWidth: "max-content",
-          position: "relative"
+          minWidth: "100%",
+          gap: 2,
+          m: 0,
+          p: 0,
+          pt: parentId ? 3 : 0,
+          "&::before": parentId
+            ? {
+                content: '""',
+                position: "absolute",
+                top: 0,
+                left: "50%",
+                height: 24,
+                borderLeft: "2px solid",
+                borderColor: "divider"
+              }
+            : {}
         }}
       >
         {siblings.map((position) => {
@@ -224,45 +277,33 @@ export default function OrganizationChartView({ positions, layout, media, showEd
             <Box
               component="li"
               key={position.id}
+              data-org-position-id={position.id}
               sx={{
-                position: "relative",
                 display: "flex",
-                flexDirection: "row",
-                alignItems: "flex-start",
-                minWidth: 194,
-                gap: 3,
-                "&::before": parentId
-                  ? {
-                      content: '""',
-                      position: "absolute",
-                      top: 58,
-                      left: -16,
-                      width: 16,
-                      borderTop: "2px solid",
-                      borderColor: "divider"
-                    }
-                  : {}
+                flexDirection: "column",
+                alignItems: "center",
+                position: "relative",
+                minWidth: 210,
+                "&::before":
+                  parentId && siblings.length > 1
+                    ? {
+                        content: '""',
+                        position: "absolute",
+                        top: -24,
+                        left: "50%",
+                        height: 24,
+                        borderLeft: "2px solid",
+                        borderColor: "divider"
+                      }
+                    : {}
               }}
             >
-              <PeopleCard position={position} media={media} showEducationQualifications={showEducationQualifications} />
-              {hasChildren && (
-                <Box
-                  sx={{
-                    position: "relative",
-                    "&::before": {
-                      content: '""',
-                      position: "absolute",
-                      top: 58,
-                      left: -24,
-                      width: 24,
-                      borderTop: "2px solid",
-                      borderColor: "divider"
-                    }
-                  }}
-                >
-                  {branch(position.id, next)}
-                </Box>
-              )}
+              <PositionCards
+                position={position}
+                media={media}
+                showEducationQualifications={showEducationQualifications}
+              />
+              {hasChildren && branch(position.id, next)}
             </Box>
           );
         })}
@@ -275,7 +316,7 @@ export default function OrganizationChartView({ positions, layout, media, showEd
       role="region"
       tabIndex={0}
       className="rcat-focus-ring"
-      data-org-position-flow="left-to-right"
+      data-org-position-flow="top-down"
       aria-label="ผังสายบังคับบัญชา เลื่อนแนวนอนเพื่อดูตำแหน่งทั้งหมด"
       sx={{
         width: "100%",
@@ -287,7 +328,9 @@ export default function OrganizationChartView({ positions, layout, media, showEd
         overscrollBehaviorX: "contain"
       }}
     >
-      <Box sx={{ width: "max-content", minWidth: "100%" }}>{branch(null, new Set())}</Box>
+      <Box sx={{ display: "flex", justifyContent: "center", width: "max-content", minWidth: "100%" }}>
+        {branch(null, new Set())}
+      </Box>
     </Box>
   );
 }

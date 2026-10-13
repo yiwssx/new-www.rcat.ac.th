@@ -403,7 +403,7 @@ describe("Phase 6 accessible Organization builder", () => {
     fireEvent.click(screen.getByText("งานสารบรรณ"));
     expect(await screen.findByText(/ยังไม่พบตำแหน่งของหน่วยงานนี้ในรายการที่โหลด/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "โหลดตำแหน่งเพิ่มเติม" }));
-    expect((await screen.findAllByText("เจ้าหน้าที่ประสานงาน")).length).toBeGreaterThanOrEqual(2);
+    expect(await screen.findByText("เจ้าหน้าที่ประสานงาน")).toBeInTheDocument();
     expect(api.list).toHaveBeenCalledWith("positions", 100, 100);
   });
 
