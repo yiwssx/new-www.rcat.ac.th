@@ -122,7 +122,14 @@ function PositionCards({
   return (
     <Box
       data-org-position-cards={position.id}
-      sx={{ display: "flex", flexDirection: "row", alignItems: "stretch", justifyContent: "center", gap: 2, width: "max-content" }}
+      sx={{
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "stretch",
+        justifyContent: "center",
+        gap: 2,
+        width: "max-content"
+      }}
     >
       {cards.map((card) => (
         <PeopleCard
@@ -291,7 +298,11 @@ export default function OrganizationChartView({ positions, layout, media, showEd
                     : {}
               }}
             >
-              <PositionCards position={position} media={media} showEducationQualifications={showEducationQualifications} />
+              <PositionCards
+                position={position}
+                media={media}
+                showEducationQualifications={showEducationQualifications}
+              />
               {hasChildren && branch(position.id, next)}
             </Box>
           );
