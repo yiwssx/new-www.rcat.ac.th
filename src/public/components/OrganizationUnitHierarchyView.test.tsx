@@ -162,6 +162,23 @@ describe("Organization V2.2 Phase 3 position composition", () => {
     expect(screen.getAllByText("ตำแหน่ง assistant")).toHaveLength(1);
   });
 
+  it("renders multiple Cards positions within a horizontally scrollable rail instead of one card per row", () => {
+    const root = { ...unit("root", null), chartMode: "cards" as const };
+    render(
+      <OrganizationUnitHierarchyView
+        hierarchy={buildPublicOrganizationHierarchy([root], "root")}
+        positionsByUnit={
+          new Map([["root", [position("lead", "root", "person-1"), position("assistant", "root", "person-2")]]])
+        }
+      />
+    );
+    const rail = screen.getByRole("region", { name: "ตำแหน่งของหน่วยงาน root เลื่อนแนวนอนได้" });
+    expect(rail).toHaveAttribute("tabindex", "0");
+    expect(rail).toHaveClass("rcat-focus-ring");
+    expect(within(rail).getByText("ตำแหน่ง lead")).toBeInTheDocument();
+    expect(within(rail).getByText("ตำแหน่ง assistant")).toBeInTheDocument();
+  });
+
   it("does not display department-only qualifications within a non-department cards unit", () => {
     const units = [unit("root", null), { ...unit("work", "root"), chartMode: "cards" as const }];
     render(
