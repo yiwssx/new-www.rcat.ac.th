@@ -317,9 +317,16 @@ export default function OrganizationChartLayoutEditor({
                       sx={{ border: "1px solid", borderColor: "divider", p: 1.5, borderRadius: 2 }}
                     >
                       <Typography sx={{ fontWeight: 600, mb: 1 }}>{position.title}</Typography>
-                      <Stack direction={{ xs: "column", md: "row" }} spacing={1}>
+                      <Stack
+                        direction="row"
+                        spacing={1}
+                        useFlexGap
+                        data-testid={`organization-position-layout-controls-${position.id}`}
+                        sx={{ flexWrap: "wrap", alignItems: "flex-start", minWidth: 0 }}
+                      >
                         <TextField
                           size="small"
+                          sx={{ width: { xs: "100%", sm: 160 }, maxWidth: "100%" }}
                           label="ระดับชั้น"
                           type="number"
                           value={placement.level}
@@ -329,6 +336,7 @@ export default function OrganizationChartLayoutEditor({
                         />
                         <TextField
                           size="small"
+                          sx={{ width: { xs: "100%", sm: 145 }, maxWidth: "100%" }}
                           label="แถว"
                           type="number"
                           value={placement.row}
@@ -338,6 +346,7 @@ export default function OrganizationChartLayoutEditor({
                         />
                         <TextField
                           size="small"
+                          sx={{ width: { xs: "100%", sm: 180 }, maxWidth: "100%" }}
                           label="ลำดับซ้ายไปขวา"
                           type="number"
                           value={placement.order}
@@ -345,7 +354,12 @@ export default function OrganizationChartLayoutEditor({
                           slotProps={{ htmlInput: { min: 0, max: 1000000, step: 1 } }}
                           onChange={(event) => patch(position.id, "order", Number(event.target.value))}
                         />
-                        <Stack direction="row" spacing={0.5} useFlexGap sx={{ flexWrap: "wrap" }}>
+                        <Stack
+                          direction="row"
+                          spacing={0.5}
+                          useFlexGap
+                          sx={{ flexWrap: "wrap", flex: "1 1 100%", minWidth: 0 }}
+                        >
                           <Button
                             size="small"
                             variant="outlined"
@@ -394,7 +408,7 @@ export default function OrganizationChartLayoutEditor({
                             label="ขึ้นตรงต่อตำแหน่ง"
                             value={placement.parentPositionId ?? ""}
                             disabled={busy || !canManage || awaitingLatestRevision}
-                            sx={{ minWidth: { md: 230 } }}
+                            sx={{ width: { xs: "100%", sm: 260 }, maxWidth: "100%", minWidth: 0 }}
                             onChange={(event) => patch(position.id, "parentPositionId", event.target.value || null)}
                           >
                             <MenuItem value="">ไม่มี — ตำแหน่งหลัก</MenuItem>
