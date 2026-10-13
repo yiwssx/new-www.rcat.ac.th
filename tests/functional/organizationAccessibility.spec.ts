@@ -14,7 +14,12 @@ const sampleUnit = {
   depth: 0
 };
 
-async function installOrganizationFixture(page: Page, mode: "cards" | "rows" | "tree" = "cards", mixed = false, extraSiblings = 0) {
+async function installOrganizationFixture(
+  page: Page,
+  mode: "cards" | "rows" | "tree" = "cards",
+  mixed = false,
+  extraSiblings = 0
+) {
   const chartUnit = {
     ...sampleUnit,
     chartMode: mode,
@@ -437,27 +442,30 @@ test.describe("Organization V2.2 Phase 5 final browser regression", () => {
 
 test.describe("Organization V2.2 Phase 5 high-cardinality browser regression", () => {
   for (const width of [390, 1440]) {
-    test("more than 100 siblings remain in the diagram rather than expanding the document at " + width + "px", async ({ page }) => {
-      await page.setViewportSize({ width, height: 900 });
-      await installOrganizationFixture(page, "cards", false, 128);
-      await page.goto("/organization/" + encodeURIComponent(slug));
-      await dismissGateIfVisible(page);
-      const region = page.getByRole("region", { name: "ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้" });
-      await expect(region).toBeVisible();
-      await expect(region.getByRole("link")).toHaveCount(133);
-      await expect(region.getByRole("link", { name: "หน่วยงานพิเศษ 127" })).toBeAttached();
-      const count = await region.getByRole("link", { name: "ฝ่ายวิชาการ" }).evaluate((link) =>
-        link.closest("li")?.querySelectorAll(":scope > ul > li").length ?? 0
-      );
-      expect(count).toBe(131);
-      expect(await region.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
-      await expect
-        .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1))
-        .toBe(true);
-      await region.focus();
-      await expect(region).toBeFocused();
-      await page.keyboard.press("ArrowRight");
-      await expect.poll(() => region.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
-    });
+    test(
+      "more than 100 siblings remain in the diagram rather than expanding the document at " + width + "px",
+      async ({ page }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await installOrganizationFixture(page, "cards", false, 128);
+        await page.goto("/organization/" + encodeURIComponent(slug));
+        await dismissGateIfVisible(page);
+        const region = page.getByRole("region", { name: "ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้" });
+        await expect(region).toBeVisible();
+        await expect(region.getByRole("link")).toHaveCount(133);
+        await expect(region.getByRole("link", { name: "หน่วยงานพิเศษ 127" })).toBeAttached();
+        const count = await region
+          .getByRole("link", { name: "ฝ่ายวิชาการ" })
+          .evaluate((link) => link.closest("li")?.querySelectorAll(":scope > ul > li").length ?? 0);
+        expect(count).toBe(131);
+        expect(await region.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
+        await expect
+          .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1))
+          .toBe(true);
+        await region.focus();
+        await expect(region).toBeFocused();
+        await page.keyboard.press("ArrowRight");
+        await expect.poll(() => region.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
+      }
+    );
   }
 });
