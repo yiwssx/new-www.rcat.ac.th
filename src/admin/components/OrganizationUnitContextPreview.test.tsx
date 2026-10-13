@@ -1,7 +1,8 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { OrganizationUnitListRow } from "../../features/organization-admin";
-import OrganizationUnitContextPreview, { focusedUnitContext } from "./OrganizationUnitContextPreview";
+import OrganizationUnitContextPreview from "./OrganizationUnitContextPreview";
+import { focusedUnitContext } from "./organizationUnitContextModel";
 
 function row(id: string, parent: string | null = null, order = 0): OrganizationUnitListRow {
   return {
