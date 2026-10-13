@@ -35,6 +35,7 @@ interface Props {
   personnel: OrganizationPersonnelRow[];
   canManage: boolean;
   allPositionsLoaded: boolean;
+  showCardsPreview?: boolean;
   onSaved: () => Promise<void>;
 }
 
@@ -53,6 +54,7 @@ export default function OrganizationChartLayoutEditor({
   personnel,
   canManage,
   allPositionsLoaded,
+  showCardsPreview = true,
   onSaved
 }: Props) {
   const [mode, setMode] = useState<OrganizationChartMode>(unit.chart_mode ?? "cards");
@@ -361,7 +363,7 @@ export default function OrganizationChartLayoutEditor({
               </Typography>
             </>
           )}
-          {mode === "cards" && (
+          {showCardsPreview && mode === "cards" && (
             <Stack spacing={1}>
               <Typography variant="h4" sx={{ fontSize: "1rem", fontWeight: 700 }}>
                 ตัวอย่าง Cards (รูปแบบเดิม)
