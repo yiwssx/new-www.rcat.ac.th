@@ -316,6 +316,20 @@ test.describe("Organization V2.2 horizontal inter-unit chart", () => {
       await expect(region).toBeVisible();
       await expect(region.getByRole("link", { name: "งานย่อยด้านหลักสูตร" })).toBeAttached();
 
+
+      const rootLink = region.getByRole("link", { name: "ฝ่ายวิชาการ" });
+      const grandchild = region.getByRole("link", { name: "งานย่อยด้านหลักสูตร" });
+      const horizontalChain = await Promise.all(
+        [rootLink, region.getByRole("link", { name: "งานพัฒนาหลักสูตรและการเรียนรู้" }), grandchild].map(
+          (link) => link.boundingBox()
+        )
+      );
+      expect(horizontalChain.every(Boolean)).toBe(true);
+      expect(horizontalChain[0]!.x).toBeLessThan(horizontalChain[1]!.x);
+      expect(horizontalChain[1]!.x).toBeLessThan(horizontalChain[2]!.x);
+      expect(Math.abs(horizontalChain[0]!.y - horizontalChain[1]!.y)).toBeLessThanOrEqual(2);
+      expect(Math.abs(horizontalChain[1]!.y - horizontalChain[2]!.y)).toBeLessThanOrEqual(2);
+      await expect(region).toHaveAttribute("data-org-direction", "left-to-right");
       const first = region.getByRole("link", { name: "งานทะเบียน" });
       const second = region.getByRole("link", { name: "งานพัฒนาหลักสูตรและการเรียนรู้" });
       const third = region.getByRole("link", { name: "งานสื่อสารองค์กร" });
@@ -411,7 +425,7 @@ test.describe("Organization V2.2 Phase 5 final browser regression", () => {
         return children
           ? {
               branchCount: children.querySelectorAll(":scope > li").length,
-              line: getComputedStyle(children, "::before").borderLeftWidth
+              line: getComputedStyle(children, "::before").borderTopWidth
             }
           : null;
       });
