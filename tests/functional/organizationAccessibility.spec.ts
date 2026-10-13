@@ -305,7 +305,7 @@ test.describe("Organization public accessibility and responsive regression", () 
   });
 });
 
-test.describe("Organization V2.2 horizontal inter-unit chart", () => {
+test.describe("Organization hierarchy: managers above horizontal sibling units", () => {
   for (const width of [390, 768, 1280, 1440]) {
     test("sibling branches remain horizontal and page-bounded at " + width + "px", async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
@@ -319,17 +319,15 @@ test.describe("Organization V2.2 horizontal inter-unit chart", () => {
 
       const rootLink = region.getByRole("link", { name: "ฝ่ายวิชาการ" });
       const grandchild = region.getByRole("link", { name: "งานย่อยด้านหลักสูตร" });
-      const horizontalChain = await Promise.all(
+      const chain = await Promise.all(
         [rootLink, region.getByRole("link", { name: "งานพัฒนาหลักสูตรและการเรียนรู้" }), grandchild].map((link) =>
           link.boundingBox()
         )
       );
-      expect(horizontalChain.every(Boolean)).toBe(true);
-      expect(horizontalChain[0]!.x).toBeLessThan(horizontalChain[1]!.x);
-      expect(horizontalChain[1]!.x).toBeLessThan(horizontalChain[2]!.x);
-      expect(Math.abs(horizontalChain[0]!.y - horizontalChain[1]!.y)).toBeLessThanOrEqual(2);
-      expect(Math.abs(horizontalChain[1]!.y - horizontalChain[2]!.y)).toBeLessThanOrEqual(2);
-      await expect(region).toHaveAttribute("data-org-direction", "left-to-right");
+      expect(chain.every(Boolean)).toBe(true);
+      expect(chain[0]!.y).toBeLessThan(chain[1]!.y);
+      expect(chain[1]!.y).toBeLessThan(chain[2]!.y);
+      await expect(region).toHaveAttribute("data-org-direction", "top-down");
       const first = region.getByRole("link", { name: "งานทะเบียน" });
       const second = region.getByRole("link", { name: "งานพัฒนาหลักสูตรและการเรียนรู้" });
       const third = region.getByRole("link", { name: "งานสื่อสารองค์กร" });
@@ -524,7 +522,7 @@ test.describe("Organization field regression: Cards positions should not be a ve
 test.describe("Organization field regression: no phantom header or narrow vertical personnel", () => {
   for (const width of [390, 630, 1440]) {
     for (const mode of ["rows", "tree"] as const) {
-      test(`renders ${mode} root-to-deputy positions horizontally at ${width}px`, async ({ page }) => {
+      test(`renders ${mode} root over deputy, not level-columns, at ${width}px`, async ({ page }) => {
         await page.setViewportSize({ width, height: 900 });
         await installOrganizationFixture(page, mode);
         await page.goto("/organization/" + encodeURIComponent(slug));
@@ -539,8 +537,9 @@ test.describe("Organization field regression: no phantom header or narrow vertic
         const second = await personnel.getByText("รองหัวหน้าฝ่าย", { exact: true }).boundingBox();
         expect(first).not.toBeNull();
         expect(second).not.toBeNull();
-        expect(second!.x).toBeGreaterThan(first!.x);
-        expect(Math.abs(second!.y - first!.y)).toBeLessThanOrEqual(3);
+        expect(second!.y).toBeGreaterThan(first!.y);
+        expect(Math.abs((second!.x + second!.width / 2) - (first!.x + first!.width / 2))).toBeLessThanOrEqual(12);
+        await expect(personnel.getByRole("region", { name: mode === "rows" ? "ผังบุคลากรแบบระดับและแถว เลื่อนแนวนอนได้" : "ผังสายบังคับบัญชา เลื่อนแนวนอนเพื่อดูตำแหน่งทั้งหมด" })).toHaveAttribute("data-org-position-flow", "top-down");
         await expect(page.locator('main [aria-hidden="true"].MuiSkeleton-root')).toHaveCount(0);
         await expect(page.locator('main svg[data-testid="AccountTreeOutlinedIcon"]')).toHaveCount(0);
         await expect
