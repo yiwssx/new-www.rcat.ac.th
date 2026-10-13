@@ -22,8 +22,8 @@ function row(id: string, parent: string | null = null, order = 0): OrganizationU
   };
 }
 
-describe("Organization V2.2 Phase 4 focused Admin hierarchy", () => {
-  it("shows the selected unit among locally loaded siblings in a horizontally scrollable, keyboard-focusable region", () => {
+describe("Organization V2.3 top-down focused Admin hierarchy", () => {
+  it("places the parent above horizontal peers in a keyboard-focusable scroll region", () => {
     const units = [
       row("division"),
       row("work-c", "division", 3),
@@ -32,10 +32,20 @@ describe("Organization V2.2 Phase 4 focused Admin hierarchy", () => {
     ];
     const onSelect = vi.fn();
     render(<OrganizationUnitContextPreview selected={units[2]} units={units} allUnitsLoaded onSelect={onSelect} />);
-    const region = screen.getByRole("region", { name: "ตัวอย่างความสัมพันธ์หน่วยงานแนวนอน เลื่อนดูได้" });
+    const region = screen.getByRole("region", {
+      name: "ตัวอย่างผังหน่วยงานจากบนลงล่าง เลื่อนแนวนอนเพื่อดูหน่วยงานระดับเดียวกัน"
+    });
     expect(region).toHaveAttribute("tabindex", "0");
-    expect(region).toHaveAttribute("data-org-direction", "left-to-right");
+    expect(region).toHaveAttribute("data-org-direction", "top-down");
     expect(region).toHaveClass("rcat-focus-ring");
+    expect(screen.getByText(/ผังหน่วยงานแสดงหน่วยงานแม่ไว้ด้านบน/)).toBeInTheDocument();
+    expect(
+      Array.from(region.querySelectorAll("[data-org-level]")).map((level) => level.getAttribute("data-org-level"))
+    ).toEqual(["parent", "peers"]);
+    expect(region.querySelector('[data-org-level="parent"]')).toContainElement(
+      within(region).getByRole("button", { name: /หน่วยงาน division/ })
+    );
+    expect(region.querySelector('[data-org-level="peers"]')?.querySelectorAll("li")).toHaveLength(3);
     const labels = within(region)
       .getAllByRole("button")
       .map((button) => button.textContent);
@@ -60,7 +70,7 @@ describe("Organization V2.2 Phase 4 focused Admin hierarchy", () => {
     );
     expect(screen.getByRole("button", { name: /หน่วยงาน unit-150/ })).toHaveAttribute("aria-current", "true");
     expect(screen.getByRole("status")).toHaveTextContent("แสดงเฉพาะหน่วยงานที่โหลดแล้ว");
-    expect(screen.getByRole("region", { name: /ตัวอย่างความสัมพันธ์หน่วยงานแนวนอน/ })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: /ตัวอย่างผังหน่วยงานจากบนลงล่าง/ })).toBeInTheDocument();
   });
 
   it("does not pretend to know an unloaded parent or unrelated siblings", () => {
