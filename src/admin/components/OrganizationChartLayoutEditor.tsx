@@ -277,14 +277,19 @@ export default function OrganizationChartLayoutEditor({
                         .sort((a, b) => {
                           const aa = chartPlacement(layout, a);
                           const bb = chartPlacement(layout, b);
-                          return aa.level - bb.level || aa.row - bb.row || aa.order - bb.order || a.id.localeCompare(b.id);
+                          return (
+                            aa.level - bb.level || aa.row - bb.row || aa.order - bb.order || a.id.localeCompare(b.id)
+                          );
                         })
                         .map((position) => (
                           <Card key={position.id} variant="outlined" sx={{ flex: "0 0 224px", width: 224 }}>
                             <CardContent sx={{ p: 1.5, "&:last-child": { pb: 1.5 } }}>
-                              <Typography sx={{ fontWeight: 700, overflowWrap: "anywhere" }}>{position.title}</Typography>
+                              <Typography sx={{ fontWeight: 700, overflowWrap: "anywhere" }}>
+                                {position.title}
+                              </Typography>
                               <Typography variant="caption" color="text.secondary">
-                                ระดับ {chartPlacement(layout, position).level} · แถว {chartPlacement(layout, position).row}
+                                ระดับ {chartPlacement(layout, position).level} · แถว{" "}
+                                {chartPlacement(layout, position).row}
                               </Typography>
                               {position.assignments.length === 0 ? (
                                 <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
