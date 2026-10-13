@@ -35,10 +35,13 @@ describe("SSR query hydration", () => {
     serverClient.setQueryData(key, publicDetail);
 
     const payload = dehydrateAppQueryClient(serverClient);
-    expect(payload.queryClientState.queries.some((query) =>
-      Array.isArray((query as { queryKey?: unknown }).queryKey) &&
-      (query as { queryKey: string[] }).queryKey[0] === "public-organization-detail"
-    )).toBe(true);
+    expect(
+      payload.queryClientState.queries.some(
+        (query) =>
+          Array.isArray((query as { queryKey?: unknown }).queryKey) &&
+          (query as { queryKey: string[] }).queryKey[0] === "public-organization-detail"
+      )
+    ).toBe(true);
 
     const browserClient = createAppQueryClient();
     expect(hydrateAppQueryClient(browserClient, JSON.parse(JSON.stringify(payload)))).toBe(true);
