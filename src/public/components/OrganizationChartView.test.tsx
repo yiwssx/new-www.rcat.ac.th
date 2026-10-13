@@ -49,6 +49,7 @@ describe("public organization chart A/B", () => {
         showEducationQualifications={false}
       />
     );
+    expect(screen.getByRole("region", { name: "แถวระดับ 1 แถว 1 เลื่อนแนวนอนได้" })).toHaveClass("rcat-focus-ring");
     expect(screen.getByRole("region", { name: "ระดับ 1 แถว 1" })).toHaveTextContent("นาย ก");
     expect(screen.getByRole("region", { name: "ระดับ 2 แถว 1" })).toHaveTextContent("นาง ข");
     expect(screen.getByText("ผู้อำนวยการ")).toBeInTheDocument();
@@ -66,6 +67,7 @@ describe("public organization chart A/B", () => {
     );
     const region = screen.getByRole("region", { name: /ผังสายบังคับบัญชา/ });
     expect(region).toHaveAttribute("tabindex", "0");
+    expect(region).toHaveClass("rcat-focus-ring");
     expect(within(region).getByText("นาย ก")).toBeInTheDocument();
     expect(within(region).getByText("นาง ข")).toBeInTheDocument();
     expect(within(region).queryByText("บุคลากรตัวอย่างอื่น")).not.toBeInTheDocument();
