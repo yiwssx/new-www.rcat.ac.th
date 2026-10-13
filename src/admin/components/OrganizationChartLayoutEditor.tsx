@@ -71,6 +71,9 @@ export default function OrganizationChartLayoutEditor({
       ])
     );
   });
+  // Large units start with the approved chart preview visible and the detailed field list collapsed.
+  // Small units retain immediate editing controls for established keyboard/touch workflows.
+  const [showPositionControls, setShowPositionControls] = useState(positions.length <= 3);
   const [busy, setBusy] = useState(false);
   // A successful write advances the server revision. Never resubmit the old revision
   // while the parent query is refreshing or if that refresh failed.
@@ -302,7 +305,20 @@ export default function OrganizationChartLayoutEditor({
           </Box>
           {(mode === "rows" || mode === "tree") && (
             <>
-              <Stack spacing={1}>
+              {positions.length > 3 && (
+                <Button
+                  variant="outlined"
+                  aria-expanded={showPositionControls}
+                  aria-controls="organization-position-layout-fields"
+                  onClick={() => setShowPositionControls((current) => !current)}
+                >
+                  {showPositionControls
+                    ? `ซ่อนตัวเลือกจัดตำแหน่ง (${positions.length} ตำแหน่ง)`
+                    : `แสดงตัวเลือกจัดตำแหน่ง (${positions.length} ตำแหน่ง)`}
+                </Button>
+              )}
+              {showPositionControls && (
+              <Stack id="organization-position-layout-fields" spacing={1}>
                 {positions.map((position) => {
                   const placement =
                     layout[position.id] ??
@@ -429,6 +445,7 @@ export default function OrganizationChartLayoutEditor({
                   );
                 })}
               </Stack>
+              )}
             </>
           )}
           <Button
