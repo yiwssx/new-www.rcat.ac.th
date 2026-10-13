@@ -53,7 +53,7 @@ function UnitBranch({
               position: "absolute",
               top: 58,
               left: -28,
-              width: 28,
+              width: 114,
               borderTop: "2px solid",
               borderColor: "divider"
             }
@@ -81,7 +81,7 @@ function UnitBranch({
                   position: "absolute",
                   left: "100%",
                   top: 58,
-                  width: 28,
+                  width: 114,
                   borderTop: "2px solid",
                   borderColor: "divider"
                 }
@@ -143,7 +143,6 @@ function UnitBranch({
             position: "relative",
             width: "max-content",
             minWidth: "max-content",
-            ml: 3.5,
             m: 0,
             p: 0,
             pl: 3.5,
@@ -157,7 +156,7 @@ function UnitBranch({
               right: 0,
               borderTop: "2px solid",
               borderColor: "divider",
-              zIndex: -1
+              zIndex: 0
             }
           }}
         >
