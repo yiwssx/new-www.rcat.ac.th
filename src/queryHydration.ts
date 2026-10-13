@@ -24,6 +24,7 @@ const PUBLIC_SSR_QUERY_KEY_ROOTS = new Set([
   "public-document-list",
   "public-event-list",
   "public-search-index",
+  "public-organization-detail",
   "content-detail"
 ]);
 
