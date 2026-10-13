@@ -47,7 +47,7 @@ describe("Phase A automation contract", () => {
 
   it("retains a fail-closed exact-SHA GitHub Deployment fallback when Vercel commit status is pending", () => {
     expect(workflow).toContain("deployments: read");
-    expect(workflow.match(/node scripts\\/check-vercel-github-deployment\\.mjs/g)).toHaveLength(2);
+    expect(workflow.split("node scripts/check-vercel-github-deployment.mjs")).toHaveLength(3);
     expect(workflow).toContain('case "$fallback_exit" in');
     expect(workflow).toContain("11) sleep 10");
     expect(workflow).toContain("Cannot verify exact-SHA production deployment; fail closed.");
