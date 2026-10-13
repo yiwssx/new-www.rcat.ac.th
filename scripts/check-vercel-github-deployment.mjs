@@ -3,9 +3,9 @@
 import { pathToFileURL } from "node:url";
 
 const shaPattern = /^[0-9a-f]{40}$/;
-const productionPattern = /^production(?:\\s*[-–]\\s*.+)?$/i;
+const productionPattern = /^production(?:\s*[-–]\s*.+)?$/i;
 const isVercel = (d) =>
-  d?.app?.slug === "vercel" || /^vercel(?:\\[bot\\])?$/i.test(d?.creator?.login || "");
+  d?.app?.slug === "vercel" || /^vercel(?:\[bot\])?$/i.test(d?.creator?.login || "");
 const validHttps = (url) => {
   try { return new URL(url).protocol === "https:"; } catch { return false; }
 };
