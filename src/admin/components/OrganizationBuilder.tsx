@@ -115,7 +115,9 @@ function pageQuery(
  */
 export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, onEditUnit, view = "legacy" }: Props) {
   const client = useQueryClient();
-  const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
+  const [selectedUnitId, setSelectedUnitId] = useState<string | null>(() =>
+    view === "charts" ? (units.find((unit) => !unit.parent_content_id) ?? units[0])?.content_id ?? null : null
+  );
   const [selectedUnitSnapshot, setSelectedUnitSnapshot] = useState<OrganizationUnitListRow | null>(null);
   const [unitSearch, setUnitSearch] = useState("");
   const [unitSearchDebounced, setUnitSearchDebounced] = useState("");
