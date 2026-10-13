@@ -492,6 +492,18 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
           {(positionsQuery.isError || assignmentsQuery.isError || personnelQuery.isError) && (
             <Alert severity="error">โหลดข้อมูลตำแหน่ง/หน้าที่/บุคลากรไม่สำเร็จ กรุณารีเฟรช</Alert>
           )}
+          {view === "charts" && selectedUnit && (
+            <OrganizationUnitContextPreview
+              selected={selectedUnit}
+              units={units}
+              allUnitsLoaded={allUnitsLoaded}
+              onSelect={(unit) => {
+                setSelectedUnitId(unit.content_id);
+                setSelectedUnitSnapshot(unit);
+                setError("");
+              }}
+            />
+          )}
           <Stack
             direction={view === "charts" ? "column" : { xs: "column", md: "row" }}
             spacing={2}
@@ -813,18 +825,6 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                 หรือแก้ไขข้อผิดพลาดในการโหลดข้อมูลก่อนตรวจสอบ Preview
               </Alert>
             )}
-          {view === "charts" && selectedUnit && (
-            <OrganizationUnitContextPreview
-              selected={selectedUnit}
-              units={units}
-              allUnitsLoaded={allUnitsLoaded}
-              onSelect={(unit) => {
-                setSelectedUnitId(unit.content_id);
-                setSelectedUnitSnapshot(unit);
-                setError("");
-              }}
-            />
-          )}
           {(view === "legacy" || view === "charts") &&
             selectedUnit &&
             !positionsQuery.isPending &&
