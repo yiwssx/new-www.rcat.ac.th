@@ -85,6 +85,25 @@ describe("public organization chart A/B", () => {
     expect(within(chart).getByRole("region", { name: "ระดับ 1 แถว 1" })).not.toContainElement(levelTwo);
   });
 
+  it("renders two people assigned to one position as two distinct side-by-side cards", () => {
+    const holder = position("teachers", "ครู", "ครูคนที่หนึ่ง");
+    const coholder = position("other", "ครู", "ครูคนที่สอง").assignments[0];
+    const together = { ...holder, assignments: [...holder.assignments, coholder] };
+    render(
+      <OrganizationChartView
+        mode="rows"
+        positions={[together]}
+        media={new Map()}
+        showEducationQualifications={false}
+      />
+    );
+    const positionGroup = document.querySelector('[data-org-position-cards="teachers"]');
+    expect(positionGroup).toBeInTheDocument();
+    expect(positionGroup?.querySelectorAll(".MuiCard-root")).toHaveLength(2);
+    expect(within(positionGroup as HTMLElement).getByText("ครูคนที่หนึ่ง")).toBeInTheDocument();
+    expect(within(positionGroup as HTMLElement).getByText("ครูคนที่สอง")).toBeInTheDocument();
+  });
+
   it("renders a scrollable reporting tree without inventing additional personnel", () => {
     render(
       <OrganizationChartView
