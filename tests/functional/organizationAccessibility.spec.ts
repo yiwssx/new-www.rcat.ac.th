@@ -550,3 +550,26 @@ test.describe("Organization field regression: no phantom header or narrow vertic
     }
   }
 });
+
+
+test("organization route has no React 418 hydration error or phantom shell skeleton", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const hydrationErrors: string[] = [];
+  const recordHydrationError = (text: string) => {
+    if (/react\.dev\/errors\/418|Minified React error #418|hydration (failed|mismatch)|server rendered HTML/i.test(text)) {
+      hydrationErrors.push(text);
+    }
+  };
+  page.on("console", (message) => {
+    if (message.type() === "error") recordHydrationError(message.text());
+  });
+  page.on("pageerror", (error) => recordHydrationError(error.message));
+
+  await installOrganizationFixture(page, "rows");
+  await page.goto("/organization/" + encodeURIComponent(slug));
+  await dismissGateIfVisible(page);
+  await expect(page.getByRole("region", { name: "ผังบุคลากรตามหน่วยงาน" })).toBeVisible();
+  await expect(page.locator('main svg[data-testid="AccountTreeOutlinedIcon"]')).toHaveCount(0);
+  await expect(page.locator('[data-cls-region="public-shell"] .MuiSkeleton-root')).toHaveCount(0);
+  expect(hydrationErrors).toEqual([]);
+});
