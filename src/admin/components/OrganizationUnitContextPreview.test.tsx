@@ -32,15 +32,16 @@ describe("Organization V2.3 top-down focused Admin hierarchy", () => {
     ];
     const onSelect = vi.fn();
     render(<OrganizationUnitContextPreview selected={units[2]} units={units} allUnitsLoaded onSelect={onSelect} />);
-    const region = screen.getByRole("region", { name: "ตัวอย่างผังหน่วยงานจากบนลงล่าง เลื่อนแนวนอนเพื่อดูหน่วยงานระดับเดียวกัน" });
+    const region = screen.getByRole("region", {
+      name: "ตัวอย่างผังหน่วยงานจากบนลงล่าง เลื่อนแนวนอนเพื่อดูหน่วยงานระดับเดียวกัน"
+    });
     expect(region).toHaveAttribute("tabindex", "0");
     expect(region).toHaveAttribute("data-org-direction", "top-down");
     expect(region).toHaveClass("rcat-focus-ring");
     expect(screen.getByText(/ผังหน่วยงานแสดงหน่วยงานแม่ไว้ด้านบน/)).toBeInTheDocument();
-    expect(Array.from(region.querySelectorAll("[data-org-level]")).map((level) => level.getAttribute("data-org-level"))).toEqual([
-      "parent",
-      "peers"
-    ]);
+    expect(
+      Array.from(region.querySelectorAll("[data-org-level]")).map((level) => level.getAttribute("data-org-level"))
+    ).toEqual(["parent", "peers"]);
     expect(region.querySelector('[data-org-level="parent"]')).toContainElement(
       within(region).getByRole("button", { name: /หน่วยงาน division/ })
     );

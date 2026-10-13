@@ -83,7 +83,8 @@ export default function OrganizationUnitContextPreview({ selected, units, allUni
         1. ผังหน่วยงาน — ความสัมพันธ์ระหว่างฝ่าย งาน และแผนก
       </Typography>
       <Typography variant="body2" color="text.secondary">
-        ผังหน่วยงานแสดงหน่วยงานแม่ไว้ด้านบน และหน่วยงานระดับเดียวกันเรียงแนวนอนด้านล่าง ส่วนรูปแบบ A/B ใช้จัดตำแหน่งบุคลากรภายในหน่วยงานที่เลือก
+        ผังหน่วยงานแสดงหน่วยงานแม่ไว้ด้านบน และหน่วยงานระดับเดียวกันเรียงแนวนอนด้านล่าง ส่วนรูปแบบ A/B
+        ใช้จัดตำแหน่งบุคลากรภายในหน่วยงานที่เลือก
       </Typography>
       {(!allUnitsLoaded || context.missingParent) && (
         <Alert severity="info" role="status">
@@ -104,19 +105,13 @@ export default function OrganizationUnitContextPreview({ selected, units, allUni
         data-org-direction="top-down"
         sx={{ maxWidth: "100%", minWidth: 0, overflowX: "auto", overscrollBehaviorX: "contain", pb: 2, pt: 1 }}
       >
-        <Stack
-          direction="column"
-          sx={{ width: "max-content", minWidth: "100%", alignItems: "center", px: 1 }}
-        >
+        <Stack direction="column" sx={{ width: "max-content", minWidth: "100%", alignItems: "center", px: 1 }}>
           <Box component="ul" data-org-level="parent" sx={{ p: 0, m: 0, display: "flex", justifyContent: "center" }}>
             <ContextNode unit={root} selected={root.content_id === selected.content_id} onSelect={onSelect} />
           </Box>
           {children.length > 0 && (
             <>
-              <Box
-                aria-hidden="true"
-                sx={{ height: 20, borderLeft: "2px solid", borderColor: "divider" }}
-              />
+              <Box aria-hidden="true" sx={{ height: 20, borderLeft: "2px solid", borderColor: "divider" }} />
               <Box
                 component="ul"
                 data-org-level="peers"
