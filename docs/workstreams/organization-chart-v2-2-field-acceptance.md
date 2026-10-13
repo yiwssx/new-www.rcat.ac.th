@@ -19,6 +19,7 @@ Related: issue #580, PR #581. Production source of truth is protected `main`.
 ## Owner field-acceptance checklist (after main deployment)
 
 - [ ] Open an actually published `/organization/<slug>` on the production site.
+- [ ] Verify the parent-to-child-to-grandchild chain advances left to right, not top to bottom.
 - [ ] Confirm a parent organization has horizontal sibling units and that a
       three-or-more-level parent-to-child path retains its connecting lines.
 - [ ] On mobile (approximately 390px), scroll the chart horizontally; ensure
