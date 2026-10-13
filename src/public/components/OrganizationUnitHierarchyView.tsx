@@ -30,7 +30,6 @@ function UnitBranch({
   positionsByUnit: ReadonlyMap<string, readonly PublicOrganizationPosition[]>;
   media: Map<string, MediaAsset>;
 }) {
-
   const { unit, children } = branch;
 
   return (

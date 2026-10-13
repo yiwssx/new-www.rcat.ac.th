@@ -316,12 +316,11 @@ test.describe("Organization V2.2 horizontal inter-unit chart", () => {
       await expect(region).toBeVisible();
       await expect(region.getByRole("link", { name: "งานย่อยด้านหลักสูตร" })).toBeAttached();
 
-
       const rootLink = region.getByRole("link", { name: "ฝ่ายวิชาการ" });
       const grandchild = region.getByRole("link", { name: "งานย่อยด้านหลักสูตร" });
       const horizontalChain = await Promise.all(
-        [rootLink, region.getByRole("link", { name: "งานพัฒนาหลักสูตรและการเรียนรู้" }), grandchild].map(
-          (link) => link.boundingBox()
+        [rootLink, region.getByRole("link", { name: "งานพัฒนาหลักสูตรและการเรียนรู้" }), grandchild].map((link) =>
+          link.boundingBox()
         )
       );
       expect(horizontalChain.every(Boolean)).toBe(true);

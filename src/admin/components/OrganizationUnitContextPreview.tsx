@@ -104,7 +104,6 @@ export default function OrganizationUnitContextPreview({ selected, units, allUni
         data-org-direction="left-to-right"
         sx={{ maxWidth: "100%", minWidth: 0, overflowX: "auto", overscrollBehaviorX: "contain", pb: 2, pt: 1 }}
       >
-
         <Stack direction="row" sx={{ minWidth: "max-content", alignItems: "flex-start", px: 1 }}>
           <Box component="ul" sx={{ p: 0, m: 0, display: "flex" }}>
             <ContextNode unit={root} selected={root.content_id === selected.content_id} onSelect={onSelect} />
