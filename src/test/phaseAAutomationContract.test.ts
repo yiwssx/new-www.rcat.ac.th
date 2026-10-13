@@ -1,5 +1,6 @@
 // @vitest-environment node
 
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -42,6 +43,21 @@ describe("Phase A automation contract", () => {
       "group: prod-verification-${{ github.event_name }}-${{ github.event.schedule || inputs.operation || github.ref_name }}"
     );
     expect(normalized).toContain("cancel-in-progress: true");
+  });
+
+  it("retains a fail-closed exact-SHA GitHub Deployment fallback when Vercel commit status is pending", () => {
+    expect(workflow).toContain("deployments: read");
+    expect(workflow.match(/node scripts\\/check-vercel-github-deployment\\.mjs/g)).toHaveLength(2);
+    expect(workflow).toContain('case "$fallback_exit" in');
+    expect(workflow).toContain("11) sleep 10");
+    expect(workflow).toContain("Cannot verify exact-SHA production deployment; fail closed.");
+
+    const result = execFileSync(
+      process.execPath,
+      ["--test", join(repositoryRoot, "scripts", "check-vercel-github-deployment.test.mjs")],
+      { cwd: repositoryRoot, encoding: "utf8", timeout: 20_000 }
+    );
+    expect(result).toContain("# fail 0");
   });
 
   it("waits for the matching Vercel status and only runs browser smoke when deployment exists", () => {
