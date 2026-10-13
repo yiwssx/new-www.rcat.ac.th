@@ -419,7 +419,9 @@ export default function OrganizationChartLayoutEditor({
           )}
           <Button
             variant="contained"
-            disabled={!canManage || busy || !isChanged || !allPositionsLoaded || awaitingLatestRevision || staleRevision}
+            disabled={
+              !canManage || busy || !isChanged || !allPositionsLoaded || awaitingLatestRevision || staleRevision
+            }
             onClick={() => void save()}
           >
             {busy ? "กำลังบันทึก..." : "บันทึกโครงสร้างผัง"}
