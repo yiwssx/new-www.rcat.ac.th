@@ -318,133 +318,133 @@ export default function OrganizationChartLayoutEditor({
                 </Button>
               )}
               {showPositionControls && (
-              <Stack id="organization-position-layout-fields" spacing={1}>
-                {positions.map((position) => {
-                  const placement =
-                    layout[position.id] ??
-                    chartPlacement(undefined, {
-                      id: position.id,
-                      groupSortOrder: position.group_sort_order,
-                      sortOrder: position.sort_order
-                    });
-                  return (
-                    <Box
-                      key={position.id}
-                      sx={{ border: "1px solid", borderColor: "divider", p: 1.5, borderRadius: 2 }}
-                    >
-                      <Typography sx={{ fontWeight: 600, mb: 1 }}>{position.title}</Typography>
-                      <Stack
-                        direction="row"
-                        spacing={1}
-                        useFlexGap
-                        data-testid={`organization-position-layout-controls-${position.id}`}
-                        sx={{ flexWrap: "wrap", alignItems: "flex-start", minWidth: 0 }}
+                <Stack id="organization-position-layout-fields" spacing={1}>
+                  {positions.map((position) => {
+                    const placement =
+                      layout[position.id] ??
+                      chartPlacement(undefined, {
+                        id: position.id,
+                        groupSortOrder: position.group_sort_order,
+                        sortOrder: position.sort_order
+                      });
+                    return (
+                      <Box
+                        key={position.id}
+                        sx={{ border: "1px solid", borderColor: "divider", p: 1.5, borderRadius: 2 }}
                       >
-                        <TextField
-                          size="small"
-                          sx={{ width: { xs: "100%", sm: 160 }, maxWidth: "100%" }}
-                          label="ระดับชั้น"
-                          type="number"
-                          value={placement.level}
-                          disabled={busy || !canManage || awaitingLatestRevision}
-                          slotProps={{ htmlInput: { min: 1, max: 100, step: 1 } }}
-                          onChange={(event) => patch(position.id, "level", Number(event.target.value))}
-                        />
-                        <TextField
-                          size="small"
-                          sx={{ width: { xs: "100%", sm: 145 }, maxWidth: "100%" }}
-                          label="แถว"
-                          type="number"
-                          value={placement.row}
-                          disabled={busy || !canManage || awaitingLatestRevision}
-                          slotProps={{ htmlInput: { min: 1, max: 100, step: 1 } }}
-                          onChange={(event) => patch(position.id, "row", Number(event.target.value))}
-                        />
-                        <TextField
-                          size="small"
-                          sx={{ width: { xs: "100%", sm: 180 }, maxWidth: "100%" }}
-                          label="ลำดับซ้ายไปขวา"
-                          type="number"
-                          value={placement.order}
-                          disabled={busy || !canManage || awaitingLatestRevision}
-                          slotProps={{ htmlInput: { min: 0, max: 1000000, step: 1 } }}
-                          onChange={(event) => patch(position.id, "order", Number(event.target.value))}
-                        />
+                        <Typography sx={{ fontWeight: 600, mb: 1 }}>{position.title}</Typography>
                         <Stack
                           direction="row"
-                          spacing={0.5}
+                          spacing={1}
                           useFlexGap
-                          sx={{ flexWrap: "wrap", flex: "1 1 100%", minWidth: 0 }}
+                          data-testid={`organization-position-layout-controls-${position.id}`}
+                          sx={{ flexWrap: "wrap", alignItems: "flex-start", minWidth: 0 }}
                         >
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            disabled={busy || !canManage || awaitingLatestRevision || placement.level <= 1}
-                            onClick={() => adjustPlacement(position.id, "level", -1, placement.level)}
-                          >
-                            ย้ายขึ้น
-                          </Button>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            disabled={busy || !canManage || awaitingLatestRevision || placement.level >= 100}
-                            onClick={() => adjustPlacement(position.id, "level", 1, placement.level)}
-                          >
-                            ย้ายลง
-                          </Button>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            disabled={busy || !canManage || awaitingLatestRevision || placement.row >= 100}
-                            onClick={() => adjustPlacement(position.id, "row", 1, placement.row)}
-                          >
-                            เพิ่มแถว
-                          </Button>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            disabled={busy || !canManage || awaitingLatestRevision || placement.order <= 0}
-                            onClick={() => adjustPlacement(position.id, "order", -1, placement.order)}
-                          >
-                            เลื่อนซ้าย
-                          </Button>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            disabled={busy || !canManage || awaitingLatestRevision || placement.order >= 1000000}
-                            onClick={() => adjustPlacement(position.id, "order", 1, placement.order)}
-                          >
-                            เลื่อนขวา
-                          </Button>
-                        </Stack>
-                        {mode === "tree" && (
                           <TextField
                             size="small"
-                            select
-                            label="ขึ้นตรงต่อตำแหน่ง"
-                            value={placement.parentPositionId ?? ""}
+                            sx={{ width: { xs: "100%", sm: 160 }, maxWidth: "100%" }}
+                            label="ระดับชั้น"
+                            type="number"
+                            value={placement.level}
                             disabled={busy || !canManage || awaitingLatestRevision}
-                            sx={{ width: { xs: "100%", sm: 260 }, maxWidth: "100%", minWidth: 0 }}
-                            onChange={(event) => patch(position.id, "parentPositionId", event.target.value || null)}
+                            slotProps={{ htmlInput: { min: 1, max: 100, step: 1 } }}
+                            onChange={(event) => patch(position.id, "level", Number(event.target.value))}
+                          />
+                          <TextField
+                            size="small"
+                            sx={{ width: { xs: "100%", sm: 145 }, maxWidth: "100%" }}
+                            label="แถว"
+                            type="number"
+                            value={placement.row}
+                            disabled={busy || !canManage || awaitingLatestRevision}
+                            slotProps={{ htmlInput: { min: 1, max: 100, step: 1 } }}
+                            onChange={(event) => patch(position.id, "row", Number(event.target.value))}
+                          />
+                          <TextField
+                            size="small"
+                            sx={{ width: { xs: "100%", sm: 180 }, maxWidth: "100%" }}
+                            label="ลำดับซ้ายไปขวา"
+                            type="number"
+                            value={placement.order}
+                            disabled={busy || !canManage || awaitingLatestRevision}
+                            slotProps={{ htmlInput: { min: 0, max: 1000000, step: 1 } }}
+                            onChange={(event) => patch(position.id, "order", Number(event.target.value))}
+                          />
+                          <Stack
+                            direction="row"
+                            spacing={0.5}
+                            useFlexGap
+                            sx={{ flexWrap: "wrap", flex: "1 1 100%", minWidth: 0 }}
                           >
-                            <MenuItem value="">ไม่มี — ตำแหน่งหลัก</MenuItem>
-                            {positions
-                              .filter(
-                                (parent) =>
-                                  parent.id !== position.id && (layout[parent.id]?.level ?? 1) < placement.level
-                              )
-                              .map((parent) => (
-                                <MenuItem key={parent.id} value={parent.id}>
-                                  {parent.title}
-                                </MenuItem>
-                              ))}
-                          </TextField>
-                        )}
-                      </Stack>
-                    </Box>
-                  );
-                })}
-              </Stack>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              disabled={busy || !canManage || awaitingLatestRevision || placement.level <= 1}
+                              onClick={() => adjustPlacement(position.id, "level", -1, placement.level)}
+                            >
+                              ย้ายขึ้น
+                            </Button>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              disabled={busy || !canManage || awaitingLatestRevision || placement.level >= 100}
+                              onClick={() => adjustPlacement(position.id, "level", 1, placement.level)}
+                            >
+                              ย้ายลง
+                            </Button>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              disabled={busy || !canManage || awaitingLatestRevision || placement.row >= 100}
+                              onClick={() => adjustPlacement(position.id, "row", 1, placement.row)}
+                            >
+                              เพิ่มแถว
+                            </Button>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              disabled={busy || !canManage || awaitingLatestRevision || placement.order <= 0}
+                              onClick={() => adjustPlacement(position.id, "order", -1, placement.order)}
+                            >
+                              เลื่อนซ้าย
+                            </Button>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              disabled={busy || !canManage || awaitingLatestRevision || placement.order >= 1000000}
+                              onClick={() => adjustPlacement(position.id, "order", 1, placement.order)}
+                            >
+                              เลื่อนขวา
+                            </Button>
+                          </Stack>
+                          {mode === "tree" && (
+                            <TextField
+                              size="small"
+                              select
+                              label="ขึ้นตรงต่อตำแหน่ง"
+                              value={placement.parentPositionId ?? ""}
+                              disabled={busy || !canManage || awaitingLatestRevision}
+                              sx={{ width: { xs: "100%", sm: 260 }, maxWidth: "100%", minWidth: 0 }}
+                              onChange={(event) => patch(position.id, "parentPositionId", event.target.value || null)}
+                            >
+                              <MenuItem value="">ไม่มี — ตำแหน่งหลัก</MenuItem>
+                              {positions
+                                .filter(
+                                  (parent) =>
+                                    parent.id !== position.id && (layout[parent.id]?.level ?? 1) < placement.level
+                                )
+                                .map((parent) => (
+                                  <MenuItem key={parent.id} value={parent.id}>
+                                    {parent.title}
+                                  </MenuItem>
+                                ))}
+                            </TextField>
+                          )}
+                        </Stack>
+                      </Box>
+                    );
+                  })}
+                </Stack>
               )}
             </>
           )}
