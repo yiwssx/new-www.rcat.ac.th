@@ -144,10 +144,7 @@ describe("Organization Chart layout audited save feedback", () => {
     render(
       <OrganizationChartLayoutEditor
         unit={unit}
-        positions={[
-          position,
-          { ...position, id: "position-2", title: "รองหัวหน้างาน", sort_order: 1 }
-        ]}
+        positions={[position, { ...position, id: "position-2", title: "รองหัวหน้างาน", sort_order: 1 }]}
         assignments={[]}
         personnel={[]}
         canManage
@@ -157,11 +154,15 @@ describe("Organization Chart layout audited save feedback", () => {
     );
     const preview = screen.getByRole("region", { name: "ตัวอย่างผังองค์กรแนวนอน ก่อนบันทึก" });
     const rail = within(preview).getByRole("region", { name: "ภาพรวมตำแหน่งแนวนอน เลื่อนดูได้" });
-    expect(preview.compareDocumentPosition(screen.getAllByRole("spinbutton", { name: "ระดับชั้น" })[0]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(within(rail).getAllByText(/หัวหน้างาน/).map((node) => node.textContent)).toEqual([
-      "หัวหน้างาน",
-      "รองหัวหน้างาน"
-    ]);
+    expect(
+      preview.compareDocumentPosition(screen.getAllByRole("spinbutton", { name: "ระดับชั้น" })[0]) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(
+      within(rail)
+        .getAllByText(/หัวหน้างาน/)
+        .map((node) => node.textContent)
+    ).toEqual(["หัวหน้างาน", "รองหัวหน้างาน"]);
     fireEvent.change(screen.getAllByRole("spinbutton", { name: "ระดับชั้น" })[1], { target: { value: "2" } });
     expect(within(rail).getByText("ระดับ 2 · แถว 1")).toBeInTheDocument();
     expect(api.update).not.toHaveBeenCalled();

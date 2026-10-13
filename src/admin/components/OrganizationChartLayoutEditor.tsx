@@ -275,61 +275,61 @@ export default function OrganizationChartLayoutEditor({
                       media={new Map()}
                     />
                   ) : (
-                  <Box
-                    role="region"
-                    tabIndex={0}
-                    className="rcat-focus-ring"
-                    aria-label="ภาพรวมตำแหน่งแนวนอน เลื่อนดูได้"
-                    sx={{ maxWidth: "100%", minWidth: 0, overflowX: "auto", overscrollBehaviorX: "contain", pb: 1 }}
-                  >
                     <Box
-                      sx={{
-                        display: "flex",
-                        flexWrap: "nowrap",
-                        gap: 1.5,
-                        width: "max-content",
-                        minWidth: "100%"
-                      }}
+                      role="region"
+                      tabIndex={0}
+                      className="rcat-focus-ring"
+                      aria-label="ภาพรวมตำแหน่งแนวนอน เลื่อนดูได้"
+                      sx={{ maxWidth: "100%", minWidth: 0, overflowX: "auto", overscrollBehaviorX: "contain", pb: 1 }}
                     >
-                      {[...previewPositions]
-                        .sort((a, b) => {
-                          const aa = chartPlacement(layout, a);
-                          const bb = chartPlacement(layout, b);
-                          return (
-                            aa.level - bb.level || aa.row - bb.row || aa.order - bb.order || a.id.localeCompare(b.id)
-                          );
-                        })
-                        .map((position) => (
-                          <Card key={position.id} variant="outlined" sx={{ flex: "0 0 224px", width: 224 }}>
-                            <CardContent sx={{ p: 1.5, "&:last-child": { pb: 1.5 } }}>
-                              <Typography sx={{ fontWeight: 700, overflowWrap: "anywhere" }}>
-                                {position.title}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                ระดับ {chartPlacement(layout, position).level} · แถว{" "}
-                                {chartPlacement(layout, position).row}
-                              </Typography>
-                              {position.assignments.length === 0 ? (
-                                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                                  ยังไม่มีผู้ดำรงตำแหน่ง
+                      <Box
+                        sx={{
+                          display: "flex",
+                          flexWrap: "nowrap",
+                          gap: 1.5,
+                          width: "max-content",
+                          minWidth: "100%"
+                        }}
+                      >
+                        {[...previewPositions]
+                          .sort((a, b) => {
+                            const aa = chartPlacement(layout, a);
+                            const bb = chartPlacement(layout, b);
+                            return (
+                              aa.level - bb.level || aa.row - bb.row || aa.order - bb.order || a.id.localeCompare(b.id)
+                            );
+                          })
+                          .map((position) => (
+                            <Card key={position.id} variant="outlined" sx={{ flex: "0 0 224px", width: 224 }}>
+                              <CardContent sx={{ p: 1.5, "&:last-child": { pb: 1.5 } }}>
+                                <Typography sx={{ fontWeight: 700, overflowWrap: "anywhere" }}>
+                                  {position.title}
                                 </Typography>
-                              ) : (
-                                position.assignments.map((assignment) => (
-                                  <Stack key={assignment.id} spacing={0.25} sx={{ mt: 1 }}>
-                                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                      {assignment.person.displayName}
-                                    </Typography>
-                                    {assignment.dutyDetail && (
-                                      <Typography variant="caption">{assignment.dutyDetail}</Typography>
-                                    )}
-                                  </Stack>
-                                ))
-                              )}
-                            </CardContent>
-                          </Card>
-                        ))}
+                                <Typography variant="caption" color="text.secondary">
+                                  ระดับ {chartPlacement(layout, position).level} · แถว{" "}
+                                  {chartPlacement(layout, position).row}
+                                </Typography>
+                                {position.assignments.length === 0 ? (
+                                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                                    ยังไม่มีผู้ดำรงตำแหน่ง
+                                  </Typography>
+                                ) : (
+                                  position.assignments.map((assignment) => (
+                                    <Stack key={assignment.id} spacing={0.25} sx={{ mt: 1 }}>
+                                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                        {assignment.person.displayName}
+                                      </Typography>
+                                      {assignment.dutyDetail && (
+                                        <Typography variant="caption">{assignment.dutyDetail}</Typography>
+                                      )}
+                                    </Stack>
+                                  ))
+                                )}
+                              </CardContent>
+                            </Card>
+                          ))}
+                      </Box>
                     </Box>
-                  </Box>
                   )}
                   {mode !== "cards" && (
                     <Box sx={{ minWidth: 0, maxWidth: "100%" }}>
