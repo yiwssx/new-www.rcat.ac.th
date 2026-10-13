@@ -34,6 +34,7 @@ describe("Organization V2.2 Phase 4 focused Admin hierarchy", () => {
     render(<OrganizationUnitContextPreview selected={units[2]} units={units} allUnitsLoaded onSelect={onSelect} />);
     const region = screen.getByRole("region", { name: "ตัวอย่างความสัมพันธ์หน่วยงานแนวนอน เลื่อนดูได้" });
     expect(region).toHaveAttribute("tabindex", "0");
+    expect(region).toHaveAttribute("data-org-direction", "left-to-right");
     expect(region).toHaveClass("rcat-focus-ring");
     const labels = within(region)
       .getAllByRole("button")

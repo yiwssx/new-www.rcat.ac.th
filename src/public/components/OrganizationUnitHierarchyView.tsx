@@ -31,121 +31,132 @@ function UnitBranch({
   media: Map<string, MediaAsset>;
 }) {
   const { unit, children } = branch;
-  const hasSiblings = children.length > 1;
 
   return (
     <Box
       component="li"
+      data-org-unit-id={unit.contentId}
       sx={{
         position: "relative",
         display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
+        flexDirection: "row",
+        alignItems: "flex-start",
         flex: "0 0 auto",
-        minWidth: 400,
-        px: 1
+        width: "max-content",
+        minWidth: "max-content",
+        // Every parent -> child step advances on the X axis, even for a one-child chain.
+        // Child branches stay on a single horizontal rail instead of forming a vertical stack.
+        "&::before": branch.level
+          ? {
+              content: '""',
+              position: "absolute",
+              top: 58,
+              left: -28,
+              width: 114,
+              borderTop: "2px solid",
+              borderColor: "divider"
+            }
+          : {}
       }}
     >
       <Box
-        className="org-unit-head"
         sx={{
-          position: "relative",
-          "&::before": branch.level
-            ? {
-                content: '""',
-                position: "absolute",
-                bottom: "100%",
-                left: "50%",
-                height: 16,
-                borderLeft: "2px solid",
-                borderColor: "divider"
-              }
-            : {}
+          width: 400,
+          minWidth: 400,
+          px: 1,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center"
         }}
       >
-        <Card
-          variant="outlined"
+        <Box
+          className="org-unit-head"
           sx={{
-            width: 228,
-            minHeight: 118,
-            borderRadius: 2,
-            bgcolor: branch.level === 0 ? "action.hover" : "background.paper",
-            borderColor: branch.level === 0 ? "primary.main" : "divider",
-            flexShrink: 0
+            position: "relative",
+            // Rightward connection from this unit to the first level of its child branches.
+            "&::after": children.length
+              ? {
+                  content: '""',
+                  position: "absolute",
+                  left: "100%",
+                  top: 58,
+                  width: 114,
+                  borderTop: "2px solid",
+                  borderColor: "divider"
+                }
+              : {}
           }}
         >
-          <CardContent sx={{ p: 1.75, "&:last-child": { pb: 1.75 } }}>
-            <Typography
-              component="div"
-              variant="subtitle1"
-              sx={{ fontWeight: 700, lineHeight: 1.4, textAlign: "center", overflowWrap: "anywhere" }}
-            >
-              <Link href={"/organization/" + encodeURIComponent(unit.slug)} underline="hover" color="inherit">
-                {unit.title}
-              </Link>
-            </Typography>
-            {unit.summary && (
+          <Card
+            variant="outlined"
+            sx={{
+              width: 228,
+              minHeight: 118,
+              borderRadius: 2,
+              bgcolor: branch.level === 0 ? "action.hover" : "background.paper",
+              borderColor: branch.level === 0 ? "primary.main" : "divider",
+              flexShrink: 0
+            }}
+          >
+            <CardContent sx={{ p: 1.75, "&:last-child": { pb: 1.75 } }}>
               <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{
-                  mt: 1,
-                  whiteSpace: "pre-line",
-                  overflowWrap: "anywhere",
-                  textAlign: "center"
-                }}
+                component="div"
+                variant="subtitle1"
+                sx={{ fontWeight: 700, lineHeight: 1.4, textAlign: "center", overflowWrap: "anywhere" }}
               >
-                {unit.summary}
+                <Link href={"/organization/" + encodeURIComponent(unit.slug)} underline="hover" color="inherit">
+                  {unit.title}
+                </Link>
               </Typography>
-            )}
-          </CardContent>
-        </Card>
-      </Box>
-      {(positionsByUnit.get(unit.contentId)?.length ?? 0) > 0 && (
-        <Box sx={{ mt: 1.5, width: 376, maxWidth: "100%", minWidth: 0 }}>
-          <OrganizationUnitPositionContent
-            unit={unit}
-            positions={positionsByUnit.get(unit.contentId) ?? []}
-            media={media}
-          />
+              {unit.summary && (
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mt: 1, whiteSpace: "pre-line", overflowWrap: "anywhere", textAlign: "center" }}
+                >
+                  {unit.summary}
+                </Typography>
+              )}
+            </CardContent>
+          </Card>
         </Box>
-      )}
+        {(positionsByUnit.get(unit.contentId)?.length ?? 0) > 0 && (
+          <Box sx={{ mt: 1.5, width: 376, maxWidth: "100%", minWidth: 0 }}>
+            <OrganizationUnitPositionContent
+              unit={unit}
+              positions={positionsByUnit.get(unit.contentId) ?? []}
+              media={media}
+            />
+          </Box>
+        )}
+      </Box>
       {children.length > 0 && (
         <Box
           component="ul"
+          data-org-children-of={unit.contentId}
           sx={{
             display: "flex",
-            justifyContent: "center",
+            flexDirection: "row",
             alignItems: "flex-start",
             listStyle: "none",
             position: "relative",
             width: "max-content",
-            minWidth: "100%",
+            minWidth: "max-content",
             m: 0,
             p: 0,
-            pt: 4,
+            pl: 3.5,
+            // A horizontal connecting rail is intentionally behind the opaque cards.
+            // Unlike the old vertical model, nodes at increasing depth advance to the right.
             "&::before": {
               content: '""',
               position: "absolute",
-              top: 0,
-              left: "50%",
-              height: 16,
-              borderLeft: "2px solid",
-              borderColor: "divider"
-            },
-            "& > li::before, & > li::after": hasSiblings
-              ? {
-                  content: '""',
-                  position: "absolute",
-                  top: -16,
-                  width: "50%",
-                  borderTop: "2px solid",
-                  borderColor: "divider"
-                }
-              : {},
-            "& > li::before": hasSiblings ? { right: "50%" } : {},
-            "& > li::after": hasSiblings ? { left: "50%" } : {},
-            "& > li:first-of-type::before, & > li:last-of-type::after": { borderTop: 0 }
+              top: 58,
+              left: 0,
+              right: 0,
+              borderTop: "2px solid",
+              borderColor: "divider",
+              zIndex: 0
+            }
           }}
         >
           {children.map((child) => (
@@ -186,11 +197,12 @@ export default function OrganizationUnitHierarchyView({
       ) : (
         <>
           <Typography variant="body2" color="text.secondary">
-            เลื่อนแผนผังไปทางซ้ายหรือขวาเพื่อดูหน่วยงานทั้งหมด (รองรับการสัมผัสและแป้นพิมพ์)
+            ผังไล่จากหน่วยงานแม่ทางซ้ายไปหาหน่วยงานลูกทางขวา เลื่อนในกรอบผังเพื่อดูส่วนที่เหลือ
           </Typography>
           <Box
             role="region"
             className="rcat-focus-ring"
+            data-org-direction="left-to-right"
             tabIndex={0}
             aria-label="ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้"
             sx={{
@@ -205,7 +217,7 @@ export default function OrganizationUnitHierarchyView({
               pt: 1
             }}
           >
-            <Box sx={{ display: "flex", justifyContent: "center", width: "max-content", minWidth: "100%" }}>
+            <Box sx={{ display: "flex", justifyContent: "flex-start", width: "max-content", minWidth: "100%" }}>
               <Box component="ul" sx={{ listStyle: "none", display: "flex", p: 0, m: 0 }}>
                 <UnitBranch branch={hierarchy.root!} positionsByUnit={positionsByUnit} media={media} />
               </Box>
