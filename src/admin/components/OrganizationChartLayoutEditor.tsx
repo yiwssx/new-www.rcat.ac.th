@@ -25,6 +25,7 @@ import {
 import type { PublicOrganizationPosition } from "../../features/public-organization";
 import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 import OrganizationChartView from "../../public/components/OrganizationChartView";
+import OrganizationUnitPositionContent from "../../public/components/OrganizationUnitPositionContent";
 import { isAdminStaleRevisionError } from "../../features/admin-write/errors";
 
 interface Props {
@@ -257,6 +258,23 @@ export default function OrganizationChartLayoutEditor({
                 <Alert severity="info">ยังไม่มีตำแหน่งในหน่วยงานนี้</Alert>
               ) : (
                 <>
+                  {mode === "cards" && showCardsPreview ? (
+                    <OrganizationUnitPositionContent
+                      unit={{
+                        contentId: unit.content_id,
+                        parentContentId: unit.parent_content_id,
+                        slug: unit.slug,
+                        title: unit.title,
+                        summary: unit.summary,
+                        unitKind: unit.unit_kind,
+                        sortOrder: unit.sort_order,
+                        depth: 0,
+                        chartMode: "cards"
+                      }}
+                      positions={previewPositions}
+                      media={new Map()}
+                    />
+                  ) : (
                   <Box
                     role="region"
                     tabIndex={0}
@@ -312,6 +330,7 @@ export default function OrganizationChartLayoutEditor({
                         ))}
                     </Box>
                   </Box>
+                  )}
                   {mode !== "cards" && (
                     <Box sx={{ minWidth: 0, maxWidth: "100%" }}>
                       <Typography variant="subtitle2" sx={{ mb: 1 }}>
@@ -328,7 +347,7 @@ export default function OrganizationChartLayoutEditor({
                   )}
                   {mode === "cards" && showCardsPreview && (
                     <Typography variant="caption" color="text.secondary">
-                      รูปแบบ Cards จัดเรียงการ์ดตามลำดับแนวนอนเช่นเดียวกับหน้าสาธารณะ
+                      รูปแบบ Cards ใช้ตัวแสดงผลเดียวกับหน้าสาธารณะ โดยเรียงตำแหน่งในแนวนอน
                     </Typography>
                   )}
                 </>
