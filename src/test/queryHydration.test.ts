@@ -35,6 +35,7 @@ describe("SSR query hydration", () => {
     serverClient.setQueryData(key, publicDetail);
 
     const payload = dehydrateAppQueryClient(serverClient);
+    expect(payload.queryClientState.queries).toHaveLength(1);
     expect(
       payload.queryClientState.queries.some(
         (query) =>
