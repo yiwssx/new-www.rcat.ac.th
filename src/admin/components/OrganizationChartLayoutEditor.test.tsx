@@ -66,20 +66,50 @@ function show(onSaved: () => Promise<void>, canManage = true) {
   );
 }
 
+function changeSavedLevel() {
+  fireEvent.change(screen.getByRole("spinbutton", { name: "ระดับชั้น" }), { target: { value: "2" } });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   api.update.mockResolvedValue({ item: {} });
 });
 
 describe("Organization Chart layout audited save feedback", () => {
+  it("keeps the unchanged chart read-only for persistence without changing edit access", () => {
+    show(vi.fn());
+    const save = screen.getByRole("button", { name: "บันทึกโครงสร้างผัง" });
+    expect(save).toBeDisabled();
+    expect(screen.getByText("ตรงกับข้อมูลที่บันทึก")).toBeInTheDocument();
+    fireEvent.click(save);
+    expect(api.update).not.toHaveBeenCalled();
+
+    changeSavedLevel();
+    expect(save).toBeEnabled();
+    expect(screen.getByText(/แบบ A: จัดตำแหน่งตามระดับจากบนลงล่าง/)).toBeInTheDocument();
+  });
+
+  it("does not write if an unsaved level change is reverted", () => {
+    show(vi.fn());
+    changeSavedLevel();
+    const save = screen.getByRole("button", { name: "บันทึกโครงสร้างผัง" });
+    expect(save).toBeEnabled();
+
+    fireEvent.change(screen.getByRole("spinbutton", { name: "ระดับชั้น" }), { target: { value: "1" } });
+    expect(save).toBeDisabled();
+    expect(screen.getByText("ตรงกับข้อมูลที่บันทึก")).toBeInTheDocument();
+    expect(api.update).not.toHaveBeenCalled();
+  });
+
   it("reports committed saves as successful even when revision refresh fails", async () => {
     const onSaved = vi.fn().mockRejectedValue(new Error("refresh unavailable"));
     show(onSaved);
+    changeSavedLevel();
     fireEvent.click(screen.getByRole("button", { name: "บันทึกโครงสร้างผัง" }));
     await waitFor(() =>
       expect(api.update).toHaveBeenCalledWith("units", "unit-1", 3, {
         chartMode: "rows",
-        chartLayout: { "position-1": { level: 1, row: 1, order: 0, parentPositionId: null } }
+        chartLayout: { "position-1": { level: 2, row: 1, order: 0, parentPositionId: null } }
       })
     );
     await waitFor(() => expect(showSuccessResult).toHaveBeenCalledWith("บันทึกผังองค์กรสำเร็จ"));
@@ -93,6 +123,7 @@ describe("Organization Chart layout audited save feedback", () => {
     api.update.mockRejectedValueOnce(new Error("stale revision"));
     const onSaved = vi.fn();
     show(onSaved);
+    changeSavedLevel();
     fireEvent.click(screen.getByRole("button", { name: "บันทึกโครงสร้างผัง" }));
     await waitFor(() =>
       expect(showErrorResult).toHaveBeenCalledWith(
@@ -205,6 +236,7 @@ describe("Organization Chart layout audited save feedback", () => {
     api.update.mockRejectedValueOnce(new AdminStaleRevisionError());
     const onSaved = vi.fn();
     show(onSaved);
+    changeSavedLevel();
     fireEvent.click(screen.getByRole("button", { name: "บันทึกโครงสร้างผัง" }));
     await waitFor(() => expect(api.update).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Revision เปลี่ยนแล้ว"));
@@ -217,6 +249,7 @@ describe("Organization Chart layout audited save feedback", () => {
   it("keeps a committed layout locked until the next Revision is loaded, even when refresh succeeds", async () => {
     const onSaved = vi.fn().mockResolvedValue(undefined);
     show(onSaved);
+    changeSavedLevel();
     fireEvent.click(screen.getByRole("button", { name: "บันทึกโครงสร้างผัง" }));
     await waitFor(() => expect(showSuccessResult).toHaveBeenCalledWith("บันทึกผังองค์กรสำเร็จ"));
     expect(onSaved).toHaveBeenCalledTimes(1);

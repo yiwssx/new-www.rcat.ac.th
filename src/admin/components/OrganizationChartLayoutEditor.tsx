@@ -134,7 +134,7 @@ export default function OrganizationChartLayoutEditor({
   }
 
   async function save() {
-    if (busy || !canManage || !allPositionsLoaded || awaitingLatestRevision || staleRevision) return;
+    if (busy || !canManage || !isChanged || !allPositionsLoaded || awaitingLatestRevision || staleRevision) return;
     let validated: OrganizationChartLayout;
     try {
       validated = parseOrganizationChartLayout(layout);
@@ -215,6 +215,13 @@ export default function OrganizationChartLayoutEditor({
             <MenuItem value="rows">แบบ A — แบ่งตามระดับและแถว</MenuItem>
             <MenuItem value="tree">แบบ B — สายบังคับบัญชา</MenuItem>
           </TextField>
+          <Typography variant="body2" color="text.secondary" role="status">
+            {mode === "rows"
+              ? "แบบ A: จัดตำแหน่งตามระดับจากบนลงล่าง และเรียงตำแหน่งระดับเดียวกันจากซ้ายไปขวา"
+              : mode === "tree"
+                ? "แบบ B: เชื่อมผู้บังคับบัญชากับตำแหน่งที่ขึ้นตรง โดยยังคงจัดผู้บังคับบัญชาไว้ด้านบน"
+                : "Cards: แสดงการ์ดตำแหน่งตามลำดับ โดยไม่สร้างเส้นสายบังคับบัญชา"}
+          </Typography>
           {staleRevision && (
             <Alert severity="warning" role="alert">
               Revision ของหน่วยงานไม่ตรงกัน กรุณาโหลดหน่วยงานล่าสุดก่อนบันทึกผัง
@@ -412,7 +419,9 @@ export default function OrganizationChartLayoutEditor({
           )}
           <Button
             variant="contained"
-            disabled={!canManage || busy || !allPositionsLoaded || awaitingLatestRevision || staleRevision}
+            disabled={
+              !canManage || busy || !isChanged || !allPositionsLoaded || awaitingLatestRevision || staleRevision
+            }
             onClick={() => void save()}
           >
             {busy ? "กำลังบันทึก..." : "บันทึกโครงสร้างผัง"}
