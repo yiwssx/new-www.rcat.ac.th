@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createAppQueryClient } from "../queryClient";
+import { publicOrganizationDetailQueryKey } from "../features/public-organization/query";
 import { dehydrateAppQueryClient, hydrateAppQueryClient } from "../queryHydration";
 
 describe("SSR query hydration", () => {
@@ -18,6 +19,45 @@ describe("SSR query hydration", () => {
       siteSettings: { siteName: "RCAT" },
       menu: []
     });
+  });
+
+  it("hydrates published organization details before the first client render", async () => {
+    const slug = "rcat-2569-business";
+    const key = publicOrganizationDetailQueryKey(slug);
+    const publicDetail = {
+      unit: { contentId: "department", slug, title: "แผนกวิชาบริหารธุรกิจ" },
+      ancestors: [],
+      units: [{ contentId: "department", slug, parentContentId: null, title: "แผนกวิชาบริหารธุรกิจ" }],
+      positions: [{ id: "director-position", unitContentId: "department", title: "หัวหน้าแผนกวิชา", assignments: [] }],
+      media: []
+    };
+    const serverClient = createAppQueryClient();
+    serverClient.setQueryData(key, publicDetail);
+
+    const payload = dehydrateAppQueryClient(serverClient);
+    expect(payload.queryClientState.queries).toHaveLength(1);
+    expect(
+      payload.queryClientState.queries.some(
+        (query) =>
+          Array.isArray((query as { queryKey?: unknown }).queryKey) &&
+          (query as { queryKey: string[] }).queryKey[0] === "public-organization-detail"
+      )
+    ).toBe(true);
+
+    const browserClient = createAppQueryClient();
+    expect(hydrateAppQueryClient(browserClient, JSON.parse(JSON.stringify(payload)))).toBe(true);
+    expect(browserClient.getQueryData(key)).toEqual(publicDetail);
+
+    let duplicateFetches = 0;
+    const hydrated = await browserClient.ensureQueryData({
+      queryKey: key,
+      queryFn: async () => {
+        duplicateFetches += 1;
+        return publicDetail;
+      }
+    });
+    expect(hydrated).toEqual(publicDetail);
+    expect(duplicateFetches).toBe(0);
   });
 
   it("reuses QueryClient cache for identical loader keys without duplicate requests", async () => {
