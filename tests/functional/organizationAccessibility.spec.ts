@@ -371,15 +371,15 @@ test.describe("Organization V2.2 Phase 3 mixed position charts", () => {
 
         const hierarchy = page.getByRole("region", { name: "ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้" });
         await expect(hierarchy).toBeVisible();
-        await expect(hierarchy.getByRole("region", { name: "แถวระดับ 1 แถว 1 เลื่อนแนวนอนได้" })).toBeAttached();
-        await expect(hierarchy.getByRole("region", { name: /ผังสายบังคับบัญชา/ })).toBeAttached();
+        await expect(page.getByRole("region", { name: "แถวระดับ 1 แถว 1 เลื่อนแนวนอนได้" })).toBeAttached();
+        await expect(page.getByRole("region", { name: /ผังสายบังคับบัญชา/ })).toBeAttached();
         await expect(
-          hierarchy.getByRole("region", { name: /ผังสายบังคับบัญชา/ }).getByText("หัวหน้างานหลักสูตร")
+          page.getByRole("region", { name: /ผังสายบังคับบัญชา/ }).getByText("หัวหน้างานหลักสูตร")
         ).toBeAttached();
-        await expect(hierarchy.getByText("งานประสานทะเบียน")).toBeAttached();
-        await expect(hierarchy.getByText("ยังไม่มีผู้ดำรงตำแหน่ง")).toBeAttached();
-        await expect(hierarchy.getByText("บุคลากรทดสอบ")).toHaveCount(2);
-        await expect(hierarchy.getByText("งานทะเบียนควบคู่")).toHaveCount(1);
+        await expect(page.getByRole("region", { name: "ผังบุคลากรตามหน่วยงาน" }).getByText("งานประสานทะเบียน")).toBeAttached();
+        await expect(page.getByRole("region", { name: "ผังบุคลากรตามหน่วยงาน" }).getByText("ยังไม่มีผู้ดำรงตำแหน่ง")).toBeAttached();
+        await expect(page.getByRole("region", { name: "ผังบุคลากรตามหน่วยงาน" }).getByText("บุคลากรทดสอบ")).toHaveCount(2);
+        await expect(page.getByRole("region", { name: "ผังบุคลากรตามหน่วยงาน" }).getByText("งานทะเบียนควบคู่")).toHaveCount(1);
         await expect(page.getByRole("region", { name: "ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้" })).toHaveCount(1);
         await expect
           .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1))
@@ -408,15 +408,15 @@ test.describe("Organization V2.2 Phase 5 final browser regression", () => {
         "/organization/" + encodeURIComponent("งานทะเบียน")
       );
       await expect(hierarchy.getByRole("link", { name: "งานย่อยด้านหลักสูตร" })).toBeAttached();
-      const rows = hierarchy.getByRole("region", { name: "แถวระดับ 1 แถว 1 เลื่อนแนวนอนได้" });
-      const tree = hierarchy.getByRole("region", { name: /ผังสายบังคับบัญชา/ });
+      const rows = page.getByRole("region", { name: "แถวระดับ 1 แถว 1 เลื่อนแนวนอนได้" });
+      const tree = page.getByRole("region", { name: /ผังสายบังคับบัญชา/ });
       await expect(rows).toBeAttached();
       await expect(tree).toBeAttached();
       await expect(rows).toHaveClass(/rcat-focus-ring/);
       await expect(tree).toHaveClass(/rcat-focus-ring/);
-      await expect(hierarchy.getByText("งานประสานทะเบียน")).toHaveCount(1);
-      await expect(hierarchy.getByText("บุคลากรทดสอบ")).toHaveCount(2);
-      await expect(hierarchy.getByText("งานทะเบียนควบคู่")).toHaveCount(1);
+      await expect(page.getByRole("region", { name: "ผังบุคลากรตามหน่วยงาน" }).getByText("งานประสานทะเบียน")).toHaveCount(1);
+      await expect(page.getByRole("region", { name: "ผังบุคลากรตามหน่วยงาน" }).getByText("บุคลากรทดสอบ")).toHaveCount(2);
+      await expect(page.getByRole("region", { name: "ผังบุคลากรตามหน่วยงาน" }).getByText("งานทะเบียนควบคู่")).toHaveCount(1);
       await expect(tree.getByText("หัวหน้างานหลักสูตร")).toBeAttached();
       await expect(tree.getByText("ผู้ช่วยงานหลักสูตร")).toBeAttached();
 
@@ -504,5 +504,35 @@ test.describe("Organization field regression: Cards positions should not be a ve
         .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1))
         .toBe(true);
     });
+  }
+});
+
+test.describe("Organization field regression: no phantom header or narrow vertical personnel", () => {
+  for (const width of [390, 630, 1440]) {
+    for (const mode of ["rows", "tree"] as const) {
+      test(`renders ${mode} root-to-deputy positions horizontally at ${width}px`, async ({ page }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await installOrganizationFixture(page, mode);
+        await page.goto("/organization/" + encodeURIComponent(slug));
+        await dismissGateIfVisible(page);
+
+        const personnel = page.getByRole("region", { name: "ผังบุคลากรตามหน่วยงาน" });
+        const diagram = page.getByRole("region", { name: "ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้" });
+        await expect(personnel).toBeVisible();
+        await expect(diagram).toBeVisible();
+        await expect(diagram.getByText("บุคลากรทดสอบ")).toHaveCount(0);
+        const first = await personnel.getByText("หัวหน้าฝ่าย", { exact: true }).boundingBox();
+        const second = await personnel.getByText("รองหัวหน้าฝ่าย", { exact: true }).boundingBox();
+        expect(first).not.toBeNull();
+        expect(second).not.toBeNull();
+        expect(second!.x).toBeGreaterThan(first!.x);
+        expect(Math.abs(second!.y - first!.y)).toBeLessThanOrEqual(3);
+        await expect(page.locator('main [aria-hidden="true"].MuiSkeleton-root')).toHaveCount(0);
+        await expect(page.locator('main svg[data-testid="AccountTreeOutlinedIcon"]')).toHaveCount(0);
+        await expect
+          .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1))
+          .toBe(true);
+      });
+    }
   }
 });
