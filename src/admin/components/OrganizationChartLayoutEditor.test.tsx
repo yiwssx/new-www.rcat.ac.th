@@ -153,6 +153,80 @@ describe("Organization Chart layout audited save feedback", () => {
     expect(screen.getByText("มีการเปลี่ยนแปลงผังที่ยังไม่ได้บันทึก")).toBeInTheDocument();
   });
 
+  it("keeps the preview visible while progressively disclosing controls for a large unit", () => {
+    const largePositions = Array.from({ length: 4 }, (_, index) => ({
+      ...position,
+      id: `position-${index + 1}`,
+      title: `ตำแหน่งลำดับ ${index + 1}`,
+      sort_order: index
+    }));
+    render(
+      <OrganizationChartLayoutEditor
+        unit={unit}
+        positions={largePositions}
+        assignments={[]}
+        personnel={[]}
+        canManage
+        allPositionsLoaded
+        onSaved={vi.fn()}
+      />
+    );
+
+    const preview = screen.getByRole("region", { name: "ตัวอย่างผังสายบังคับบัญชาก่อนบันทึก" });
+    const chart = within(preview).getByTestId("chart-preview");
+    expect(chart).toBeInTheDocument();
+    expect(screen.queryByRole("spinbutton", { name: "ระดับชั้น" })).not.toBeInTheDocument();
+
+    const showControls = screen.getByRole("button", { name: "แสดงตัวเลือกจัดตำแหน่ง (4 ตำแหน่ง)" });
+    expect(showControls).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(showControls);
+    expect(screen.getByRole("button", { name: "ซ่อนตัวเลือกจัดตำแหน่ง (4 ตำแหน่ง)" })).toHaveAttribute(
+      "aria-expanded",
+      "true"
+    );
+    const levels = screen.getAllByRole("spinbutton", { name: "ระดับชั้น" });
+    expect(levels).toHaveLength(4);
+    fireEvent.change(levels[1], { target: { value: "3" } });
+    expect(chart).toHaveAttribute("data-deputy-level", "3");
+    expect(screen.getByRole("button", { name: "บันทึกโครงสร้างผัง" })).toBeEnabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "ซ่อนตัวเลือกจัดตำแหน่ง (4 ตำแหน่ง)" }));
+    expect(screen.queryByRole("spinbutton", { name: "ระดับชั้น" })).not.toBeInTheDocument();
+    expect(chart).toHaveAttribute("data-deputy-level", "3");
+    fireEvent.click(screen.getByRole("button", { name: "แสดงตัวเลือกจัดตำแหน่ง (4 ตำแหน่ง)" }));
+    expect(screen.getAllByRole("spinbutton", { name: "ระดับชั้น" })[1]).toHaveValue(3);
+    expect(api.update).not.toHaveBeenCalled();
+  });
+
+  it("retains read-only B-mode parent pickers behind the accessible large-unit toggle", () => {
+    const largePositions = Array.from({ length: 4 }, (_, index) => ({
+      ...position,
+      id: `position-${index + 1}`,
+      sort_order: index
+    }));
+    render(
+      <OrganizationChartLayoutEditor
+        unit={{ ...unit, chart_mode: "tree" }}
+        positions={largePositions}
+        assignments={[]}
+        personnel={[]}
+        canManage={false}
+        allPositionsLoaded
+        onSaved={vi.fn()}
+      />
+    );
+
+    const toggle = screen.getByRole("button", { name: "แสดงตัวเลือกจัดตำแหน่ง (4 ตำแหน่ง)" });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(toggle).not.toHaveAttribute("aria-controls");
+    fireEvent.click(toggle);
+    const openToggle = screen.getByRole("button", { name: "ซ่อนตัวเลือกจัดตำแหน่ง (4 ตำแหน่ง)" });
+    expect(openToggle).toHaveAttribute("aria-controls", "organization-position-layout-fields");
+    expect(screen.getAllByRole("combobox", { name: "ขึ้นตรงต่อตำแหน่ง" })).toHaveLength(4);
+    expect(screen.getByRole("button", { name: "บันทึกโครงสร้างผัง" })).toBeDisabled();
+    expect(api.update).not.toHaveBeenCalled();
+  });
+
   it("previews legacy Cards as visible personnel/position cards rather than an empty panel", () => {
     render(
       <OrganizationChartLayoutEditor
