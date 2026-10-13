@@ -108,4 +108,50 @@ describe("Organization Chart layout audited save feedback", () => {
     expect(screen.getByRole("button", { name: "บันทึกโครงสร้างผัง" })).toBeDisabled();
     expect(api.update).not.toHaveBeenCalled();
   });
+
+  it("distinguishes a saved A/B layout from pending edits and identifies the unit Revision", () => {
+    show(vi.fn());
+    expect(screen.getByText("บันทึกแล้ว: แบบ A")).toBeInTheDocument();
+    expect(screen.getByText("Unit Revision: 3")).toBeInTheDocument();
+    expect(screen.getByText("ตรงกับข้อมูลที่บันทึก")).toBeInTheDocument();
+    fireEvent.change(screen.getByRole("spinbutton", { name: "ระดับชั้น" }), { target: { value: "2" } });
+    expect(screen.getByText("มีการแก้ไขที่ยังไม่บันทึก")).toBeInTheDocument();
+    expect(screen.getByText("มีการเปลี่ยนแปลงผังที่ยังไม่ได้บันทึก")).toBeInTheDocument();
+  });
+
+  it("previews legacy Cards as visible personnel/position cards rather than an empty panel", () => {
+    render(
+      <OrganizationChartLayoutEditor
+        unit={{ ...unit, chart_mode: "cards" }}
+        positions={[position]}
+        assignments={[]}
+        personnel={[]}
+        canManage
+        allPositionsLoaded
+        onSaved={vi.fn()}
+      />
+    );
+    expect(screen.getByText("ตัวอย่าง Cards (รูปแบบเดิม)")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "ตำแหน่งของงานธุรการ" })).toBeInTheDocument();
+    expect(screen.getByText("หัวหน้างาน")).toBeInTheDocument();
+    expect(screen.getByText("ยังไม่ได้ระบุผู้ดำรงตำแหน่ง")).toBeInTheDocument();
+  });
+
+  it("blocks saving an inconsistent content/unit revision before calling the Worker", () => {
+    render(
+      <OrganizationChartLayoutEditor
+        unit={{ ...unit, content_revision: 4, unit_revision: 3 }}
+        positions={[position]}
+        assignments={[]}
+        personnel={[]}
+        canManage
+        allPositionsLoaded
+        onSaved={vi.fn()}
+      />
+    );
+    expect(screen.getByRole("alert")).toHaveTextContent("Revision ของหน่วยงานไม่ตรงกัน");
+    expect(screen.getByRole("button", { name: "บันทึกโครงสร้างผัง" })).toBeDisabled();
+    expect(api.update).not.toHaveBeenCalled();
+  });
+
 });
