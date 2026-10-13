@@ -19,7 +19,8 @@ async function installOrganizationFixture(
   mode: "cards" | "rows" | "tree" = "cards",
   mixed = false,
   extraSiblings = 0,
-  twoCardPositions = false
+  twoCardPositions = false,
+  multiOccupants = false
 ) {
   const chartUnit = {
     ...sampleUnit,
@@ -130,7 +131,23 @@ async function installOrganizationFixture(
                   publicEmail: "",
                   publicPhone: ""
                 }
-              }
+              },
+              ...(multiOccupants
+                ? [{
+                    id: "assignment-3",
+                    dutyDetail: "ร่วมดำรงตำแหน่งเดียวกัน",
+                    sortOrder: 1,
+                    person: {
+                      id: "person-3",
+                      displayName: "บุคลากรร่วมตำแหน่ง",
+                      personnelType: "teacher",
+                      employmentPosition: "ครู",
+                      photoMediaId: null,
+                      publicEmail: "",
+                      publicPhone: ""
+                    }
+                  }]
+                : [])
             ]
           },
           ...(mode === "cards" && !twoCardPositions
@@ -579,4 +596,30 @@ test("organization route has no React 418 hydration error or phantom shell skele
   await expect(page.locator('main svg[data-testid="AccountTreeOutlinedIcon"]')).toHaveCount(0);
   await expect(page.locator('[data-cls-region="public-shell"] .MuiSkeleton-root')).toHaveCount(0);
   expect(hydrationErrors).toEqual([]);
+});
+
+test.describe("Organization field regression: multiple people holding one position", () => {
+  for (const width of [390, 1440]) {
+    for (const mode of ["rows", "tree"] as const) {
+      test(`keeps all occupants side-by-side in the same ${mode} position at ${width}px`, async ({ page }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await installOrganizationFixture(page, mode, false, 0, false, true);
+        await page.goto("/organization/" + encodeURIComponent(slug));
+        await dismissGateIfVisible(page);
+
+        const personnel = page.getByRole("region", { name: "ผังบุคลากรตามหน่วยงาน" });
+        const occupants = personnel.locator('[data-org-position-cards="position-1"]');
+        const first = await occupants.getByText("บุคลากรทดสอบ").boundingBox();
+        const second = await occupants.getByText("บุคลากรร่วมตำแหน่ง").boundingBox();
+        expect(first).not.toBeNull();
+        expect(second).not.toBeNull();
+        expect(second!.x).toBeGreaterThan(first!.x);
+        expect(Math.abs(second!.y - first!.y)).toBeLessThanOrEqual(3);
+        await expect(occupants.locator(".MuiCard-root")).toHaveCount(2);
+        const deputy = await personnel.getByText("บุคลากรคนที่สอง").boundingBox();
+        expect(deputy!.y).toBeGreaterThan(first!.y);
+        await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+      });
+    }
+  }
 });
