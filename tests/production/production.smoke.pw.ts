@@ -129,7 +129,11 @@ test.describe("Phase A production public browser smoke", () => {
     const diagnostics = attachProductionDiagnostics(page, productionBaseUrl);
     const hydrationErrors: string[] = [];
     const capture = (message: string) => {
-      if (/react\\.dev\\/errors\\/418|Minified React error #418|hydration (failed|mismatch)|server rendered HTML/i.test(message)) {
+      if (
+        message.includes("react.dev/errors/418") ||
+        message.includes("Minified React error #418") ||
+        /hydration (failed|mismatch)|server rendered HTML/i.test(message)
+      ) {
         hydrationErrors.push(message);
       }
     };
@@ -145,7 +149,7 @@ test.describe("Phase A production public browser smoke", () => {
     await expect(page.locator('[data-org-position-flow="top-down"]').first()).toBeVisible();
     await expect(page.locator('main svg[data-testid="AccountTreeOutlinedIcon"]')).toHaveCount(0);
     await expectNoHorizontalOverflow(page);
-    expect(hydrationErrors, hydrationErrors.join("\\n")).toEqual([]);
+    expect(hydrationErrors, hydrationErrors.join("\n")).toEqual([]);
     diagnostics.assertClean();
   });
 
