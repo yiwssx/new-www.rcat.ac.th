@@ -122,7 +122,7 @@ export default function OrganizationUnitPositionContent({ unit, positions, media
   if (positions.length === 0) return null;
   const showEducationQualifications = unit.unitKind === "department";
   return (
-    <Box component="section" aria-label={"ตำแหน่งของ" + unit.title} sx={{ width: 376, maxWidth: "100%", minWidth: 0 }}>
+    <Box component="section" aria-label={"ตำแหน่งของ" + unit.title} sx={{ width: "100%", maxWidth: "100%", minWidth: 0 }}>
       {unit.chartMode === "rows" || unit.chartMode === "tree" ? (
         <OrganizationChartView
           positions={[...positions]}
