@@ -29,6 +29,10 @@ test("accepts only exact-SHA Vercel Production success with HTTPS URL", () => {
   assert.equal(classifyDeployment([makeDeployment()], { 123: [{ state: "success" }] }, SHA, false), "failure");
 });
 
+test("missing deployments cannot be mistaken for a successful release", () => {
+  assert.equal(classifyDeployment([], {}, SHA, false), "pending");
+});
+
 test("never accepts stale successes, terminal failures or unexplained inactivity", () => {
   assert.equal(classifyDeployment([makeDeployment()], { 123: [{ state: "pending" }, success] }, SHA, false), "pending");
   assert.equal(classifyDeployment([makeDeployment()], { 123: [{ state: "failure" }] }, SHA, false), "failure");
