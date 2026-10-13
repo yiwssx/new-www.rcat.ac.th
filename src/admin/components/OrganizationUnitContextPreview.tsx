@@ -101,6 +101,7 @@ export default function OrganizationUnitContextPreview({ selected, units, allUni
         tabIndex={0}
         className="rcat-focus-ring"
         aria-label="ตัวอย่างความสัมพันธ์หน่วยงานแนวนอน เลื่อนดูได้"
+        data-org-direction="left-to-right"
         sx={{ maxWidth: "100%", minWidth: 0, overflowX: "auto", overscrollBehaviorX: "contain", pb: 2, pt: 1 }}
       >
 
