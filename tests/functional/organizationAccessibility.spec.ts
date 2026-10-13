@@ -133,20 +133,22 @@ async function installOrganizationFixture(
                 }
               },
               ...(multiOccupants
-                ? [{
-                    id: "assignment-3",
-                    dutyDetail: "ร่วมดำรงตำแหน่งเดียวกัน",
-                    sortOrder: 1,
-                    person: {
-                      id: "person-3",
-                      displayName: "บุคลากรร่วมตำแหน่ง",
-                      personnelType: "teacher",
-                      employmentPosition: "ครู",
-                      photoMediaId: null,
-                      publicEmail: "",
-                      publicPhone: ""
+                ? [
+                    {
+                      id: "assignment-3",
+                      dutyDetail: "ร่วมดำรงตำแหน่งเดียวกัน",
+                      sortOrder: 1,
+                      person: {
+                        id: "person-3",
+                        displayName: "บุคลากรร่วมตำแหน่ง",
+                        personnelType: "teacher",
+                        employmentPosition: "ครู",
+                        photoMediaId: null,
+                        publicEmail: "",
+                        publicPhone: ""
+                      }
                     }
-                  }]
+                  ]
                 : [])
             ]
           },
@@ -618,7 +620,9 @@ test.describe("Organization field regression: multiple people holding one positi
         await expect(occupants.locator(".MuiCard-root")).toHaveCount(2);
         const deputy = await personnel.getByText("บุคลากรคนที่สอง").boundingBox();
         expect(deputy!.y).toBeGreaterThan(first!.y);
-        await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+        await expect
+          .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1))
+          .toBe(true);
       });
     }
   }

@@ -90,12 +90,7 @@ describe("public organization chart A/B", () => {
     const coholder = position("other", "ครู", "ครูคนที่สอง").assignments[0];
     const together = { ...holder, assignments: [...holder.assignments, coholder] };
     render(
-      <OrganizationChartView
-        mode="rows"
-        positions={[together]}
-        media={new Map()}
-        showEducationQualifications={false}
-      />
+      <OrganizationChartView mode="rows" positions={[together]} media={new Map()} showEducationQualifications={false} />
     );
     const positionGroup = document.querySelector('[data-org-position-cards="teachers"]');
     expect(positionGroup).toBeInTheDocument();
