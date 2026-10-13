@@ -197,8 +197,9 @@ describe("current project-state consistency", () => {
     expect(warningInventory).not.toContain("Main-tree unit guards intentionally fail");
   });
 
-  it("keeps Phase A wording aligned with the real commit-status gate and completed later phases", () => {
-    expect(phaseARunbook).toContain("This is a commit-status gate, not a direct Vercel deployment-record lookup");
+  it("keeps Phase A wording aligned with the exact-SHA GitHub deployment fallback and completed later phases", () => {
+    expect(phaseARunbook).toContain("read-only GitHub Deployments API");
+    expect(phaseARunbook).toContain("latest terminal Deployment Status");
     expect(phaseARunbook).toContain("Canceled by Ignored Build Step");
     expect(phaseARunbook).toContain("Reliability Roadmap v2 is complete");
     expect(phaseARunbook).toContain("Phase C3 is a manual/protected authenticated disposable CMS regression tool");
