@@ -4,6 +4,7 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
+import Chip from "@mui/material/Chip";
 import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
@@ -24,6 +25,8 @@ import {
 import type { PublicOrganizationPosition } from "../../features/public-organization";
 import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 import OrganizationChartView from "../../public/components/OrganizationChartView";
+import OrganizationUnitPositionContent from "../../public/components/OrganizationUnitPositionContent";
+import { isAdminStaleRevisionError } from "../../features/admin-write/errors";
 
 interface Props {
   unit: OrganizationUnitListRow;
@@ -32,6 +35,7 @@ interface Props {
   personnel: OrganizationPersonnelRow[];
   canManage: boolean;
   allPositionsLoaded: boolean;
+  showCardsPreview?: boolean;
   onSaved: () => Promise<void>;
 }
 
@@ -50,6 +54,7 @@ export default function OrganizationChartLayoutEditor({
   personnel,
   canManage,
   allPositionsLoaded,
+  showCardsPreview = true,
   onSaved
 }: Props) {
   const [mode, setMode] = useState<OrganizationChartMode>(unit.chart_mode ?? "cards");
@@ -72,6 +77,9 @@ export default function OrganizationChartLayoutEditor({
   const [awaitingLatestRevision, setAwaitingLatestRevision] = useState(false);
   const [error, setError] = useState("");
   const [savedMode, setSavedMode] = useState(unit.chart_mode ?? "cards");
+  const [savedLayout, setSavedLayout] = useState<OrganizationChartLayout>(layout);
+  const isChanged = savedMode !== mode || JSON.stringify(savedLayout) !== JSON.stringify(layout);
+  const staleRevision = unit.content_revision !== unit.unit_revision;
   const byPerson = useMemo(() => new Map(personnel.map((item) => [item.id, item])), [personnel]);
 
   const previewPositions = useMemo<PublicOrganizationPosition[]>(
@@ -126,7 +134,7 @@ export default function OrganizationChartLayoutEditor({
   }
 
   async function save() {
-    if (busy || !canManage || !allPositionsLoaded || awaitingLatestRevision) return;
+    if (busy || !canManage || !allPositionsLoaded || awaitingLatestRevision || staleRevision) return;
     let validated: OrganizationChartLayout;
     try {
       validated = parseOrganizationChartLayout(layout);
@@ -144,7 +152,13 @@ export default function OrganizationChartLayoutEditor({
       });
     } catch (cause) {
       await appSwal.close();
-      const message = cause instanceof Error ? cause.message : "ไม่สามารถบันทึกผังองค์กร";
+      const stale = isAdminStaleRevisionError(cause);
+      if (stale) setAwaitingLatestRevision(true);
+      const message = stale
+        ? "Revision เปลี่ยนแล้ว กรุณารีเฟรชหน่วยงานก่อนบันทึกอีกครั้ง"
+        : cause instanceof Error
+          ? cause.message
+          : "ไม่สามารถบันทึกผังองค์กร";
       setError(message);
       setBusy(false);
       await showErrorResult("บันทึกผังองค์กรไม่สำเร็จ", new Error(message), "โหลดหน่วยงานล่าสุดแล้วลองอีกครั้ง");
@@ -155,6 +169,7 @@ export default function OrganizationChartLayoutEditor({
     // be reported as a failed save or retried with the now-stale revision.
     setAwaitingLatestRevision(true);
     setSavedMode(mode);
+    setSavedLayout(validated);
     try {
       await onSaved();
     } catch {
@@ -173,20 +188,38 @@ export default function OrganizationChartLayoutEditor({
             จัดระดับและผังบุคลากร
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            กำหนดรูปแบบและระดับต่อหน่วยงานโดยไม่เปลี่ยนทะเบียนบุคลากร ตำแหน่ง หรือการมอบหมายหน้าที่
+            2. ผังบุคลากรในหน่วยงานนี้ — เลือก A/B หรือ Cards โดยไม่เปลี่ยนลำดับชั้นหน่วยงานแม่–ลูก
           </Typography>
+          <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
+            <Chip
+              size="small"
+              variant="outlined"
+              label={"บันทึกแล้ว: " + (savedMode === "rows" ? "แบบ A" : savedMode === "tree" ? "แบบ B" : "Cards")}
+            />
+            <Chip size="small" variant="outlined" label={"Unit Revision: " + unit.unit_revision} />
+            <Chip
+              size="small"
+              color={isChanged ? "warning" : "default"}
+              label={isChanged ? "มีการแก้ไขที่ยังไม่บันทึก" : "ตรงกับข้อมูลที่บันทึก"}
+            />
+          </Stack>
           <TextField
             select
             fullWidth
             label="รูปแบบผัง"
             value={mode}
-            disabled={busy || !canManage}
+            disabled={busy || !canManage || awaitingLatestRevision}
             onChange={(event) => setMode(event.target.value as OrganizationChartMode)}
           >
             <MenuItem value="cards">รูปแบบเดิม — การ์ดรายการ</MenuItem>
             <MenuItem value="rows">แบบ A — แบ่งตามระดับและแถว</MenuItem>
             <MenuItem value="tree">แบบ B — สายบังคับบัญชา</MenuItem>
           </TextField>
+          {staleRevision && (
+            <Alert severity="warning" role="alert">
+              Revision ของหน่วยงานไม่ตรงกัน กรุณาโหลดหน่วยงานล่าสุดก่อนบันทึกผัง
+            </Alert>
+          )}
           {!allPositionsLoaded && (
             <Alert severity="info">กรุณาโหลดตำแหน่งทั้งหมดก่อนจัดวาง เพื่อไม่ให้บันทึกผังจากข้อมูลไม่ครบ</Alert>
           )}
@@ -223,7 +256,7 @@ export default function OrganizationChartLayoutEditor({
                           label="ระดับชั้น"
                           type="number"
                           value={placement.level}
-                          disabled={busy || !canManage}
+                          disabled={busy || !canManage || awaitingLatestRevision}
                           slotProps={{ htmlInput: { min: 1, max: 100, step: 1 } }}
                           onChange={(event) => patch(position.id, "level", Number(event.target.value))}
                         />
@@ -232,7 +265,7 @@ export default function OrganizationChartLayoutEditor({
                           label="แถว"
                           type="number"
                           value={placement.row}
-                          disabled={busy || !canManage}
+                          disabled={busy || !canManage || awaitingLatestRevision}
                           slotProps={{ htmlInput: { min: 1, max: 100, step: 1 } }}
                           onChange={(event) => patch(position.id, "row", Number(event.target.value))}
                         />
@@ -241,7 +274,7 @@ export default function OrganizationChartLayoutEditor({
                           label="ลำดับซ้ายไปขวา"
                           type="number"
                           value={placement.order}
-                          disabled={busy || !canManage}
+                          disabled={busy || !canManage || awaitingLatestRevision}
                           slotProps={{ htmlInput: { min: 0, max: 1000000, step: 1 } }}
                           onChange={(event) => patch(position.id, "order", Number(event.target.value))}
                         />
@@ -249,7 +282,7 @@ export default function OrganizationChartLayoutEditor({
                           <Button
                             size="small"
                             variant="outlined"
-                            disabled={busy || !canManage || placement.level <= 1}
+                            disabled={busy || !canManage || awaitingLatestRevision || placement.level <= 1}
                             onClick={() => adjustPlacement(position.id, "level", -1, placement.level)}
                           >
                             ย้ายขึ้น
@@ -257,7 +290,7 @@ export default function OrganizationChartLayoutEditor({
                           <Button
                             size="small"
                             variant="outlined"
-                            disabled={busy || !canManage || placement.level >= 100}
+                            disabled={busy || !canManage || awaitingLatestRevision || placement.level >= 100}
                             onClick={() => adjustPlacement(position.id, "level", 1, placement.level)}
                           >
                             ย้ายลง
@@ -265,7 +298,7 @@ export default function OrganizationChartLayoutEditor({
                           <Button
                             size="small"
                             variant="outlined"
-                            disabled={busy || !canManage || placement.row >= 100}
+                            disabled={busy || !canManage || awaitingLatestRevision || placement.row >= 100}
                             onClick={() => adjustPlacement(position.id, "row", 1, placement.row)}
                           >
                             เพิ่มแถว
@@ -273,7 +306,7 @@ export default function OrganizationChartLayoutEditor({
                           <Button
                             size="small"
                             variant="outlined"
-                            disabled={busy || !canManage || placement.order <= 0}
+                            disabled={busy || !canManage || awaitingLatestRevision || placement.order <= 0}
                             onClick={() => adjustPlacement(position.id, "order", -1, placement.order)}
                           >
                             เลื่อนซ้าย
@@ -281,7 +314,7 @@ export default function OrganizationChartLayoutEditor({
                           <Button
                             size="small"
                             variant="outlined"
-                            disabled={busy || !canManage || placement.order >= 1000000}
+                            disabled={busy || !canManage || awaitingLatestRevision || placement.order >= 1000000}
                             onClick={() => adjustPlacement(position.id, "order", 1, placement.order)}
                           >
                             เลื่อนขวา
@@ -293,7 +326,7 @@ export default function OrganizationChartLayoutEditor({
                             select
                             label="ขึ้นตรงต่อตำแหน่ง"
                             value={placement.parentPositionId ?? ""}
-                            disabled={busy || !canManage}
+                            disabled={busy || !canManage || awaitingLatestRevision}
                             sx={{ minWidth: { md: 230 } }}
                             onChange={(event) => patch(position.id, "parentPositionId", event.target.value || null)}
                           >
@@ -326,18 +359,44 @@ export default function OrganizationChartLayoutEditor({
                 showEducationQualifications={unit.unit_kind === "department"}
               />
               <Typography variant="caption" color="text.secondary">
-                ตัวอย่างในแอดมินแสดงชื่อและตำแหน่ง ส่วนหน้าสาธารณะจะแสดงภาพจาก Media Library
+                Preview ใช้ข้อมูลที่โหลดแล้วเท่านั้น ระบบเผยแพร่จะแสดงรูปภาพตามการตั้งค่า Media Library
               </Typography>
             </>
           )}
+          {showCardsPreview && mode === "cards" && (
+            <Stack spacing={1}>
+              <Typography variant="h4" sx={{ fontSize: "1rem", fontWeight: 700 }}>
+                ตัวอย่าง Cards (รูปแบบเดิม)
+              </Typography>
+              {previewPositions.length ? (
+                <OrganizationUnitPositionContent
+                  unit={{
+                    contentId: unit.content_id,
+                    parentContentId: unit.parent_content_id,
+                    slug: unit.slug,
+                    title: unit.title,
+                    summary: unit.summary,
+                    unitKind: unit.unit_kind,
+                    sortOrder: unit.sort_order,
+                    depth: 0,
+                    chartMode: "cards"
+                  }}
+                  positions={previewPositions}
+                  media={new Map()}
+                />
+              ) : (
+                <Alert severity="info">ยังไม่มีตำแหน่งในหน่วยงานนี้</Alert>
+              )}
+            </Stack>
+          )}
           <Button
             variant="contained"
-            disabled={!canManage || busy || !allPositionsLoaded || awaitingLatestRevision}
+            disabled={!canManage || busy || !allPositionsLoaded || awaitingLatestRevision || staleRevision}
             onClick={() => void save()}
           >
             {busy ? "กำลังบันทึก..." : "บันทึกโครงสร้างผัง"}
           </Button>
-          {savedMode !== mode && <Typography variant="caption">มีการเปลี่ยนรูปแบบที่ยังไม่ได้บันทึก</Typography>}
+          {isChanged && <Typography variant="caption">มีการเปลี่ยนแปลงผังที่ยังไม่ได้บันทึก</Typography>}
         </Stack>
       </CardContent>
     </Card>

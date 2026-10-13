@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { AdminStaleRevisionError } from "../../features/admin-write/errors";
 import type { OrganizationPositionRow, OrganizationUnitListRow } from "../../features/organization-admin";
 import OrganizationChartLayoutEditor from "./OrganizationChartLayoutEditor";
 import { showErrorResult, showSuccessResult } from "../../utils/swal";
@@ -106,6 +107,83 @@ describe("Organization Chart layout audited save feedback", () => {
   it("prevents a read-only user from writing layouts", () => {
     show(vi.fn(), false);
     expect(screen.getByRole("button", { name: "บันทึกโครงสร้างผัง" })).toBeDisabled();
+    expect(api.update).not.toHaveBeenCalled();
+  });
+
+  it("distinguishes a saved A/B layout from pending edits and identifies the unit Revision", () => {
+    show(vi.fn());
+    expect(screen.getByText("บันทึกแล้ว: แบบ A")).toBeInTheDocument();
+    expect(screen.getByText("Unit Revision: 3")).toBeInTheDocument();
+    expect(screen.getByText("ตรงกับข้อมูลที่บันทึก")).toBeInTheDocument();
+    fireEvent.change(screen.getByRole("spinbutton", { name: "ระดับชั้น" }), { target: { value: "2" } });
+    expect(screen.getByText("มีการแก้ไขที่ยังไม่บันทึก")).toBeInTheDocument();
+    expect(screen.getByText("มีการเปลี่ยนแปลงผังที่ยังไม่ได้บันทึก")).toBeInTheDocument();
+  });
+
+  it("previews legacy Cards as visible personnel/position cards rather than an empty panel", () => {
+    render(
+      <OrganizationChartLayoutEditor
+        unit={{ ...unit, chart_mode: "cards" }}
+        positions={[position]}
+        assignments={[]}
+        personnel={[]}
+        canManage
+        allPositionsLoaded
+        onSaved={vi.fn()}
+      />
+    );
+    expect(screen.getByText("ตัวอย่าง Cards (รูปแบบเดิม)")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "ตำแหน่งของงานธุรการ" })).toBeInTheDocument();
+    expect(screen.getByText("หัวหน้างาน")).toBeInTheDocument();
+    expect(screen.getByText("ยังไม่ได้ระบุผู้ดำรงตำแหน่ง")).toBeInTheDocument();
+  });
+
+  it("blocks saving an inconsistent content/unit revision before calling the Worker", () => {
+    render(
+      <OrganizationChartLayoutEditor
+        unit={{ ...unit, content_revision: 4, unit_revision: 3 }}
+        positions={[position]}
+        assignments={[]}
+        personnel={[]}
+        canManage
+        allPositionsLoaded
+        onSaved={vi.fn()}
+      />
+    );
+    expect(screen.getByRole("alert")).toHaveTextContent("Revision ของหน่วยงานไม่ตรงกัน");
+    expect(screen.getByRole("button", { name: "บันทึกโครงสร้างผัง" })).toBeDisabled();
+    expect(api.update).not.toHaveBeenCalled();
+  });
+
+  it("rejects a 409 stale-revision race and prevents retrying the old revision", async () => {
+    api.update.mockRejectedValueOnce(new AdminStaleRevisionError());
+    const onSaved = vi.fn();
+    show(onSaved);
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกโครงสร้างผัง" }));
+    await waitFor(() => expect(api.update).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Revision เปลี่ยนแล้ว"));
+    expect(screen.getByRole("button", { name: "บันทึกโครงสร้างผัง" })).toBeDisabled();
+    expect(onSaved).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกโครงสร้างผัง" }));
+    expect(api.update).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a committed layout locked until the next Revision is loaded, even when refresh succeeds", async () => {
+    const onSaved = vi.fn().mockResolvedValue(undefined);
+    show(onSaved);
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกโครงสร้างผัง" }));
+    await waitFor(() => expect(showSuccessResult).toHaveBeenCalledWith("บันทึกผังองค์กรสำเร็จ"));
+    expect(onSaved).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: "บันทึกโครงสร้างผัง" })).toBeDisabled();
+    expect(screen.getByText("ตรงกับข้อมูลที่บันทึก")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกโครงสร้างผัง" }));
+    expect(api.update).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not allow a read-only editor to switch the saved A/B/Cards selection", () => {
+    show(vi.fn(), false);
+    expect(screen.getByRole("combobox", { name: "รูปแบบผัง" })).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByRole("spinbutton", { name: "ระดับชั้น" })).toBeDisabled();
     expect(api.update).not.toHaveBeenCalled();
   });
 });
