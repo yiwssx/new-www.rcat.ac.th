@@ -437,7 +437,7 @@ test.describe("Organization V2.2 Phase 5 final browser regression", () => {
         return children
           ? {
               branchCount: children.querySelectorAll(":scope > li").length,
-              line: getComputedStyle(children, "::before").borderTopWidth
+              line: getComputedStyle(children, "::before").borderLeftWidth
             }
           : null;
       });
