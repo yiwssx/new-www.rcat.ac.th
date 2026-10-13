@@ -104,6 +104,13 @@ describe("Phase 4 Organization Admin list/editor", () => {
     expect(screen.getByText(guidance)).toBeInTheDocument();
   });
 
+  it("retains contextual guidance on the legacy Organization landing page", () => {
+    renderPage("legacy");
+    expect(screen.getByRole("heading", { name: "ผังองค์กร", level: 1 })).toBeInTheDocument();
+    expect(screen.getByText("ภาพรวมหน่วยงาน บุคลากร ตำแหน่ง และการมอบหมายหน้าที่")).toBeInTheDocument();
+    expect(screen.queryByText(/จัดการหน่วยงานแยกจากเนื้อหาทั่วไป/)).not.toBeInTheDocument();
+  });
+
   it("searches all organization units on the server beyond the initially loaded page", async () => {
     api.getCollection.mockImplementation(
       async (collection: string, _limit: number, _offset = 0, options?: { search?: string }) => ({
