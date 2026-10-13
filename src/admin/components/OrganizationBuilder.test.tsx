@@ -121,7 +121,14 @@ describe("Phase 6 accessible Organization builder", () => {
 
   it("keeps the chart submenu focused on the layout editor without duplicate duty cards", async () => {
     setup(false, "charts");
+    expect(screen.queryByRole("tree", { name: "โครงสร้างหน่วยงาน" })).not.toBeInTheDocument();
+    const showNavigator = screen.getByRole("button", { name: "เปิดรายการลำดับชั้น (สำหรับเลือกหน่วยงาน)" });
+    expect(showNavigator).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(showNavigator);
+    expect(screen.getByRole("tree", { name: "โครงสร้างหน่วยงาน" })).toBeInTheDocument();
     fireEvent.click(screen.getByText("งานสารบรรณ"));
+    fireEvent.click(screen.getByRole("button", { name: "ซ่อนรายการลำดับชั้น" }));
+    expect(screen.queryByRole("tree", { name: "โครงสร้างหน่วยงาน" })).not.toBeInTheDocument();
     expect(await screen.findByText("จัดระดับและผังบุคลากร")).toBeInTheDocument();
     expect(screen.queryByText("อันดับ 1")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "แก้ไขตำแหน่ง" })).not.toBeInTheDocument();
@@ -130,6 +137,12 @@ describe("Phase 6 accessible Organization builder", () => {
       includeTotal: true,
       unitContentId: "work-1"
     });
+  });
+
+  it("keeps the vertical tree visible on the positions and legacy pages", () => {
+    setup(false, "positions");
+    expect(screen.getByRole("tree", { name: "โครงสร้างหน่วยงาน" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /เปิดรายการลำดับชั้น/ })).not.toBeInTheDocument();
   });
 
   it("shows a nested unit navigator and position details to read-only editors without writes", async () => {
