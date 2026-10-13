@@ -105,6 +105,37 @@ function PeopleCard({
   );
 }
 
+/**
+ * One position may have several personnel assignments. Render them as adjacent
+ * portrait cards; otherwise a single "teacher" slot becomes an endless vertical
+ * column even when the hierarchy itself is correctly top-down.
+ */
+function PositionCards({
+  position,
+  media,
+  showEducationQualifications
+}: Pick<Props, "media" | "showEducationQualifications"> & { position: PublicOrganizationPosition }) {
+  const cards = position.assignments.length
+    ? position.assignments.map((assignment) => ({ ...position, assignments: [assignment] }))
+    : [position];
+
+  return (
+    <Box
+      data-org-position-cards={position.id}
+      sx={{ display: "flex", flexDirection: "row", alignItems: "stretch", justifyContent: "center", gap: 2, width: "max-content" }}
+    >
+      {cards.map((card) => (
+        <PeopleCard
+          key={card.assignments[0]?.id ?? position.id}
+          position={card}
+          media={media}
+          showEducationQualifications={showEducationQualifications}
+        />
+      ))}
+    </Box>
+  );
+}
+
 export default function OrganizationChartView({ positions, layout, media, showEducationQualifications, mode }: Props) {
   const sorted = useMemo(
     () =>
@@ -172,7 +203,7 @@ export default function OrganizationChartView({ positions, layout, media, showEd
                   }}
                 >
                   {group.positions.map((position) => (
-                    <PeopleCard
+                    <PositionCards
                       key={position.id}
                       position={position}
                       media={media}
@@ -260,7 +291,7 @@ export default function OrganizationChartView({ positions, layout, media, showEd
                     : {}
               }}
             >
-              <PeopleCard position={position} media={media} showEducationQualifications={showEducationQualifications} />
+              <PositionCards position={position} media={media} showEducationQualifications={showEducationQualifications} />
               {hasChildren && branch(position.id, next)}
             </Box>
           );
