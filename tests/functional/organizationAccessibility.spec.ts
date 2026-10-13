@@ -500,7 +500,9 @@ test.describe("Organization field regression: Cards positions should not be a ve
       expect(right!.x).toBeGreaterThan(left!.x);
       expect(Math.abs(right!.y - left!.y)).toBeLessThanOrEqual(2);
       await expect(rail).toHaveClass(/rcat-focus-ring/);
-      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+      await expect
+        .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1))
+        .toBe(true);
     });
   }
 });

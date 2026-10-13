@@ -490,7 +490,11 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
           {(positionsQuery.isError || assignmentsQuery.isError || personnelQuery.isError) && (
             <Alert severity="error">โหลดข้อมูลตำแหน่ง/หน้าที่/บุคลากรไม่สำเร็จ กรุณารีเฟรช</Alert>
           )}
-          <Stack direction={view === "charts" ? "column" : { xs: "column", md: "row" }} spacing={2} sx={{ minWidth: 0 }}>
+          <Stack
+            direction={view === "charts" ? "column" : { xs: "column", md: "row" }}
+            spacing={2}
+            sx={{ minWidth: 0 }}
+          >
             <Box sx={{ width: view === "charts" ? "100%" : { xs: "100%", md: "35%" }, minWidth: 0 }}>
               <Typography variant="h3" sx={{ fontSize: "1rem", mb: 1 }}>
                 {view === "charts" ? "เลือกหน่วยงานสำหรับจัดผัง" : "ลำดับชั้นหน่วยงาน"}
@@ -547,33 +551,42 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                 </Button>
               )}
               {showUnitNavigator && (
-              <Box id="organization-vertical-navigator" component="nav" aria-label="โครงสร้างหน่วยงาน" sx={{ maxHeight: 480, overflowY: "auto" }}>
-                <RichTreeView
-                  items={treeItems}
-                  selectedItems={selectedUnitId}
-                  expandedItems={expandedTreeIds}
+                <Box
+                  id="organization-vertical-navigator"
+                  component="nav"
                   aria-label="โครงสร้างหน่วยงาน"
-                  onExpandedItemsChange={(_event, expanded) => {
-                    setCollapsedUnitIds(
-                      hierarchy.map(({ unit }) => unit.content_id).filter((id) => !expanded.includes(id))
-                    );
-                  }}
-                  onSelectedItemsChange={(_event, id) => {
-                    if (typeof id !== "string") return;
-                    setSelectedUnitId(id);
-                    setSelectedUnitSnapshot(units.find((unit) => unit.content_id === id) ?? null);
-                    setError("");
-                  }}
-                  sx={{ "& .MuiTreeItem-label": { whiteSpace: "normal", overflowWrap: "anywhere" } }}
-                />
-              </Box>
+                  sx={{ maxHeight: 480, overflowY: "auto" }}
+                >
+                  <RichTreeView
+                    items={treeItems}
+                    selectedItems={selectedUnitId}
+                    expandedItems={expandedTreeIds}
+                    aria-label="โครงสร้างหน่วยงาน"
+                    onExpandedItemsChange={(_event, expanded) => {
+                      setCollapsedUnitIds(
+                        hierarchy.map(({ unit }) => unit.content_id).filter((id) => !expanded.includes(id))
+                      );
+                    }}
+                    onSelectedItemsChange={(_event, id) => {
+                      if (typeof id !== "string") return;
+                      setSelectedUnitId(id);
+                      setSelectedUnitSnapshot(units.find((unit) => unit.content_id === id) ?? null);
+                      setError("");
+                    }}
+                    sx={{ "& .MuiTreeItem-label": { whiteSpace: "normal", overflowWrap: "anywhere" } }}
+                  />
+                </Box>
               )}
             </Box>
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Stack spacing={2}>
                 <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ justifyContent: "space-between" }}>
                   <Typography variant="h3" sx={{ fontSize: "1rem", overflowWrap: "anywhere" }}>
-                    {selectedUnit ? "ตำแหน่งใน " + selectedUnit.title : view === "charts" ? "ค้นหาหรือเปิดรายการหน่วยงานเพื่อจัดผัง" : "เลือกหน่วยงานจากรายการด้านซ้าย"}
+                    {selectedUnit
+                      ? "ตำแหน่งใน " + selectedUnit.title
+                      : view === "charts"
+                        ? "ค้นหาหรือเปิดรายการหน่วยงานเพื่อจัดผัง"
+                        : "เลือกหน่วยงานจากรายการด้านซ้าย"}
                   </Typography>
                   {selectedUnit && canManage && view !== "charts" && (
                     <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
