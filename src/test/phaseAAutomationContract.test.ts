@@ -54,10 +54,10 @@ describe("Phase A automation contract", () => {
 
     const result = execFileSync(
       process.execPath,
-      ["--test", join(repositoryRoot, "scripts", "check-vercel-github-deployment.test.mjs")],
+      ["--test", join(repositoryRoot, "scripts", "check-vercel-github-deployment.node-suite.mjs")],
       { cwd: repositoryRoot, encoding: "utf8", timeout: 20_000 }
     );
-    expect(result).toContain("# fail 0");
+    expect(result).toContain("accepts only exact-SHA Vercel Production success");
   });
 
   it("waits for the matching Vercel status and only runs browser smoke when deployment exists", () => {
