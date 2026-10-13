@@ -2,7 +2,6 @@ import BadgeOutlinedIcon from "@mui/icons-material/BadgeOutlined";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
-import Grid from "@mui/material/Grid";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { PublicOrganizationPosition, PublicOrganizationUnit } from "../../features/public-organization";
@@ -133,17 +132,26 @@ export default function OrganizationUnitPositionContent({ unit, positions, media
           mode={unit.chartMode}
         />
       ) : (
-        <Grid container spacing={1.5} aria-label={"ตำแหน่งของ" + unit.title}>
-          {positions.map((position) => (
-            <Grid key={position.id} size={{ xs: 12 }}>
-              <PositionGroup
-                position={position}
-                media={media}
-                showEducationQualifications={showEducationQualifications}
-              />
-            </Grid>
-          ))}
-        </Grid>
+        <Box
+          component="div"
+          role="region"
+          tabIndex={0}
+          className="rcat-focus-ring"
+          aria-label={"ตำแหน่งของ" + unit.title + " เลื่อนแนวนอนได้"}
+          sx={{ maxWidth: "100%", minWidth: 0, overflowX: "auto", overscrollBehaviorX: "contain", pb: 1 }}
+        >
+          <Box sx={{ display: "flex", flexWrap: "nowrap", gap: 1.5, width: "max-content", minWidth: "100%" }}>
+            {positions.map((position) => (
+              <Box key={position.id} sx={{ flex: "0 0 244px", width: 244 }}>
+                <PositionGroup
+                  position={position}
+                  media={media}
+                  showEducationQualifications={showEducationQualifications}
+                />
+              </Box>
+            ))}
+          </Box>
+        </Box>
       )}
     </Box>
   );
