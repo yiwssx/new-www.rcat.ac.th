@@ -128,7 +128,6 @@ export default function OrganizationChartView({ positions, layout, media, showEd
     return result;
   }, [layout, sorted]);
 
-
   if (mode === "rows") {
     return (
       <Box
@@ -167,7 +166,9 @@ export default function OrganizationChartView({ positions, layout, media, showEd
                 aria-label={`แถวระดับ ${group.level} แถว ${group.row} เลื่อนแนวนอนได้`}
                 sx={{ maxWidth: "100%", minWidth: 0, overflowX: "auto", pb: 1 }}
               >
-                <Box sx={{ display: "flex", flexDirection: "row", gap: 2, alignItems: "stretch", width: "max-content" }}>
+                <Box
+                  sx={{ display: "flex", flexDirection: "row", gap: 2, alignItems: "stretch", width: "max-content" }}
+                >
                   {group.positions.map((position) => (
                     <PeopleCard
                       key={position.id}
@@ -276,7 +277,15 @@ export default function OrganizationChartView({ positions, layout, media, showEd
       className="rcat-focus-ring"
       data-org-position-flow="left-to-right"
       aria-label="ผังสายบังคับบัญชา เลื่อนแนวนอนเพื่อดูตำแหน่งทั้งหมด"
-      sx={{ width: "100%", minWidth: 0, maxWidth: "100%", overflowX: "auto", pb: 2, outlineOffset: 2, overscrollBehaviorX: "contain" }}
+      sx={{
+        width: "100%",
+        minWidth: 0,
+        maxWidth: "100%",
+        overflowX: "auto",
+        pb: 2,
+        outlineOffset: 2,
+        overscrollBehaviorX: "contain"
+      }}
     >
       <Box sx={{ width: "max-content", minWidth: "100%" }}>{branch(null, new Set())}</Box>
     </Box>

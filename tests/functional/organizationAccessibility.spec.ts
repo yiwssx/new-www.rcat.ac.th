@@ -376,10 +376,18 @@ test.describe("Organization V2.2 Phase 3 mixed position charts", () => {
         await expect(
           page.getByRole("region", { name: /ผังสายบังคับบัญชา/ }).getByText("หัวหน้างานหลักสูตร")
         ).toBeAttached();
-        await expect(page.getByRole("region", { name: "ผังบุคลากรตามหน่วยงาน" }).getByText("งานประสานทะเบียน")).toBeAttached();
-        await expect(page.getByRole("region", { name: "ผังบุคลากรตามหน่วยงาน" }).getByText("ยังไม่มีผู้ดำรงตำแหน่ง")).toBeAttached();
-        await expect(page.getByRole("region", { name: "ผังบุคลากรตามหน่วยงาน" }).getByText("บุคลากรทดสอบ")).toHaveCount(2);
-        await expect(page.getByRole("region", { name: "ผังบุคลากรตามหน่วยงาน" }).getByText("งานทะเบียนควบคู่")).toHaveCount(1);
+        await expect(
+          page.getByRole("region", { name: "ผังบุคลากรตามหน่วยงาน" }).getByText("งานประสานทะเบียน")
+        ).toBeAttached();
+        await expect(
+          page.getByRole("region", { name: "ผังบุคลากรตามหน่วยงาน" }).getByText("ยังไม่มีผู้ดำรงตำแหน่ง")
+        ).toBeAttached();
+        await expect(page.getByRole("region", { name: "ผังบุคลากรตามหน่วยงาน" }).getByText("บุคลากรทดสอบ")).toHaveCount(
+          2
+        );
+        await expect(
+          page.getByRole("region", { name: "ผังบุคลากรตามหน่วยงาน" }).getByText("งานทะเบียนควบคู่")
+        ).toHaveCount(1);
         await expect(page.getByRole("region", { name: "ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้" })).toHaveCount(1);
         await expect
           .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1))
@@ -414,9 +422,15 @@ test.describe("Organization V2.2 Phase 5 final browser regression", () => {
       await expect(tree).toBeAttached();
       await expect(rows).toHaveClass(/rcat-focus-ring/);
       await expect(tree).toHaveClass(/rcat-focus-ring/);
-      await expect(page.getByRole("region", { name: "ผังบุคลากรตามหน่วยงาน" }).getByText("งานประสานทะเบียน")).toHaveCount(1);
-      await expect(page.getByRole("region", { name: "ผังบุคลากรตามหน่วยงาน" }).getByText("บุคลากรทดสอบ")).toHaveCount(2);
-      await expect(page.getByRole("region", { name: "ผังบุคลากรตามหน่วยงาน" }).getByText("งานทะเบียนควบคู่")).toHaveCount(1);
+      await expect(
+        page.getByRole("region", { name: "ผังบุคลากรตามหน่วยงาน" }).getByText("งานประสานทะเบียน")
+      ).toHaveCount(1);
+      await expect(page.getByRole("region", { name: "ผังบุคลากรตามหน่วยงาน" }).getByText("บุคลากรทดสอบ")).toHaveCount(
+        2
+      );
+      await expect(
+        page.getByRole("region", { name: "ผังบุคลากรตามหน่วยงาน" }).getByText("งานทะเบียนควบคู่")
+      ).toHaveCount(1);
       await expect(tree.getByText("หัวหน้างานหลักสูตร")).toBeAttached();
       await expect(tree.getByText("ผู้ช่วยงานหลักสูตร")).toBeAttached();
 

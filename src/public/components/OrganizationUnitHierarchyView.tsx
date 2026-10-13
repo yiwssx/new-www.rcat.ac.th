@@ -188,7 +188,12 @@ export default function OrganizationUnitHierarchyView({
             </Box>
           </Box>
           {positionedUnits.length > 0 && (
-            <Stack component="section" spacing={3} aria-label="ผังบุคลากรตามหน่วยงาน" sx={{ minWidth: 0, width: "100%" }}>
+            <Stack
+              component="section"
+              spacing={3}
+              aria-label="ผังบุคลากรตามหน่วยงาน"
+              sx={{ minWidth: 0, width: "100%" }}
+            >
               <Typography variant="h2" sx={{ fontSize: "1.4rem", fontWeight: 700 }}>
                 ผังบุคลากร
               </Typography>

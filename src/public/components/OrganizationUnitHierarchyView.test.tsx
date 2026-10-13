@@ -151,7 +151,9 @@ describe("Organization V2.2 Phase 3 position composition", () => {
     );
     const rootPositions = screen.getByRole("region", { name: "ผังบุคลากรตามหน่วยงาน" });
     const leadSection = within(rootPositions).getByRole("region", { name: "แถวระดับ 1 แถว 1 เลื่อนแนวนอนได้" });
-    expect(screen.getByRole("region", { name: "ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้" })).not.toContainElement(leadSection);
+    expect(screen.getByRole("region", { name: "ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้" })).not.toContainElement(
+      leadSection
+    );
     expect(within(rootPositions).getByRole("region", { name: "ผังบุคลากร หน่วยงาน root" })).toBeInTheDocument();
     expect(within(leadSection).getByText("ตำแหน่ง lead")).toBeInTheDocument();
     expect(screen.getByRole("region", { name: /ผังสายบังคับบัญชา/ })).toBeInTheDocument();
@@ -186,7 +188,9 @@ describe("Organization V2.2 Phase 3 position composition", () => {
     render(
       <OrganizationUnitHierarchyView
         hierarchy={buildPublicOrganizationHierarchy([root], "root")}
-        positionsByUnit={new Map([["root", [position("lead", "root", "person-1"), position("deputy", "root", "person-2")]]])}
+        positionsByUnit={
+          new Map([["root", [position("lead", "root", "person-1"), position("deputy", "root", "person-2")]]])
+        }
       />
     );
     const diagram = screen.getByRole("region", { name: "ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้" });
