@@ -551,12 +551,13 @@ test.describe("Organization field regression: no phantom header or narrow vertic
   }
 });
 
-
 test("organization route has no React 418 hydration error or phantom shell skeleton", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const hydrationErrors: string[] = [];
   const recordHydrationError = (text: string) => {
-    if (/react\.dev\/errors\/418|Minified React error #418|hydration (failed|mismatch)|server rendered HTML/i.test(text)) {
+    if (
+      /react\.dev\/errors\/418|Minified React error #418|hydration (failed|mismatch)|server rendered HTML/i.test(text)
+    ) {
       hydrationErrors.push(text);
     }
   };
