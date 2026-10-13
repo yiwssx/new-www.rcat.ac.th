@@ -89,6 +89,18 @@ describe("Organization Chart layout audited save feedback", () => {
     expect(screen.getByText(/แบบ A: จัดตำแหน่งตามระดับจากบนลงล่าง/)).toBeInTheDocument();
   });
 
+  it("does not write if an unsaved level change is reverted", () => {
+    show(vi.fn());
+    changeSavedLevel();
+    const save = screen.getByRole("button", { name: "บันทึกโครงสร้างผัง" });
+    expect(save).toBeEnabled();
+
+    fireEvent.change(screen.getByRole("spinbutton", { name: "ระดับชั้น" }), { target: { value: "1" } });
+    expect(save).toBeDisabled();
+    expect(screen.getByText("ตรงกับข้อมูลที่บันทึก")).toBeInTheDocument();
+    expect(api.update).not.toHaveBeenCalled();
+  });
+
   it("reports committed saves as successful even when revision refresh fails", async () => {
     const onSaved = vi.fn().mockRejectedValue(new Error("refresh unavailable"));
     show(onSaved);
