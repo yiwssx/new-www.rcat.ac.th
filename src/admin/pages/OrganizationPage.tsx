@@ -46,14 +46,45 @@ function humanError(error: unknown) {
 export type OrganizationManagementView =
   "overview" | "units" | "personnel" | "positions" | "assignments" | "charts" | "legacy";
 
-const organizationPageHeadings: Record<OrganizationManagementView, { title: string; icon: ReactNode }> = {
-  overview: { title: "ภาพรวมองค์กร", icon: <CorporateFareOutlinedIcon color="primary" /> },
-  units: { title: "จัดการหน่วยงาน", icon: <BusinessOutlinedIcon color="primary" /> },
-  personnel: { title: "ทะเบียนบุคลากร", icon: <BadgeOutlinedIcon color="primary" /> },
-  positions: { title: "จัดการตำแหน่ง", icon: <WorkOutlineOutlinedIcon color="primary" /> },
-  assignments: { title: "มอบหมายหน้าที่", icon: <AssignmentIndOutlinedIcon color="primary" /> },
-  charts: { title: "จัดผังองค์กร", icon: <HubOutlinedIcon color="primary" /> },
-  legacy: { title: "ผังองค์กร", icon: <CorporateFareOutlinedIcon color="primary" /> }
+const organizationPageHeadings: Record<
+  OrganizationManagementView,
+  { title: string; description: string; icon: ReactNode }
+> = {
+  overview: {
+    title: "ภาพรวมองค์กร",
+    description: "สรุปจำนวนหน่วยงาน บุคลากร ตำแหน่ง และหน้าที่ที่บันทึกในระบบ",
+    icon: <CorporateFareOutlinedIcon color="primary" />
+  },
+  units: {
+    title: "จัดการหน่วยงาน",
+    description: "เพิ่มหรือแก้ไขหน่วยงานและลำดับสังกัด โดยไม่กระทบทะเบียนบุคลากร",
+    icon: <BusinessOutlinedIcon color="primary" />
+  },
+  personnel: {
+    title: "ทะเบียนบุคลากร",
+    description: "จัดการข้อมูลบุคลากรส่วนกลาง เพื่อใช้ร่วมกันได้ในหลายตำแหน่ง",
+    icon: <BadgeOutlinedIcon color="primary" />
+  },
+  positions: {
+    title: "จัดการตำแหน่ง",
+    description: "เลือกหน่วยงานเพื่อเพิ่ม แก้ไข และจัดลำดับตำแหน่ง",
+    icon: <WorkOutlineOutlinedIcon color="primary" />
+  },
+  assignments: {
+    title: "มอบหมายหน้าที่",
+    description: "เชื่อมบุคลากรกับตำแหน่งและระบุหน้าที่ โดยไม่สร้างทะเบียนซ้ำ",
+    icon: <AssignmentIndOutlinedIcon color="primary" />
+  },
+  charts: {
+    title: "จัดผังองค์กร",
+    description: "เลือกหน่วยงาน ตรวจตัวอย่าง และปรับระดับหรือสายบังคับบัญชาก่อนบันทึก",
+    icon: <HubOutlinedIcon color="primary" />
+  },
+  legacy: {
+    title: "ผังองค์กร",
+    description: "ภาพรวมหน่วยงาน บุคลากร ตำแหน่ง และการมอบหมายหน้าที่",
+    icon: <CorporateFareOutlinedIcon color="primary" />
+  }
 };
 
 export default function OrganizationPage({ view = "legacy" }: { view?: OrganizationManagementView }) {
@@ -269,7 +300,7 @@ export default function OrganizationPage({ view = "legacy" }: { view?: Organizat
           </Typography>
         </Stack>
         <Typography color="text.secondary" sx={{ mt: 1 }}>
-          จัดการหน่วยงานแยกจากเนื้อหาทั่วไป โดยระบบตรวจสอบสิทธิ์และ Revision ก่อนบันทึก
+          {organizationPageHeadings[view].description}
         </Typography>
       </Box>
       {!canManage && (
