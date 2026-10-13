@@ -360,7 +360,6 @@ test.describe("Organization V2.2 Phase 3 mixed position charts", () => {
   }
 });
 
-
 test.describe("Organization V2.2 Phase 5 final browser regression", () => {
   for (const width of [390, 768, 1280, 1440]) {
     test("mixed A/B/Cards chart, connectors, WCAG and keyboard at " + width + "px", async ({ page }) => {
@@ -394,13 +393,17 @@ test.describe("Organization V2.2 Phase 5 final browser regression", () => {
 
       const connectors = await hierarchy.getByRole("link", { name: "ฝ่ายวิชาการ" }).evaluate((link) => {
         const children = link.closest("li")?.querySelector(":scope > ul");
-        return children ? {
-          branchCount: children.querySelectorAll(":scope > li").length,
-          line: getComputedStyle(children, "::before").borderLeftWidth
-        } : null;
+        return children
+          ? {
+              branchCount: children.querySelectorAll(":scope > li").length,
+              line: getComputedStyle(children, "::before").borderLeftWidth
+            }
+          : null;
       });
       expect(connectors).toEqual({ branchCount: 3, line: "2px" });
-      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+      await expect
+        .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1))
+        .toBe(true);
 
       await hierarchy.focus();
       await expect(hierarchy).toBeFocused();
@@ -414,7 +417,9 @@ test.describe("Organization V2.2 Phase 5 final browser regression", () => {
         .include("main")
         .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
         .analyze();
-      expect(audit.violations.map((v) => ({ id: v.id, impact: v.impact, targets: v.nodes.map((n) => n.target) }))).toEqual([]);
+      expect(
+        audit.violations.map((v) => ({ id: v.id, impact: v.impact, targets: v.nodes.map((n) => n.target) }))
+      ).toEqual([]);
       expect(detailCalls).toBeLessThanOrEqual(2);
     });
   }

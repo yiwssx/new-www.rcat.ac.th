@@ -186,5 +186,4 @@ describe("Organization Chart layout audited save feedback", () => {
     expect(screen.getByRole("spinbutton", { name: "ระดับชั้น" })).toBeDisabled();
     expect(api.update).not.toHaveBeenCalled();
   });
-
 });
