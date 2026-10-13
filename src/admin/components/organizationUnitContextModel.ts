@@ -26,4 +26,3 @@ export function focusedUnitContext(
     missingParent: Boolean(selected.parent_content_id && !parent)
   };
 }
-
