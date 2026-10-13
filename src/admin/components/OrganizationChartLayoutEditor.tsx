@@ -309,7 +309,7 @@ export default function OrganizationChartLayoutEditor({
                 <Button
                   variant="outlined"
                   aria-expanded={showPositionControls}
-                  aria-controls="organization-position-layout-fields"
+                  aria-controls={showPositionControls ? "organization-position-layout-fields" : undefined}
                   onClick={() => setShowPositionControls((current) => !current)}
                 >
                   {showPositionControls
