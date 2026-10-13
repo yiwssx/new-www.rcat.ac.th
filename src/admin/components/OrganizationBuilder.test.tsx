@@ -127,9 +127,10 @@ describe("Phase 6 accessible Organization builder", () => {
     expect(showNavigator).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(showNavigator);
     expect(screen.getByRole("tree", { name: "โครงสร้างหน่วยงาน" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("treeitem", { name: "งานสารบรรณ" }));
     fireEvent.click(screen.getByRole("button", { name: "ซ่อนรายการลำดับชั้น" }));
     expect(screen.queryByRole("tree", { name: "โครงสร้างหน่วยงาน" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /งานสารบรรณ/ }));
+    expect(await screen.findByText("ตำแหน่งใน งานสารบรรณ")).toBeInTheDocument();
     expect(await screen.findByText("จัดระดับและผังบุคลากร")).toBeInTheDocument();
     expect(screen.queryByText("อันดับ 1")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "แก้ไขตำแหน่ง" })).not.toBeInTheDocument();
@@ -151,7 +152,7 @@ describe("Phase 6 accessible Organization builder", () => {
   it("shows a nested unit navigator and position details to read-only editors without writes", async () => {
     setup(false);
     fireEvent.click(screen.getByText("งานสารบรรณ"));
-    expect(await screen.findByText("หัวหน้างาน")).toBeInTheDocument();
+    expect((await screen.findAllByText("หัวหน้างาน")).length).toBeGreaterThan(0);
     expect(screen.getByRole("navigation", { name: "โครงสร้างหน่วยงาน" })).toBeInTheDocument();
     expect(screen.getByRole("tree", { name: "โครงสร้างหน่วยงาน" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "เพิ่มตำแหน่ง" })).not.toBeInTheDocument();
@@ -402,7 +403,7 @@ describe("Phase 6 accessible Organization builder", () => {
     fireEvent.click(screen.getByText("งานสารบรรณ"));
     expect(await screen.findByText(/ยังไม่พบตำแหน่งของหน่วยงานนี้ในรายการที่โหลด/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "โหลดตำแหน่งเพิ่มเติม" }));
-    expect(await screen.findByText("เจ้าหน้าที่ประสานงาน")).toBeInTheDocument();
+    expect((await screen.findAllByText("เจ้าหน้าที่ประสานงาน")).length).toBeGreaterThanOrEqual(2);
     expect(api.list).toHaveBeenCalledWith("positions", 100, 100);
   });
 
