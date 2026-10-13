@@ -25,7 +25,6 @@ import {
 import type { PublicOrganizationPosition } from "../../features/public-organization";
 import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 import OrganizationChartView from "../../public/components/OrganizationChartView";
-import OrganizationUnitPositionContent from "../../public/components/OrganizationUnitPositionContent";
 import { isAdminStaleRevisionError } from "../../features/admin-write/errors";
 
 interface Props {
@@ -233,6 +232,107 @@ export default function OrganizationChartLayoutEditor({
               บันทึกผังแล้ว กำลังโหลด Revision ล่าสุดก่อนอนุญาตให้แก้ไขอีกครั้ง
             </Alert>
           )}
+          <Box
+            component="section"
+            role="region"
+            aria-label="ตัวอย่างผังองค์กรแนวนอน ก่อนบันทึก"
+            data-organization-preview="horizontal"
+            sx={{
+              width: "100%",
+              minWidth: 0,
+              border: "1px solid",
+              borderColor: "divider",
+              borderRadius: 2,
+              p: { xs: 1, sm: 2 }
+            }}
+          >
+            <Stack spacing={1.5}>
+              <Typography variant="h4" sx={{ fontSize: "1.05rem", fontWeight: 700 }}>
+                ตัวอย่างผังแนวนอน — {unit.title}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                แสดงตำแหน่งจากซ้ายไปขวาก่อนบันทึก เลื่อนภายในกรอบนี้บนมือถือได้ และแก้ไขรายละเอียดด้านล่าง
+              </Typography>
+              {previewPositions.length === 0 ? (
+                <Alert severity="info">ยังไม่มีตำแหน่งในหน่วยงานนี้</Alert>
+              ) : (
+                <>
+                  <Box
+                    role="region"
+                    tabIndex={0}
+                    className="rcat-focus-ring"
+                    aria-label="ภาพรวมตำแหน่งแนวนอน เลื่อนดูได้"
+                    sx={{ maxWidth: "100%", minWidth: 0, overflowX: "auto", overscrollBehaviorX: "contain", pb: 1 }}
+                  >
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexWrap: "nowrap",
+                        gap: 1.5,
+                        width: "max-content",
+                        minWidth: "100%"
+                      }}
+                    >
+                      {[...previewPositions]
+                        .sort((a, b) => {
+                          const aa = chartPlacement(layout, a);
+                          const bb = chartPlacement(layout, b);
+                          return aa.level - bb.level || aa.row - bb.row || aa.order - bb.order || a.id.localeCompare(b.id);
+                        })
+                        .map((position) => (
+                          <Card key={position.id} variant="outlined" sx={{ flex: "0 0 224px", width: 224 }}>
+                            <CardContent sx={{ p: 1.5, "&:last-child": { pb: 1.5 } }}>
+                              <Typography sx={{ fontWeight: 700, overflowWrap: "anywhere" }}>{position.title}</Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                ระดับ {chartPlacement(layout, position).level} · แถว {chartPlacement(layout, position).row}
+                              </Typography>
+                              {position.assignments.length === 0 ? (
+                                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                                  ยังไม่มีผู้ดำรงตำแหน่ง
+                                </Typography>
+                              ) : (
+                                position.assignments.map((assignment) => (
+                                  <Stack key={assignment.id} spacing={0.25} sx={{ mt: 1 }}>
+                                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                      {assignment.person.displayName}
+                                    </Typography>
+                                    {assignment.dutyDetail && (
+                                      <Typography variant="caption">{assignment.dutyDetail}</Typography>
+                                    )}
+                                  </Stack>
+                                ))
+                              )}
+                            </CardContent>
+                          </Card>
+                        ))}
+                    </Box>
+                  </Box>
+                  {mode !== "cards" && (
+                    <Box sx={{ minWidth: 0, maxWidth: "100%" }}>
+                      <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                        ความสัมพันธ์ตำแหน่งตามแบบ {mode === "rows" ? "A" : "B"} ที่กำลังแก้ไข
+                      </Typography>
+                      <OrganizationChartView
+                        mode={mode}
+                        positions={previewPositions}
+                        layout={layout}
+                        media={new Map()}
+                        showEducationQualifications={unit.unit_kind === "department"}
+                      />
+                    </Box>
+                  )}
+                  {mode === "cards" && showCardsPreview && (
+                    <Typography variant="caption" color="text.secondary">
+                      รูปแบบ Cards จัดเรียงการ์ดตามลำดับแนวนอนเช่นเดียวกับหน้าสาธารณะ
+                    </Typography>
+                  )}
+                </>
+              )}
+              <Typography variant="caption" color="text.secondary">
+                ตัวอย่างใช้ข้อมูลที่โหลดแล้วเท่านั้น หน้าสาธารณะจะแสดงรูปภาพจาก Media Library เมื่อเผยแพร่
+              </Typography>
+            </Stack>
+          </Box>
           {(mode === "rows" || mode === "tree") && (
             <>
               <Stack spacing={1}>
@@ -348,46 +448,7 @@ export default function OrganizationChartLayoutEditor({
                   );
                 })}
               </Stack>
-              <Typography variant="h4" sx={{ fontSize: "1rem", fontWeight: 700 }}>
-                ตัวอย่างผัง
-              </Typography>
-              <OrganizationChartView
-                mode={mode}
-                positions={previewPositions}
-                layout={layout}
-                media={new Map()}
-                showEducationQualifications={unit.unit_kind === "department"}
-              />
-              <Typography variant="caption" color="text.secondary">
-                Preview ใช้ข้อมูลที่โหลดแล้วเท่านั้น ระบบเผยแพร่จะแสดงรูปภาพตามการตั้งค่า Media Library
-              </Typography>
             </>
-          )}
-          {showCardsPreview && mode === "cards" && (
-            <Stack spacing={1}>
-              <Typography variant="h4" sx={{ fontSize: "1rem", fontWeight: 700 }}>
-                ตัวอย่าง Cards (รูปแบบเดิม)
-              </Typography>
-              {previewPositions.length ? (
-                <OrganizationUnitPositionContent
-                  unit={{
-                    contentId: unit.content_id,
-                    parentContentId: unit.parent_content_id,
-                    slug: unit.slug,
-                    title: unit.title,
-                    summary: unit.summary,
-                    unitKind: unit.unit_kind,
-                    sortOrder: unit.sort_order,
-                    depth: 0,
-                    chartMode: "cards"
-                  }}
-                  positions={previewPositions}
-                  media={new Map()}
-                />
-              ) : (
-                <Alert severity="info">ยังไม่มีตำแหน่งในหน่วยงานนี้</Alert>
-              )}
-            </Stack>
           )}
           <Button
             variant="contained"
