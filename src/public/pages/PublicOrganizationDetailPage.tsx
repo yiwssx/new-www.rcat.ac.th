@@ -67,7 +67,6 @@ export default function PublicOrganizationDetailPage({ slug }: Props) {
         <Typography color="text.primary">{data.unit.title}</Typography>
       </Breadcrumbs>
       <Stack direction="row" spacing={1.5} sx={{ mb: 3, alignItems: "flex-start" }}>
-        <AccountTreeOutlinedIcon color="primary" sx={{ fontSize: 36, flexShrink: 0 }} aria-hidden="true" />
         <Box sx={{ minWidth: 0 }}>
           <Typography
             variant="h1"
