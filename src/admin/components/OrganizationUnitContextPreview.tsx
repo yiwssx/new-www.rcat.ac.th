@@ -83,7 +83,7 @@ export default function OrganizationUnitContextPreview({ selected, units, allUni
         1. ผังหน่วยงาน — ความสัมพันธ์ระหว่างฝ่าย งาน และแผนก
       </Typography>
       <Typography variant="body2" color="text.secondary">
-        แผนผังหน่วยงานไล่จากแม่ทางซ้ายไปหาลูกทางขวา ส่วนรูปแบบ A/B ด้านล่างใช้จัดตำแหน่งบุคลากรภายในหน่วยงานนั้นเท่านั้น
+        ผังหน่วยงานแสดงหน่วยงานแม่ไว้ด้านบน และหน่วยงานระดับเดียวกันเรียงแนวนอนด้านล่าง ส่วนรูปแบบ A/B ใช้จัดตำแหน่งบุคลากรภายในหน่วยงานที่เลือก
       </Typography>
       {(!allUnitsLoaded || context.missingParent) && (
         <Alert severity="info" role="status">
@@ -100,38 +100,57 @@ export default function OrganizationUnitContextPreview({ selected, units, allUni
         role="region"
         tabIndex={0}
         className="rcat-focus-ring"
-        aria-label="ตัวอย่างความสัมพันธ์หน่วยงานแนวนอน เลื่อนดูได้"
-        data-org-direction="left-to-right"
+        aria-label="ตัวอย่างผังหน่วยงานจากบนลงล่าง เลื่อนแนวนอนเพื่อดูหน่วยงานระดับเดียวกัน"
+        data-org-direction="top-down"
         sx={{ maxWidth: "100%", minWidth: 0, overflowX: "auto", overscrollBehaviorX: "contain", pb: 2, pt: 1 }}
       >
-        <Stack direction="row" sx={{ minWidth: "max-content", alignItems: "flex-start", px: 1 }}>
-          <Box component="ul" sx={{ p: 0, m: 0, display: "flex" }}>
+        <Stack
+          direction="column"
+          sx={{ width: "max-content", minWidth: "100%", alignItems: "center", px: 1 }}
+        >
+          <Box component="ul" data-org-level="parent" sx={{ p: 0, m: 0, display: "flex", justifyContent: "center" }}>
             <ContextNode unit={root} selected={root.content_id === selected.content_id} onSelect={onSelect} />
           </Box>
           {children.length > 0 && (
             <>
               <Box
                 aria-hidden="true"
-                sx={{ alignSelf: "flex-start", mt: "46px", width: 32, borderTop: "2px solid", borderColor: "divider" }}
+                sx={{ height: 20, borderLeft: "2px solid", borderColor: "divider" }}
               />
               <Box
                 component="ul"
+                data-org-level="peers"
                 sx={{
                   display: "flex",
-                  justifyContent: "flex-start",
+                  justifyContent: "center",
                   position: "relative",
                   gap: 1.5,
                   m: 0,
                   p: 0,
-                  "&::before": {
-                    content: '""',
-                    position: "absolute",
-                    top: 46,
-                    left: 0,
-                    right: 0,
-                    borderTop: "2px solid",
-                    borderColor: "divider",
-                    zIndex: 0
+                  pt: 3,
+                  "&::before":
+                    children.length > 1
+                      ? {
+                          content: '""',
+                          position: "absolute",
+                          top: 0,
+                          left: 104,
+                          right: 104,
+                          borderTop: "2px solid",
+                          borderColor: "divider"
+                        }
+                      : undefined,
+                  "& > li": {
+                    position: "relative",
+                    "&::before": {
+                      content: '""',
+                      position: "absolute",
+                      top: -24,
+                      left: "50%",
+                      height: 24,
+                      borderLeft: "2px solid",
+                      borderColor: "divider"
+                    }
                   }
                 }}
               >
