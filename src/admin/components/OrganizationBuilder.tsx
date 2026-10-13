@@ -806,6 +806,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                 personnel={personnel}
                 canManage={canManage}
                 allPositionsLoaded={!positionsQuery.hasNextPage && !positionsQuery.isPending && !positionsQuery.isError}
+                showCardsPreview={view === "charts"}
                 onSaved={refresh}
               />
             )}
