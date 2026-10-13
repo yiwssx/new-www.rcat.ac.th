@@ -57,6 +57,7 @@ on:
 
 permissions:
   contents: read
+  deployments: read
   statuses: read
 
 concurrency:
@@ -164,7 +165,23 @@ jobs:
                 exit 0
                 ;;
               failure|error) echo "Vercel deployment failed: $state ($description)" >&2; exit 1 ;;
-              pending|missing) sleep 10 ;;
+              pending|missing)
+                # The Vercel commit status may remain pending even when the
+                # exact-SHA production Deployment has succeeded. Ask GitHub's
+                # separate Deployments API; never infer readiness from HTTP 200,
+                # an older SHA, or a third-party deployment.
+                if node scripts/check-vercel-github-deployment.mjs; then
+                  echo "skip_smoke=false" >> "$GITHUB_OUTPUT"
+                  exit 0
+                else
+                  fallback_exit=$?
+                  case "$fallback_exit" in
+                    10) echo "skip_smoke=true" >> "$GITHUB_OUTPUT"; exit 0 ;;
+                    11) sleep 10 ;;
+                    *) echo "Cannot verify exact-SHA production deployment; fail closed." >&2; exit 1 ;;
+                  esac
+                fi
+                ;;
               *) echo "Unexpected Vercel commit status: $state ($description)" >&2; exit 1 ;;
             esac
           done
@@ -287,7 +304,23 @@ jobs:
                 exit 0
                 ;;
               failure|error) echo "Vercel deployment failed: $state ($description)" >&2; exit 1 ;;
-              pending|missing) sleep 10 ;;
+              pending|missing)
+                # The Vercel commit status may remain pending even when the
+                # exact-SHA production Deployment has succeeded. Ask GitHub's
+                # separate Deployments API; never infer readiness from HTTP 200,
+                # an older SHA, or a third-party deployment.
+                if node scripts/check-vercel-github-deployment.mjs; then
+                  echo "skip_smoke=false" >> "$GITHUB_OUTPUT"
+                  exit 0
+                else
+                  fallback_exit=$?
+                  case "$fallback_exit" in
+                    10) echo "skip_smoke=true" >> "$GITHUB_OUTPUT"; exit 0 ;;
+                    11) sleep 10 ;;
+                    *) echo "Cannot verify exact-SHA production deployment; fail closed." >&2; exit 1 ;;
+                  esac
+                fi
+                ;;
               *) echo "Unexpected Vercel commit status: $state ($description)" >&2; exit 1 ;;
             esac
           done

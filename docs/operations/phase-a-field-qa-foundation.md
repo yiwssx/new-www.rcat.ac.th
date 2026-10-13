@@ -14,7 +14,7 @@ The normal path is automation-first:
 2. repository CI completes successfully for that exact commit SHA;
 3. **Production Verification** classifies the commit diff with the same Vercel runtime-impact rules used by `scripts/vercel-ignore-build.mjs`;
 4. an expected Vercel `Ignored Build Step` / `Canceled by Ignored Build Step` status for a non-runtime-only change completes without browser smoke because no new production deployment exists;
-5. otherwise, the workflow requires the matching `Vercel` status to report success with a non-empty `target_url`, then runs production Playwright smoke against `https://www.rcat.ac.th`.
+5. otherwise, the workflow requires the matching `Vercel` commit status to report success with a non-empty `target_url`, **or** checks GitHub Deployments for a matching exact-SHA `Production` deployment created by the Vercel GitHub App, whose latest Deployment Status is `success` with a valid HTTPS URL. The deployed route is then checked by production Playwright smoke against `https://www.rcat.ac.th`.
 
 For documentation and test-contract purposes, an expected ignored build is a non-runtime-only change that the shared classifier intentionally permits Vercel to skip. A runtime-impacting change that is ignored remains a fail-closed condition.
 
@@ -71,7 +71,7 @@ It checks the exact CI `head_sha`, applies the repository's Vercel runtime-impac
 - successful deployment -> require a non-empty `target_url` before browser smoke;
 - Vercel failure/error, missing `target_url`, or bounded wait timeout -> fail closed.
 
-This is a commit-status gate, not a direct Vercel deployment-record lookup. It does not treat unrelated or older deployments as evidence for the target SHA.
+The primary gate uses Vercel's GitHub **commit status**. A documented connector delay can leave it permanently `pending` even while Vercel has a `READY` Production deployment and has assigned the public domain. In that case a **read-only GitHub Deployments API** fallback verifies the same exact 40-character SHA, the Production environment, Vercel App ownership, latest terminal Deployment Status, and HTTPS deployment URL. A pending, other-app, wrong-SHA, wrong-environment, stale or failed status does not pass. The fallback does **not** skip read-only browser smoke, broaden to untrusted commits, change Worker/D1, or require a Vercel token. No unrelated or older deployment is accepted.
 
 ## Manual fallback
 
