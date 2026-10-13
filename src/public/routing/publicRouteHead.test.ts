@@ -155,12 +155,26 @@ describe("public route head metadata", () => {
   it("percent-encodes Thai unit slugs in the public canonical and breadcrumb while preserving published names", () => {
     const slug = "งานทะเบียน-2569";
     const unit = {
-      contentId: "tha-1", parentContentId: null, unitKind: "work", sortOrder: 0,
-      slug, title: "งานทะเบียนและประมวลผล", summary: "", depth: 0
+      contentId: "tha-1",
+      parentContentId: null,
+      unitKind: "work",
+      sortOrder: 0,
+      slug,
+      title: "งานทะเบียนและประมวลผล",
+      summary: "",
+      depth: 0
     };
-    const head = getPublicOrganizationRouteHead(slug, {
-      unit, ancestors: [], units: [unit], positions: [], media: []
-    }, { loaderData: { siteSettings } });
+    const head = getPublicOrganizationRouteHead(
+      slug,
+      {
+        unit,
+        ancestors: [],
+        units: [unit],
+        positions: [],
+        media: []
+      },
+      { loaderData: { siteSettings } }
+    );
     const encoded = encodeURIComponent(slug);
     expect(head.links).toEqual([
       { rel: "canonical", href: projectSettings.site.publicSiteUrl + "/organization/" + encoded }
