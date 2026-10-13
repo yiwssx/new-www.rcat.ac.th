@@ -198,6 +198,35 @@ describe("Organization Chart layout audited save feedback", () => {
     expect(api.update).not.toHaveBeenCalled();
   });
 
+  it("retains read-only B-mode parent pickers behind the accessible large-unit toggle", () => {
+    const largePositions = Array.from({ length: 4 }, (_, index) => ({
+      ...position,
+      id: `position-${index + 1}`,
+      sort_order: index
+    }));
+    render(
+      <OrganizationChartLayoutEditor
+        unit={{ ...unit, chart_mode: "tree" }}
+        positions={largePositions}
+        assignments={[]}
+        personnel={[]}
+        canManage={false}
+        allPositionsLoaded
+        onSaved={vi.fn()}
+      />
+    );
+
+    const toggle = screen.getByRole("button", { name: "แสดงตัวเลือกจัดตำแหน่ง (4 ตำแหน่ง)" });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(toggle).not.toHaveAttribute("aria-controls");
+    fireEvent.click(toggle);
+    const openToggle = screen.getByRole("button", { name: "ซ่อนตัวเลือกจัดตำแหน่ง (4 ตำแหน่ง)" });
+    expect(openToggle).toHaveAttribute("aria-controls", "organization-position-layout-fields");
+    expect(screen.getAllByRole("combobox", { name: "ขึ้นตรงต่อตำแหน่ง" })).toHaveLength(4);
+    expect(screen.getByRole("button", { name: "บันทึกโครงสร้างผัง" })).toBeDisabled();
+    expect(api.update).not.toHaveBeenCalled();
+  });
+
   it("previews legacy Cards as visible personnel/position cards rather than an empty panel", () => {
     render(
       <OrganizationChartLayoutEditor
