@@ -140,6 +140,7 @@ export default function OrganizationChartView({ positions, layout, media, showEd
             <Box
               sx={{ overflowX: "auto", maxWidth: "100%", pb: 1 }}
               tabIndex={0}
+              className="rcat-focus-ring"
               role="region"
               aria-label={`แถวระดับ ${group.level} แถว ${group.row} เลื่อนแนวนอนได้`}
             >
@@ -253,6 +254,7 @@ export default function OrganizationChartView({ positions, layout, media, showEd
     <Box
       role="region"
       tabIndex={0}
+      className="rcat-focus-ring"
       aria-label="ผังสายบังคับบัญชา เลื่อนแนวนอนเพื่อดูตำแหน่งทั้งหมด"
       sx={{ maxWidth: "100%", overflowX: "auto", pb: 2, outlineOffset: 2 }}
     >
