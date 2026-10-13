@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { AdminStaleRevisionError } from "../../features/admin-write/errors";
 import type { OrganizationPositionRow, OrganizationUnitListRow } from "../../features/organization-admin";
 import OrganizationChartLayoutEditor from "./OrganizationChartLayoutEditor";
 import { showErrorResult, showSuccessResult } from "../../utils/swal";
@@ -153,4 +154,37 @@ describe("Organization Chart layout audited save feedback", () => {
     expect(screen.getByRole("button", { name: "บันทึกโครงสร้างผัง" })).toBeDisabled();
     expect(api.update).not.toHaveBeenCalled();
   });
+
+  it("rejects a 409 stale-revision race and prevents retrying the old revision", async () => {
+    api.update.mockRejectedValueOnce(new AdminStaleRevisionError());
+    const onSaved = vi.fn();
+    show(onSaved);
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกโครงสร้างผัง" }));
+    await waitFor(() => expect(api.update).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Revision เปลี่ยนแล้ว"));
+    expect(screen.getByRole("button", { name: "บันทึกโครงสร้างผัง" })).toBeDisabled();
+    expect(onSaved).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกโครงสร้างผัง" }));
+    expect(api.update).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a committed layout locked until the next Revision is loaded, even when refresh succeeds", async () => {
+    const onSaved = vi.fn().mockResolvedValue(undefined);
+    show(onSaved);
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกโครงสร้างผัง" }));
+    await waitFor(() => expect(showSuccessResult).toHaveBeenCalledWith("บันทึกผังองค์กรสำเร็จ"));
+    expect(onSaved).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: "บันทึกโครงสร้างผัง" })).toBeDisabled();
+    expect(screen.getByText("ตรงกับข้อมูลที่บันทึก")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกโครงสร้างผัง" }));
+    expect(api.update).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not allow a read-only editor to switch the saved A/B/Cards selection", () => {
+    show(vi.fn(), false);
+    expect(screen.getByRole("combobox", { name: "รูปแบบผัง" })).toBeDisabled();
+    expect(screen.getByRole("spinbutton", { name: "ระดับชั้น" })).toBeDisabled();
+    expect(api.update).not.toHaveBeenCalled();
+  });
+
 });
