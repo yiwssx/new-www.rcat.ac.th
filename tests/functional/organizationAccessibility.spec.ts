@@ -223,7 +223,7 @@ async function dismissGateIfVisible(page: Page) {
 }
 
 test.describe("Organization public accessibility and responsive regression", () => {
-  for (const width of [390, 1280]) {
+  for (const width of [390, 768, 1280, 1440]) {
     test(`published Thai organization at ${width}px is accessible and does not overflow`, async ({ page }) => {
       await page.setViewportSize({ width, height: 840 });
       await installOrganizationFixture(page);
@@ -255,7 +255,7 @@ test.describe("Organization public accessibility and responsive regression", () 
   }
 
   for (const mode of ["rows", "tree"] as const) {
-    for (const width of [390, 1280]) {
+    for (const width of [390, 768, 1280, 1440]) {
       test(`chart ${mode} at ${width}px keeps text accessible within a scrollable chart region`, async ({ page }) => {
         await page.setViewportSize({ width, height: 840 });
         await installOrganizationFixture(page, mode);
@@ -331,7 +331,7 @@ test.describe("Organization V2.2 horizontal inter-unit chart", () => {
 });
 
 test.describe("Organization V2.2 Phase 3 mixed position charts", () => {
-  for (const width of [390, 1280]) {
+  for (const width of [390, 768, 1280, 1440]) {
     test(
       "shows rows/tree/cards inside corresponding units without duplicate assignments at " + width + "px",
       async ({ page }) => {
@@ -357,5 +357,65 @@ test.describe("Organization V2.2 Phase 3 mixed position charts", () => {
           .toBe(true);
       }
     );
+  }
+});
+
+
+test.describe("Organization V2.2 Phase 5 final browser regression", () => {
+  for (const width of [390, 768, 1280, 1440]) {
+    test("mixed A/B/Cards chart, connectors, WCAG and keyboard at " + width + "px", async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      let detailCalls = 0;
+      await installOrganizationFixture(page, "rows", true);
+      page.on("request", (request) => {
+        if (request.url().includes("/api/public/organization/")) detailCalls += 1;
+      });
+      await page.goto("/organization/" + encodeURIComponent(slug));
+      await dismissGateIfVisible(page);
+
+      const hierarchy = page.getByRole("region", { name: "ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้" });
+      await expect(hierarchy).toBeVisible();
+      await expect(hierarchy.getByRole("link", { name: "งานทะเบียน" })).toHaveAttribute(
+        "href",
+        "/organization/" + encodeURIComponent("งานทะเบียน")
+      );
+      await expect(hierarchy.getByRole("link", { name: "งานย่อยด้านหลักสูตร" })).toBeAttached();
+      const rows = hierarchy.getByRole("region", { name: "แถวระดับ 1 แถว 1 เลื่อนแนวนอนได้" });
+      const tree = hierarchy.getByRole("region", { name: /ผังสายบังคับบัญชา/ });
+      await expect(rows).toBeAttached();
+      await expect(tree).toBeAttached();
+      await expect(rows).toHaveClass(/rcat-focus-ring/);
+      await expect(tree).toHaveClass(/rcat-focus-ring/);
+      await expect(hierarchy.getByText("งานประสานทะเบียน")).toHaveCount(1);
+      await expect(hierarchy.getByText("บุคลากรทดสอบ")).toHaveCount(2);
+      await expect(hierarchy.getByText("งานทะเบียนควบคู่")).toHaveCount(1);
+      await expect(tree.getByText("หัวหน้างานหลักสูตร")).toBeAttached();
+      await expect(tree.getByText("ผู้ช่วยงานหลักสูตร")).toBeAttached();
+
+      const connectors = await hierarchy.getByRole("link", { name: "ฝ่ายวิชาการ" }).evaluate((link) => {
+        const children = link.closest("li")?.querySelector(":scope > ul");
+        return children ? {
+          branchCount: children.querySelectorAll(":scope > li").length,
+          line: getComputedStyle(children, "::before").borderLeftWidth
+        } : null;
+      });
+      expect(connectors).toEqual({ branchCount: 3, line: "2px" });
+      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+
+      await hierarchy.focus();
+      await expect(hierarchy).toBeFocused();
+      if (width === 390) {
+        expect(await hierarchy.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
+        await page.keyboard.press("ArrowRight");
+        await expect.poll(() => hierarchy.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
+      }
+
+      const audit = await new AxeBuilder({ page })
+        .include("main")
+        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+        .analyze();
+      expect(audit.violations.map((v) => ({ id: v.id, impact: v.impact, targets: v.nodes.map((n) => n.target) }))).toEqual([]);
+      expect(detailCalls).toBeLessThanOrEqual(2);
+    });
   }
 });
