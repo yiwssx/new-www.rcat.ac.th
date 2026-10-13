@@ -192,6 +192,10 @@ describe("Organization Chart layout audited save feedback", () => {
         Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
     expect(chart).toHaveAttribute("data-preview-mode", "rows");
+    const controls = screen.getByTestId("organization-position-layout-controls-position-1");
+    expect(within(controls).getByRole("spinbutton", { name: "ระดับชั้น" })).toBeInTheDocument();
+    expect(within(controls).getByRole("spinbutton", { name: "แถว" })).toBeInTheDocument();
+    expect(within(controls).getByRole("button", { name: "เลื่อนขวา" })).toBeInTheDocument();
     fireEvent.change(screen.getAllByRole("spinbutton", { name: "ระดับชั้น" })[1], { target: { value: "2" } });
     expect(chart).toHaveAttribute("data-deputy-level", "2");
     expect(api.update).not.toHaveBeenCalled();
@@ -211,6 +215,11 @@ describe("Organization Chart layout audited save feedback", () => {
     );
     const preview = screen.getByRole("region", { name: "ตัวอย่างผังสายบังคับบัญชาก่อนบันทึก" });
     expect(within(preview).getByTestId("chart-preview")).toHaveAttribute("data-preview-mode", "tree");
+    expect(
+      within(screen.getByTestId("organization-position-layout-controls-position-1")).getByRole("combobox", {
+        name: "ขึ้นตรงต่อตำแหน่ง"
+      })
+    ).toBeInTheDocument();
     expect(within(preview).queryByRole("region", { name: "ภาพรวมตำแหน่งแนวนอน เลื่อนดูได้" })).not.toBeInTheDocument();
     expect(api.update).not.toHaveBeenCalled();
   });
