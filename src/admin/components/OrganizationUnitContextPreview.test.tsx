@@ -45,6 +45,7 @@ describe("Organization V2.3 top-down focused Admin hierarchy", () => {
     expect(region.querySelector('[data-org-level="parent"]')).toContainElement(
       within(region).getByRole("button", { name: /หน่วยงาน division/ })
     );
+    expect(region.querySelector('[data-org-level="peers"]')?.querySelectorAll("li")).toHaveLength(3);
     const labels = within(region)
       .getAllByRole("button")
       .map((button) => button.textContent);
