@@ -538,8 +538,15 @@ test.describe("Organization field regression: no phantom header or narrow vertic
         expect(first).not.toBeNull();
         expect(second).not.toBeNull();
         expect(second!.y).toBeGreaterThan(first!.y);
-        expect(Math.abs((second!.x + second!.width / 2) - (first!.x + first!.width / 2))).toBeLessThanOrEqual(12);
-        await expect(personnel.getByRole("region", { name: mode === "rows" ? "ผังบุคลากรแบบระดับและแถว เลื่อนแนวนอนได้" : "ผังสายบังคับบัญชา เลื่อนแนวนอนเพื่อดูตำแหน่งทั้งหมด" })).toHaveAttribute("data-org-position-flow", "top-down");
+        expect(Math.abs(second!.x + second!.width / 2 - (first!.x + first!.width / 2))).toBeLessThanOrEqual(12);
+        await expect(
+          personnel.getByRole("region", {
+            name:
+              mode === "rows"
+                ? "ผังบุคลากรแบบระดับและแถว เลื่อนแนวนอนได้"
+                : "ผังสายบังคับบัญชา เลื่อนแนวนอนเพื่อดูตำแหน่งทั้งหมด"
+          })
+        ).toHaveAttribute("data-org-position-flow", "top-down");
         await expect(page.locator('main [aria-hidden="true"].MuiSkeleton-root')).toHaveCount(0);
         await expect(page.locator('main svg[data-testid="AccountTreeOutlinedIcon"]')).toHaveCount(0);
         await expect

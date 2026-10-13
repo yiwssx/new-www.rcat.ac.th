@@ -138,10 +138,7 @@ export default function OrganizationChartView({ positions, layout, media, showEd
         aria-label="ผังบุคลากรแบบระดับและแถว เลื่อนแนวนอนได้"
         sx={{ width: "100%", minWidth: 0, maxWidth: "100%", overflowX: "auto", pb: 2, overscrollBehaviorX: "contain" }}
       >
-        <Stack
-          spacing={0}
-          sx={{ alignItems: "center", width: "max-content", minWidth: "100%" }}
-        >
+        <Stack spacing={0} sx={{ alignItems: "center", width: "max-content", minWidth: "100%" }}>
           {rows.map((group, index) => (
             <Box
               key={group.key}
@@ -165,7 +162,14 @@ export default function OrganizationChartView({ positions, layout, media, showEd
                 sx={{ maxWidth: "100%", minWidth: 0, pb: 1 }}
               >
                 <Box
-                  sx={{ display: "flex", flexDirection: "row", justifyContent: "center", gap: 2, alignItems: "stretch", width: "max-content" }}
+                  sx={{
+                    display: "flex",
+                    flexDirection: "row",
+                    justifyContent: "center",
+                    gap: 2,
+                    alignItems: "stretch",
+                    width: "max-content"
+                  }}
                 >
                   {group.positions.map((position) => (
                     <PeopleCard
@@ -242,17 +246,18 @@ export default function OrganizationChartView({ positions, layout, media, showEd
                 alignItems: "center",
                 position: "relative",
                 minWidth: 210,
-                "&::before": parentId && siblings.length > 1
-                  ? {
-                      content: '""',
-                      position: "absolute",
-                      top: -24,
-                      left: "50%",
-                      height: 24,
-                      borderLeft: "2px solid",
-                      borderColor: "divider"
-                    }
-                  : {}
+                "&::before":
+                  parentId && siblings.length > 1
+                    ? {
+                        content: '""',
+                        position: "absolute",
+                        top: -24,
+                        left: "50%",
+                        height: 24,
+                        borderLeft: "2px solid",
+                        borderColor: "divider"
+                      }
+                    : {}
               }}
             >
               <PeopleCard position={position} media={media} showEducationQualifications={showEducationQualifications} />
@@ -281,7 +286,9 @@ export default function OrganizationChartView({ positions, layout, media, showEd
         overscrollBehaviorX: "contain"
       }}
     >
-      <Box sx={{ display: "flex", justifyContent: "center", width: "max-content", minWidth: "100%" }}>{branch(null, new Set())}</Box>
+      <Box sx={{ display: "flex", justifyContent: "center", width: "max-content", minWidth: "100%" }}>
+        {branch(null, new Set())}
+      </Box>
     </Box>
   );
 }

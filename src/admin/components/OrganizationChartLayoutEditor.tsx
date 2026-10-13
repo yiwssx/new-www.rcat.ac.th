@@ -275,7 +275,9 @@ export default function OrganizationChartLayoutEditor({
                     media={new Map()}
                   />
                 ) : (
-                  <Typography variant="body2" color="text.secondary">รูปแบบ Cards ไม่มีสายบังคับบัญชา</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    รูปแบบ Cards ไม่มีสายบังคับบัญชา
+                  </Typography>
                 )
               ) : (
                 <OrganizationChartView

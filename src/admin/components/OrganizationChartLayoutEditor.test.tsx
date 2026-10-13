@@ -156,7 +156,10 @@ describe("Organization Chart layout audited save feedback", () => {
     );
     const preview = screen.getByRole("region", { name: "ตัวอย่างผังสายบังคับบัญชาก่อนบันทึก" });
     const chart = within(preview).getByTestId("chart-preview");
-    expect(preview.compareDocumentPosition(screen.getAllByRole("spinbutton", { name: "ระดับชั้น" })[0]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(
+      preview.compareDocumentPosition(screen.getAllByRole("spinbutton", { name: "ระดับชั้น" })[0]) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
     expect(chart).toHaveAttribute("data-preview-mode", "rows");
     fireEvent.change(screen.getAllByRole("spinbutton", { name: "ระดับชั้น" })[1], { target: { value: "2" } });
     expect(chart).toHaveAttribute("data-deputy-level", "2");

@@ -51,8 +51,14 @@ describe("public organization chart A/B", () => {
     );
     expect(screen.getByRole("region", { name: "แถวระดับ 1 แถว 1 เลื่อนแนวนอนได้" })).toHaveClass("rcat-focus-ring");
     expect(screen.getByRole("region", { name: "ระดับ 1 แถว 1" })).toHaveTextContent("นาย ก");
-    expect(screen.getByRole("region", { name: "ผังบุคลากรแบบระดับและแถว เลื่อนแนวนอนได้" })).toHaveAttribute("data-org-position-flow", "top-down");
-    expect(screen.getByRole("region", { name: "ระดับ 1 แถว 1" }).nextElementSibling).toHaveAttribute("data-org-level", "2");
+    expect(screen.getByRole("region", { name: "ผังบุคลากรแบบระดับและแถว เลื่อนแนวนอนได้" })).toHaveAttribute(
+      "data-org-position-flow",
+      "top-down"
+    );
+    expect(screen.getByRole("region", { name: "ระดับ 1 แถว 1" }).nextElementSibling).toHaveAttribute(
+      "data-org-level",
+      "2"
+    );
     expect(screen.getByRole("region", { name: "ระดับ 2 แถว 1" })).toHaveTextContent("นาง ข");
     expect(screen.getByText("ผู้อำนวยการ")).toBeInTheDocument();
   });
