@@ -4,16 +4,19 @@ import { pathToFileURL } from "node:url";
 
 const shaPattern = /^[0-9a-f]{40}$/;
 const productionPattern = /^production(?:\s*[-–]\s*.+)?$/i;
-const isVercel = (d) =>
-  d?.app?.slug === "vercel" || /^vercel(?:\[bot\])?$/i.test(d?.creator?.login || "");
+const isVercel = (d) => d?.app?.slug === "vercel" || /^vercel(?:\[bot\])?$/i.test(d?.creator?.login || "");
 const validHttps = (url) => {
-  try { return new URL(url).protocol === "https:"; } catch { return false; }
+  try {
+    return new URL(url).protocol === "https:";
+  } catch {
+    return false;
+  }
 };
 
 export function classifyDeployment(deployments, statuses, sha, expectedIgnored) {
   if (!shaPattern.test(sha) || !Array.isArray(deployments)) return "failure";
-  const matching = deployments.filter((d) =>
-    d?.sha === sha && productionPattern.test(d.environment || "") && isVercel(d)
+  const matching = deployments.filter(
+    (d) => d?.sha === sha && productionPattern.test(d.environment || "") && isVercel(d)
   );
   if (matching.length === 0) return "pending";
   for (const deployment of matching) {
@@ -23,8 +26,7 @@ export function classifyDeployment(deployments, statuses, sha, expectedIgnored) 
       return validHttps(latest.environment_url || latest.target_url) ? "ready" : "failure";
     }
     if (latest.state === "inactive") {
-      return expectedIgnored && /ignored|skipped|not affected/i.test(latest.description || "")
-        ? "ignored" : "failure";
+      return expectedIgnored && /ignored|skipped|not affected/i.test(latest.description || "") ? "ignored" : "failure";
     }
     if (["error", "failure"].includes(latest.state)) return "failure";
   }
@@ -38,8 +40,8 @@ export async function inspectDeployment({ repo, sha, token, expectedIgnored, rea
   const prefix = `https://api.github.com/repos/${repo}`;
   const deployments = await readJson(`${prefix}/deployments?sha=${sha}&per_page=100`, token);
   if (!Array.isArray(deployments)) throw new Error("Malformed deployments response");
-  const matching = deployments.filter((d) =>
-    d?.sha === sha && productionPattern.test(d.environment || "") && isVercel(d)
+  const matching = deployments.filter(
+    (d) => d?.sha === sha && productionPattern.test(d.environment || "") && isVercel(d)
   );
   const statuses = {};
   for (const deployment of matching) {
