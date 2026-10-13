@@ -134,10 +134,12 @@ describe("Phase 6 accessible Organization builder", () => {
     expect(screen.queryByText("อันดับ 1")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "แก้ไขตำแหน่ง" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "มอบหมายบุคลากร" })).not.toBeInTheDocument();
-    expect(api.list).toHaveBeenCalledWith("positions", 100, 0, {
-      includeTotal: true,
-      unitContentId: "work-1"
-    });
+    await waitFor(() =>
+      expect(api.list).toHaveBeenCalledWith("positions", 100, 0, {
+        includeTotal: true,
+        unitContentId: "work-1"
+      })
+    );
   });
 
   it("keeps the vertical tree visible on the positions and legacy pages", () => {
