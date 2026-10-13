@@ -38,6 +38,7 @@ import {
 import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 import { OrganizationSortableRow } from "./OrganizationSortableRow";
 import OrganizationChartLayoutEditor from "./OrganizationChartLayoutEditor";
+import OrganizationUnitContextPreview from "./OrganizationUnitContextPreview";
 import {
   enabledDistinctOccupants,
   flattenOrganizationHierarchy,
@@ -780,6 +781,18 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                 หรือแก้ไขข้อผิดพลาดในการโหลดข้อมูลก่อนตรวจสอบ Preview
               </Alert>
             )}
+          {view === "charts" && selectedUnit && (
+            <OrganizationUnitContextPreview
+              selected={selectedUnit}
+              units={units}
+              allUnitsLoaded={allUnitsLoaded}
+              onSelect={(unit) => {
+                setSelectedUnitId(unit.content_id);
+                setSelectedUnitSnapshot(unit);
+                setError("");
+              }}
+            />
+          )}
           {(view === "legacy" || view === "charts") &&
             selectedUnit &&
             !positionsQuery.isPending &&
