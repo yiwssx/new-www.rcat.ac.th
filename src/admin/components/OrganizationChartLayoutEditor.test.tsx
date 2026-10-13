@@ -11,7 +11,9 @@ vi.mock("../../features/organization-admin", async (importOriginal) => ({
   updateOrganizationRecord: api.update
 }));
 vi.mock("../../public/components/OrganizationChartView", () => ({
-  default: () => <div data-testid="chart-preview" />
+  default: ({ mode, layout }: { mode: string; layout?: Record<string, { level: number }> }) => (
+    <div data-testid="chart-preview" data-preview-mode={mode} data-deputy-level={layout?.["position-2"]?.level ?? ""} />
+  )
 }));
 vi.mock("../../utils/swal", () => ({
   appSwal: { close: vi.fn(async () => {}) },
@@ -132,15 +134,15 @@ describe("Organization Chart layout audited save feedback", () => {
         onSaved={vi.fn()}
       />
     );
-    const preview = screen.getByRole("region", { name: "ตัวอย่างผังองค์กรแนวนอน ก่อนบันทึก" });
+    const preview = screen.getByRole("region", { name: "ตัวอย่างผังสายบังคับบัญชาก่อนบันทึก" });
     const rail = within(preview).getByRole("region", { name: "ตำแหน่งของงานธุรการ เลื่อนแนวนอนได้" });
-    expect(preview).toHaveAttribute("data-organization-preview", "horizontal");
+    expect(preview).toHaveAttribute("data-organization-preview", "hierarchy");
     expect(rail).toHaveAttribute("tabindex", "0");
     expect(within(rail).getByText("หัวหน้างาน")).toBeInTheDocument();
     expect(within(rail).getByText("ยังไม่ได้ระบุผู้ดำรงตำแหน่ง")).toBeInTheDocument();
   });
 
-  it("renders the horizontal preview before editing controls and updates the pending layout immediately", () => {
+  it("renders the real A-mode reporting preview before form controls and updates unsaved levels", () => {
     render(
       <OrganizationChartLayoutEditor
         unit={unit}
@@ -152,23 +154,16 @@ describe("Organization Chart layout audited save feedback", () => {
         onSaved={vi.fn()}
       />
     );
-    const preview = screen.getByRole("region", { name: "ตัวอย่างผังองค์กรแนวนอน ก่อนบันทึก" });
-    const rail = within(preview).getByRole("region", { name: "ภาพรวมตำแหน่งแนวนอน เลื่อนดูได้" });
-    expect(
-      preview.compareDocumentPosition(screen.getAllByRole("spinbutton", { name: "ระดับชั้น" })[0]) &
-        Node.DOCUMENT_POSITION_FOLLOWING
-    ).toBeTruthy();
-    expect(
-      within(rail)
-        .getAllByText(/หัวหน้างาน/)
-        .map((node) => node.textContent)
-    ).toEqual(["หัวหน้างาน", "รองหัวหน้างาน"]);
+    const preview = screen.getByRole("region", { name: "ตัวอย่างผังสายบังคับบัญชาก่อนบันทึก" });
+    const chart = within(preview).getByTestId("chart-preview");
+    expect(preview.compareDocumentPosition(screen.getAllByRole("spinbutton", { name: "ระดับชั้น" })[0]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(chart).toHaveAttribute("data-preview-mode", "rows");
     fireEvent.change(screen.getAllByRole("spinbutton", { name: "ระดับชั้น" })[1], { target: { value: "2" } });
-    expect(within(rail).getByText("ระดับ 2 · แถว 1")).toBeInTheDocument();
+    expect(chart).toHaveAttribute("data-deputy-level", "2");
     expect(api.update).not.toHaveBeenCalled();
   });
 
-  it("keeps the horizontal preview available while using tree mode before saving", () => {
+  it("renders the actual B reporting preview instead of a misleading horizontal level strip", () => {
     render(
       <OrganizationChartLayoutEditor
         unit={{ ...unit, chart_mode: "tree" }}
@@ -180,8 +175,9 @@ describe("Organization Chart layout audited save feedback", () => {
         onSaved={vi.fn()}
       />
     );
-    expect(screen.getByRole("region", { name: "ภาพรวมตำแหน่งแนวนอน เลื่อนดูได้" })).toBeInTheDocument();
-    expect(screen.getByTestId("chart-preview")).toBeInTheDocument();
+    const preview = screen.getByRole("region", { name: "ตัวอย่างผังสายบังคับบัญชาก่อนบันทึก" });
+    expect(within(preview).getByTestId("chart-preview")).toHaveAttribute("data-preview-mode", "tree");
+    expect(within(preview).queryByRole("region", { name: "ภาพรวมตำแหน่งแนวนอน เลื่อนดูได้" })).not.toBeInTheDocument();
     expect(api.update).not.toHaveBeenCalled();
   });
 
