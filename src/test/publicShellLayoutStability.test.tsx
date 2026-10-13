@@ -108,6 +108,7 @@ describe("Public route loading geometry", () => {
     expect(publicSiteShellSource).not.toContain("activeRegistration === registration");
     // Intro Gate is intentionally scoped to the homepage and must never activate on /news or other public routes.
     expect(publicSiteShellSource).toContain('pathname === "/" &&');
+    expect(publicSiteShellSource).toContain('pathname.startsWith("/organization/")');
     expect(publicSiteShellSource).not.toContain("useLayoutEffect");
   });
 });

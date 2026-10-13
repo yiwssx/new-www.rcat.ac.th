@@ -18,18 +18,10 @@ interface Props {
   media?: Map<string, MediaAsset>;
 }
 
-/** Limit DOM/diagram width independently of the 5,000-node data validation ceiling. */
+/** Independently bound the public DOM; the data model validates a larger ceiling. */
 const MAX_RENDERED_DIAGRAM_UNITS = 500;
 
-function UnitBranch({
-  branch,
-  positionsByUnit,
-  media
-}: {
-  branch: PublicOrganizationUnitBranch;
-  positionsByUnit: ReadonlyMap<string, readonly PublicOrganizationPosition[]>;
-  media: Map<string, MediaAsset>;
-}) {
+function UnitBranch({ branch }: { branch: PublicOrganizationUnitBranch }) {
   const { unit, children } = branch;
 
   return (
@@ -44,15 +36,13 @@ function UnitBranch({
         flex: "0 0 auto",
         width: "max-content",
         minWidth: "max-content",
-        // Every parent -> child step advances on the X axis, even for a one-child chain.
-        // Child branches stay on a single horizontal rail instead of forming a vertical stack.
         "&::before": branch.level
           ? {
               content: '""',
               position: "absolute",
               top: 58,
               left: -28,
-              width: 114,
+              width: 28,
               borderTop: "2px solid",
               borderColor: "divider"
             }
@@ -61,74 +51,45 @@ function UnitBranch({
     >
       <Box
         sx={{
-          width: 288,
-          minWidth: 288,
-          px: 1,
+          flex: "0 0 252px",
+          width: 252,
+          px: 1.5,
           display: "flex",
           flexDirection: "column",
           alignItems: "center"
         }}
       >
-        <Box
-          className="org-unit-head"
+        <Card
+          variant="outlined"
           sx={{
-            position: "relative",
-            // Rightward connection from this unit to the first level of its child branches.
-            "&::after": children.length
-              ? {
-                  content: '""',
-                  position: "absolute",
-                  left: "100%",
-                  top: 58,
-                  width: 114,
-                  borderTop: "2px solid",
-                  borderColor: "divider"
-                }
-              : {}
+            width: 228,
+            minHeight: 112,
+            borderRadius: 2,
+            bgcolor: branch.level === 0 ? "action.hover" : "background.paper",
+            borderColor: branch.level === 0 ? "primary.main" : "divider"
           }}
         >
-          <Card
-            variant="outlined"
-            sx={{
-              width: 228,
-              minHeight: 118,
-              borderRadius: 2,
-              bgcolor: branch.level === 0 ? "action.hover" : "background.paper",
-              borderColor: branch.level === 0 ? "primary.main" : "divider",
-              flexShrink: 0
-            }}
-          >
-            <CardContent sx={{ p: 1.75, "&:last-child": { pb: 1.75 } }}>
+          <CardContent sx={{ p: 1.75, "&:last-child": { pb: 1.75 } }}>
+            <Typography
+              component="div"
+              variant="subtitle1"
+              sx={{ fontWeight: 700, lineHeight: 1.4, textAlign: "center", overflowWrap: "anywhere" }}
+            >
+              <Link href={"/organization/" + encodeURIComponent(unit.slug)} underline="hover" color="inherit">
+                {unit.title}
+              </Link>
+            </Typography>
+            {unit.summary && (
               <Typography
-                component="div"
-                variant="subtitle1"
-                sx={{ fontWeight: 700, lineHeight: 1.4, textAlign: "center", overflowWrap: "anywhere" }}
+                variant="body2"
+                color="text.secondary"
+                sx={{ mt: 1, whiteSpace: "pre-line", overflowWrap: "anywhere", textAlign: "center" }}
               >
-                <Link href={"/organization/" + encodeURIComponent(unit.slug)} underline="hover" color="inherit">
-                  {unit.title}
-                </Link>
+                {unit.summary}
               </Typography>
-              {unit.summary && (
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ mt: 1, whiteSpace: "pre-line", overflowWrap: "anywhere", textAlign: "center" }}
-                >
-                  {unit.summary}
-                </Typography>
-              )}
-            </CardContent>
-          </Card>
-        </Box>
-        {(positionsByUnit.get(unit.contentId)?.length ?? 0) > 0 && (
-          <Box sx={{ mt: 1.5, width: 280, maxWidth: "100%", minWidth: 0 }}>
-            <OrganizationUnitPositionContent
-              unit={unit}
-              positions={positionsByUnit.get(unit.contentId) ?? []}
-              media={media}
-            />
-          </Box>
-        )}
+            )}
+          </CardContent>
+        </Card>
       </Box>
       {children.length > 0 && (
         <Box
@@ -145,8 +106,6 @@ function UnitBranch({
             m: 0,
             p: 0,
             pl: 3.5,
-            // A horizontal connecting rail is intentionally behind the opaque cards.
-            // Unlike the old vertical model, nodes at increasing depth advance to the right.
             "&::before": {
               content: '""',
               position: "absolute",
@@ -160,7 +119,7 @@ function UnitBranch({
           }}
         >
           {children.map((child) => (
-            <UnitBranch key={child.unit.contentId} branch={child} positionsByUnit={positionsByUnit} media={media} />
+            <UnitBranch key={child.unit.contentId} branch={child} />
           ))}
         </Box>
       )}
@@ -168,19 +127,23 @@ function UnitBranch({
   );
 }
 
-/**
- * Phase 3: render each unit’s saved A/B/cards positions within its own horizontal branch.
- * Units without positions remain visible; no extra requests or data writes.
- */
+/** Diagram cards are independent from the full-width personnel charts below. */
+function chartUnits(branch: PublicOrganizationUnitBranch): PublicOrganizationUnitBranch[] {
+  return [branch, ...branch.children.flatMap(chartUnits)];
+}
+
 export default function OrganizationUnitHierarchyView({
   hierarchy,
   positionsByUnit = new Map(),
   media = new Map()
 }: Props) {
   const renderable = hierarchy.root && hierarchy.includedUnitCount <= MAX_RENDERED_DIAGRAM_UNITS;
+  const positionedUnits = renderable
+    ? chartUnits(hierarchy.root!).filter((branch) => (positionsByUnit.get(branch.unit.contentId)?.length ?? 0) > 0)
+    : [];
 
   return (
-    <Stack component="section" spacing={1.5} aria-label="ผังโครงสร้างหน่วยงาน" sx={{ minWidth: 0, maxWidth: "100%" }}>
+    <Stack component="section" spacing={2} aria-label="ผังโครงสร้างหน่วยงาน" sx={{ minWidth: 0, maxWidth: "100%" }}>
       <Typography variant="h2" sx={{ fontSize: "1.4rem", fontWeight: 700 }}>
         ผังโครงสร้างหน่วยงาน
       </Typography>
@@ -197,7 +160,7 @@ export default function OrganizationUnitHierarchyView({
       ) : (
         <>
           <Typography variant="body2" color="text.secondary">
-            ผังไล่จากหน่วยงานแม่ทางซ้ายไปหาหน่วยงานลูกทางขวา เลื่อนในกรอบผังเพื่อดูส่วนที่เหลือ
+            ผังหน่วยงานไล่จากซ้ายไปขวา เลื่อนภายในกรอบเพื่อดูหน่วยงานที่เหลือ
           </Typography>
           <Box
             role="region"
@@ -206,6 +169,7 @@ export default function OrganizationUnitHierarchyView({
             tabIndex={0}
             aria-label="ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้"
             sx={{
+              width: "100%",
               maxWidth: "100%",
               minWidth: 0,
               overflowX: "auto",
@@ -219,10 +183,40 @@ export default function OrganizationUnitHierarchyView({
           >
             <Box sx={{ display: "flex", justifyContent: "flex-start", width: "max-content", minWidth: "100%" }}>
               <Box component="ul" sx={{ listStyle: "none", display: "flex", p: 0, m: 0 }}>
-                <UnitBranch branch={hierarchy.root!} positionsByUnit={positionsByUnit} media={media} />
+                <UnitBranch branch={hierarchy.root!} />
               </Box>
             </Box>
           </Box>
+          {positionedUnits.length > 0 && (
+            <Stack
+              component="section"
+              spacing={3}
+              aria-label="ผังบุคลากรตามหน่วยงาน"
+              sx={{ minWidth: 0, width: "100%" }}
+            >
+              <Typography variant="h2" sx={{ fontSize: "1.4rem", fontWeight: 700 }}>
+                ผังบุคลากร
+              </Typography>
+              {positionedUnits.map(({ unit }) => (
+                <Box
+                  component="section"
+                  key={unit.contentId}
+                  data-org-personnel-unit={unit.contentId}
+                  aria-label={"ผังบุคลากร " + unit.title}
+                  sx={{ width: "100%", minWidth: 0 }}
+                >
+                  <Typography variant="h3" sx={{ fontSize: "1.15rem", fontWeight: 700, mb: 2 }}>
+                    {unit.title}
+                  </Typography>
+                  <OrganizationUnitPositionContent
+                    unit={unit}
+                    positions={positionsByUnit.get(unit.contentId) ?? []}
+                    media={media}
+                  />
+                </Box>
+              ))}
+            </Stack>
+          )}
         </>
       )}
     </Stack>

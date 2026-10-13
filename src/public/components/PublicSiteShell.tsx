@@ -178,6 +178,12 @@ function getPublicRouteShellDefaults(pathname: string): PublicRouteShellDefaults
     }
   };
 
+  // Organization pages render their own fetched heading and breadcrumbs; a second
+  // indefinite shell-title skeleton creates empty space above the real content.
+  if (pathname.startsWith("/organization/")) {
+    return { hidePageHeader: true };
+  }
+
   return (
     routeDefaults[pathname] ?? {
       pageHeaderLoading: true
