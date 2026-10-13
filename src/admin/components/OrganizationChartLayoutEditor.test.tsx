@@ -182,7 +182,7 @@ describe("Organization Chart layout audited save feedback", () => {
 
   it("does not allow a read-only editor to switch the saved A/B/Cards selection", () => {
     show(vi.fn(), false);
-    expect(screen.getByRole("combobox", { name: "รูปแบบผัง" })).toBeDisabled();
+    expect(screen.getByRole("combobox", { name: "รูปแบบผัง" })).toHaveAttribute("aria-disabled", "true");
     expect(screen.getByRole("spinbutton", { name: "ระดับชั้น" })).toBeDisabled();
     expect(api.update).not.toHaveBeenCalled();
   });
