@@ -147,7 +147,7 @@ export default function OrganizationUnitContextPreview({ selected, units, allUni
               </Box>
             </>
           )}
-        </Stack>>
+        </Stack>
       </Box>
     </Stack>
   );
