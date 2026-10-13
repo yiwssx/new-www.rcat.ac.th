@@ -125,6 +125,30 @@ test.describe("Phase A production public browser smoke", () => {
     diagnostics.assertClean();
   });
 
+  test("checks real published organization SSR hydration and top-down personnel geometry", async ({ page }) => {
+    const diagnostics = attachProductionDiagnostics(page, productionBaseUrl);
+    const hydrationErrors: string[] = [];
+    const capture = (message: string) => {
+      if (/react\\.dev\\/errors\\/418|Minified React error #418|hydration (failed|mismatch)|server rendered HTML/i.test(message)) {
+        hydrationErrors.push(message);
+      }
+    };
+    page.on("console", (message) => {
+      if (message.type() === "error") capture(message.text());
+    });
+    page.on("pageerror", (error) => capture(error.message));
+
+    const response = await page.goto("/organization/rcat-2569-business", { waitUntil: "domcontentloaded" });
+    expect(response?.status()).toBe(200);
+    await expect(page.locator("html")).toHaveAttribute("data-rcat-ssr", "true");
+    await expect(page.getByRole("region", { name: "ผังบุคลากรตามหน่วยงาน" })).toBeVisible();
+    await expect(page.locator('[data-org-position-flow="top-down"]').first()).toBeVisible();
+    await expect(page.locator('main svg[data-testid="AccountTreeOutlinedIcon"]')).toHaveCount(0);
+    await expectNoHorizontalOverflow(page);
+    expect(hydrationErrors, hydrationErrors.join("\\n")).toEqual([]);
+    diagnostics.assertClean();
+  });
+
   test("keeps unauthenticated CMS boundaries reachable and protected", async ({ page }) => {
     const diagnostics = attachProductionDiagnostics(page, productionBaseUrl);
 
