@@ -9,6 +9,7 @@ Related: issue #580, PR #581. Production source of truth is protected `main`.
 - Require the latest PR-head `quality` check on the **pull_request** event to pass.
   Also verify CodeQL (actions and JavaScript/TypeScript), Static Quality,
   Unit, Integration, Build, Worker, Governance and Functional E2E results.
+- A manually dispatched CI run does not replace the required PR check.
 - Merge through the standard protected pull request. Do not use an admin bypass
   or deploy from a feature branch.
 - A Worker redeploy is **NOT REQUIRED** for this frontend-only release.
