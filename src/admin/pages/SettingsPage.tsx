@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import type { SettingsCategory } from "./settings/settingsSections";
+import { buildScopedSiteSettingsPatch, isSiteSettingsCategory, settingsNavigation, siteSettingsKeys } from "./settings/settingsSections";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -284,7 +286,7 @@ const visitorStatsFields: Array<{
   { key: "onlineUsers", label: "Who's Online" }
 ];
 
-export default function SettingsPage() {
+export default function SettingsPage({ section }: { section: SettingsCategory }) {
   const queryClient = useQueryClient();
   const { capabilities } = useAuth();
   const canManage = canManageAdminData(capabilities);
@@ -300,17 +302,23 @@ export default function SettingsPage() {
 
   const displaySettingsQuery = useQuery({
     queryKey: ["admin-settings", "display"],
-    queryFn: loadDisplaySettings
+    queryFn: loadDisplaySettings,
+    enabled: section === "appearance"
   });
   const siteSettingsQuery = useQuery({
     queryKey: ["admin-settings", "site"],
-    queryFn: getSiteSettingsFromApi
+    queryFn: getSiteSettingsFromApi,
+    enabled: isSiteSettingsCategory(section)
   });
   const homepageSettingsQuery = useQuery({
     queryKey: ["admin-settings", "homepage"],
-    queryFn: getHomepageSettingsFromApi
+    queryFn: getHomepageSettingsFromApi,
+    enabled: section === "homepage"
   });
-  const visitorStatsQuery = useQuery(adminVisitorStatsSummaryQueryOptions());
+  const visitorStatsQuery = useQuery({
+    ...adminVisitorStatsSummaryQueryOptions(),
+    enabled: section === "visitors"
+  });
 
   const saveDisplaySettingsMutation = useMutation({
     mutationFn: saveDisplaySettings
@@ -587,36 +595,46 @@ export default function SettingsPage() {
   }
 
   async function handleSaveSiteSettings() {
-    if (!canManage) {
+    if (!canManage || !isSiteSettingsCategory(section) || !siteSettingsSource) {
       return;
     }
 
-    const validationMessage = getSiteSettingsValidationMessage(siteSettings);
-
-    if (validationMessage) {
-      await appSwal.fire({
-        icon: "warning",
-        title: validationMessage.title,
-        text: validationMessage.text,
-        confirmButtonText: "ตกลง"
-      });
-      return;
-    }
-
-    showBlockingLoading("กำลังบันทึกข้อมูลเว็บไซต์สาธารณะ");
-
+    showBlockingLoading("กำลังตรวจสอบข้อมูลล่าสุด");
     try {
-      const saved = await saveSiteSettingsMutation.mutateAsync(normalizeSiteSettings(siteSettings));
+      // The site endpoint supports partial writes. Never PUT a whole site-settings
+      // snapshot from one subpage: another subpage may have updated other fields.
+      const latest = normalizeSiteSettings(await getSiteSettingsFromApi());
+      const baseline = normalizeSiteSettings(siteSettingsSource);
+      const patch = buildScopedSiteSettingsPatch(baseline, siteSettings, latest, section);
+      if (Object.keys(patch).length === 0) {
+        await appSwal.close();
+        await showSuccessResult("ไม่มีข้อมูลที่เปลี่ยนแปลง");
+        return;
+      }
+
+      const validationMessage = getSiteSettingsValidationMessage(normalizeSiteSettings({ ...latest, ...patch }));
+      if (validationMessage) {
+        await appSwal.close();
+        await appSwal.fire({
+          icon: "warning",
+          title: validationMessage.title,
+          text: validationMessage.text,
+          confirmButtonText: "ตกลง"
+        });
+        return;
+      }
+
+      const saved = await saveSiteSettingsMutation.mutateAsync(patch);
       setSiteSettings(normalizeSiteSettings(saved));
       await Promise.all([
         invalidatePublicCmsData(queryClient),
         queryClient.invalidateQueries({ queryKey: ["admin-settings", "site"] })
       ]);
       await appSwal.close();
-      await showSuccessResult("บันทึกข้อมูลเว็บไซต์สาธารณะแล้ว");
+      await showSuccessResult("บันทึกการตั้งค่าแล้ว");
     } catch (error) {
       await appSwal.close();
-      await showErrorResult("ไม่สามารถบันทึกข้อมูลเว็บไซต์สาธารณะได้", error, "กรุณาลองอีกครั้ง");
+      await showErrorResult("ไม่สามารถบันทึกข้อมูลเว็บไซต์สาธารณะได้", error, "ตรวจสอบข้อมูลล่าสุด แล้วลองอีกครั้ง");
     }
   }
 
@@ -668,15 +686,24 @@ export default function SettingsPage() {
     }
   }
 
+  const currentSection = settingsNavigation.find((item) => item.id === section);
+  const sectionIsLoading =
+    (section === "appearance" && displaySettingsQuery.isPending) ||
+    (isSiteSettingsCategory(section) && siteSettingsQuery.isPending) ||
+    (section === "homepage" && homepageSettingsQuery.isPending) ||
+    (section === "visitors" && visitorStatsQuery.isPending);
+
   return (
     <Box>
-      <PageHeader title="ตั้งค่า" description="สิทธิ์การเผยแพร่ การจัดการผู้ใช้ และรูปแบบการแสดงผล" />
+      <PageHeader title={currentSection?.label ?? "ตั้งค่า"} description={currentSection?.description ?? ""} />
       {!canManage && (
         <Alert severity="info" sx={{ mb: 3 }}>
           {ADMIN_READ_ONLY_NOTICE}
         </Alert>
       )}
+      {sectionIsLoading && <Alert severity="info" sx={{ mb: 2 }}>กำลังโหลดข้อมูลการตั้งค่า...</Alert>}
       <Grid container spacing={2.5}>
+      {section === "appearance" && (<>
         <Grid size={{ xs: 12 }}>
           <Card>
             <CardContent>
@@ -755,7 +782,7 @@ export default function SettingsPage() {
                     fullWidth
                     variant="contained"
                     startIcon={<SaveOutlinedIcon />}
-                    disabled={!canManage || saveDisplaySettingsMutation.isPending}
+                    disabled={!canManage || displaySettingsQuery.isPending || displaySettingsQuery.isError || saveDisplaySettingsMutation.isPending}
                     onClick={() => void handleSaveDisplaySettings()}
                   >
                     {saveDisplaySettingsMutation.isPending ? "กำลังบันทึก" : "บันทึก"}
@@ -824,6 +851,8 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         </Grid>
+      </>)}
+      {isSiteSettingsCategory(section) && (<>
         <Grid size={{ xs: 12 }}>
           <Card>
             <CardContent>
@@ -836,7 +865,7 @@ export default function SettingsPage() {
                 }}
               >
                 <LanguageOutlinedIcon color="primary" />
-                <Typography variant="h3">ข้อมูลเว็บไซต์สาธารณะ</Typography>
+                <Typography variant="h3">{settingsNavigation.find((item) => item.id === section)?.label}</Typography>
               </Stack>
               <Typography
                 sx={{
@@ -847,7 +876,7 @@ export default function SettingsPage() {
                 ข้อมูลส่วนนี้จะแสดงในหน้าเว็บไซต์สาธารณะและถูกบันทึกใน Settings sheet ของ Apps Script
               </Typography>
               <Grid container spacing={1.5}>
-                {siteSettingFields.map((field) => (
+                {siteSettingFields.filter((field) => isSiteSettingsCategory(section) && siteSettingsKeys[section].includes(field.key)).map((field) => (
                   <Grid size={{ xs: 12, md: field.multiline ? 12 : 6 }} key={field.key}>
                     <TextField
                       label={field.label}
@@ -873,6 +902,7 @@ export default function SettingsPage() {
                     )}
                   </Grid>
                 ))}
+{section === "appearance" && (<>
                 <Grid size={{ xs: 12 }}>
                   <Card variant="outlined" sx={{ bgcolor: "grey.50", borderColor: "grey.300" }}>
                     <CardContent>
@@ -959,6 +989,8 @@ export default function SettingsPage() {
                     </CardContent>
                   </Card>
                 </Grid>
+</>)}
+{section === "footer" && (<>
                 <Grid size={{ xs: 12 }}>
                   <Divider sx={{ my: 1 }} />
                   <Stack spacing={1}>
@@ -1164,11 +1196,12 @@ export default function SettingsPage() {
                     ))}
                   </Stack>
                 </Grid>
+</>)}
                 <Grid size={{ xs: 12 }}>
                   <Button
                     variant="contained"
                     startIcon={<SaveOutlinedIcon />}
-                    disabled={!canManage || saveSiteSettingsMutation.isPending}
+                    disabled={!canManage || !siteSettingsSource || siteSettingsQuery.isPending || siteSettingsQuery.isError || saveSiteSettingsMutation.isPending}
                     onClick={() => void handleSaveSiteSettings()}
                   >
                     {saveSiteSettingsMutation.isPending ? "กำลังบันทึก" : "บันทึกข้อมูลเว็บไซต์"}
@@ -1185,6 +1218,8 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         </Grid>
+      </>)}
+      {section === "homepage" && (<>
         <Grid size={{ xs: 12 }}>
           <Card>
             <CardContent>
@@ -1421,7 +1456,7 @@ export default function SettingsPage() {
                 <Button
                   variant="contained"
                   startIcon={<SaveOutlinedIcon />}
-                  disabled={!canManage || saveHomepageSettingsMutation.isPending}
+                  disabled={!canManage || homepageSettingsQuery.isPending || homepageSettingsQuery.isError || saveHomepageSettingsMutation.isPending}
                   onClick={() => void handleSaveHomepageSettings()}
                 >
                   {saveHomepageSettingsMutation.isPending ? "กำลังบันทึก" : "บันทึกการตั้งค่าหน้าแรก"}
@@ -1430,6 +1465,8 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         </Grid>
+      </>)}
+      {section === "visitors" && (<>
         <Grid size={{ xs: 12 }}>
           <Card>
             <CardContent>
@@ -1499,7 +1536,7 @@ export default function SettingsPage() {
                   <Button
                     variant="contained"
                     startIcon={<SaveOutlinedIcon />}
-                    disabled={!canManage || saveVisitorStatsMutation.isPending}
+                    disabled={!canManage || visitorStatsQuery.isPending || visitorStatsQuery.isError || saveVisitorStatsMutation.isPending}
                     onClick={() => void handleSaveVisitorStats()}
                   >
                     {saveVisitorStatsMutation.isPending ? "กำลังบันทึก" : "บันทึกการแสดงผลสถิติผู้เข้าชม"}
@@ -1509,6 +1546,8 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         </Grid>
+      </>)}
+      {section === "access" && (<>
         <Grid size={{ xs: 12, lg: 7 }}>
           <Card>
             <CardContent>
@@ -1645,6 +1684,7 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         </Grid>
+      </>)}
       </Grid>
     </Box>
   );
