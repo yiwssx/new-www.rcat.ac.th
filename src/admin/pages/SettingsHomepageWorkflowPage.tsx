@@ -5,7 +5,7 @@ export default function SettingsHomepageWorkflowPage() {
   return (
     <>
       <HomepageSettingsWorkflowGuide />
-      <SettingsPage />
+      <SettingsPage section="homepage" />
     </>
   );
 }
