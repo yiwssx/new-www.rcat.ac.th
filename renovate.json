@@ -20,10 +20,10 @@
   "automergeStrategy": "merge-commit",
   "platformAutomerge": false,
   "ignoreTests": false,
-  "prConcurrentLimit": 3,
-  "branchConcurrentLimit": 3,
-  "prHourlyLimit": 2,
-  "commitHourlyLimit": 4,
+  "prConcurrentLimit": 6,
+  "branchConcurrentLimit": 6,
+  "prHourlyLimit": 4,
+  "commitHourlyLimit": 8,
   "lockFileMaintenance": {
     "enabled": false
   },
@@ -74,7 +74,8 @@
       "matchManagers": ["npm"],
       "matchDepTypes": ["dependencies", "devDependencies"],
       "matchPackageNames": ["@types/node"],
-      "allowedVersions": ">=24.0.0 <25.0.0"
+      "allowedVersions": ">=24.0.0 <25.0.0",
+      "rangeStrategy": "bump"
     },
     {
       "description": "Group compatible Cloudflare toolchain patch and minor updates",
