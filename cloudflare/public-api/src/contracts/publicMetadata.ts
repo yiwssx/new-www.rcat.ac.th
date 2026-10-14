@@ -19,6 +19,17 @@ export interface PublicSiteSettingsContract {
   directorTitle: string;
   directorDescription: string;
   directorImageUrl: string;
+  /** Optional for records saved before the rotating leadership editor shipped. */
+  leadership?: {
+    autoplayIntervalSeconds: number;
+    deputies: Array<{
+      enabled: boolean;
+      name: string;
+      title: string;
+      description: string;
+      imageUrl: string;
+    }>;
+  };
   mapUrl: string;
   mapEmbedUrl: string;
   footerTitle: string;
