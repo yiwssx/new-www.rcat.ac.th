@@ -5,6 +5,7 @@
 **Baseline inspected:** `main` at `3e51accb46f5025be03f7826112a43c0afa8d873`  
 **Status:** **PLANNED — DOCUMENTATION ONLY; NO UI IMPLEMENTATION OR PRODUCTION RELEASE**  
 **Planning branch:** `docs/admin-settings-leadership-ux-plan-20261014`  
+**Planning PR:** [#601 — docs(ui-ux): track admin settings split and executive rotation](https://github.com/yiwssx/new-www.rcat.ac.th/pull/601)  
 **Implementation issues:** [#599 — Settings navigation](https://github.com/yiwssx/new-www.rcat.ac.th/issues/599) and [#600 — Leadership rotation](https://github.com/yiwssx/new-www.rcat.ac.th/issues/600)  
 **Unrelated active work:** Organization Management/Chart UX issues remain independent and must not be marked complete by this tracker.
 
