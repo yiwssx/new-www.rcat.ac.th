@@ -102,7 +102,7 @@ export default function OrganizationPersonCard({ position, assignment, media, sh
           )}
         </CardContent>
       </Card>
-      {person && (
+      {person && assignment && (
         <Dialog open={detailsOpen} onClose={() => setDetailsOpen(false)} fullWidth maxWidth="xs"
           aria-labelledby={`org-person-details-${assignment.id}`}>
           <DialogTitle id={`org-person-details-${assignment.id}`}>{person.displayName}</DialogTitle>
