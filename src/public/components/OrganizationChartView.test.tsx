@@ -39,7 +39,7 @@ const layout = {
 };
 
 describe("public organization chart A/B", () => {
-  it("renders separate, legible portrait rows with placement labels", () => {
+  it("renders portrait hierarchy without visual level-number headings", () => {
     render(
       <OrganizationChartView
         mode="rows"
@@ -60,6 +60,9 @@ describe("public organization chart A/B", () => {
       "2"
     );
     expect(screen.getByRole("region", { name: "ระดับ 2 แถว 1" })).toHaveTextContent("นาง ข");
+    // Keep the accessible positional region names but remove visual numbering.
+    expect(screen.queryByRole("heading", { name: /^ระดับ [123]/ })).not.toBeInTheDocument();
+    expect(screen.queryByText(/^ระดับ [123](?: · แถว \d+)?$/)).not.toBeInTheDocument();
     expect(screen.getByText("ผู้อำนวยการ")).toBeInTheDocument();
   });
 
