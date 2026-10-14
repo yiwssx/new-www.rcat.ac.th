@@ -1,4 +1,9 @@
+import { useState } from "react";
 import Box from "@mui/material/Box";
+import FormControl from "@mui/material/FormControl";
+import InputLabel from "@mui/material/InputLabel";
+import MenuItem from "@mui/material/MenuItem";
+import Select from "@mui/material/Select";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Link from "@mui/material/Link";
@@ -11,11 +16,17 @@ import type {
   PublicOrganizationUnitBranch
 } from "../../features/public-organization/hierarchy";
 import OrganizationUnitPositionContent from "./OrganizationUnitPositionContent";
+import {
+  defaultOrganizationPersonnelScope,
+  type OrganizationPersonnelScope
+} from "../../features/public-organization/personnelScope";
+import type { PublicOrganizationUnit } from "../../features/public-organization/api";
 
 interface Props {
   hierarchy: PublicOrganizationHierarchy;
   positionsByUnit?: ReadonlyMap<string, readonly PublicOrganizationPosition[]>;
   media?: Map<string, MediaAsset>;
+  departmentLinks?: readonly PublicOrganizationUnit[];
 }
 
 /** Independently bound the public DOM; the data model validates a larger ceiling. */
@@ -114,12 +125,27 @@ function chartUnits(branch: PublicOrganizationUnitBranch): PublicOrganizationUni
 export default function OrganizationUnitHierarchyView({
   hierarchy,
   positionsByUnit = new Map(),
-  media = new Map()
+  media = new Map(),
+  departmentLinks = []
 }: Props) {
   const renderable = hierarchy.root && hierarchy.includedUnitCount <= MAX_RENDERED_DIAGRAM_UNITS;
-  const positionedUnits = renderable
-    ? chartUnits(hierarchy.root!).filter((branch) => (positionsByUnit.get(branch.unit.contentId)?.length ?? 0) > 0)
-    : [];
+  const selectedUnit = hierarchy.root?.unit;
+  const [scope, setScope] = useState<OrganizationPersonnelScope>(
+    selectedUnit ? defaultOrganizationPersonnelScope(selectedUnit) : "direct"
+  );
+  const visibleBranches = renderable ? chartUnits(hierarchy.root!) : [];
+  const permittedIds = new Set(visibleBranches.map((branch) => branch.unit.contentId));
+  const activeUnitId = scope.startsWith("unit:") ? scope.slice(5) : null;
+  const positionedUnits =
+    selectedUnit?.unitKind === "division"
+      ? visibleBranches.filter(({ unit }) => {
+          if (scope === "direct") return unit.contentId === selectedUnit.contentId;
+          if (scope === "all") return true;
+          return activeUnitId === unit.contentId && permittedIds.has(unit.contentId);
+        })
+      : visibleBranches.filter(({ unit }) => unit.contentId === selectedUnit?.contentId);
+  const usedDepartmentIds = new Set(visibleBranches.map(({ unit }) => unit.contentId));
+  const otherDepartments = departmentLinks.filter((unit) => !usedDepartmentIds.has(unit.contentId));
   // A leaf page already names the selected unit above its personnel chart.
   const hasChildUnits = Boolean(hierarchy.root?.children.length);
 
@@ -174,14 +200,52 @@ export default function OrganizationUnitHierarchyView({
               </Box>
             </>
           )}
-          {positionedUnits.length > 0 && (
+          {otherDepartments.length > 0 && (
+            <Box component="nav" aria-label="แผนกวิชาในฝ่ายวิชาการ" sx={{ minWidth: 0 }}>
+              <Typography variant="h2" sx={{ fontSize: "1.3rem", fontWeight: 700, mb: 1.5 }}>
+                แผนกวิชา
+              </Typography>
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5 }}>
+                {otherDepartments.map((unit) => (
+                  <Card key={unit.contentId} variant="outlined" sx={{ minWidth: 190, maxWidth: 280 }}>
+                    <CardContent sx={{ "&:last-child": { pb: 2 } }}>
+                      <Link href={"/organization/" + encodeURIComponent(unit.slug)} underline="hover">
+                        {unit.title}
+                      </Link>
+                    </CardContent>
+                  </Card>
+                ))}
+              </Box>
+            </Box>
+          )}
+          {selectedUnit?.unitKind === "division" && visibleBranches.length > 1 && (
+            <FormControl size="small" sx={{ minWidth: 240, maxWidth: "100%" }}>
+              <InputLabel id="org-personnel-scope-label">ขอบเขตบุคลากร</InputLabel>
+              <Select
+                labelId="org-personnel-scope-label"
+                label="ขอบเขตบุคลากร"
+                value={scope}
+                onChange={(event) => setScope(event.target.value as OrganizationPersonnelScope)}
+                inputProps={{ "aria-label": "ขอบเขตบุคลากร" }}
+              >
+                <MenuItem value="direct">เฉพาะบุคลากรของฝ่ายโดยตรง</MenuItem>
+                <MenuItem value="all">ทั้งหมดในฝ่ายและหน่วยงานย่อย</MenuItem>
+                {visibleBranches.slice(1).map(({ unit }) => (
+                  <MenuItem key={unit.contentId} value={"unit:" + unit.contentId}>
+                    เฉพาะ{unit.title}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+          {positionedUnits.some(({ unit }) => (positionsByUnit.get(unit.contentId)?.length ?? 0) > 0) && (
             <Stack
               component="section"
               spacing={3}
               aria-label="ผังบุคลากรตามหน่วยงาน"
               sx={{ minWidth: 0, width: "100%" }}
             >
-              {positionedUnits.map(({ unit }) => (
+              {positionedUnits.filter(({ unit }) => (positionsByUnit.get(unit.contentId)?.length ?? 0) > 0).map(({ unit }) => (
                 <Box
                   component="section"
                   key={unit.contentId}
