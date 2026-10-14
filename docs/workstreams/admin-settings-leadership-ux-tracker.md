@@ -83,7 +83,7 @@ Routes must be actual route-level pages, not tabs that mount the full 1,652-line
 
 ### Implementation checkpoint — 2026-10-15, Workstream B #600
 
-- Branch: `feature/homepage-leadership-rotation`. Exact PR and CI evidence to be attached after checks.
+- Branch: `feature/homepage-leadership-rotation`; implementation PR [#603](https://github.com/yiwssx/new-www.rcat.ac.th/pull/603).
 - No new packages or pnpm lockfile changes; React + MUI hooks and existing `PublicResponsiveImage` are sufficient.
 - Preserve legacy `directorName/directorTitle/directorDescription/directorImageUrl` as the single canonical Director slot. Add optional `siteSettings.leadership` containing four fixed ordered deputy slots (`enabled/name/title/description/imageUrl`) and a 6-second default interval (range 3–30).
 - No schema migration: existing D1 `site_settings.settings_json` persists the new optional field via current deep-merge PUT, and the public metadata adapter forwards it through existing public snapshots. Add an optional public contract and nested Worker URL validation; do not write real D1 personnel data.
