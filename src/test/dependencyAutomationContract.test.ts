@@ -24,10 +24,10 @@ describe("dependency automation contract", () => {
     expect(renovate.schedule).toEqual(["* 0-6 * * *"]);
     expect(renovate.updateNotScheduled).toBe(false);
     expect(renovate.automergeSchedule).toEqual(["* 0-6 * * *"]);
-    expect(renovate.prConcurrentLimit).toBe(3);
-    expect(renovate.branchConcurrentLimit).toBe(3);
-    expect(renovate.prHourlyLimit).toBe(2);
-    expect(renovate.commitHourlyLimit).toBe(4);
+    expect(renovate.prConcurrentLimit).toBe(6);
+    expect(renovate.branchConcurrentLimit).toBe(6);
+    expect(renovate.prHourlyLimit).toBe(4);
+    expect(renovate.commitHourlyLimit).toBe(8);
     expect(renovate.rebaseWhen).toBe("behind-base-branch");
     expect(renovate.platformAutomerge).toBe(false);
   });
@@ -45,6 +45,11 @@ describe("dependency automation contract", () => {
     expect(packageRules).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ matchUpdateTypes: ["major"], automerge: false }),
+        expect.objectContaining({
+          matchPackageNames: ["@types/node"],
+          rangeStrategy: "bump",
+          allowedVersions: ">=24.0.0 <25.0.0"
+        }),
         expect.objectContaining({
           matchPackageNames: ["wrangler", "@cloudflare/workers-types"],
           groupName: "cloudflare toolchain"
