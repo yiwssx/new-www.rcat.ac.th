@@ -114,14 +114,14 @@ The new editor belongs under **Settings → Leadership**, with five clearly labe
 
 ## 5. Overall plan and order
 
-| Step | Deliverable                                                                                                    | Depends on                        | State                                             |
-| ---- | -------------------------------------------------------------------------------------------------------------- | --------------------------------- | ------------------------------------------------- |
-| P0   | Create #599 and #600; commit this tracking plan to `main` through a documentation-only PR                      | Latest `main`                     | Planning PR #601 merged |
-| P1   | Implement A1–A4 on `feature/admin-settings-route-refactor`                                                     | P0                                | PR #602 merged; CI green |
-| P2   | Verify A5–A6 and release Settings navigation without changing homepage behavior                                | P1                                | Code merged; operator UAT pending |
-| P3   | Implement B1–B3 on `feature/homepage-leadership-rotation`                                                      | P2; stable Leadership admin route | PR #603 merged; CI green |
+| Step | Deliverable                                                                                                    | Depends on                        | State                                |
+| ---- | -------------------------------------------------------------------------------------------------------------- | --------------------------------- | ------------------------------------ |
+| P0   | Create #599 and #600; commit this tracking plan to `main` through a documentation-only PR                      | Latest `main`                     | Planning PR #601 merged              |
+| P1   | Implement A1–A4 on `feature/admin-settings-route-refactor`                                                     | P0                                | PR #602 merged; CI green             |
+| P2   | Verify A5–A6 and release Settings navigation without changing homepage behavior                                | P1                                | Code merged; operator UAT pending    |
+| P3   | Implement B1–B3 on `feature/homepage-leadership-rotation`                                                      | P2; stable Leadership admin route | PR #603 merged; CI green             |
 | P4   | Verify B4–B6, compatible release order and operator review                                                     | P3                                | QA green; Worker release/UAT pending |
-| P5   | Update issues and tracker with exact PRs, hashes, CI evidence, production verification and operator acceptance | Each release                      | Issue #600 updated; UAT outstanding |
+| P5   | Update issues and tracker with exact PRs, hashes, CI evidence, production verification and operator acceptance | Each release                      | Issue #600 updated; UAT outstanding  |
 
 **Scope rule:** use one implementation branch + one PR for each workstream. Do not mix A/B implementation into the planning PR. Feature work should not be marked complete before CI, protected release (if required) and hands-on operator validation.
 
