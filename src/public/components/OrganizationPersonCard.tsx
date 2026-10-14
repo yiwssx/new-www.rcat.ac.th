@@ -13,7 +13,7 @@ import Typography from "@mui/material/Typography";
 import type { PublicOrganizationAssignment, PublicOrganizationPosition } from "../../features/public-organization";
 import type { MediaAsset } from "../../types";
 import PublicResponsiveImage from "../../shared/media/PublicResponsiveImage";
-import { distinctEmploymentTitle } from "../../features/public-organization/personnelDisplay";
+import { distinctEmploymentTitle, normalizeLabel } from "../../features/public-organization/personnelDisplay";
 
 interface Props {
   position: PublicOrganizationPosition;
