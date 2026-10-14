@@ -244,26 +244,28 @@ export default function OrganizationUnitHierarchyView({
               aria-label="ผังบุคลากรตามหน่วยงาน"
               sx={{ minWidth: 0, width: "100%" }}
             >
-              {positionedUnits.filter(({ unit }) => (positionsByUnit.get(unit.contentId)?.length ?? 0) > 0).map(({ unit }) => (
-                <Box
-                  component="section"
-                  key={unit.contentId}
-                  data-org-personnel-unit={unit.contentId}
-                  aria-label={"ผังบุคลากร " + unit.title}
-                  sx={{ width: "100%", minWidth: 0 }}
-                >
-                  {unit.contentId !== hierarchy.root!.unit.contentId && (
-                    <Typography variant="h3" sx={{ fontSize: "1.15rem", fontWeight: 700, mb: 2 }}>
-                      {unit.title}
-                    </Typography>
-                  )}
-                  <OrganizationUnitPositionContent
-                    unit={unit}
-                    positions={positionsByUnit.get(unit.contentId) ?? []}
-                    media={media}
-                  />
-                </Box>
-              ))}
+              {positionedUnits
+                .filter(({ unit }) => (positionsByUnit.get(unit.contentId)?.length ?? 0) > 0)
+                .map(({ unit }) => (
+                  <Box
+                    component="section"
+                    key={unit.contentId}
+                    data-org-personnel-unit={unit.contentId}
+                    aria-label={"ผังบุคลากร " + unit.title}
+                    sx={{ width: "100%", minWidth: 0 }}
+                  >
+                    {unit.contentId !== hierarchy.root!.unit.contentId && (
+                      <Typography variant="h3" sx={{ fontSize: "1.15rem", fontWeight: 700, mb: 2 }}>
+                        {unit.title}
+                      </Typography>
+                    )}
+                    <OrganizationUnitPositionContent
+                      unit={unit}
+                      positions={positionsByUnit.get(unit.contentId) ?? []}
+                      media={media}
+                    />
+                  </Box>
+                ))}
             </Stack>
           )}
         </>

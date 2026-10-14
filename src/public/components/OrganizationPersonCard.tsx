@@ -89,40 +89,72 @@ export default function OrganizationPersonCard({ position, assignment, media, sh
                   {secondaryTitle}
                 </Typography>
               )}
-              <Button variant="text" size="small" onClick={() => setDetailsOpen(true)} aria-label={`ดูรายละเอียด ${person.displayName}`}>
+              <Button
+                variant="text"
+                size="small"
+                onClick={() => setDetailsOpen(true)}
+                aria-label={`ดูรายละเอียด ${person.displayName}`}
+              >
                 ดูรายละเอียด
               </Button>
             </Stack>
           ) : (
             <Stack spacing={1} sx={{ alignItems: "center", py: 2 }}>
               <BadgeOutlinedIcon color="disabled" sx={{ fontSize: 50 }} />
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>{position.title}</Typography>
-              <Typography variant="body2" color="text.secondary">ยังไม่มีผู้ดำรงตำแหน่ง</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                {position.title}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                ยังไม่มีผู้ดำรงตำแหน่ง
+              </Typography>
             </Stack>
           )}
         </CardContent>
       </Card>
       {person && assignment && (
-        <Dialog open={detailsOpen} onClose={() => setDetailsOpen(false)} fullWidth maxWidth="xs"
-          aria-labelledby={`org-person-details-${assignment.id}`}>
+        <Dialog
+          open={detailsOpen}
+          onClose={() => setDetailsOpen(false)}
+          fullWidth
+          maxWidth="xs"
+          aria-labelledby={`org-person-details-${assignment.id}`}
+        >
           <DialogTitle id={`org-person-details-${assignment.id}`}>{person.displayName}</DialogTitle>
           <DialogContent dividers>
             <Stack spacing={1.5}>
-              <Typography><strong>ตำแหน่งในองค์กร:</strong> {position.title}</Typography>
+              <Typography>
+                <strong>ตำแหน่งในองค์กร:</strong> {position.title}
+              </Typography>
               {person.employmentPosition && (
-                <Typography><strong>ตำแหน่งงาน:</strong> {person.employmentPosition}</Typography>
+                <Typography>
+                  <strong>ตำแหน่งงาน:</strong> {person.employmentPosition}
+                </Typography>
               )}
               {person.personnelType && (
-                <Typography><strong>ประเภทบุคลากร:</strong> {person.personnelType}</Typography>
+                <Typography>
+                  <strong>ประเภทบุคลากร:</strong> {person.personnelType}
+                </Typography>
               )}
-              {distinctDuty && <Typography><strong>หน้าที่รับผิดชอบ:</strong> {distinctDuty}</Typography>}
+              {distinctDuty && (
+                <Typography>
+                  <strong>หน้าที่รับผิดชอบ:</strong> {distinctDuty}
+                </Typography>
+              )}
               {showEducationQualifications && person.educationQualifications && (
                 <Typography sx={{ whiteSpace: "pre-line" }}>
                   <strong>วุฒิการศึกษา:</strong> {person.educationQualifications}
                 </Typography>
               )}
-              {person.publicEmail && <Typography><strong>อีเมล:</strong> {person.publicEmail}</Typography>}
-              {person.publicPhone && <Typography><strong>โทรศัพท์:</strong> {person.publicPhone}</Typography>}
+              {person.publicEmail && (
+                <Typography>
+                  <strong>อีเมล:</strong> {person.publicEmail}
+                </Typography>
+              )}
+              {person.publicPhone && (
+                <Typography>
+                  <strong>โทรศัพท์:</strong> {person.publicPhone}
+                </Typography>
+              )}
             </Stack>
           </DialogContent>
           <DialogActions>

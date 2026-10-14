@@ -70,7 +70,11 @@ describe("V2.4 organization personnel scope and directory navigation", () => {
   });
 
   it("never invents missing, draft or unsupported department links", () => {
-    const published = [unit("root", "department", null), unit("dept-b", "department", "root"), unit("dept-a", "department", "root")];
+    const published = [
+      unit("root", "department", null),
+      unit("dept-b", "department", "root"),
+      unit("dept-a", "department", "root")
+    ];
     expect(publishedDepartmentLinks(published).map((x) => x.contentId)).toEqual(["root", "dept-a", "dept-b"]);
     expect(publishedDepartmentLinks([...published, unit("student", "work", null)])).toHaveLength(3);
   });

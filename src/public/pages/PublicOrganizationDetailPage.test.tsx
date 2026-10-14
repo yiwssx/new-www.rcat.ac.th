@@ -185,7 +185,14 @@ describe("Phase 7 responsive public organization renderer", () => {
       sortOrder: 0,
       depth: 0
     };
-    const work = { ...academic, contentId: "teaching-support", parentContentId: "academic", unitKind: "work", title: "งานหลักสูตร", slug: "teaching-support" };
+    const work = {
+      ...academic,
+      contentId: "teaching-support",
+      parentContentId: "academic",
+      unitKind: "work",
+      title: "งานหลักสูตร",
+      slug: "teaching-support"
+    };
     mock.data = {
       unit: academic,
       ancestors: [],

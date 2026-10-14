@@ -250,7 +250,10 @@ describe("Organization V2.2 Phase 3 position composition", () => {
   });
 
   it("does not display department-only qualifications within a non-department cards unit", () => {
-    const units = [{ ...unit("root", null), unitKind: "division", title: "ฝ่ายบริหาร" }, { ...unit("work", "root"), chartMode: "cards" as const }];
+    const units = [
+      { ...unit("root", null), unitKind: "division", title: "ฝ่ายบริหาร" },
+      { ...unit("work", "root"), chartMode: "cards" as const }
+    ];
     render(
       <OrganizationUnitHierarchyView
         hierarchy={buildPublicOrganizationHierarchy(units, "root")}
@@ -263,7 +266,11 @@ describe("Organization V2.2 Phase 3 position composition", () => {
   });
 
   it("never draws unrelated or disconnected unit personnel inside the chosen root", () => {
-    const units = [{ ...unit("root", null), unitKind: "division", title: "ฝ่ายบริหาร" }, unit("sub", "root"), unit("orphan", "other")];
+    const units = [
+      { ...unit("root", null), unitKind: "division", title: "ฝ่ายบริหาร" },
+      unit("sub", "root"),
+      unit("orphan", "other")
+    ];
     render(
       <OrganizationUnitHierarchyView
         hierarchy={buildPublicOrganizationHierarchy(units, "root")}
@@ -287,10 +294,12 @@ describe("Organization V2.2 Phase 3 position composition", () => {
     render(
       <OrganizationUnitHierarchyView
         hierarchy={buildPublicOrganizationHierarchy([root, child], "root")}
-        positionsByUnit={new Map([
-          ["root", [position("direct", "root", "p1", "บุคลากรงานนี้")]],
-          ["child", [position("elsewhere", "child", "p2", "บุคลากรแผนกอื่น")]]
-        ])}
+        positionsByUnit={
+          new Map([
+            ["root", [position("direct", "root", "p1", "บุคลากรงานนี้")]],
+            ["child", [position("elsewhere", "child", "p2", "บุคลากรแผนกอื่น")]]
+          ])
+        }
       />
     );
     expect(screen.getByText("บุคลากรงานนี้")).toBeInTheDocument();
@@ -305,11 +314,13 @@ describe("Organization V2.2 Phase 3 position composition", () => {
     render(
       <OrganizationUnitHierarchyView
         hierarchy={buildPublicOrganizationHierarchy([root, child, department], "academic")}
-        positionsByUnit={new Map([
-          ["academic", [position("leader", "academic", "p1", "เจ้าหน้าที่ฝ่าย")]],
-          ["work", [position("staff", "work", "p2", "เจ้าหน้าที่งาน")]],
-          ["dept", [position("teacher", "dept", "p3", "ครูประจำแผนก")]]
-        ])}
+        positionsByUnit={
+          new Map([
+            ["academic", [position("leader", "academic", "p1", "เจ้าหน้าที่ฝ่าย")]],
+            ["work", [position("staff", "work", "p2", "เจ้าหน้าที่งาน")]],
+            ["dept", [position("teacher", "dept", "p3", "ครูประจำแผนก")]]
+          ])
+        }
       />
     );
     expect(screen.getByText("เจ้าหน้าที่ฝ่าย")).toBeInTheDocument();
