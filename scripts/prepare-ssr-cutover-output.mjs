@@ -1,6 +1,7 @@
-import { access, readFile, rename, rm } from "node:fs/promises";
+import { access, readFile, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { createProductionReleaseManifest, RELEASE_PATH } from "./production-release-manifest.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const distDir = path.join(rootDir, "dist");
@@ -53,6 +54,16 @@ if (publicEntryPath === "/assets/rcat-client.js" || publicStylesheetPaths.includ
 
 await rm(csrPath, { force: true });
 await rename(indexPath, csrPath);
+
+const releaseManifest = createProductionReleaseManifest(process.env);
+if (releaseManifest) {
+  // Generated after Vite's output cleanup, never committed as an editable file.
+  await writeFile(path.join(distDir, RELEASE_PATH.slice(1)), JSON.stringify(releaseManifest) + "\n", {
+    encoding: "utf8",
+    flag: "wx"
+  });
+  console.log("Prepared exact-SHA production release attestation.");
+}
 
 console.log(
   `Prepared SSR cutover output with hashed client assets: ${publicEntryPath} and ${publicStylesheetPaths.join(", ")}.`
