@@ -13,23 +13,13 @@ import Typography from "@mui/material/Typography";
 import type { PublicOrganizationAssignment, PublicOrganizationPosition } from "../../features/public-organization";
 import type { MediaAsset } from "../../types";
 import PublicResponsiveImage from "../../shared/media/PublicResponsiveImage";
+import { distinctEmploymentTitle } from "../../features/public-organization/personnelDisplay";
 
 interface Props {
   position: PublicOrganizationPosition;
   assignment: PublicOrganizationAssignment | null;
   media: Map<string, MediaAsset>;
   showEducationQualifications: boolean;
-}
-
-function normalizeLabel(value: string) {
-  return value.trim().replace(/\s+/gu, " ").normalize("NFC").toLocaleLowerCase("th");
-}
-
-/** Keep the current unit's functional role first. Do not show redundant job-title lines. */
-export function distinctEmploymentTitle(positionTitle: string, employmentPosition: string) {
-  const role = normalizeLabel(positionTitle);
-  const job = normalizeLabel(employmentPosition);
-  return job && role !== job ? employmentPosition.trim() : "";
 }
 
 export default function OrganizationPersonCard({ position, assignment, media, showEducationQualifications }: Props) {
