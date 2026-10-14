@@ -50,7 +50,7 @@ import {
 } from "../../services/displaySettings";
 import { normalizeHomepageSettings } from "../../services/homepageSettings";
 import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
-import { defaultSiteSettings, normalizeSiteSettings } from "../../services/siteSettings";
+import { defaultSiteSettings, normalizeLeadershipSettings, normalizeSiteSettings } from "../../services/siteSettings";
 import { normalizeVisitorStats } from "../../services/visitorStats";
 import {
   getHomepageSettingsFromApi,
@@ -652,6 +652,11 @@ export default function SettingsPage({ section }: { section: SettingsCategory })
         return;
       }
 
+      // Preserve partially typed URLs in the draft, but persist canonical
+      // HTTPS / Google Drive portrait URLs after validating the raw input.
+      if (patch.leadership) {
+        patch.leadership = normalizeLeadershipSettings(patch.leadership);
+      }
       const saved = await saveSiteSettingsMutation.mutateAsync(patch);
       setSiteSettings(normalizeSiteSettings(saved));
       await Promise.all([
