@@ -5,7 +5,8 @@ import Box from "@mui/material/Box";
 import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import type { PublicOrganizationPosition } from "../../features/public-organization";
+import { getPublicOrganizationIndex, type PublicOrganizationPosition } from "../../features/public-organization";
+import { isAcademicDivision, publishedDepartmentLinks } from "../../features/public-organization/personnelScope";
 import { publicOrganizationDetailQueryOptions } from "../../features/public-organization";
 import { buildPublicOrganizationHierarchy } from "../../features/public-organization/hierarchy";
 import OrganizationUnitHierarchyView from "../components/OrganizationUnitHierarchyView";
@@ -19,6 +20,16 @@ interface Props {
 export default function PublicOrganizationDetailPage({ slug }: Props) {
   const query = useQuery(publicOrganizationDetailQueryOptions(slug, { consumeAbortSignal: false }));
   const data = query.data;
+  const departmentIndex = useQuery({
+    queryKey: ["public-organization-published-department-index"],
+    queryFn: () => getPublicOrganizationIndex({ consumeAbortSignal: false }),
+    enabled: Boolean(data && isAcademicDivision(data.unit)),
+    staleTime: 60_000
+  });
+  const academicDepartmentLinks = useMemo(
+    () => (data && isAcademicDivision(data.unit) ? publishedDepartmentLinks(departmentIndex.data ?? []) : []),
+    [data, departmentIndex.data]
+  );
   const byUnit = useMemo(() => {
     const map = new Map<string, PublicOrganizationPosition[]>();
     for (const position of data?.positions ?? []) {
@@ -81,7 +92,13 @@ export default function PublicOrganizationDetailPage({ slug }: Props) {
           )}
         </Box>
       </Stack>
-      <OrganizationUnitHierarchyView hierarchy={hierarchy} positionsByUnit={byUnit} media={media} />
+      <OrganizationUnitHierarchyView
+        key={data.unit.contentId}
+        hierarchy={hierarchy}
+        positionsByUnit={byUnit}
+        media={media}
+        departmentLinks={academicDepartmentLinks}
+      />
     </Box>
   );
 }
