@@ -18,6 +18,7 @@ import type {
 import OrganizationUnitPositionContent from "./OrganizationUnitPositionContent";
 import {
   defaultOrganizationPersonnelScope,
+  selectOrganizationPersonnelUnits,
   type OrganizationPersonnelScope
 } from "../../features/public-organization/personnelScope";
 import type { PublicOrganizationUnit } from "../../features/public-organization/api";
@@ -134,16 +135,14 @@ export default function OrganizationUnitHierarchyView({
     selectedUnit ? defaultOrganizationPersonnelScope(selectedUnit) : "direct"
   );
   const visibleBranches = renderable ? chartUnits(hierarchy.root!) : [];
-  const permittedIds = new Set(visibleBranches.map((branch) => branch.unit.contentId));
-  const activeUnitId = scope.startsWith("unit:") ? scope.slice(5) : null;
-  const positionedUnits =
-    selectedUnit?.unitKind === "division"
-      ? visibleBranches.filter(({ unit }) => {
-          if (scope === "direct") return unit.contentId === selectedUnit.contentId;
-          if (scope === "all") return true;
-          return activeUnitId === unit.contentId && permittedIds.has(unit.contentId);
-        })
-      : visibleBranches.filter(({ unit }) => unit.contentId === selectedUnit?.contentId);
+  const scopedIds = selectedUnit
+    ? selectOrganizationPersonnelUnits(
+        selectedUnit,
+        visibleBranches.map(({ unit }) => unit),
+        scope
+      )
+    : new Set<string>();
+  const positionedUnits = visibleBranches.filter(({ unit }) => scopedIds.has(unit.contentId));
   const usedDepartmentIds = new Set(visibleBranches.map(({ unit }) => unit.contentId));
   const otherDepartments = departmentLinks.filter((unit) => !usedDepartmentIds.has(unit.contentId));
   // A leaf page already names the selected unit above its personnel chart.
