@@ -56,6 +56,20 @@ export interface FooterDirectoryGroup {
   links: FooterDirectoryLink[];
 }
 
+/** Fixed canonical sequence: director, then four deputy slots. */
+export interface LeadershipDeputy {
+  enabled: boolean;
+  name: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+}
+
+export interface HomepageLeadershipSettings {
+  autoplayIntervalSeconds: number;
+  deputies: LeadershipDeputy[];
+}
+
 export interface SiteSettings {
   siteName: string;
   eyebrow: string;
@@ -77,6 +91,8 @@ export interface SiteSettings {
   directorTitle: string;
   directorDescription: string;
   directorImageUrl: string;
+  /** Optional for older CMS snapshots and typed legacy fixtures. */
+  leadership?: HomepageLeadershipSettings;
   mapUrl: string;
   mapEmbedUrl: string;
   footerTitle: string;
