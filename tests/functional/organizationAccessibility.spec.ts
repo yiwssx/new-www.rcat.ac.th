@@ -376,6 +376,11 @@ test.describe("Organization hierarchy: managers above horizontal sibling units",
   }
 });
 
+async function showAllDivisionPersonnel(page: Page) {
+  await page.getByRole("combobox", { name: "ขอบเขตบุคลากร" }).click();
+  await page.getByRole("option", { name: "ทั้งหมดในฝ่ายและหน่วยงานย่อย" }).click();
+}
+
 test.describe("Organization V2.2 Phase 3 mixed position charts", () => {
   for (const width of [390, 768, 1280, 1440]) {
     test(
@@ -385,6 +390,7 @@ test.describe("Organization V2.2 Phase 3 mixed position charts", () => {
         await installOrganizationFixture(page, "rows", true);
         await page.goto("/organization/" + encodeURIComponent(slug));
         await dismissGateIfVisible(page);
+        await showAllDivisionPersonnel(page);
 
         const hierarchy = page.getByRole("region", { name: "ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้" });
         await expect(hierarchy).toBeVisible();
@@ -402,9 +408,13 @@ test.describe("Organization V2.2 Phase 3 mixed position charts", () => {
         await expect(page.getByRole("region", { name: "ผังบุคลากรตามหน่วยงาน" }).getByText("บุคลากรทดสอบ")).toHaveCount(
           2
         );
+        // Duty details are now intentionally behind the person-details dialog.
         await expect(
           page.getByRole("region", { name: "ผังบุคลากรตามหน่วยงาน" }).getByText("งานทะเบียนควบคู่")
-        ).toHaveCount(1);
+        ).toHaveCount(0);
+        await page.getByRole("button", { name: "ดูรายละเอียด บุคลากรทดสอบ" }).last().click();
+        await expect(page.getByRole("dialog").getByText("งานทะเบียนควบคู่")).toBeVisible();
+        await page.getByRole("dialog").getByRole("button", { name: "ปิด" }).click();
         await expect(page.getByRole("region", { name: "ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้" })).toHaveCount(1);
         await expect
           .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1))
@@ -425,6 +435,7 @@ test.describe("Organization V2.2 Phase 5 final browser regression", () => {
       });
       await page.goto("/organization/" + encodeURIComponent(slug));
       await dismissGateIfVisible(page);
+      await showAllDivisionPersonnel(page);
 
       const hierarchy = page.getByRole("region", { name: "ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้" });
       await expect(hierarchy).toBeVisible();
@@ -447,7 +458,10 @@ test.describe("Organization V2.2 Phase 5 final browser regression", () => {
       );
       await expect(
         page.getByRole("region", { name: "ผังบุคลากรตามหน่วยงาน" }).getByText("งานทะเบียนควบคู่")
-      ).toHaveCount(1);
+      ).toHaveCount(0);
+      await page.getByRole("button", { name: "ดูรายละเอียด บุคลากรทดสอบ" }).last().click();
+      await expect(page.getByRole("dialog").getByText("งานทะเบียนควบคู่")).toBeVisible();
+      await page.getByRole("dialog").getByRole("button", { name: "ปิด" }).click();
       await expect(tree.getByText("หัวหน้างานหลักสูตร")).toBeAttached();
       await expect(tree.getByText("ผู้ช่วยงานหลักสูตร")).toBeAttached();
 
@@ -524,7 +538,7 @@ test.describe("Organization field regression: Cards positions should not be a ve
       await dismissGateIfVisible(page);
 
       const rail = page.getByRole("region", { name: "ตำแหน่งของฝ่ายวิชาการ เลื่อนแนวนอนได้" });
-      const left = await rail.getByRole("heading", { name: "หัวหน้าฝ่าย", exact: true }).boundingBox();
+      const left = await rail.getByText("หัวหน้าฝ่าย", { exact: true }).boundingBox();
       const right = await rail.getByText("รองหัวหน้าฝ่าย").boundingBox();
       expect(left).not.toBeNull();
       expect(right).not.toBeNull();
