@@ -1,10 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import PublicOrganizationDetailPage from "./PublicOrganizationDetailPage";
 
-const mock = vi.hoisted(() => ({ data: null as unknown }));
+const mock = vi.hoisted(() => ({ data: null as unknown, index: [] as unknown[] }));
 vi.mock("../../features/public-organization", () => ({
+  getPublicOrganizationIndex: async () => mock.index,
   publicOrganizationDetailQueryOptions: (slug: string) => ({
     queryKey: ["org-detail-test", slug],
     queryFn: async () => mock.data,
@@ -23,6 +24,7 @@ function setup() {
 
 beforeEach(() => {
   mock.data = null;
+  mock.index = [];
 });
 
 describe("Phase 7 responsive public organization renderer", () => {
@@ -152,7 +154,11 @@ describe("Phase 7 responsive public organization renderer", () => {
     };
     mock.data = { unit: baseUnit, ancestors: [], units: [baseUnit], positions: [position], media: [] };
     const screenDepartment = setup();
-    expect(await screen.findByText("วุฒิการศึกษา: ปริญญาโท")).toBeInTheDocument();
+    expect(await screen.findByText("ครู ทดสอบ")).toBeInTheDocument();
+    expect(screen.queryByText(/วุฒิการศึกษา: ปริญญาโท/)).not.toBeInTheDocument();
+    expect(screen.getAllByText("ครู")).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "ดูรายละเอียด ครู ทดสอบ" }));
+    expect(screen.getByText(/วุฒิการศึกษา: ปริญญาโท/)).toBeInTheDocument();
     // Selected department is already identified by the page H1; no one-unit diagram above people.
     expect(screen.getAllByRole("heading", { name: "แผนกวิชา" })).toHaveLength(1);
     expect(screen.queryByRole("region", { name: "ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้" })).not.toBeInTheDocument();
@@ -162,7 +168,40 @@ describe("Phase 7 responsive public organization renderer", () => {
     mock.data = { unit: workUnit, ancestors: [], units: [workUnit], positions: [position], media: [] };
     setup();
     expect(await screen.findByText("ครู ทดสอบ")).toBeInTheDocument();
-    expect(screen.queryByText("วุฒิการศึกษา: ปริญญาโท")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "ดูรายละเอียด ครู ทดสอบ" }));
+    expect(screen.queryByText(/วุฒิการศึกษา: ปริญญาโท/)).not.toBeInTheDocument();
+  });
+
+  it("lists independently published departments under academic division without leaking their people", async () => {
+    const academic = {
+      contentId: "academic",
+      parentContentId: null,
+      slug: "academic",
+      title: "ฝ่ายวิชาการ",
+      summary: "",
+      unitKind: "division",
+      sortOrder: 0,
+      depth: 0
+    };
+    const work = { ...academic, contentId: "teaching-support", parentContentId: "academic", unitKind: "work", title: "งานหลักสูตร", slug: "teaching-support" };
+    mock.data = {
+      unit: academic,
+      ancestors: [],
+      units: [academic, work],
+      positions: [],
+      media: []
+    };
+    mock.index = [
+      academic,
+      work,
+      { ...academic, contentId: "dept-root", unitKind: "department", title: "แผนกวิชาบริหารธุรกิจ", slug: "business" },
+      { ...academic, contentId: "unpublished", unitKind: "program", title: "ไม่ใช่แผนกวิชา", slug: "program" }
+    ];
+    setup();
+    const link = await screen.findByRole("link", { name: "แผนกวิชาบริหารธุรกิจ" });
+    expect(link).toHaveAttribute("href", "/organization/business");
+    expect(screen.queryByText("บุคลากรจากหน่วยงานอื่น")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "งานหลักสูตร" })).toBeInTheDocument();
   });
 
   it("does not invent personnel or positions when the published unit is empty", async () => {
