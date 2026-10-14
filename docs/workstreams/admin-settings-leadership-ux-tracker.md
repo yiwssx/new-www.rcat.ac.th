@@ -3,7 +3,7 @@
 **Repository:** `yiwssx/new-www.rcat.ac.th`  
 **Created:** 2026-10-14 (Asia/Bangkok)  
 **Baseline inspected:** `main` at `3e51accb46f5025be03f7826112a43c0afa8d873`  
-**Status:** **CODE MERGED — #599/#600 QA GREEN; WORKER DEPLOYMENT AND PRODUCTION OPERATOR UAT PENDING**  
+**Status:** **BOTH ISSUES CLOSED BY OPERATOR — CODE AND CI VERIFIED; PRODUCTION FIELD QA / WORKER RELEASE NOT ATTESTED**  
 **Planning branch:** `docs/admin-settings-leadership-ux-plan-20261014`  
 **Planning PR:** [#601 — docs(ui-ux): track admin settings split and executive rotation](https://github.com/yiwssx/new-www.rcat.ac.th/pull/601)  
 **Tracker reconciliation PR:** [#604](https://github.com/yiwssx/new-www.rcat.ac.th/pull/604)  
@@ -17,7 +17,7 @@ The operator requested a fresh UI/UX workstream with two separate tasks:
 1. Break the long, hard-to-navigate Admin Settings single-page experience into real, direct-linkable settings pages with a collapsible submenu.
 2. On the **public homepage only**, rotate executive photo and details in this strict order: **Director → Deputy 1 → Deputy 2 → Deputy 3 → Deputy 4 → Director → repeat indefinitely**.
 
-**Approval at this stage covers planning/issue/tracker publication into `main` only.** No feature code should be merged as part of this planning PR. Separate implementation PRs must pass the normal quality/release gates before they can be merged and deployed.
+**Historical planning checkpoint:** PR #601 covered documentation only. Later implementation PRs #602 and #603 were separately CI-validated and merged; both Issues were operator-closed on 2026-10-15.
 
 ## 2. Verified code baseline and findings
 
@@ -49,12 +49,12 @@ Routes must be actual route-level pages, not tabs that mount the full 1,652-line
 
 ### Workstream A execution checklist
 
-- [ ] **A1 Discovery:** create a field-to-route and save-handler inventory; map legacy links, API record ownership, read-only roles and existing settings test coverage.
-- [ ] **A2 Route/UI shell:** add nested protected routes; replace the single menu entry with collapsible Settings submenu; keep `/admin/settings` deep links valid.
-- [ ] **A3 Component extraction:** split each form into scoped components/hooks; lazily fetch only its required settings record(s); keep loading/error/empty states distinct.
-- [ ] **A4 Data safety:** preserve validation, save confirmation and RBAC; prevent cross-subpage stale whole-record writes; test two-tab and cross-subpage conflict cases.
-- [ ] **A5 Quality:** navigation, responsive layout, keyboard/ARIA and mobile touch, save/reload, capability permissions, legacy route redirects, visual/functional regression and query footprint.
-- [ ] **A6 Release gate:** exact-head formatting/lint/type/test/build/E2E/security/governance checks green; review, merge and verify only after authorization and documented acceptance.
+- [x] **A1 Discovery:** inventory, field-to-route grouping, current records, guards and tests delivered in PR #602.
+- [x] **A2 Route/UI shell:** seven nested protected routes, overview and collapsible Settings submenu merged in PR #602.
+- [x] **A3 Component extraction:** category-scoped rendering and conditional queries delivered. Shared `SettingsPage.tsx` source remains and was **not** decomposed into seven separate modules.
+- [x] **A4 Data safety:** scoped partial writes, existing RBAC and same-field conflict warnings covered by regression tests; conflict checks are not atomic CAS.
+- [x] **A5 Quality:** automated navigation, integration, unit and existing functional E2E/quality checks green in CI #38583569747; live production/mobile UAT not attested.
+- [x] **A6 Release gate:** exact-head CI green, PR #602 merged, and owner-authorized closure recorded; live production verification explicitly waived for issue closure.
 
 **Acceptance:** an editor can open any settings category directly, understand their current category without scrolling a monolithic page, edit/save only permitted fields, reload without losing state, and not accidentally overwrite another category's edits.
 
@@ -94,7 +94,7 @@ Routes must be actual route-level pages, not tabs that mount the full 1,652-line
 - Tests: model ordering/missing entries, CMS editor read-only and draft state, timed component cycle, Worker nested URL policy.
 - [PR #603](https://github.com/yiwssx/new-www.rcat.ac.th/pull/603) was squash-merged into `main` at `01964eed963c79004e87566b04f9294bfcb28c82`.
 - [CI #38608145217](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38608145217) on exact head `a59e912621889ff021fd4aec640a7a606b89e24f`: all checks and aggregate `quality` succeeded, including Unit, Integration and Functional E2E.
-- No Worker deploy or production D1 writes performed. Operator owns Worker release and production field QA, after which #600 can close.
+- No Worker deploy or production D1 writes were performed. The owner directed closure of #600 on 2026-10-15; the protected Worker release and production field QA remain unverified.
 
 ### Data / administration design gate
 
@@ -104,14 +104,22 @@ The new editor belongs under **Settings → Leadership**, with five clearly labe
 
 ### Workstream B execution checklist
 
-- [ ] **B1 Data design:** settle type/schema/normalization, legacy compatibility, storage/projection and Worker release sequencing.
-- [ ] **B2 Admin editor:** create the five-position editor under Settings → Leadership; validate photo URL, labels and accessible preview; keep drafts safe.
-- [ ] **B3 Public component:** implement precise 0→1→2→3→4→0 loop, fallback/empty behavior and synchronized media+text transitions.
-- [ ] **B4 Accessibility/performance:** manual controls, reduced motion, visible/hidden tab behavior, responsive 3:4 portraits, image failures and no content layout shift.
-- [ ] **B5 Tests:** unit boundary/wraparound/missing slots, frontend component, RBAC/API compatibility and browser E2E on desktop/mobile; confirm no rotation on other routes.
-- [ ] **B6 Release gate:** exact-head quality green, compatible frontend/Worker release order if applicable, approval, controlled operator validation and then closure.
+- [x] **B1 Data design:** implemented legacy-compatible ordered leadership model, optional site-settings JSON, public projection, nested Worker validation and documented release order.
+- [x] **B2 Admin editor:** five-slot Leadership editor with portrait preview, URL handling, edit permissions and drafts delivered in PR #603.
+- [x] **B3 Public component:** homepage-only timed sequence with skipping incomplete deputies, synchronized record changes and director-only static fallback implemented.
+- [x] **B4 Accessibility/performance:** manual controls, reduced motion, tab visibility and responsive portrait behavior implemented; production media failure QA not attested.
+- [x] **B5 Tests:** unit/component and Worker validation tests added; existing repository browser E2E and aggregate CI #38608145217 green, with no new production/mobile browser E2E attested.
+- [x] **B6 Release gate:** PR #603 exact-head CI green and merged; operator closed #600 without claiming Worker release or production field QA succeeded.
 
 **Acceptance:** with all five entries configured, the user sees the specified sequence indefinitely and each slide's image, name, title and description match; with only director configured, the previous behavior still works; settings can be managed without manipulating a giant SPA.
+
+### Closure and verification exception — 2026-10-15
+
+Issues [#599](https://github.com/yiwssx/new-www.rcat.ac.th/issues/599) and [#600](https://github.com/yiwssx/new-www.rcat.ac.th/issues/600) were **closed on the owner's explicit instruction**, not because every originally proposed manual production acceptance step had passed. The checkboxes above certify the **delivered implementation / automated CI / operator's closure decision** as described in their revised wording. They do not certify unperformed activities.
+
+- **Settings #599:** real desktop/mobile admin route, save/reload, and simultaneous-edit production checks not attested; extracting each page into a separate source module remains outside implemented scope.
+- **Leadership #600:** Cloudflare Worker production release and approval, real five-person data entry, saved public snapshots and mobile/media field QA not attested; dedicated production/mobile E2E not claimed.
+- Further defects or additional scope will be handled as separate owner-directed work; the two Issues remain closed.
 
 ## 5. Overall plan and order
 
@@ -124,7 +132,7 @@ The new editor belongs under **Settings → Leadership**, with five clearly labe
 | P4   | Verify B4–B6, compatible release order and operator review                                                     | P3                                | QA green; Worker release/UAT pending |
 | P5   | Update issues and tracker with exact PRs, hashes, CI evidence, production verification and operator acceptance | Each release                      | Issue #600 updated; UAT outstanding  |
 
-**Scope rule:** use one implementation branch + one PR for each workstream. Do not mix A/B implementation into the planning PR. Feature work should not be marked complete before CI, protected release (if required) and hands-on operator validation.
+**Historical implementation scope rule:** each workstream used a separate feature branch/PR and passed exact-head CI. The operator chose to close both implementation Issues without asserting protected Worker release or hands-on production validation.
 
 ## 6. Quality, security and regression checks
 
@@ -141,5 +149,5 @@ The new editor belongs under **Settings → Leadership**, with five clearly labe
 1. Planning-only PR may merge to `main` after required checks and approvals; it authorizes **no runtime UI behavior change**.
 2. Before each implementation phase, compare current `origin/main` with the recorded baseline; do not develop against a stale branch.
 3. Update the applicable issue and this tracker with a checkbox only after concrete test and acceptance evidence exists.
-4. Do not close #599 before admin routing is released and operator verified; do not close #600 before the homepage rotation and editor are verified.
+4. Historical rule superseded by the 2026-10-15 owner instruction: #599 and #600 were closed after merged code and exact-head CI. No Worker deploy or production field QA success is implied.
 5. If a prior Organization UX tracker/PR is active, leave its scope and workflow untouched.
