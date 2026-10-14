@@ -127,7 +127,7 @@ describe("M20 admin information architecture", () => {
     expect(settingsPageSource).toContain("canManageAdminData");
     expect(cmsShellSource).not.toContain('session?.user.role === "admin"');
     expect(routesSource).toMatch(
-      /path:\s*"settings"[\s\S]*?<CapabilityGuard capability="settings\.read">[\s\S]*?<SettingsPage/
+      /path:\s*"settings"[\s\S]*?<CapabilityGuard capability="settings\.read">[\s\S]*?<SettingsOverviewPage/
     );
     expect(routesSource).toMatch(/path:\s*"menus"[\s\S]*?<CapabilityGuard capability="menu\.read">[\s\S]*?<MenuPage/);
     expect(routesSource).not.toMatch(/path:\s*"settings"[\s\S]*?<AdminOnlyPage>[\s\S]*?<SettingsPage\s*\/>/);
