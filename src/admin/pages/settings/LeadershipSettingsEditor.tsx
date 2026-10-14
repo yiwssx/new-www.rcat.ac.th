@@ -21,7 +21,8 @@ interface LeadershipSettingsEditorProps {
 }
 
 export default function LeadershipSettingsEditor({ value, disabled, onChange }: LeadershipSettingsEditorProps) {
-  const settings = normalizeLeadershipSettings(value);
+  // Preserve partial input while the operator types a URL; sanitize only on save.
+  const settings = value?.deputies?.length === 4 ? value : normalizeLeadershipSettings(value);
   function changeDeputy(index: number, key: keyof LeadershipDeputy, changed: string | boolean) {
     if (disabled) return;
     onChange({
