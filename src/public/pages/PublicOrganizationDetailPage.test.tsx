@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import PublicOrganizationDetailPage from "./PublicOrganizationDetailPage";
 
@@ -159,12 +159,15 @@ describe("Phase 7 responsive public organization renderer", () => {
     expect(await screen.findByText("ครู ทดสอบ")).toBeInTheDocument();
     expect(screen.queryByText(/วุฒิการศึกษา: ปริญญาโท/)).not.toBeInTheDocument();
     expect(screen.getAllByText("ครู")).toHaveLength(1);
-    fireEvent.click(screen.getByRole("button", { name: "ดูรายละเอียด ครู ทดสอบ" }));
-    expect(screen.getByText("ปริญญาโท")).toBeInTheDocument();
-    // Selected department is already identified by the page H1; no one-unit diagram above people.
+    // Inspect the underlying page before opening the modal; MUI correctly hides the document
+    // from assistive technologies while a person-details dialog is active.
     expect(screen.getAllByRole("heading", { name: "แผนกวิชา" })).toHaveLength(1);
     expect(screen.queryByRole("region", { name: "ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "ผังบุคลากร" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "ดูรายละเอียด ครู ทดสอบ" }));
+    expect(screen.getByText("ปริญญาโท")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "ปิด" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     screenDepartment.unmount();
     const workUnit = { ...baseUnit, unitKind: "work" };
     mock.data = { unit: workUnit, ancestors: [], units: [workUnit], positions: [position], media: [] };
