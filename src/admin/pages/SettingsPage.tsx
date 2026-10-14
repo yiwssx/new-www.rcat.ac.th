@@ -35,6 +35,9 @@ import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
 import PageHeader from "../components/PageHeader";
 import HomepageSettingsWorkflowGuide from "../components/HomepageSettingsWorkflowGuide";
+import LeadershipSettingsEditor from "./settings/LeadershipSettingsEditor";
+import PublicResponsiveImage from "../../shared/media/PublicResponsiveImage";
+import { resolvePublicImageSource } from "../../shared/media/publicImageSources";
 import { staticSurfaceSx } from "../../design-system/componentStyles";
 import { useAuth } from "../../context/authSessionContext";
 import { projectSettings } from "../../config/projectSettings";
@@ -47,7 +50,7 @@ import {
 } from "../../services/displaySettings";
 import { normalizeHomepageSettings } from "../../services/homepageSettings";
 import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
-import { defaultSiteSettings, normalizeSiteSettings } from "../../services/siteSettings";
+import { defaultSiteSettings, normalizeLeadershipSettings, normalizeSiteSettings } from "../../services/siteSettings";
 import { normalizeVisitorStats } from "../../services/visitorStats";
 import {
   getHomepageSettingsFromApi,
@@ -67,7 +70,7 @@ import {
 import { formatDisplayDate, formatDisplayDateTime, formatDisplayTime } from "../../utils/dateDisplay";
 import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 import { ADMIN_READ_ONLY_NOTICE, canManageAdminData } from "../utils/rbac";
-import { isExampleHostname } from "../../../shared/cmsLinkValidation";
+import { isExampleHostname, isValidCmsLink } from "../../../shared/cmsLinkValidation";
 
 function toNonNegativeInteger(value: unknown): number {
   const numeric = Number(value);
@@ -141,6 +144,24 @@ function getSiteSettingsValidationMessage(settings: SiteSettings): { title: stri
   const messengerUrl = settings.messengerUrl.trim();
   const mapUrl = settings.mapUrl.trim();
   const mapEmbedUrl = settings.mapEmbedUrl.trim();
+
+  for (const [index, deputy] of (settings.leadership?.deputies ?? []).entries()) {
+    if (deputy.enabled && (!deputy.name.trim() || !deputy.title.trim())) {
+      return {
+        title: "ข้อมูลรองผู้อำนวยการไม่ครบ",
+        text: `ตำแหน่งที่ ${index + 1} ที่เปิดใช้งานต้องระบุชื่อและตำแหน่งก่อนบันทึก`
+      };
+    }
+    if (
+      deputy.imageUrl.trim() &&
+      (!deputy.imageUrl.trim().startsWith("https://") || !isValidCmsLink(deputy.imageUrl.trim(), "resource"))
+    ) {
+      return {
+        title: "URL รูปภาพผู้บริหารไม่ถูกต้อง",
+        text: `รองผู้อำนวยการตำแหน่งที่ ${index + 1}: ใช้ลิงก์ HTTPS ที่ถูกต้องหรือเว้นว่าง`
+      };
+    }
+  }
 
   if (isExampleHostname(messengerUrl)) {
     return {
@@ -224,6 +245,7 @@ function getSiteSettingsValidationMessage(settings: SiteSettings): { title: stri
 type SiteSettingTextKey = Exclude<
   keyof SiteSettings,
   | "footerDirectoryGroups"
+  | "leadership"
   | "messengerEnabled"
   | "messengerUrl"
   | "messengerLabel"
@@ -618,7 +640,7 @@ export default function SettingsPage({ section }: { section: SettingsCategory })
         return;
       }
 
-      const validationMessage = getSiteSettingsValidationMessage(normalizeSiteSettings({ ...latest, ...patch }));
+      const validationMessage = getSiteSettingsValidationMessage({ ...latest, ...patch });
       if (validationMessage) {
         await appSwal.close();
         await appSwal.fire({
@@ -630,6 +652,11 @@ export default function SettingsPage({ section }: { section: SettingsCategory })
         return;
       }
 
+      // Preserve partially typed URLs in the draft, but persist canonical
+      // HTTPS / Google Drive portrait URLs after validating the raw input.
+      if (patch.leadership) {
+        patch.leadership = normalizeLeadershipSettings(patch.leadership);
+      }
       const saved = await saveSiteSettingsMutation.mutateAsync(patch);
       setSiteSettings(normalizeSiteSettings(saved));
       await Promise.all([
@@ -897,6 +924,14 @@ export default function SettingsPage({ section }: { section: SettingsCategory })
                     ข้อมูลส่วนนี้จะแสดงในหน้าเว็บไซต์สาธารณะและถูกบันทึกใน Settings sheet ของ Apps Script
                   </Typography>
                   <Grid container spacing={1.5}>
+                    {section === "leadership" && (
+                      <Grid size={{ xs: 12 }}>
+                        <Alert severity="info">
+                          ผู้อำนวยการใช้ข้อมูล 4 ช่องเดิมด้านล่างเป็นตำแหน่งแรก ตามด้วยรองผู้อำนวยการ 1–4
+                          โดยแสดงเฉพาะหน้าแรก
+                        </Alert>
+                      </Grid>
+                    )}
                     {siteSettingFields
                       .filter(
                         (field) => isSiteSettingsCategory(section) && siteSettingsKeys[section].includes(field.key)
@@ -927,6 +962,38 @@ export default function SettingsPage({ section }: { section: SettingsCategory })
                           )}
                         </Grid>
                       ))}
+                    {section === "leadership" && (
+                      <>
+                        {resolvePublicImageSource(siteSettings.directorImageUrl, "portrait").src && (
+                          <Grid size={{ xs: 12 }}>
+                            <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                              ตัวอย่างภาพผู้อำนวยการ (ลำดับที่ 1)
+                            </Typography>
+                            <PublicResponsiveImage
+                              source={siteSettings.directorImageUrl}
+                              intent="portrait"
+                              alt={`ภาพตัวอย่าง ${siteSettings.directorName || "ผู้อำนวยการ"}`}
+                              bypassPageMediaGate
+                              loadMode="eager"
+                              aspectRatio="3 / 4"
+                              fill
+                              sx={{ width: 160, bgcolor: "background.default", borderRadius: 1, overflow: "hidden" }}
+                              imageSx={{ objectFit: "cover", objectPosition: "center top" }}
+                            />
+                          </Grid>
+                        )}
+                        <Grid size={{ xs: 12 }}>
+                          <LeadershipSettingsEditor
+                            value={siteSettings.leadership}
+                            disabled={!canManage}
+                            onChange={(value) => {
+                              if (!canManage) return;
+                              setSiteSettings((current) => ({ ...current, leadership: value }));
+                            }}
+                          />
+                        </Grid>
+                      </>
+                    )}
                     {section === "appearance" && (
                       <>
                         <Grid size={{ xs: 12 }}>

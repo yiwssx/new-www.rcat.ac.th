@@ -1,4 +1,10 @@
-import { FooterDirectoryGroup, FooterDirectoryLink, SiteSettings } from "../types";
+import type {
+  FooterDirectoryGroup,
+  FooterDirectoryLink,
+  HomepageLeadershipSettings,
+  LeadershipDeputy,
+  SiteSettings
+} from "../features/cms-settings/types";
 import { buildGoogleDriveThumbnailUrl, extractGoogleDriveFileId } from "../shared/media/publicImageSources";
 
 const shortTextMaxLength = 120;
@@ -27,6 +33,17 @@ const longTextFields = new Set<keyof SiteSettings>([
 ]);
 const googleDriveImageHosts = new Set(["drive.google.com", "www.drive.google.com"]);
 
+export const defaultLeadershipSettings: HomepageLeadershipSettings = {
+  autoplayIntervalSeconds: 6,
+  deputies: Array.from({ length: 4 }, (): LeadershipDeputy => ({
+    enabled: false,
+    name: "",
+    title: "",
+    description: "",
+    imageUrl: ""
+  }))
+};
+
 export const defaultSiteSettings: SiteSettings = {
   siteName: neutralSiteName,
   eyebrow: "",
@@ -48,6 +65,7 @@ export const defaultSiteSettings: SiteSettings = {
   directorTitle: "",
   directorDescription: "",
   directorImageUrl: "",
+  leadership: defaultLeadershipSettings,
   mapUrl: "",
   mapEmbedUrl: "",
   footerTitle: neutralSiteName,
@@ -176,6 +194,31 @@ function normalizeDirectorImageUrl(value: unknown) {
   return url;
 }
 
+/**
+ * Preserve the legacy director fields as the canonical first slot.
+ * Deputy slots are fixed by array position, not user-supplied rank.
+ * Disable incomplete or malformed profiles rather than displaying invented people.
+ */
+export function normalizeLeadershipSettings(value: unknown): HomepageLeadershipSettings {
+  const source = isRecord(value) ? value : {};
+  const seconds = Number(source.autoplayIntervalSeconds);
+  const deputiesSource = Array.isArray(source.deputies) ? source.deputies : [];
+  return {
+    autoplayIntervalSeconds:
+      Number.isFinite(seconds) && seconds > 0 ? Math.max(3, Math.min(30, Math.round(seconds))) : 6,
+    deputies: Array.from({ length: 4 }, (_, index): LeadershipDeputy => {
+      const deputy = isRecord(deputiesSource[index]) ? (deputiesSource[index] as Record<string, unknown>) : {};
+      return {
+        enabled: deputy.enabled === true,
+        name: normalizeText(deputy.name, shortTextMaxLength),
+        title: normalizeText(deputy.title, shortTextMaxLength),
+        description: normalizeText(deputy.description, longTextMaxLength),
+        imageUrl: normalizeDirectorImageUrl(deputy.imageUrl)
+      };
+    })
+  };
+}
+
 function decodeIframeSrcHtmlEntities(value: string) {
   return value.replace(/&amp;/gi, "&");
 }
@@ -244,6 +287,11 @@ export function normalizeSiteSettings(input: unknown): SiteSettings {
 
   (Object.keys(defaultSiteSettings) as Array<keyof SiteSettings>).forEach((key) => {
     if (!(key in source)) {
+      return;
+    }
+
+    if (key === "leadership") {
+      normalized.leadership = normalizeLeadershipSettings(source[key]);
       return;
     }
 

@@ -29,8 +29,15 @@ export function saveDisplaySettingsToApi(settings: Partial<DisplaySettings>) {
 }
 
 export function saveSiteSettingsToApi(settings: Partial<SiteSettings>) {
-  if (settings.directorImageUrl && isPublicImageDeliveryEnabled("portrait")) {
-    void prewarmPublicImageDeliveryVariants(settings.directorImageUrl, "portrait");
+  if (isPublicImageDeliveryEnabled("portrait")) {
+    if (settings.directorImageUrl) {
+      void prewarmPublicImageDeliveryVariants(settings.directorImageUrl, "portrait");
+    }
+    settings.leadership?.deputies.forEach((deputy) => {
+      if (deputy.enabled && deputy.imageUrl) {
+        void prewarmPublicImageDeliveryVariants(deputy.imageUrl, "portrait");
+      }
+    });
   }
 
   return saveSiteSettingsToCloudflare(settings);

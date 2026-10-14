@@ -3,7 +3,7 @@
 **Repository:** `yiwssx/new-www.rcat.ac.th`  
 **Created:** 2026-10-14 (Asia/Bangkok)  
 **Baseline inspected:** `main` at `3e51accb46f5025be03f7826112a43c0afa8d873`  
-**Status:** **ACTIVE — SETTINGS CODE PR #602; CI AND PRODUCTION UAT NOT YET ACCEPTED; LEADERSHIP ROTATION NOT STARTED**  
+**Status:** **ACTIVE — SETTINGS #602 MERGED; LEADERSHIP #600 IMPLEMENTATION IN PROGRESS; CI/RELEASE UAT PENDING**  
 **Planning branch:** `docs/admin-settings-leadership-ux-plan-20261014`  
 **Planning PR:** [#601 — docs(ui-ux): track admin settings split and executive rotation](https://github.com/yiwssx/new-www.rcat.ac.th/pull/601)  
 **Implementation issues:** [#599 — Settings navigation](https://github.com/yiwssx/new-www.rcat.ac.th/issues/599) and [#600 — Leadership rotation](https://github.com/yiwssx/new-www.rcat.ac.th/issues/600)  
@@ -81,6 +81,17 @@ Routes must be actual route-level pages, not tabs that mount the full 1,652-line
 - No hard-coded names/photos; photos should use existing validated public-media handling, safe URLs, descriptive alt text and reasonable dimensions.
 - Do not import/overwrite live organization personnel in this workstream. Future optional linking to canonical personnel IDs requires separate schema/permissions review, especially while Organization UX work remains active.
 
+### Implementation checkpoint — 2026-10-15, Workstream B #600
+
+- Branch: `feature/homepage-leadership-rotation`; implementation PR [#603](https://github.com/yiwssx/new-www.rcat.ac.th/pull/603).
+- No new packages or pnpm lockfile changes; React + MUI hooks and existing `PublicResponsiveImage` are sufficient.
+- Preserve legacy `directorName/directorTitle/directorDescription/directorImageUrl` as the single canonical Director slot. Add optional `siteSettings.leadership` containing four fixed ordered deputy slots (`enabled/name/title/description/imageUrl`) and a 6-second default interval (range 3–30).
+- No schema migration: existing D1 `site_settings.settings_json` persists the new optional field via current deep-merge PUT, and the public metadata adapter forwards it through existing public snapshots. Add an optional public contract and nested Worker URL validation; do not write real D1 personnel data.
+- Editor lives in existing `/admin/settings/leadership` route, uses `settings.manage` permission enforcement and the #602 changed-keys-only save guard. Draft URL input is preserved while typing; normalized URL is persisted upon save.
+- Public-only widget cycles Director > enabled deputy 1–4 > Director indefinitely, skips missing entries, keeps single Director static, supports manual arrows/keyboard and pauses on hover/focus, inactive tab or reduced-motion preference. Each transition updates portrait and text together.
+- **Release note:** Worker validation must be deployed by the operator after main merge. Worker contract is additive; old Worker deep-merge preserves the new key in the meantime. Production UAT must verify the saved roster reloads via both Admin GET and Public Shell/Home GET and the image URLs resolve.
+- Tests: model ordering/missing entries, CMS editor read-only and draft state, timed component cycle, Worker nested URL policy; exact-head CI/E2E and field UAT still outstanding.
+
 ### Data / administration design gate
 
 Existing `SiteSettings` contains only `directorName`, `directorTitle`, `directorDescription`, `directorImageUrl`. Before implementation, document a safe **ordered five-slot model** and normalization/default behavior, and decide whether it extends existing site settings or uses a separate homepage leadership record. Explicitly examine both Worker validation and public snapshot projection before changing contract shape. Migration must preserve existing director values; it must not require immediate production D1 edits.
@@ -105,7 +116,7 @@ The new editor belongs under **Settings → Leadership**, with five clearly labe
 | P0   | Create #599 and #600; commit this tracking plan to `main` through a documentation-only PR                      | Latest `main`                     | **In progress until planning PR actually merged** |
 | P1   | Implement A1–A4 on `feature/admin-settings-route-refactor`                                                     | P0                                | Implemented in PR #602; pending acceptance        |
 | P2   | Verify A5–A6 and release Settings navigation without changing homepage behavior                                | P1                                | CI/UAT pending                                    |
-| P3   | Implement B1–B3 on `feature/homepage-leadership-rotation`                                                      | P2; stable Leadership admin route | Not started                                       |
+| P3   | Implement B1–B3 on `feature/homepage-leadership-rotation`                                                      | P2; stable Leadership admin route | Code implemented; CI/UAT pending                  |
 | P4   | Verify B4–B6, compatible release order and operator review                                                     | P3                                | Not started                                       |
 | P5   | Update issues and tracker with exact PRs, hashes, CI evidence, production verification and operator acceptance | Each release                      | Not started                                       |
 

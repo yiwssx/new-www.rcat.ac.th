@@ -28,7 +28,7 @@ export const siteSettingsKeys: Record<SiteSettingsCategory, readonly (keyof Site
     "mapUrl",
     "mapEmbedUrl"
   ],
-  leadership: ["directorName", "directorTitle", "directorDescription", "directorImageUrl"],
+  leadership: ["directorName", "directorTitle", "directorDescription", "directorImageUrl", "leadership"],
   footer: [
     "footerTitle",
     "footerDescription",
