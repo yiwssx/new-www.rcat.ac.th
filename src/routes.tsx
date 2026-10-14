@@ -37,9 +37,11 @@ import {
   RootRouteLayout,
   ResetPasswordPage,
   SettingsPage,
+  SettingsOverviewPage,
   SystemHealthPage,
   UsersPage
 } from "./routeComponents";
+import { settingsCategories } from "./config/adminSettingsCategories";
 import {
   getCmsRouteHead,
   getPublicContentRouteHead,
@@ -386,10 +388,22 @@ const adminSettingsRoute = createRoute({
   path: "settings",
   component: () => (
     <CapabilityGuard capability="settings.read">
-      <SettingsPage />
+      <SettingsOverviewPage />
     </CapabilityGuard>
   )
 });
+
+const adminSettingsSectionRoutes = settingsCategories.map((section) =>
+  createRoute({
+    getParentRoute: () => adminRoute,
+    path: `settings/${section}`,
+    component: () => (
+      <CapabilityGuard capability="settings.read">
+        <SettingsPage section={section} />
+      </CapabilityGuard>
+    )
+  })
+);
 
 const adminUsersRoute = createRoute({
   getParentRoute: () => adminRoute,
@@ -459,6 +473,7 @@ const routeTree = rootRoute.addChildren([
       adminMenuRoute,
       adminIntegrationsRoute,
       adminSettingsRoute,
+      ...adminSettingsSectionRoutes,
       adminUsersRoute,
       adminBackupRoute,
       adminAccountSecurityRoute

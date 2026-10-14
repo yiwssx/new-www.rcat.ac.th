@@ -40,7 +40,8 @@ export const PublicNewsPage = lazy(() => import("./public/pages/PublicNewsPage")
 export const PublicOrganizationDetailPage = lazy(() => import("./public/pages/PublicOrganizationDetailPage"));
 export const PublicSearchPage = lazy(() => import("./public/pages/PublicSearchPage"));
 export const ResetPasswordPage = lazy(() => import("./admin/pages/ResetPasswordPage"));
-export const SettingsPage = lazy(() => import("./admin/pages/SettingsHomepageWorkflowPage"));
+export const SettingsPage = lazy(() => import("./admin/pages/SettingsPage"));
+export const SettingsOverviewPage = lazy(() => import("./admin/pages/SettingsOverviewPage"));
 export const SystemHealthPage = lazy(() => import("./admin/pages/SystemHealthPage"));
 export const UsersPage = lazy(() => import("./admin/pages/UserRoleCapabilityWorkflowPage"));
 export const PublicRouteLayout = lazy(() => import("./public/components/PublicShellRouteLayout"));

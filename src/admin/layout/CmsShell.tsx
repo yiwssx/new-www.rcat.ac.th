@@ -40,6 +40,7 @@ import { getCmsSiteName, projectSettings } from "../../config/projectSettings";
 import { useAuth } from "../../context/authSessionContext";
 import { hasAnyCmsCapability, type CmsCapability } from "../../features/cms-auth";
 import { appSwal } from "../../utils/swal";
+import { settingsNavigation } from "../pages/settings/settingsSections";
 
 const drawerWidth = 280;
 
@@ -63,6 +64,13 @@ type AdminPath =
   | "/admin/users"
   | "/admin/backup"
   | "/admin/settings"
+  | "/admin/settings/general"
+  | "/admin/settings/homepage"
+  | "/admin/settings/leadership"
+  | "/admin/settings/footer"
+  | "/admin/settings/appearance"
+  | "/admin/settings/visitors"
+  | "/admin/settings/access"
   | "/admin/account/security";
 
 interface NavItem {
@@ -79,6 +87,14 @@ const organizationSubmenu: Pick<NavItem, "label" | "to">[] = [
   { label: "ตำแหน่ง", to: "/admin/organization/positions" },
   { label: "มอบหมายหน้าที่", to: "/admin/organization/assignments" },
   { label: "จัดผังองค์กร", to: "/admin/organization/charts" }
+];
+
+const settingsSubmenu: Pick<NavItem, "label" | "to">[] = [
+  { label: "ภาพรวม", to: "/admin/settings" },
+  ...settingsNavigation.map((item) => ({
+    label: item.label,
+    to: `/admin/settings/${item.id}` as AdminPath
+  }))
 ];
 
 const navItems: NavItem[] = [
@@ -147,6 +163,7 @@ const navItems: NavItem[] = [
 export default function CmsShell() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [organizationExpanded, setOrganizationExpanded] = useState<boolean | null>(null);
+  const [settingsExpanded, setSettingsExpanded] = useState<boolean | null>(null);
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up("lg"));
   const navigate = useNavigate();
@@ -155,6 +172,8 @@ export default function CmsShell() {
   const visibleNavItems = navItems.filter((item) => hasAnyCmsCapability(capabilities, item.capabilities));
   const organizationActive = pathname === "/admin/organization" || pathname.startsWith("/admin/organization/");
   const organizationOpen = organizationExpanded ?? organizationActive;
+  const settingsActive = pathname === "/admin/settings" || pathname.startsWith("/admin/settings/");
+  const settingsOpen = settingsExpanded ?? settingsActive;
   const permissionLabel = capabilities.some((capability) => !capability.endsWith(".read"))
     ? "สิทธิ์การจัดการกำหนดโดยเซิร์ฟเวอร์"
     : "สิทธิ์อ่านข้อมูลกำหนดโดยเซิร์ฟเวอร์";
@@ -244,6 +263,38 @@ export default function CmsShell() {
                 <Collapse in={organizationOpen} timeout="auto" unmountOnExit>
                   <List id="organization-management-submenu" disablePadding aria-label="เมนูย่อยองค์กร">
                     {organizationSubmenu.map((child) => (
+                      <ListItemButton
+                        key={child.to}
+                        selected={pathname === child.to}
+                        onClick={() => handleNavigate(child.to)}
+                        sx={{ pl: 6, minHeight: 44, mb: 0.25, borderRadius: designTokens.radius.medium }}
+                      >
+                        <ListItemText primary={child.label} />
+                      </ListItemButton>
+                    ))}
+                  </List>
+                </Collapse>
+              </Box>
+            );
+          }
+
+          if (item.to === "/admin/settings") {
+            return (
+              <Box key={item.to}>
+                <ListItemButton
+                  selected={settingsActive}
+                  aria-expanded={settingsOpen}
+                  aria-controls="admin-settings-submenu"
+                  onClick={() => setSettingsExpanded(!settingsOpen)}
+                  sx={{ minHeight: 48, mb: 0.5, borderRadius: designTokens.radius.medium }}
+                >
+                  <ListItemIcon sx={{ color: "inherit", minWidth: 40 }}>{item.icon}</ListItemIcon>
+                  <ListItemText primary={item.label} />
+                  {settingsOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                </ListItemButton>
+                <Collapse in={settingsOpen} timeout="auto" unmountOnExit>
+                  <List id="admin-settings-submenu" disablePadding aria-label="เมนูย่อยการตั้งค่า">
+                    {settingsSubmenu.map((child) => (
                       <ListItemButton
                         key={child.to}
                         selected={pathname === child.to}
