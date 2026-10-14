@@ -14,7 +14,7 @@ The normal path is automation-first:
 2. repository CI completes successfully for that exact commit SHA;
 3. **Production Verification** classifies the commit diff with the same Vercel runtime-impact rules used by `scripts/vercel-ignore-build.mjs`;
 4. an expected Vercel `Ignored Build Step` / `Canceled by Ignored Build Step` status for a non-runtime-only change completes without browser smoke because no new production deployment exists;
-5. otherwise, the workflow requires the matching `Vercel` commit status to report success with a non-empty `target_url`, **or** checks GitHub Deployments for a matching exact-SHA `Production` deployment created by the Vercel GitHub App, whose latest Deployment Status is `success` with a valid HTTPS URL. The deployed route is then checked by production Playwright smoke against `https://www.rcat.ac.th`.
+5. otherwise, the workflow first checks the matching `Vercel` commit status, then GitHub Deployments for the exact-SHA `Production` success, and finally checks a **no-store release witness served by the canonical production origin**. This witness is built from Vercel-supplied Git metadata only during the production build and must prove the target SHA, the `main` ref, GitHub source repository and Vercel production environment; wrong or missing metadata fails closed. Only after the gate passes can production Playwright smoke run against `https://www.rcat.ac.th`.
 
 For documentation and test-contract purposes, an expected ignored build is a non-runtime-only change that the shared classifier intentionally permits Vercel to skip. A runtime-impacting change that is ignored remains a fail-closed condition.
 
@@ -72,6 +72,16 @@ It checks the exact CI `head_sha`, applies the repository's Vercel runtime-impac
 - Vercel failure/error, missing `target_url`, or bounded wait timeout -> fail closed.
 
 The primary gate uses Vercel's GitHub **commit status**. A documented connector delay can leave it permanently `pending` even while Vercel has a `READY` Production deployment and has assigned the public domain. In that case a **read-only GitHub Deployments API** fallback verifies the same exact 40-character SHA, the Production environment, Vercel App ownership, latest terminal Deployment Status, and HTTPS deployment URL. A pending, other-app, wrong-SHA, wrong-environment, stale or failed status does not pass. The fallback does **not** skip read-only browser smoke, broaden to untrusted commits, change Worker/D1, or require a Vercel token. No unrelated or older deployment is accepted.
+
+### Canonical Vercel release witness — 2026-10-14
+
+When both GitHub reporting channels stay pending (run 38545987281), the build script `scripts/prepare-ssr-cutover-output.mjs` writes `dist/rcat-release.json` *after* Vite finishes. The only accepted source of identity is Vercel's build-time `VERCEL_GIT_*` metadata. The generator does not read local `.env` secrets, authenticate visitors, or change site data. Preview builds do not emit this production witness.
+
+The exact-SHA checker reads `https://www.rcat.ac.th/rcat-release.json?sha=<40-hex>` over HTTPS with no redirects, validates JSON identity (`provider=vercel`, `environment=production`, `repository=yiwssx/new-www.rcat.ac.th`, `ref=main`) and the requested SHA. It requires no-store response headers; an absent/stale marker waits, while invalid or unexpected metadata fails closed. The check is only used when the release is runtime-impacting and both native GitHub evidence channels have not completed. It cannot substitute an ignored-build success or bypass the actual Playwright browser tests.
+
+A real GitHub `Vercel` success, a matching Vercel GitHub Deployment success, or a matching canonical production release witness may satisfy the release readiness gate; all still require read-only browser verification. This third path needs no new GitHub Actions secret, no GitHub Checks mutation and no provider integration write access.
+
+**Operational boundary:** A failed historic run remains failed. Once this correction is merged to protected `main`, inspect the newly triggered Vercel READY deployment, aliases, and the new Production Verification run. Record real field-test/Console outcomes, not just CI completion. If Vercel System Environment Variables are disabled, the production build fails closed rather than writing unverified SHA information.
 
 ## Manual fallback
 
