@@ -1,4 +1,4 @@
-function normalizeLabel(value: string) {
+export function normalizeLabel(value: string) {
   return value.trim().replace(/\s+/gu, " ").normalize("NFC").toLocaleLowerCase("th");
 }
 
