@@ -60,6 +60,35 @@ describe("Phase A automation contract", () => {
     expect(result).toContain("accepts only exact-SHA Vercel Production success");
   });
 
+  it("recovers stale provider callbacks only after live canonical exact-SHA production attestation", () => {
+    expect(workflow.split("node scripts/check-production-release-manifest.mjs")).toHaveLength(3);
+    expect(workflow.split('if [[ "$EXPECTED_IGNORED" == "false" ]]')).toHaveLength(3);
+    expect(workflow).toContain("Live production release attestation failed closed.");
+    expect(workflow).toContain("skip_smoke=false");
+
+    const result = execFileSync(
+      process.execPath,
+      ["--test", join(repositoryRoot, "scripts", "production-release-manifest.node-suite.mjs")],
+      { cwd: repositoryRoot, encoding: "utf8", timeout: 20_000 }
+    );
+    expect(result).toContain("a matching SHA alone is insufficient");
+    expect(result).toContain("stale, absent or untrusted live witnesses cannot pass");
+  });
+
+  it("generates deployment release metadata after the production Vite output is complete", () => {
+    const cutover = readFileSync(join(repositoryRoot, "scripts", "prepare-ssr-cutover-output.mjs"), "utf8");
+    const vercelConfig = JSON.parse(readFileSync(join(repositoryRoot, "vercel.json"), "utf8")) as {
+      headers: { source: string; headers: { key: string; value: string }[] }[];
+    };
+    expect(cutover).toContain("createProductionReleaseManifest(process.env)");
+    expect(cutover.indexOf("await rename(indexPath, csrPath)")).toBeLessThan(
+      cutover.indexOf("createProductionReleaseManifest(process.env)")
+    );
+    const release = vercelConfig.headers.find((entry) => entry.source === "/rcat-release.json");
+    expect(release?.headers).toContainEqual({ key: "Cache-Control", value: "no-store, max-age=0" });
+    expect(release?.headers).toContainEqual({ key: "X-Robots-Tag", value: "noindex, nofollow" });
+  });
+
   it("waits for the matching Vercel status and only runs browser smoke when deployment exists", () => {
     expect(workflow).toContain("Wait for matching Vercel production deployment");
     expect(workflow).toContain("github.event.workflow_run.head_sha");
