@@ -244,7 +244,7 @@ describe("Organization Chart layout audited save feedback", () => {
     expect(preview).toHaveAttribute("data-organization-preview", "hierarchy");
     expect(rail).toHaveAttribute("tabindex", "0");
     expect(within(rail).getByText("หัวหน้างาน")).toBeInTheDocument();
-    expect(within(rail).getByText("ยังไม่ได้ระบุผู้ดำรงตำแหน่ง")).toBeInTheDocument();
+    expect(within(rail).getByText("ยังไม่มีผู้ดำรงตำแหน่ง")).toBeInTheDocument();
   });
 
   it("renders the real A-mode reporting preview before form controls and updates unsaved levels", () => {
