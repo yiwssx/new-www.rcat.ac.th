@@ -42,7 +42,7 @@ export default function PublicOrganizationDetailPage({ slug }: Props) {
   const media = useMemo(() => new Map((data?.media ?? []).map((asset) => [asset.id, asset])), [data?.media]);
   const hierarchy = useMemo(
     () => buildPublicOrganizationHierarchy(data?.units ?? [], data?.unit.contentId ?? ""),
-    [data?.units, data?.unit.contentId]
+    [data?.units, data?.unit]
   );
 
   if (query.isPending) return <PublicLoadingState variant="listing" />;
