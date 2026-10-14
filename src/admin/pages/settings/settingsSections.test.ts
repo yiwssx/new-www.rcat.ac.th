@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { defaultSiteSettings } from "../../../services/siteSettings";
 import {
-  buildScopedSiteSettingsPatch, isSiteSettingsCategory, settingsCategories,
-  settingsNavigation, siteSettingsKeys
+  buildScopedSiteSettingsPatch,
+  isSiteSettingsCategory,
+  settingsCategories,
+  settingsNavigation,
+  siteSettingsKeys
 } from "./settingsSections";
 
 describe("admin settings route partitions", () => {
@@ -21,19 +24,17 @@ describe("admin settings route partitions", () => {
     const baseline = { ...defaultSiteSettings, siteName: "Original" };
     const edited = { ...baseline, directorName: "New director", siteName: "Stale site title" };
     const latest = { ...baseline, siteName: "New title from other tab" };
-    expect(buildScopedSiteSettingsPatch(baseline, edited, latest, "leadership"))
-      .toEqual({ directorName: "New director" });
-    expect(buildScopedSiteSettingsPatch(baseline, baseline, latest, "leadership"))
-      .toEqual({});
+    expect(buildScopedSiteSettingsPatch(baseline, edited, latest, "leadership")).toEqual({
+      directorName: "New director"
+    });
+    expect(buildScopedSiteSettingsPatch(baseline, baseline, latest, "leadership")).toEqual({});
   });
 
   it("rejects simultaneous edits to the same field", () => {
     const baseline = { ...defaultSiteSettings, siteName: "Before" };
     const edited = { ...baseline, siteName: "Editor one" };
     const latest = { ...baseline, siteName: "Editor two" };
-    expect(() => buildScopedSiteSettingsPatch(baseline, edited, latest, "general"))
-      .toThrow("ข้อมูลส่วนนี้ถูกแก้ไข");
-    expect(buildScopedSiteSettingsPatch(baseline, edited, edited, "general"))
-      .toEqual({ siteName: "Editor one" });
+    expect(() => buildScopedSiteSettingsPatch(baseline, edited, latest, "general")).toThrow("ข้อมูลส่วนนี้ถูกแก้ไข");
+    expect(buildScopedSiteSettingsPatch(baseline, edited, edited, "general")).toEqual({ siteName: "Editor one" });
   });
 });

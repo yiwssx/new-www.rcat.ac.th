@@ -15,23 +15,39 @@ export type SiteSettingsCategory = Extract<SettingsCategory, "general" | "leader
 
 export const siteSettingsKeys: Record<SiteSettingsCategory, readonly (keyof SiteSettings)[]> = {
   general: [
-    "siteName", "eyebrow", "intro", "campus", "phone", "fax", "email", "address",
-    "admissionUrl", "facebookUrl", "youtubeUrl", "tiktokUrl", "heroTitle",
-    "heroDescription", "heroChip", "heroImageUrl", "mapUrl", "mapEmbedUrl"
+    "siteName",
+    "eyebrow",
+    "intro",
+    "campus",
+    "phone",
+    "fax",
+    "email",
+    "address",
+    "admissionUrl",
+    "facebookUrl",
+    "youtubeUrl",
+    "tiktokUrl",
+    "heroTitle",
+    "heroDescription",
+    "heroChip",
+    "heroImageUrl",
+    "mapUrl",
+    "mapEmbedUrl"
   ],
   leadership: ["directorName", "directorTitle", "directorDescription", "directorImageUrl"],
   footer: [
-    "footerTitle", "footerDescription", "footerDirectoryGroups", "messengerUrl",
-    "messengerLabel", "messengerEnabled"
+    "footerTitle",
+    "footerDescription",
+    "footerDirectoryGroups",
+    "messengerUrl",
+    "messengerLabel",
+    "messengerEnabled"
   ],
-  appearance: [
-    "mourningModeEnabled", "mourningRibbonEnabled", "mourningModeLabel", "mourningModeNotice"
-  ]
+  appearance: ["mourningModeEnabled", "mourningRibbonEnabled", "mourningModeLabel", "mourningModeNotice"]
 };
 
 export function isSiteSettingsCategory(category: SettingsCategory): category is SiteSettingsCategory {
-  return category === "general" || category === "leadership" ||
-    category === "footer" || category === "appearance";
+  return category === "general" || category === "leadership" || category === "footer" || category === "appearance";
 }
 
 export const settingsNavigation: ReadonlyArray<{ id: SettingsCategory; label: string; description: string }> = [

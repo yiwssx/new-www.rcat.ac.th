@@ -1,6 +1,11 @@
 import { useMemo, useState } from "react";
 import type { SettingsCategory } from "./settings/settingsSections";
-import { buildScopedSiteSettingsPatch, isSiteSettingsCategory, settingsNavigation, siteSettingsKeys } from "./settings/settingsSections";
+import {
+  buildScopedSiteSettingsPatch,
+  isSiteSettingsCategory,
+  settingsNavigation,
+  siteSettingsKeys
+} from "./settings/settingsSections";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -701,990 +706,1065 @@ export default function SettingsPage({ section }: { section: SettingsCategory })
           {ADMIN_READ_ONLY_NOTICE}
         </Alert>
       )}
-      {sectionIsLoading && <Alert severity="info" sx={{ mb: 2 }}>กำลังโหลดข้อมูลการตั้งค่า...</Alert>}
+      {sectionIsLoading && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          กำลังโหลดข้อมูลการตั้งค่า...
+        </Alert>
+      )}
       <Grid container spacing={2.5}>
-      {section === "appearance" && (<>
-        <Grid size={{ xs: 12 }}>
-          <Card>
-            <CardContent>
-              <Stack
-                direction="row"
-                spacing={1.5}
-                sx={{
-                  alignItems: "center",
-                  mb: 2
-                }}
-              >
-                <AccessTimeOutlinedIcon color="primary" />
-                <Typography variant="h3">การแสดงวันที่และเวลา</Typography>
-              </Stack>
-              <Typography
-                sx={{
-                  color: "text.secondary",
-                  mb: 2
-                }}
-              >
-                ใช้รูปแบบวันที่แบบ WordPress โดยระบบ Admin และ Editor ใช้เวลาแบบ 24 ชั่วโมง (00:00–23:59) เท่านั้น
-              </Typography>
-              <Grid container spacing={1.5}>
-                <Grid size={{ xs: 12, md: 5 }}>
-                  <FormControl fullWidth size="small">
-                    <InputLabel id="date-format-preset-label">รูปแบบวันที่สำเร็จรูป</InputLabel>
-                    <Select
-                      labelId="date-format-preset-label"
-                      label="รูปแบบวันที่สำเร็จรูป"
-                      value={
-                        dateFormatPresets.some((item) => item.value === displaySettings.dateFormat)
-                          ? displaySettings.dateFormat
-                          : "__custom__"
-                      }
-                      onChange={(event) => {
-                        const value = event.target.value;
-                        if (value === "__custom__") {
-                          return;
-                        }
-
-                        setDisplaySettings((current) => ({
-                          ...current,
-                          dateFormat: value
-                        }));
-                      }}
-                    >
-                      {dateFormatPresets.map((preset) => (
-                        <MenuItem key={preset.value} value={preset.value}>
-                          {preset.label}
-                        </MenuItem>
-                      ))}
-                      <MenuItem value="__custom__">รูปแบบกำหนดเอง</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid size={{ xs: 12, md: 4 }}>
-                  <FormControl fullWidth size="small">
-                    <InputLabel id="time-mode-label">รูปแบบเวลา</InputLabel>
-                    <Select
-                      labelId="time-mode-label"
-                      label="รูปแบบเวลา"
-                      value={displaySettings.timeMode}
-                      onChange={() =>
-                        setDisplaySettings((current) => ({
-                          ...current,
-                          timeMode: "24h"
-                        }))
-                      }
-                    >
-                      <MenuItem value="24h">24 ชั่วโมง (14:30)</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid size={{ xs: 12, md: 3 }}>
-                  <Button
-                    fullWidth
-                    variant="contained"
-                    startIcon={<SaveOutlinedIcon />}
-                    disabled={!canManage || displaySettingsQuery.isPending || displaySettingsQuery.isError || saveDisplaySettingsMutation.isPending}
-                    onClick={() => void handleSaveDisplaySettings()}
-                  >
-                    {saveDisplaySettingsMutation.isPending ? "กำลังบันทึก" : "บันทึก"}
-                  </Button>
-                </Grid>
-                <Grid size={{ xs: 12 }}>
-                  <TextField
-                    label="รูปแบบวันที่กำหนดเอง"
-                    value={displaySettings.dateFormat}
-                    onChange={(event) =>
-                      setDisplaySettings((current) => ({
-                        ...current,
-                        dateFormat: event.target.value
-                      }))
-                    }
-                    helperText="ตัวอย่าง: j F Y | F j, Y | Y-m-d | m/d/Y | d/m/Y"
-                    size="small"
-                    fullWidth
-                  />
-                </Grid>
-              </Grid>
-              <Card
-                variant="outlined"
-                sx={{
-                  mt: 2,
-                  borderColor: "divider",
-                  bgcolor: "background.default"
-                }}
-              >
+        {section === "appearance" && (
+          <>
+            <Grid size={{ xs: 12 }}>
+              <Card>
                 <CardContent>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 1 }}>
-                    ตัวอย่าง
-                  </Typography>
-                  <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                    <Typography
-                      sx={{
-                        color: "text.secondary"
-                      }}
-                    >
-                      วันที่: {previewDate.date}
-                    </Typography>
-                    <Typography
-                      sx={{
-                        color: "text.secondary"
-                      }}
-                    >
-                      เวลา: {previewDate.time}
-                    </Typography>
-                    <Typography
-                      sx={{
-                        color: "text.secondary"
-                      }}
-                    >
-                      วันที่และเวลา: {previewDate.dateTime}
-                    </Typography>
+                  <Stack
+                    direction="row"
+                    spacing={1.5}
+                    sx={{
+                      alignItems: "center",
+                      mb: 2
+                    }}
+                  >
+                    <AccessTimeOutlinedIcon color="primary" />
+                    <Typography variant="h3">การแสดงวันที่และเวลา</Typography>
                   </Stack>
-                  {displaySettingsQuery.isError && (
-                    <Typography color="error" variant="body2" sx={{ mt: 1.2 }}>
-                      {displaySettingsQuery.error instanceof Error
-                        ? displaySettingsQuery.error.message
-                        : "ไม่สามารถโหลดค่าการแสดงผลที่บันทึกไว้ได้"}
-                    </Typography>
-                  )}
+                  <Typography
+                    sx={{
+                      color: "text.secondary",
+                      mb: 2
+                    }}
+                  >
+                    ใช้รูปแบบวันที่แบบ WordPress โดยระบบ Admin และ Editor ใช้เวลาแบบ 24 ชั่วโมง (00:00–23:59) เท่านั้น
+                  </Typography>
+                  <Grid container spacing={1.5}>
+                    <Grid size={{ xs: 12, md: 5 }}>
+                      <FormControl fullWidth size="small">
+                        <InputLabel id="date-format-preset-label">รูปแบบวันที่สำเร็จรูป</InputLabel>
+                        <Select
+                          labelId="date-format-preset-label"
+                          label="รูปแบบวันที่สำเร็จรูป"
+                          value={
+                            dateFormatPresets.some((item) => item.value === displaySettings.dateFormat)
+                              ? displaySettings.dateFormat
+                              : "__custom__"
+                          }
+                          onChange={(event) => {
+                            const value = event.target.value;
+                            if (value === "__custom__") {
+                              return;
+                            }
+
+                            setDisplaySettings((current) => ({
+                              ...current,
+                              dateFormat: value
+                            }));
+                          }}
+                        >
+                          {dateFormatPresets.map((preset) => (
+                            <MenuItem key={preset.value} value={preset.value}>
+                              {preset.label}
+                            </MenuItem>
+                          ))}
+                          <MenuItem value="__custom__">รูปแบบกำหนดเอง</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 4 }}>
+                      <FormControl fullWidth size="small">
+                        <InputLabel id="time-mode-label">รูปแบบเวลา</InputLabel>
+                        <Select
+                          labelId="time-mode-label"
+                          label="รูปแบบเวลา"
+                          value={displaySettings.timeMode}
+                          onChange={() =>
+                            setDisplaySettings((current) => ({
+                              ...current,
+                              timeMode: "24h"
+                            }))
+                          }
+                        >
+                          <MenuItem value="24h">24 ชั่วโมง (14:30)</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 3 }}>
+                      <Button
+                        fullWidth
+                        variant="contained"
+                        startIcon={<SaveOutlinedIcon />}
+                        disabled={
+                          !canManage ||
+                          displaySettingsQuery.isPending ||
+                          displaySettingsQuery.isError ||
+                          saveDisplaySettingsMutation.isPending
+                        }
+                        onClick={() => void handleSaveDisplaySettings()}
+                      >
+                        {saveDisplaySettingsMutation.isPending ? "กำลังบันทึก" : "บันทึก"}
+                      </Button>
+                    </Grid>
+                    <Grid size={{ xs: 12 }}>
+                      <TextField
+                        label="รูปแบบวันที่กำหนดเอง"
+                        value={displaySettings.dateFormat}
+                        onChange={(event) =>
+                          setDisplaySettings((current) => ({
+                            ...current,
+                            dateFormat: event.target.value
+                          }))
+                        }
+                        helperText="ตัวอย่าง: j F Y | F j, Y | Y-m-d | m/d/Y | d/m/Y"
+                        size="small"
+                        fullWidth
+                      />
+                    </Grid>
+                  </Grid>
+                  <Card
+                    variant="outlined"
+                    sx={{
+                      mt: 2,
+                      borderColor: "divider",
+                      bgcolor: "background.default"
+                    }}
+                  >
+                    <CardContent>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 1 }}>
+                        ตัวอย่าง
+                      </Typography>
+                      <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                        <Typography
+                          sx={{
+                            color: "text.secondary"
+                          }}
+                        >
+                          วันที่: {previewDate.date}
+                        </Typography>
+                        <Typography
+                          sx={{
+                            color: "text.secondary"
+                          }}
+                        >
+                          เวลา: {previewDate.time}
+                        </Typography>
+                        <Typography
+                          sx={{
+                            color: "text.secondary"
+                          }}
+                        >
+                          วันที่และเวลา: {previewDate.dateTime}
+                        </Typography>
+                      </Stack>
+                      {displaySettingsQuery.isError && (
+                        <Typography color="error" variant="body2" sx={{ mt: 1.2 }}>
+                          {displaySettingsQuery.error instanceof Error
+                            ? displaySettingsQuery.error.message
+                            : "ไม่สามารถโหลดค่าการแสดงผลที่บันทึกไว้ได้"}
+                        </Typography>
+                      )}
+                    </CardContent>
+                  </Card>
                 </CardContent>
               </Card>
-            </CardContent>
-          </Card>
-        </Grid>
-      </>)}
-      {isSiteSettingsCategory(section) && (<>
-        <Grid size={{ xs: 12 }}>
-          <Card>
-            <CardContent>
-              <Stack
-                direction="row"
-                spacing={1.5}
-                sx={{
-                  alignItems: "center",
-                  mb: 2
-                }}
-              >
-                <LanguageOutlinedIcon color="primary" />
-                <Typography variant="h3">{settingsNavigation.find((item) => item.id === section)?.label}</Typography>
-              </Stack>
-              <Typography
-                sx={{
-                  color: "text.secondary",
-                  mb: 2
-                }}
-              >
-                ข้อมูลส่วนนี้จะแสดงในหน้าเว็บไซต์สาธารณะและถูกบันทึกใน Settings sheet ของ Apps Script
-              </Typography>
-              <Grid container spacing={1.5}>
-                {siteSettingFields.filter((field) => isSiteSettingsCategory(section) && siteSettingsKeys[section].includes(field.key)).map((field) => (
-                  <Grid size={{ xs: 12, md: field.multiline ? 12 : 6 }} key={field.key}>
-                    <TextField
-                      label={field.label}
-                      value={siteSettings[field.key]}
-                      onChange={(event) => handleSiteSettingsChange(field.key, event.target.value)}
-                      helperText={field.helperText}
-                      multiline={field.multiline}
-                      minRows={field.multiline ? 3 : undefined}
-                      size="small"
-                      fullWidth
-                    />
-                    {field.key === "mapEmbedUrl" && (
-                      <Typography
-                        variant="caption"
+            </Grid>
+          </>
+        )}
+        {isSiteSettingsCategory(section) && (
+          <>
+            <Grid size={{ xs: 12 }}>
+              <Card>
+                <CardContent>
+                  <Stack
+                    direction="row"
+                    spacing={1.5}
+                    sx={{
+                      alignItems: "center",
+                      mb: 2
+                    }}
+                  >
+                    <LanguageOutlinedIcon color="primary" />
+                    <Typography variant="h3">
+                      {settingsNavigation.find((item) => item.id === section)?.label}
+                    </Typography>
+                  </Stack>
+                  <Typography
+                    sx={{
+                      color: "text.secondary",
+                      mb: 2
+                    }}
+                  >
+                    ข้อมูลส่วนนี้จะแสดงในหน้าเว็บไซต์สาธารณะและถูกบันทึกใน Settings sheet ของ Apps Script
+                  </Typography>
+                  <Grid container spacing={1.5}>
+                    {siteSettingFields
+                      .filter(
+                        (field) => isSiteSettingsCategory(section) && siteSettingsKeys[section].includes(field.key)
+                      )
+                      .map((field) => (
+                        <Grid size={{ xs: 12, md: field.multiline ? 12 : 6 }} key={field.key}>
+                          <TextField
+                            label={field.label}
+                            value={siteSettings[field.key]}
+                            onChange={(event) => handleSiteSettingsChange(field.key, event.target.value)}
+                            helperText={field.helperText}
+                            multiline={field.multiline}
+                            minRows={field.multiline ? 3 : undefined}
+                            size="small"
+                            fullWidth
+                          />
+                          {field.key === "mapEmbedUrl" && (
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                color: "warning.dark",
+                                display: "block",
+                                mt: 0.6
+                              }}
+                            >
+                              ตรวจสอบพิกัดให้ถูกต้องก่อนบันทึก เพราะข้อมูลนี้แสดงต่อผู้ใช้เว็บไซต์สาธารณะ
+                            </Typography>
+                          )}
+                        </Grid>
+                      ))}
+                    {section === "appearance" && (
+                      <>
+                        <Grid size={{ xs: 12 }}>
+                          <Card variant="outlined" sx={{ bgcolor: "grey.50", borderColor: "grey.300" }}>
+                            <CardContent>
+                              <Stack spacing={1.5}>
+                                <Box>
+                                  <Typography
+                                    sx={{
+                                      fontWeight: 900
+                                    }}
+                                  >
+                                    โหมดไว้อาลัย
+                                  </Typography>
+                                  <Typography
+                                    variant="body2"
+                                    sx={{
+                                      color: "text.secondary",
+                                      mt: 0.5
+                                    }}
+                                  >
+                                    เลือกเปิดได้เพียงหนึ่งรูปแบบ: ริบบิ้นดำมุมซ้ายบน หรือขาวดำทั้งเว็บไซต์
+                                  </Typography>
+                                </Box>
+                                <Grid container spacing={1.5}>
+                                  <Grid size={{ xs: 12, md: 6 }}>
+                                    <Box
+                                      sx={{ ...staticSurfaceSx, p: 1.5, bgcolor: "background.paper", height: "100%" }}
+                                    >
+                                      <FormControlLabel
+                                        control={
+                                          <Switch
+                                            checked={Boolean(siteSettings.mourningRibbonEnabled)}
+                                            disabled={!canManage || siteSettings.mourningModeEnabled}
+                                            onChange={(event) =>
+                                              handleMourningRibbonEnabledChange(event.target.checked)
+                                            }
+                                          />
+                                        }
+                                        label="เปิดริบบิ้นดำมุมซ้ายบน"
+                                      />
+                                      <Typography
+                                        variant="caption"
+                                        sx={{ display: "block", color: "text.secondary", mt: 0.5 }}
+                                      >
+                                        แสดงริบบิ้นโดยคงสีเว็บไซต์ตามปกติ
+                                        และเว้นพื้นที่ส่วนหัวทุกขนาดหน้าจอไม่ให้ริบบิ้นบังเนื้อหา
+                                      </Typography>
+                                    </Box>
+                                  </Grid>
+                                  <Grid size={{ xs: 12, md: 6 }}>
+                                    <Box
+                                      sx={{ ...staticSurfaceSx, p: 1.5, bgcolor: "background.paper", height: "100%" }}
+                                    >
+                                      <FormControlLabel
+                                        control={
+                                          <Switch
+                                            checked={siteSettings.mourningModeEnabled}
+                                            disabled={!canManage || Boolean(siteSettings.mourningRibbonEnabled)}
+                                            onChange={(event) => handleMourningModeEnabledChange(event.target.checked)}
+                                          />
+                                        }
+                                        label="เปิดโหมดขาวดำ (Grayscale)"
+                                      />
+                                      <Typography
+                                        variant="caption"
+                                        sx={{ display: "block", color: "text.secondary", mt: 0.5 }}
+                                      >
+                                        ใช้โหมดขาวดำเดิมกับเว็บไซต์สาธารณะทั้งหมด
+                                      </Typography>
+                                    </Box>
+                                  </Grid>
+                                </Grid>
+                                <Typography variant="caption" sx={{ color: "warning.dark", fontWeight: 700 }}>
+                                  หากต้องการสลับรูปแบบ ให้ปิดโหมดที่กำลังใช้งานก่อน แล้วจึงเปิดอีกโหมด
+                                </Typography>
+                                <Grid container spacing={1.5}>
+                                  <Grid size={{ xs: 12, md: 5 }}>
+                                    <TextField
+                                      label="ชื่อโหมดไว้อาลัย"
+                                      value={siteSettings.mourningModeLabel}
+                                      onChange={(event) =>
+                                        handleSiteSettingsChange("mourningModeLabel", event.target.value)
+                                      }
+                                      size="small"
+                                      fullWidth
+                                    />
+                                  </Grid>
+                                  <Grid size={{ xs: 12, md: 7 }}>
+                                    <TextField
+                                      label="ข้อความประกาศโหมดไว้อาลัย"
+                                      value={siteSettings.mourningModeNotice}
+                                      onChange={(event) =>
+                                        handleSiteSettingsChange("mourningModeNotice", event.target.value)
+                                      }
+                                      size="small"
+                                      fullWidth
+                                    />
+                                  </Grid>
+                                </Grid>
+                              </Stack>
+                            </CardContent>
+                          </Card>
+                        </Grid>
+                      </>
+                    )}
+                    {section === "footer" && (
+                      <>
+                        <Grid size={{ xs: 12 }}>
+                          <Divider sx={{ my: 1 }} />
+                          <Stack spacing={1}>
+                            <Typography
+                              sx={{
+                                fontWeight: 900
+                              }}
+                            >
+                              ลิงก์ส่วนท้ายเว็บไซต์และ Messenger
+                            </Typography>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                color: "text.secondary"
+                              }}
+                            >
+                              จัดการไดเรกทอรีลิงก์ส่วนท้ายเว็บไซต์และปุ่มแชท Messenger ที่แสดงบนเว็บไซต์สาธารณะ
+                            </Typography>
+                          </Stack>
+                        </Grid>
+                        <Grid size={{ xs: 12 }}>
+                          <FormControlLabel
+                            control={
+                              <Switch
+                                checked={siteSettings.messengerEnabled}
+                                onChange={(event) => handleMessengerEnabledChange(event.target.checked)}
+                              />
+                            }
+                            label="เปิดใช้งานปุ่ม Messenger"
+                          />
+                        </Grid>
+                        <Grid size={{ xs: 12, md: 6 }}>
+                          <TextField
+                            label="ข้อความปุ่ม Messenger"
+                            value={siteSettings.messengerLabel}
+                            onChange={(event) => handleSiteSettingsChange("messengerLabel", event.target.value)}
+                            size="small"
+                            fullWidth
+                          />
+                        </Grid>
+                        <Grid size={{ xs: 12, md: 6 }}>
+                          <TextField
+                            label="Messenger URL"
+                            value={siteSettings.messengerUrl}
+                            onChange={(event) => handleSiteSettingsChange("messengerUrl", event.target.value)}
+                            helperText="เช่น https://m.me/yourpage หรือเว้นว่างเพื่อซ่อนปุ่ม"
+                            size="small"
+                            fullWidth
+                          />
+                        </Grid>
+                        <Grid size={{ xs: 12 }}>
+                          <Stack spacing={1.5}>
+                            <Stack
+                              direction={{ xs: "column", sm: "row" }}
+                              spacing={1}
+                              sx={{
+                                alignItems: { sm: "center" }
+                              }}
+                            >
+                              <Typography
+                                sx={{
+                                  fontWeight: 900,
+                                  flex: 1
+                                }}
+                              >
+                                ไดเรกทอรีลิงก์ส่วนท้ายเว็บไซต์
+                              </Typography>
+                              <Button variant="outlined" disabled={!canManage} onClick={handleAddFooterGroup}>
+                                เพิ่มกลุ่มลิงก์
+                              </Button>
+                            </Stack>
+                            {siteSettings.footerDirectoryGroups.length === 0 && (
+                              <Box
+                                sx={{
+                                  ...staticSurfaceSx,
+                                  borderStyle: "dashed",
+                                  p: 2,
+                                  bgcolor: "background.default"
+                                }}
+                              >
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    color: "text.secondary"
+                                  }}
+                                >
+                                  ยังไม่มีกลุ่มลิงก์
+                                  ส่วนท้ายเว็บไซต์จะไม่แสดงไดเรกทอรีลิงก์จนกว่าจะเพิ่มลิงก์ที่เปิดใช้งาน
+                                </Typography>
+                              </Box>
+                            )}
+                            {siteSettings.footerDirectoryGroups.map((group, groupIndex) => (
+                              <Box
+                                key={`footer-group-${groupIndex}`}
+                                sx={{
+                                  ...staticSurfaceSx,
+                                  p: 1.5,
+                                  bgcolor: "background.default"
+                                }}
+                              >
+                                <Stack spacing={1.25}>
+                                  <Grid
+                                    container
+                                    spacing={1.2}
+                                    sx={{
+                                      alignItems: "center"
+                                    }}
+                                  >
+                                    <Grid size={{ xs: 12, md: 8 }}>
+                                      <TextField
+                                        label="ชื่อกลุ่มลิงก์"
+                                        value={group.title}
+                                        onChange={(event) =>
+                                          handleFooterGroupTitleChange(groupIndex, event.target.value)
+                                        }
+                                        size="small"
+                                        fullWidth
+                                      />
+                                    </Grid>
+                                    <Grid size={{ xs: 12, md: 4 }}>
+                                      <Stack
+                                        direction="row"
+                                        spacing={1}
+                                        sx={{
+                                          justifyContent: { md: "flex-end" }
+                                        }}
+                                      >
+                                        <Button
+                                          variant="outlined"
+                                          disabled={!canManage}
+                                          onClick={() => handleAddFooterLink(groupIndex)}
+                                        >
+                                          เพิ่มลิงก์
+                                        </Button>
+                                        <Button
+                                          color="error"
+                                          variant="outlined"
+                                          disabled={!canManage}
+                                          onClick={() => handleRemoveFooterGroup(groupIndex)}
+                                        >
+                                          ลบกลุ่ม
+                                        </Button>
+                                      </Stack>
+                                    </Grid>
+                                  </Grid>
+                                  {group.links.map((link, linkIndex) => (
+                                    <Grid
+                                      container
+                                      spacing={1}
+                                      key={`footer-link-${groupIndex}-${linkIndex}`}
+                                      sx={{
+                                        alignItems: "center"
+                                      }}
+                                    >
+                                      <Grid size={{ xs: 12, md: 3 }}>
+                                        <FormControlLabel
+                                          control={
+                                            <Switch
+                                              checked={link.enabled}
+                                              onChange={(event) =>
+                                                handleFooterLinkChange(
+                                                  groupIndex,
+                                                  linkIndex,
+                                                  "enabled",
+                                                  event.target.checked
+                                                )
+                                              }
+                                            />
+                                          }
+                                          label="เปิดใช้งาน"
+                                        />
+                                      </Grid>
+                                      <Grid size={{ xs: 12, md: 3 }}>
+                                        <TextField
+                                          label="ชื่อลิงก์"
+                                          value={link.label}
+                                          onChange={(event) =>
+                                            handleFooterLinkChange(groupIndex, linkIndex, "label", event.target.value)
+                                          }
+                                          size="small"
+                                          fullWidth
+                                        />
+                                      </Grid>
+                                      <Grid size={{ xs: 12, md: 4 }}>
+                                        <TextField
+                                          label="URL"
+                                          value={link.href}
+                                          onChange={(event) =>
+                                            handleFooterLinkChange(groupIndex, linkIndex, "href", event.target.value)
+                                          }
+                                          helperText="ใช้ /internal-path หรือ https:// และห้ามใช้ #"
+                                          size="small"
+                                          fullWidth
+                                        />
+                                      </Grid>
+                                      <Grid size={{ xs: 12, md: 2 }}>
+                                        <Button
+                                          color="error"
+                                          variant="outlined"
+                                          disabled={!canManage}
+                                          onClick={() => handleRemoveFooterLink(groupIndex, linkIndex)}
+                                          fullWidth
+                                        >
+                                          ลบลิงก์
+                                        </Button>
+                                      </Grid>
+                                    </Grid>
+                                  ))}
+                                </Stack>
+                              </Box>
+                            ))}
+                          </Stack>
+                        </Grid>
+                      </>
+                    )}
+                    <Grid size={{ xs: 12 }}>
+                      <Button
+                        variant="contained"
+                        startIcon={<SaveOutlinedIcon />}
+                        disabled={
+                          !canManage ||
+                          !siteSettingsSource ||
+                          siteSettingsQuery.isPending ||
+                          siteSettingsQuery.isError ||
+                          saveSiteSettingsMutation.isPending
+                        }
+                        onClick={() => void handleSaveSiteSettings()}
+                      >
+                        {saveSiteSettingsMutation.isPending ? "กำลังบันทึก" : "บันทึกข้อมูลเว็บไซต์"}
+                      </Button>
+                      {siteSettingsQuery.isError && (
+                        <Typography color="error" variant="body2" sx={{ mt: 1.2 }}>
+                          {siteSettingsQuery.error instanceof Error
+                            ? siteSettingsQuery.error.message
+                            : "ไม่สามารถโหลดข้อมูลเว็บไซต์สาธารณะได้"}
+                        </Typography>
+                      )}
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+            </Grid>
+          </>
+        )}
+        {section === "homepage" && (
+          <>
+            <Grid size={{ xs: 12 }}>
+              <Card>
+                <CardContent>
+                  <Stack
+                    direction="row"
+                    spacing={1.5}
+                    sx={{
+                      alignItems: "center",
+                      mb: 2
+                    }}
+                  >
+                    <CampaignOutlinedIcon color="primary" />
+                    <Typography variant="h3">การตั้งค่าหน้าแรก</Typography>
+                  </Stack>
+                  <Typography
+                    sx={{
+                      color: "text.secondary",
+                      mb: 2
+                    }}
+                  >
+                    ควบคุมส่วน Intro Gate, ประกาศวิ่ง และวิดีโอแนะนำสถานศึกษาที่แสดงในหน้าเว็บไซต์สาธารณะ
+                  </Typography>
+
+                  {homepageSettingsQuery.isError && (
+                    <Typography color="error" variant="body2" sx={{ mb: 2 }}>
+                      ไม่สามารถโหลดการตั้งค่าหน้าแรกได้
+                    </Typography>
+                  )}
+
+                  <Stack spacing={2.4} divider={<Divider flexItem />}>
+                    <Box>
+                      <Stack
+                        direction="row"
+                        spacing={1.2}
                         sx={{
-                          color: "warning.dark",
-                          display: "block",
-                          mt: 0.6
+                          alignItems: "center",
+                          mb: 1.5
                         }}
                       >
-                        ตรวจสอบพิกัดให้ถูกต้องก่อนบันทึก เพราะข้อมูลนี้แสดงต่อผู้ใช้เว็บไซต์สาธารณะ
-                      </Typography>
-                    )}
+                        <LoginOutlinedIcon color="primary" />
+                        <Typography variant="h4">Intro Gate</Typography>
+                      </Stack>
+                      <Grid container spacing={1.5}>
+                        <Grid size={{ xs: 12 }}>
+                          <FormControlLabel
+                            control={
+                              <Switch
+                                checked={homepageSettings.introGate.enabled}
+                                onChange={(event) => handleHomepageIntroGateChange("enabled", event.target.checked)}
+                              />
+                            }
+                            label="เปิดใช้งาน Intro Gate"
+                          />
+                        </Grid>
+                        <Grid size={{ xs: 12, md: 6 }}>
+                          <TextField
+                            label="รูปภาพ Intro Gate URL"
+                            value={homepageSettings.introGate.imageUrl}
+                            onChange={(event) => handleHomepageIntroGateChange("imageUrl", event.target.value)}
+                            helperText={
+                              <Stack component="span" spacing={0.35}>
+                                <Box component="span">
+                                  แนะนำให้อัปโหลดรูปไปยังสื่อของเว็บไซต์, ใช้ path คงที่เช่น
+                                  /intro/intro-gate-2026.webp, ใช้ Google Drive share link ที่ตั้งค่า Anyone with the
+                                  link, หรือใช้ CDN/storage ที่เป็นของเรา
+                                </Box>
+                                <Box component="span" sx={{ color: "warning.main", fontWeight: 800 }}>
+                                  ห้ามใช้ลิงก์ Facebook CDN โดยตรง เช่น scontent...fbcdn.net เพราะเป็นลิงก์ชั่วคราว
+                                  และอาจไม่แสดงบนมือถือ
+                                </Box>
+                              </Stack>
+                            }
+                            size="small"
+                            fullWidth
+                          />
+                        </Grid>
+                        <Grid size={{ xs: 12, md: 6 }}>
+                          <TextField
+                            label="คำอธิบายรูปภาพ alt"
+                            value={homepageSettings.introGate.imageAlt}
+                            onChange={(event) => handleHomepageIntroGateChange("imageAlt", event.target.value)}
+                            size="small"
+                            fullWidth
+                          />
+                        </Grid>
+                        <Grid size={{ xs: 12, md: 6 }}>
+                          <TextField
+                            label="ข้อความปุ่มเข้าสู่เว็บไซต์หลัก"
+                            value={homepageSettings.introGate.primaryButtonLabel}
+                            onChange={(event) =>
+                              handleHomepageIntroGateChange("primaryButtonLabel", event.target.value)
+                            }
+                            size="small"
+                            fullWidth
+                          />
+                        </Grid>
+                        <Grid size={{ xs: 12, md: 6 }}>
+                          <TextField
+                            label="ข้อความปุ่มลิงก์ภายนอก"
+                            value={homepageSettings.introGate.secondaryButtonLabel}
+                            onChange={(event) =>
+                              handleHomepageIntroGateChange("secondaryButtonLabel", event.target.value)
+                            }
+                            size="small"
+                            fullWidth
+                          />
+                        </Grid>
+                        <Grid size={{ xs: 12, md: 6 }}>
+                          <TextField
+                            label="URL ปุ่มลิงก์ภายนอก"
+                            value={homepageSettings.introGate.secondaryButtonUrl}
+                            onChange={(event) =>
+                              handleHomepageIntroGateChange("secondaryButtonUrl", event.target.value)
+                            }
+                            helperText="ใช้ลิงก์ https:// หรือเว้นว่างเพื่อซ่อนปุ่มลิงก์ภายนอก"
+                            size="small"
+                            fullWidth
+                          />
+                        </Grid>
+                        <Grid size={{ xs: 12, md: 6 }}>
+                          <TextField
+                            label="sessionStorage key"
+                            value={homepageSettings.introGate.storageKey}
+                            onChange={(event) => handleHomepageIntroGateChange("storageKey", event.target.value)}
+                            helperText="เปลี่ยน key เมื่อต้องการให้ผู้ใช้เห็น Intro Gate ใหม่อีกครั้ง"
+                            size="small"
+                            fullWidth
+                          />
+                        </Grid>
+                      </Grid>
+                    </Box>
+
+                    <Box>
+                      <Stack
+                        direction="row"
+                        spacing={1.2}
+                        sx={{
+                          alignItems: "center",
+                          mb: 1.5
+                        }}
+                      >
+                        <CampaignOutlinedIcon color="primary" />
+                        <Typography variant="h4">Urgent Marquee</Typography>
+                      </Stack>
+                      <Grid container spacing={1.5}>
+                        <Grid size={{ xs: 12 }}>
+                          <FormControlLabel
+                            control={
+                              <Switch
+                                checked={homepageSettings.marquee.enabled}
+                                onChange={(event) => handleHomepageMarqueeChange("enabled", event.target.checked)}
+                              />
+                            }
+                            label="เปิดใช้งานประกาศวิ่ง"
+                          />
+                        </Grid>
+                        <Grid size={{ xs: 12, md: 6 }}>
+                          <TextField
+                            label="ป้ายประกาศ"
+                            value={homepageSettings.marquee.label}
+                            onChange={(event) => handleHomepageMarqueeChange("label", event.target.value)}
+                            size="small"
+                            fullWidth
+                          />
+                        </Grid>
+                        <Grid size={{ xs: 12, md: 6 }}>
+                          <TextField
+                            label="ความเร็วการวิ่ง วินาที"
+                            type="number"
+                            value={homepageSettings.marquee.speedSeconds}
+                            onChange={(event) => handleHomepageMarqueeChange("speedSeconds", event.target.value)}
+                            helperText="ตัวเลขมาก = วิ่งช้าลง แนะนำ 60–90 วินาทีสำหรับสไตล์หน่วยงานที่นิ่งและอ่านง่าย"
+                            slotProps={{ htmlInput: { min: 24, max: 180 } }}
+                            size="small"
+                            fullWidth
+                          />
+                        </Grid>
+                        <Grid size={{ xs: 12 }}>
+                          <TextField
+                            label="ข้อความประกาศ"
+                            value={homepageSettings.marquee.text}
+                            onChange={(event) => handleHomepageMarqueeChange("text", event.target.value)}
+                            multiline
+                            minRows={3}
+                            size="small"
+                            fullWidth
+                          />
+                        </Grid>
+                      </Grid>
+                    </Box>
+
+                    <Box>
+                      <Stack
+                        direction="row"
+                        spacing={1.2}
+                        sx={{
+                          alignItems: "center",
+                          mb: 1.5
+                        }}
+                      >
+                        <OndemandVideoOutlinedIcon color="primary" />
+                        <Typography variant="h4">Intro Video</Typography>
+                      </Stack>
+                      <Grid container spacing={1.5}>
+                        <Grid size={{ xs: 12 }}>
+                          <FormControlLabel
+                            control={
+                              <Switch
+                                checked={homepageSettings.introVideo.enabled}
+                                onChange={(event) => handleHomepageIntroVideoChange("enabled", event.target.checked)}
+                              />
+                            }
+                            label="เปิดใช้งานวิดีโอแนะนำสถานศึกษา"
+                          />
+                        </Grid>
+                        <Grid size={{ xs: 12, md: 6 }}>
+                          <TextField
+                            label="หัวข้อวิดีโอ"
+                            value={homepageSettings.introVideo.title}
+                            onChange={(event) => handleHomepageIntroVideoChange("title", event.target.value)}
+                            size="small"
+                            fullWidth
+                          />
+                        </Grid>
+                        <Grid size={{ xs: 12, md: 6 }}>
+                          <TextField
+                            label="YouTube embed URL"
+                            value={homepageSettings.introVideo.youtubeEmbedUrl}
+                            onChange={(event) => handleHomepageIntroVideoChange("youtubeEmbedUrl", event.target.value)}
+                            helperText="แนะนำให้ใช้ https://www.youtube-nocookie.com/embed/... หรือ YouTube embed URL"
+                            size="small"
+                            fullWidth
+                          />
+                        </Grid>
+                      </Grid>
+                    </Box>
+                  </Stack>
+
+                  <Box sx={{ mt: 2.5 }}>
+                    <Button
+                      variant="contained"
+                      startIcon={<SaveOutlinedIcon />}
+                      disabled={
+                        !canManage ||
+                        homepageSettingsQuery.isPending ||
+                        homepageSettingsQuery.isError ||
+                        saveHomepageSettingsMutation.isPending
+                      }
+                      onClick={() => void handleSaveHomepageSettings()}
+                    >
+                      {saveHomepageSettingsMutation.isPending ? "กำลังบันทึก" : "บันทึกการตั้งค่าหน้าแรก"}
+                    </Button>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          </>
+        )}
+        {section === "visitors" && (
+          <>
+            <Grid size={{ xs: 12 }}>
+              <Card>
+                <CardContent>
+                  <Stack
+                    direction="row"
+                    spacing={1.5}
+                    sx={{
+                      alignItems: "center",
+                      mb: 2
+                    }}
+                  >
+                    <PeopleAltOutlinedIcon color="primary" />
+                    <Typography variant="h3">สถิติผู้เข้าชมเว็บไซต์</Typography>
+                  </Stack>
+                  <Typography
+                    sx={{
+                      color: "text.secondary",
+                      mb: 1
+                    }}
+                  >
+                    ควบคุมตัวเลขสถิติผู้เข้าชมที่แสดงในหน้าเว็บไซต์สาธารณะ
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: "text.secondary",
+                      mb: 2
+                    }}
+                  >
+                    ตัวเลขสถิติถูกนับอัตโนมัติจากหน้าเว็บสาธารณะ ผู้ดูแลสามารถเปิดหรือปิดการแสดงผลได้เท่านั้น
+                  </Typography>
+
+                  {visitorStatsQuery.isError && (
+                    <Typography color="error" variant="body2" sx={{ mb: 2 }}>
+                      ไม่สามารถโหลดสถิติผู้เข้าชมได้
+                    </Typography>
+                  )}
+
+                  <Grid container spacing={1.5}>
+                    <Grid size={{ xs: 12 }}>
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={visitorStats.enabled}
+                            onChange={(event) => handleVisitorStatsChange("enabled", event.target.checked)}
+                          />
+                        }
+                        label="เปิดใช้งานสถิติผู้เข้าชม"
+                      />
+                    </Grid>
+                    {visitorStatsFields.map((field) => (
+                      <Grid key={field.key} size={{ xs: 12, sm: 6, md: 4 }}>
+                        <TextField
+                          label={field.label}
+                          type="number"
+                          value={visitorStats[field.key]}
+                          slotProps={{
+                            htmlInput: { min: 0, step: 1 },
+                            input: { readOnly: true }
+                          }}
+                          size="small"
+                          fullWidth
+                        />
+                      </Grid>
+                    ))}
+                    <Grid size={{ xs: 12 }}>
+                      <Button
+                        variant="contained"
+                        startIcon={<SaveOutlinedIcon />}
+                        disabled={
+                          !canManage ||
+                          visitorStatsQuery.isPending ||
+                          visitorStatsQuery.isError ||
+                          saveVisitorStatsMutation.isPending
+                        }
+                        onClick={() => void handleSaveVisitorStats()}
+                      >
+                        {saveVisitorStatsMutation.isPending ? "กำลังบันทึก" : "บันทึกการแสดงผลสถิติผู้เข้าชม"}
+                      </Button>
+                    </Grid>
                   </Grid>
-                ))}
-{section === "appearance" && (<>
-                <Grid size={{ xs: 12 }}>
-                  <Card variant="outlined" sx={{ bgcolor: "grey.50", borderColor: "grey.300" }}>
-                    <CardContent>
-                      <Stack spacing={1.5}>
+                </CardContent>
+              </Card>
+            </Grid>
+          </>
+        )}
+        {section === "access" && (
+          <>
+            <Grid size={{ xs: 12, lg: 7 }}>
+              <Card>
+                <CardContent>
+                  <Stack
+                    direction="row"
+                    spacing={1.5}
+                    sx={{
+                      alignItems: "center",
+                      mb: 2
+                    }}
+                  >
+                    <ShieldOutlinedIcon color="primary" />
+                    <Typography variant="h3">บทบาท</Typography>
+                  </Stack>
+                  <Stack spacing={1.5}>
+                    {rolePermissions.map((role) => (
+                      <Stack
+                        key={role.id}
+                        direction={{ xs: "column", sm: "row" }}
+                        spacing={1.5}
+                        sx={{
+                          justifyContent: "space-between",
+                          ...staticSurfaceSx,
+                          p: 2
+                        }}
+                      >
                         <Box>
                           <Typography
                             sx={{
                               fontWeight: 900
                             }}
                           >
-                            โหมดไว้อาลัย
+                            {role.role}
                           </Typography>
                           <Typography
                             variant="body2"
                             sx={{
-                              color: "text.secondary",
-                              mt: 0.5
+                              color: "text.secondary"
                             }}
                           >
-                            เลือกเปิดได้เพียงหนึ่งรูปแบบ: ริบบิ้นดำมุมซ้ายบน หรือขาวดำทั้งเว็บไซต์
+                            {role.scope}
                           </Typography>
                         </Box>
-                        <Grid container spacing={1.5}>
-                          <Grid size={{ xs: 12, md: 6 }}>
-                            <Box sx={{ ...staticSurfaceSx, p: 1.5, bgcolor: "background.paper", height: "100%" }}>
-                              <FormControlLabel
-                                control={
-                                  <Switch
-                                    checked={Boolean(siteSettings.mourningRibbonEnabled)}
-                                    disabled={!canManage || siteSettings.mourningModeEnabled}
-                                    onChange={(event) => handleMourningRibbonEnabledChange(event.target.checked)}
-                                  />
-                                }
-                                label="เปิดริบบิ้นดำมุมซ้ายบน"
-                              />
-                              <Typography variant="caption" sx={{ display: "block", color: "text.secondary", mt: 0.5 }}>
-                                แสดงริบบิ้นโดยคงสีเว็บไซต์ตามปกติ
-                                และเว้นพื้นที่ส่วนหัวทุกขนาดหน้าจอไม่ให้ริบบิ้นบังเนื้อหา
-                              </Typography>
-                            </Box>
-                          </Grid>
-                          <Grid size={{ xs: 12, md: 6 }}>
-                            <Box sx={{ ...staticSurfaceSx, p: 1.5, bgcolor: "background.paper", height: "100%" }}>
-                              <FormControlLabel
-                                control={
-                                  <Switch
-                                    checked={siteSettings.mourningModeEnabled}
-                                    disabled={!canManage || Boolean(siteSettings.mourningRibbonEnabled)}
-                                    onChange={(event) => handleMourningModeEnabledChange(event.target.checked)}
-                                  />
-                                }
-                                label="เปิดโหมดขาวดำ (Grayscale)"
-                              />
-                              <Typography variant="caption" sx={{ display: "block", color: "text.secondary", mt: 0.5 }}>
-                                ใช้โหมดขาวดำเดิมกับเว็บไซต์สาธารณะทั้งหมด
-                              </Typography>
-                            </Box>
-                          </Grid>
-                        </Grid>
-                        <Typography variant="caption" sx={{ color: "warning.dark", fontWeight: 700 }}>
-                          หากต้องการสลับรูปแบบ ให้ปิดโหมดที่กำลังใช้งานก่อน แล้วจึงเปิดอีกโหมด
-                        </Typography>
-                        <Grid container spacing={1.5}>
-                          <Grid size={{ xs: 12, md: 5 }}>
-                            <TextField
-                              label="ชื่อโหมดไว้อาลัย"
-                              value={siteSettings.mourningModeLabel}
-                              onChange={(event) => handleSiteSettingsChange("mourningModeLabel", event.target.value)}
-                              size="small"
-                              fullWidth
-                            />
-                          </Grid>
-                          <Grid size={{ xs: 12, md: 7 }}>
-                            <TextField
-                              label="ข้อความประกาศโหมดไว้อาลัย"
-                              value={siteSettings.mourningModeNotice}
-                              onChange={(event) => handleSiteSettingsChange("mourningModeNotice", event.target.value)}
-                              size="small"
-                              fullWidth
-                            />
-                          </Grid>
-                        </Grid>
-                      </Stack>
-                    </CardContent>
-                  </Card>
-                </Grid>
-</>)}
-{section === "footer" && (<>
-                <Grid size={{ xs: 12 }}>
-                  <Divider sx={{ my: 1 }} />
-                  <Stack spacing={1}>
-                    <Typography
-                      sx={{
-                        fontWeight: 900
-                      }}
-                    >
-                      ลิงก์ส่วนท้ายเว็บไซต์และ Messenger
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        color: "text.secondary"
-                      }}
-                    >
-                      จัดการไดเรกทอรีลิงก์ส่วนท้ายเว็บไซต์และปุ่มแชท Messenger ที่แสดงบนเว็บไซต์สาธารณะ
-                    </Typography>
-                  </Stack>
-                </Grid>
-                <Grid size={{ xs: 12 }}>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={siteSettings.messengerEnabled}
-                        onChange={(event) => handleMessengerEnabledChange(event.target.checked)}
-                      />
-                    }
-                    label="เปิดใช้งานปุ่ม Messenger"
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField
-                    label="ข้อความปุ่ม Messenger"
-                    value={siteSettings.messengerLabel}
-                    onChange={(event) => handleSiteSettingsChange("messengerLabel", event.target.value)}
-                    size="small"
-                    fullWidth
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField
-                    label="Messenger URL"
-                    value={siteSettings.messengerUrl}
-                    onChange={(event) => handleSiteSettingsChange("messengerUrl", event.target.value)}
-                    helperText="เช่น https://m.me/yourpage หรือเว้นว่างเพื่อซ่อนปุ่ม"
-                    size="small"
-                    fullWidth
-                  />
-                </Grid>
-                <Grid size={{ xs: 12 }}>
-                  <Stack spacing={1.5}>
-                    <Stack
-                      direction={{ xs: "column", sm: "row" }}
-                      spacing={1}
-                      sx={{
-                        alignItems: { sm: "center" }
-                      }}
-                    >
-                      <Typography
-                        sx={{
-                          fontWeight: 900,
-                          flex: 1
-                        }}
-                      >
-                        ไดเรกทอรีลิงก์ส่วนท้ายเว็บไซต์
-                      </Typography>
-                      <Button variant="outlined" disabled={!canManage} onClick={handleAddFooterGroup}>
-                        เพิ่มกลุ่มลิงก์
-                      </Button>
-                    </Stack>
-                    {siteSettings.footerDirectoryGroups.length === 0 && (
-                      <Box
-                        sx={{
-                          ...staticSurfaceSx,
-                          borderStyle: "dashed",
-                          p: 2,
-                          bgcolor: "background.default"
-                        }}
-                      >
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            color: "text.secondary"
-                          }}
-                        >
-                          ยังไม่มีกลุ่มลิงก์ ส่วนท้ายเว็บไซต์จะไม่แสดงไดเรกทอรีลิงก์จนกว่าจะเพิ่มลิงก์ที่เปิดใช้งาน
-                        </Typography>
-                      </Box>
-                    )}
-                    {siteSettings.footerDirectoryGroups.map((group, groupIndex) => (
-                      <Box
-                        key={`footer-group-${groupIndex}`}
-                        sx={{
-                          ...staticSurfaceSx,
-                          p: 1.5,
-                          bgcolor: "background.default"
-                        }}
-                      >
-                        <Stack spacing={1.25}>
-                          <Grid
-                            container
-                            spacing={1.2}
+                        <Stack direction="row" spacing={2}>
+                          <Stack
+                            direction="row"
                             sx={{
                               alignItems: "center"
                             }}
                           >
-                            <Grid size={{ xs: 12, md: 8 }}>
-                              <TextField
-                                label="ชื่อกลุ่มลิงก์"
-                                value={group.title}
-                                onChange={(event) => handleFooterGroupTitleChange(groupIndex, event.target.value)}
-                                size="small"
-                                fullWidth
-                              />
-                            </Grid>
-                            <Grid size={{ xs: 12, md: 4 }}>
-                              <Stack
-                                direction="row"
-                                spacing={1}
-                                sx={{
-                                  justifyContent: { md: "flex-end" }
-                                }}
-                              >
-                                <Button
-                                  variant="outlined"
-                                  disabled={!canManage}
-                                  onClick={() => handleAddFooterLink(groupIndex)}
-                                >
-                                  เพิ่มลิงก์
-                                </Button>
-                                <Button
-                                  color="error"
-                                  variant="outlined"
-                                  disabled={!canManage}
-                                  onClick={() => handleRemoveFooterGroup(groupIndex)}
-                                >
-                                  ลบกลุ่ม
-                                </Button>
-                              </Stack>
-                            </Grid>
-                          </Grid>
-                          {group.links.map((link, linkIndex) => (
-                            <Grid
-                              container
-                              spacing={1}
-                              key={`footer-link-${groupIndex}-${linkIndex}`}
-                              sx={{
-                                alignItems: "center"
-                              }}
-                            >
-                              <Grid size={{ xs: 12, md: 3 }}>
-                                <FormControlLabel
-                                  control={
-                                    <Switch
-                                      checked={link.enabled}
-                                      onChange={(event) =>
-                                        handleFooterLinkChange(groupIndex, linkIndex, "enabled", event.target.checked)
-                                      }
-                                    />
-                                  }
-                                  label="เปิดใช้งาน"
-                                />
-                              </Grid>
-                              <Grid size={{ xs: 12, md: 3 }}>
-                                <TextField
-                                  label="ชื่อลิงก์"
-                                  value={link.label}
-                                  onChange={(event) =>
-                                    handleFooterLinkChange(groupIndex, linkIndex, "label", event.target.value)
-                                  }
-                                  size="small"
-                                  fullWidth
-                                />
-                              </Grid>
-                              <Grid size={{ xs: 12, md: 4 }}>
-                                <TextField
-                                  label="URL"
-                                  value={link.href}
-                                  onChange={(event) =>
-                                    handleFooterLinkChange(groupIndex, linkIndex, "href", event.target.value)
-                                  }
-                                  helperText="ใช้ /internal-path หรือ https:// และห้ามใช้ #"
-                                  size="small"
-                                  fullWidth
-                                />
-                              </Grid>
-                              <Grid size={{ xs: 12, md: 2 }}>
-                                <Button
-                                  color="error"
-                                  variant="outlined"
-                                  disabled={!canManage}
-                                  onClick={() => handleRemoveFooterLink(groupIndex, linkIndex)}
-                                  fullWidth
-                                >
-                                  ลบลิงก์
-                                </Button>
-                              </Grid>
-                            </Grid>
-                          ))}
+                            <Checkbox checked={role.canPublish} readOnly />
+                            <Typography variant="body2">เผยแพร่</Typography>
+                          </Stack>
+                          <Stack
+                            direction="row"
+                            sx={{
+                              alignItems: "center"
+                            }}
+                          >
+                            <Checkbox checked={role.canManageUsers} readOnly />
+                            <Typography variant="body2">ผู้ใช้</Typography>
+                          </Stack>
                         </Stack>
-                      </Box>
+                      </Stack>
                     ))}
                   </Stack>
-                </Grid>
-</>)}
-                <Grid size={{ xs: 12 }}>
-                  <Button
-                    variant="contained"
-                    startIcon={<SaveOutlinedIcon />}
-                    disabled={!canManage || !siteSettingsSource || siteSettingsQuery.isPending || siteSettingsQuery.isError || saveSiteSettingsMutation.isPending}
-                    onClick={() => void handleSaveSiteSettings()}
-                  >
-                    {saveSiteSettingsMutation.isPending ? "กำลังบันทึก" : "บันทึกข้อมูลเว็บไซต์"}
-                  </Button>
-                  {siteSettingsQuery.isError && (
-                    <Typography color="error" variant="body2" sx={{ mt: 1.2 }}>
-                      {siteSettingsQuery.error instanceof Error
-                        ? siteSettingsQuery.error.message
-                        : "ไม่สามารถโหลดข้อมูลเว็บไซต์สาธารณะได้"}
-                    </Typography>
-                  )}
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
-        </Grid>
-      </>)}
-      {section === "homepage" && (<>
-        <Grid size={{ xs: 12 }}>
-          <Card>
-            <CardContent>
-              <Stack
-                direction="row"
-                spacing={1.5}
-                sx={{
-                  alignItems: "center",
-                  mb: 2
-                }}
-              >
-                <CampaignOutlinedIcon color="primary" />
-                <Typography variant="h3">การตั้งค่าหน้าแรก</Typography>
-              </Stack>
-              <Typography
-                sx={{
-                  color: "text.secondary",
-                  mb: 2
-                }}
-              >
-                ควบคุมส่วน Intro Gate, ประกาศวิ่ง และวิดีโอแนะนำสถานศึกษาที่แสดงในหน้าเว็บไซต์สาธารณะ
-              </Typography>
-
-              {homepageSettingsQuery.isError && (
-                <Typography color="error" variant="body2" sx={{ mb: 2 }}>
-                  ไม่สามารถโหลดการตั้งค่าหน้าแรกได้
-                </Typography>
-              )}
-
-              <Stack spacing={2.4} divider={<Divider flexItem />}>
-                <Box>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid size={{ xs: 12, lg: 5 }}>
+              <Card>
+                <CardContent>
                   <Stack
                     direction="row"
-                    spacing={1.2}
-                    sx={{
-                      alignItems: "center",
-                      mb: 1.5
-                    }}
-                  >
-                    <LoginOutlinedIcon color="primary" />
-                    <Typography variant="h4">Intro Gate</Typography>
-                  </Stack>
-                  <Grid container spacing={1.5}>
-                    <Grid size={{ xs: 12 }}>
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            checked={homepageSettings.introGate.enabled}
-                            onChange={(event) => handleHomepageIntroGateChange("enabled", event.target.checked)}
-                          />
-                        }
-                        label="เปิดใช้งาน Intro Gate"
-                      />
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        label="รูปภาพ Intro Gate URL"
-                        value={homepageSettings.introGate.imageUrl}
-                        onChange={(event) => handleHomepageIntroGateChange("imageUrl", event.target.value)}
-                        helperText={
-                          <Stack component="span" spacing={0.35}>
-                            <Box component="span">
-                              แนะนำให้อัปโหลดรูปไปยังสื่อของเว็บไซต์, ใช้ path คงที่เช่น /intro/intro-gate-2026.webp,
-                              ใช้ Google Drive share link ที่ตั้งค่า Anyone with the link, หรือใช้ CDN/storage
-                              ที่เป็นของเรา
-                            </Box>
-                            <Box component="span" sx={{ color: "warning.main", fontWeight: 800 }}>
-                              ห้ามใช้ลิงก์ Facebook CDN โดยตรง เช่น scontent...fbcdn.net เพราะเป็นลิงก์ชั่วคราว
-                              และอาจไม่แสดงบนมือถือ
-                            </Box>
-                          </Stack>
-                        }
-                        size="small"
-                        fullWidth
-                      />
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        label="คำอธิบายรูปภาพ alt"
-                        value={homepageSettings.introGate.imageAlt}
-                        onChange={(event) => handleHomepageIntroGateChange("imageAlt", event.target.value)}
-                        size="small"
-                        fullWidth
-                      />
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        label="ข้อความปุ่มเข้าสู่เว็บไซต์หลัก"
-                        value={homepageSettings.introGate.primaryButtonLabel}
-                        onChange={(event) => handleHomepageIntroGateChange("primaryButtonLabel", event.target.value)}
-                        size="small"
-                        fullWidth
-                      />
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        label="ข้อความปุ่มลิงก์ภายนอก"
-                        value={homepageSettings.introGate.secondaryButtonLabel}
-                        onChange={(event) => handleHomepageIntroGateChange("secondaryButtonLabel", event.target.value)}
-                        size="small"
-                        fullWidth
-                      />
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        label="URL ปุ่มลิงก์ภายนอก"
-                        value={homepageSettings.introGate.secondaryButtonUrl}
-                        onChange={(event) => handleHomepageIntroGateChange("secondaryButtonUrl", event.target.value)}
-                        helperText="ใช้ลิงก์ https:// หรือเว้นว่างเพื่อซ่อนปุ่มลิงก์ภายนอก"
-                        size="small"
-                        fullWidth
-                      />
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        label="sessionStorage key"
-                        value={homepageSettings.introGate.storageKey}
-                        onChange={(event) => handleHomepageIntroGateChange("storageKey", event.target.value)}
-                        helperText="เปลี่ยน key เมื่อต้องการให้ผู้ใช้เห็น Intro Gate ใหม่อีกครั้ง"
-                        size="small"
-                        fullWidth
-                      />
-                    </Grid>
-                  </Grid>
-                </Box>
-
-                <Box>
-                  <Stack
-                    direction="row"
-                    spacing={1.2}
-                    sx={{
-                      alignItems: "center",
-                      mb: 1.5
-                    }}
-                  >
-                    <CampaignOutlinedIcon color="primary" />
-                    <Typography variant="h4">Urgent Marquee</Typography>
-                  </Stack>
-                  <Grid container spacing={1.5}>
-                    <Grid size={{ xs: 12 }}>
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            checked={homepageSettings.marquee.enabled}
-                            onChange={(event) => handleHomepageMarqueeChange("enabled", event.target.checked)}
-                          />
-                        }
-                        label="เปิดใช้งานประกาศวิ่ง"
-                      />
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        label="ป้ายประกาศ"
-                        value={homepageSettings.marquee.label}
-                        onChange={(event) => handleHomepageMarqueeChange("label", event.target.value)}
-                        size="small"
-                        fullWidth
-                      />
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        label="ความเร็วการวิ่ง วินาที"
-                        type="number"
-                        value={homepageSettings.marquee.speedSeconds}
-                        onChange={(event) => handleHomepageMarqueeChange("speedSeconds", event.target.value)}
-                        helperText="ตัวเลขมาก = วิ่งช้าลง แนะนำ 60–90 วินาทีสำหรับสไตล์หน่วยงานที่นิ่งและอ่านง่าย"
-                        slotProps={{ htmlInput: { min: 24, max: 180 } }}
-                        size="small"
-                        fullWidth
-                      />
-                    </Grid>
-                    <Grid size={{ xs: 12 }}>
-                      <TextField
-                        label="ข้อความประกาศ"
-                        value={homepageSettings.marquee.text}
-                        onChange={(event) => handleHomepageMarqueeChange("text", event.target.value)}
-                        multiline
-                        minRows={3}
-                        size="small"
-                        fullWidth
-                      />
-                    </Grid>
-                  </Grid>
-                </Box>
-
-                <Box>
-                  <Stack
-                    direction="row"
-                    spacing={1.2}
-                    sx={{
-                      alignItems: "center",
-                      mb: 1.5
-                    }}
-                  >
-                    <OndemandVideoOutlinedIcon color="primary" />
-                    <Typography variant="h4">Intro Video</Typography>
-                  </Stack>
-                  <Grid container spacing={1.5}>
-                    <Grid size={{ xs: 12 }}>
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            checked={homepageSettings.introVideo.enabled}
-                            onChange={(event) => handleHomepageIntroVideoChange("enabled", event.target.checked)}
-                          />
-                        }
-                        label="เปิดใช้งานวิดีโอแนะนำสถานศึกษา"
-                      />
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        label="หัวข้อวิดีโอ"
-                        value={homepageSettings.introVideo.title}
-                        onChange={(event) => handleHomepageIntroVideoChange("title", event.target.value)}
-                        size="small"
-                        fullWidth
-                      />
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        label="YouTube embed URL"
-                        value={homepageSettings.introVideo.youtubeEmbedUrl}
-                        onChange={(event) => handleHomepageIntroVideoChange("youtubeEmbedUrl", event.target.value)}
-                        helperText="แนะนำให้ใช้ https://www.youtube-nocookie.com/embed/... หรือ YouTube embed URL"
-                        size="small"
-                        fullWidth
-                      />
-                    </Grid>
-                  </Grid>
-                </Box>
-              </Stack>
-
-              <Box sx={{ mt: 2.5 }}>
-                <Button
-                  variant="contained"
-                  startIcon={<SaveOutlinedIcon />}
-                  disabled={!canManage || homepageSettingsQuery.isPending || homepageSettingsQuery.isError || saveHomepageSettingsMutation.isPending}
-                  onClick={() => void handleSaveHomepageSettings()}
-                >
-                  {saveHomepageSettingsMutation.isPending ? "กำลังบันทึก" : "บันทึกการตั้งค่าหน้าแรก"}
-                </Button>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </>)}
-      {section === "visitors" && (<>
-        <Grid size={{ xs: 12 }}>
-          <Card>
-            <CardContent>
-              <Stack
-                direction="row"
-                spacing={1.5}
-                sx={{
-                  alignItems: "center",
-                  mb: 2
-                }}
-              >
-                <PeopleAltOutlinedIcon color="primary" />
-                <Typography variant="h3">สถิติผู้เข้าชมเว็บไซต์</Typography>
-              </Stack>
-              <Typography
-                sx={{
-                  color: "text.secondary",
-                  mb: 1
-                }}
-              >
-                ควบคุมตัวเลขสถิติผู้เข้าชมที่แสดงในหน้าเว็บไซต์สาธารณะ
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{
-                  color: "text.secondary",
-                  mb: 2
-                }}
-              >
-                ตัวเลขสถิติถูกนับอัตโนมัติจากหน้าเว็บสาธารณะ ผู้ดูแลสามารถเปิดหรือปิดการแสดงผลได้เท่านั้น
-              </Typography>
-
-              {visitorStatsQuery.isError && (
-                <Typography color="error" variant="body2" sx={{ mb: 2 }}>
-                  ไม่สามารถโหลดสถิติผู้เข้าชมได้
-                </Typography>
-              )}
-
-              <Grid container spacing={1.5}>
-                <Grid size={{ xs: 12 }}>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={visitorStats.enabled}
-                        onChange={(event) => handleVisitorStatsChange("enabled", event.target.checked)}
-                      />
-                    }
-                    label="เปิดใช้งานสถิติผู้เข้าชม"
-                  />
-                </Grid>
-                {visitorStatsFields.map((field) => (
-                  <Grid key={field.key} size={{ xs: 12, sm: 6, md: 4 }}>
-                    <TextField
-                      label={field.label}
-                      type="number"
-                      value={visitorStats[field.key]}
-                      slotProps={{
-                        htmlInput: { min: 0, step: 1 },
-                        input: { readOnly: true }
-                      }}
-                      size="small"
-                      fullWidth
-                    />
-                  </Grid>
-                ))}
-                <Grid size={{ xs: 12 }}>
-                  <Button
-                    variant="contained"
-                    startIcon={<SaveOutlinedIcon />}
-                    disabled={!canManage || visitorStatsQuery.isPending || visitorStatsQuery.isError || saveVisitorStatsMutation.isPending}
-                    onClick={() => void handleSaveVisitorStats()}
-                  >
-                    {saveVisitorStatsMutation.isPending ? "กำลังบันทึก" : "บันทึกการแสดงผลสถิติผู้เข้าชม"}
-                  </Button>
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
-        </Grid>
-      </>)}
-      {section === "access" && (<>
-        <Grid size={{ xs: 12, lg: 7 }}>
-          <Card>
-            <CardContent>
-              <Stack
-                direction="row"
-                spacing={1.5}
-                sx={{
-                  alignItems: "center",
-                  mb: 2
-                }}
-              >
-                <ShieldOutlinedIcon color="primary" />
-                <Typography variant="h3">บทบาท</Typography>
-              </Stack>
-              <Stack spacing={1.5}>
-                {rolePermissions.map((role) => (
-                  <Stack
-                    key={role.id}
-                    direction={{ xs: "column", sm: "row" }}
                     spacing={1.5}
                     sx={{
-                      justifyContent: "space-between",
-                      ...staticSurfaceSx,
-                      p: 2
+                      alignItems: "center",
+                      mb: 2
                     }}
                   >
+                    <KeyOutlinedIcon color="secondary" />
+                    <Typography variant="h3">ความปลอดภัย</Typography>
+                  </Stack>
+                  <Stack spacing={2}>
                     <Box>
                       <Typography
                         sx={{
                           fontWeight: 900
                         }}
                       >
-                        {role.role}
+                        ระยะเวลาเซสชัน
                       </Typography>
                       <Typography
-                        variant="body2"
                         sx={{
                           color: "text.secondary"
                         }}
                       >
-                        {role.scope}
+                        เซสชันที่เข้าสู่ระบบจะหมดอายุตามค่าระบบโดยอัตโนมัติ
                       </Typography>
                     </Box>
-                    <Stack direction="row" spacing={2}>
-                      <Stack
-                        direction="row"
+                    <Box>
+                      <Typography
                         sx={{
-                          alignItems: "center"
+                          fontWeight: 900
                         }}
                       >
-                        <Checkbox checked={role.canPublish} readOnly />
-                        <Typography variant="body2">เผยแพร่</Typography>
-                      </Stack>
-                      <Stack
-                        direction="row"
+                        การป้องกันรหัสผ่าน
+                      </Typography>
+                      <Typography
                         sx={{
-                          alignItems: "center"
+                          color: "text.secondary"
                         }}
                       >
-                        <Checkbox checked={role.canManageUsers} readOnly />
-                        <Typography variant="body2">ผู้ใช้</Typography>
-                      </Stack>
-                    </Stack>
+                        รหัสผ่านถูกจัดเก็บเป็นแฮชที่ปลอดภัยในชีตผู้ใช้
+                      </Typography>
+                    </Box>
+                    <Box>
+                      <Typography
+                        sx={{
+                          fontWeight: 900
+                        }}
+                      >
+                        การตั้งค่าการ deploy
+                      </Typography>
+                      <Typography
+                        sx={{
+                          color: "text.secondary"
+                        }}
+                      >
+                        การ rewrite เส้นทางพร้อมใช้งานสำหรับการ deploy ผ่าน vercel.json
+                      </Typography>
+                    </Box>
                   </Stack>
-                ))}
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid size={{ xs: 12, lg: 5 }}>
-          <Card>
-            <CardContent>
-              <Stack
-                direction="row"
-                spacing={1.5}
-                sx={{
-                  alignItems: "center",
-                  mb: 2
-                }}
-              >
-                <KeyOutlinedIcon color="secondary" />
-                <Typography variant="h3">ความปลอดภัย</Typography>
-              </Stack>
-              <Stack spacing={2}>
-                <Box>
-                  <Typography
-                    sx={{
-                      fontWeight: 900
-                    }}
-                  >
-                    ระยะเวลาเซสชัน
-                  </Typography>
-                  <Typography
-                    sx={{
-                      color: "text.secondary"
-                    }}
-                  >
-                    เซสชันที่เข้าสู่ระบบจะหมดอายุตามค่าระบบโดยอัตโนมัติ
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography
-                    sx={{
-                      fontWeight: 900
-                    }}
-                  >
-                    การป้องกันรหัสผ่าน
-                  </Typography>
-                  <Typography
-                    sx={{
-                      color: "text.secondary"
-                    }}
-                  >
-                    รหัสผ่านถูกจัดเก็บเป็นแฮชที่ปลอดภัยในชีตผู้ใช้
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography
-                    sx={{
-                      fontWeight: 900
-                    }}
-                  >
-                    การตั้งค่าการ deploy
-                  </Typography>
-                  <Typography
-                    sx={{
-                      color: "text.secondary"
-                    }}
-                  >
-                    การ rewrite เส้นทางพร้อมใช้งานสำหรับการ deploy ผ่าน vercel.json
-                  </Typography>
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-      </>)}
+                </CardContent>
+              </Card>
+            </Grid>
+          </>
+        )}
       </Grid>
     </Box>
   );
