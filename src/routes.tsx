@@ -41,7 +41,7 @@ import {
   SystemHealthPage,
   UsersPage
 } from "./routeComponents";
-import { settingsCategories } from "./admin/pages/settings/settingsSections";
+import { settingsCategories } from "./config/adminSettingsCategories";
 import {
   getCmsRouteHead,
   getPublicContentRouteHead,
