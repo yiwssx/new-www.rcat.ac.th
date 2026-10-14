@@ -113,7 +113,7 @@ describe("Phase 7 responsive public organization renderer", () => {
     expect(screen.getByText("บุคลากรตัวอย่าง")).toBeInTheDocument();
     expect(screen.queryByText("ประสานงาน")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "ดูรายละเอียด บุคลากรตัวอย่าง" }));
-    expect(screen.getByText(/หน้าที่รับผิดชอบ: ประสานงาน/)).toBeInTheDocument();
+    expect(screen.getByText("ประสานงาน")).toBeInTheDocument();
     expect(screen.queryByText(/อีเมล:|โทรศัพท์:/)).not.toBeInTheDocument();
   });
 
@@ -160,7 +160,7 @@ describe("Phase 7 responsive public organization renderer", () => {
     expect(screen.queryByText(/วุฒิการศึกษา: ปริญญาโท/)).not.toBeInTheDocument();
     expect(screen.getAllByText("ครู")).toHaveLength(1);
     fireEvent.click(screen.getByRole("button", { name: "ดูรายละเอียด ครู ทดสอบ" }));
-    expect(screen.getByText(/วุฒิการศึกษา: ปริญญาโท/)).toBeInTheDocument();
+    expect(screen.getByText("ปริญญาโท")).toBeInTheDocument();
     // Selected department is already identified by the page H1; no one-unit diagram above people.
     expect(screen.getAllByRole("heading", { name: "แผนกวิชา" })).toHaveLength(1);
     expect(screen.queryByRole("region", { name: "ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้" })).not.toBeInTheDocument();
