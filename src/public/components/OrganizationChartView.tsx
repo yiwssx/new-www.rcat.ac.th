@@ -1,14 +1,10 @@
 import { useMemo, type ReactNode } from "react";
-import BadgeOutlinedIcon from "@mui/icons-material/BadgeOutlined";
 import Box from "@mui/material/Box";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
 import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
 import { chartPlacement, type OrganizationChartLayout } from "../../../shared/organizationChartLayout";
 import type { MediaAsset } from "../../types";
 import type { PublicOrganizationPosition } from "../../features/public-organization";
-import PublicResponsiveImage from "../../shared/media/PublicResponsiveImage";
+import OrganizationPersonCard from "./OrganizationPersonCard";
 
 interface Props {
   positions: PublicOrganizationPosition[];
@@ -16,93 +12,6 @@ interface Props {
   media: Map<string, MediaAsset>;
   showEducationQualifications: boolean;
   mode: "rows" | "tree";
-}
-
-function PeopleCard({
-  position,
-  media,
-  showEducationQualifications
-}: Pick<Props, "media" | "showEducationQualifications"> & { position: PublicOrganizationPosition }) {
-  return (
-    <Card variant="outlined" sx={{ width: 194, flexShrink: 0, borderRadius: 2, height: "100%" }}>
-      <CardContent sx={{ textAlign: "center", p: 1.5, "&:last-child": { pb: 1.5 } }}>
-        {position.assignments.length === 0 ? (
-          <Box sx={{ py: 2 }}>
-            <BadgeOutlinedIcon color="disabled" sx={{ fontSize: 40 }} />
-            <Typography variant="body2" color="text.secondary">
-              ยังไม่มีผู้ดำรงตำแหน่ง
-            </Typography>
-          </Box>
-        ) : (
-          <Stack spacing={2}>
-            {position.assignments.map(({ id, person, dutyDetail }) => {
-              const asset = person.photoMediaId ? media.get(person.photoMediaId) : undefined;
-              return (
-                <Stack key={id} spacing={0.5} sx={{ alignItems: "center" }}>
-                  <Box
-                    sx={{
-                      width: 94,
-                      height: 115,
-                      borderRadius: 1,
-                      overflow: "hidden",
-                      bgcolor: "action.hover",
-                      display: "grid",
-                      placeItems: "center"
-                    }}
-                  >
-                    {asset?.type === "image" ? (
-                      <PublicResponsiveImage
-                        intent="content-body"
-                        source={asset}
-                        alt={`ภาพของ${person.displayName}`}
-                        width={94}
-                        height={115}
-                        aspectRatio="94 / 115"
-                      />
-                    ) : (
-                      <BadgeOutlinedIcon color="disabled" sx={{ fontSize: 40 }} aria-hidden="true" />
-                    )}
-                  </Box>
-                  <Typography variant="body2" sx={{ fontWeight: 700, overflowWrap: "anywhere" }}>
-                    {person.displayName}
-                  </Typography>
-                  {dutyDetail && (
-                    <Typography variant="caption" sx={{ overflowWrap: "anywhere" }}>
-                      {dutyDetail}
-                    </Typography>
-                  )}
-                  {person.employmentPosition && (
-                    <Typography variant="caption" sx={{ overflowWrap: "anywhere" }}>
-                      {person.employmentPosition}
-                    </Typography>
-                  )}
-                  {showEducationQualifications && person.educationQualifications && (
-                    <Typography variant="caption" sx={{ overflowWrap: "anywhere", whiteSpace: "pre-line" }}>
-                      วุฒิการศึกษา: {person.educationQualifications}
-                    </Typography>
-                  )}
-                  {person.publicEmail && (
-                    <Typography variant="caption" sx={{ overflowWrap: "anywhere" }}>
-                      {person.publicEmail}
-                    </Typography>
-                  )}
-                  {person.publicPhone && <Typography variant="caption">{person.publicPhone}</Typography>}
-                </Stack>
-              );
-            })}
-          </Stack>
-        )}
-        <Typography variant="body2" sx={{ fontWeight: 700, mt: 1, overflowWrap: "anywhere" }}>
-          {position.title}
-        </Typography>
-        {position.groupLabel && (
-          <Typography variant="caption" color="text.secondary">
-            {position.groupLabel}
-          </Typography>
-        )}
-      </CardContent>
-    </Card>
-  );
 }
 
 /**
@@ -132,9 +41,10 @@ function PositionCards({
       }}
     >
       {cards.map((card) => (
-        <PeopleCard
+        <OrganizationPersonCard
           key={card.assignments[0]?.id ?? position.id}
-          position={card}
+          position={position}
+          assignment={card.assignments[0] ?? null}
           media={media}
           showEducationQualifications={showEducationQualifications}
         />
