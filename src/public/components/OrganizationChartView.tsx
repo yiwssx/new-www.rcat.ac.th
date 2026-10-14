@@ -188,10 +188,6 @@ export default function OrganizationChartView({ positions, layout, media, showEd
               {index > 0 && (
                 <Box aria-hidden="true" sx={{ height: 32, borderLeft: "2px solid", borderColor: "divider" }} />
               )}
-              <Typography variant="h3" sx={{ fontSize: "1rem", fontWeight: 700, textAlign: "center", mb: 1.5 }}>
-                ระดับ {group.level}
-                {group.row > 1 ? ` · แถว ${group.row}` : ""}
-              </Typography>
               <Box
                 role="region"
                 tabIndex={0}

@@ -120,12 +120,16 @@ export default function OrganizationUnitHierarchyView({
   const positionedUnits = renderable
     ? chartUnits(hierarchy.root!).filter((branch) => (positionsByUnit.get(branch.unit.contentId)?.length ?? 0) > 0)
     : [];
+  // A leaf page already names the selected unit above its personnel chart.
+  const hasChildUnits = Boolean(hierarchy.root?.children.length);
 
   return (
     <Stack component="section" spacing={2} aria-label="ผังโครงสร้างหน่วยงาน" sx={{ minWidth: 0, maxWidth: "100%" }}>
-      <Typography variant="h2" sx={{ fontSize: "1.4rem", fontWeight: 700 }}>
-        ผังโครงสร้างหน่วยงาน
-      </Typography>
+      {renderable && hasChildUnits && (
+        <Typography variant="h2" sx={{ fontSize: "1.4rem", fontWeight: 700 }}>
+          ผังโครงสร้างหน่วยงาน
+        </Typography>
+      )}
       {hierarchy.excludedUnitCount > 0 && (
         <Typography variant="body2" color="text.secondary" role="status">
           มีหน่วยงานบางส่วนที่ไม่สามารถจัดเข้าลำดับชั้นที่เลือกได้
@@ -138,34 +142,38 @@ export default function OrganizationUnitHierarchyView({
         </Typography>
       ) : (
         <>
-          <Typography variant="body2" color="text.secondary">
-            ผังแสดงหน่วยงานแม่ด้านบนและหน่วยงานลูกด้านล่าง หน่วยงานระดับเดียวกันอยู่ข้างกัน
-          </Typography>
-          <Box
-            role="region"
-            className="rcat-focus-ring"
-            data-org-direction="top-down"
-            tabIndex={0}
-            aria-label="ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้"
-            sx={{
-              width: "100%",
-              maxWidth: "100%",
-              minWidth: 0,
-              overflowX: "auto",
-              overflowY: "hidden",
-              scrollbarWidth: "thin",
-              touchAction: "pan-x pan-y",
-              overscrollBehaviorX: "contain",
-              pb: 2,
-              pt: 1
-            }}
-          >
-            <Box sx={{ display: "flex", justifyContent: "center", width: "max-content", minWidth: "100%" }}>
-              <Box component="ul" sx={{ listStyle: "none", display: "flex", p: 0, m: 0 }}>
-                <UnitBranch branch={hierarchy.root!} />
+          {hasChildUnits && (
+            <>
+              <Typography variant="body2" color="text.secondary">
+                ผังแสดงหน่วยงานแม่ด้านบนและหน่วยงานลูกด้านล่าง หน่วยงานระดับเดียวกันอยู่ข้างกัน
+              </Typography>
+              <Box
+                role="region"
+                className="rcat-focus-ring"
+                data-org-direction="top-down"
+                tabIndex={0}
+                aria-label="ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้"
+                sx={{
+                  width: "100%",
+                  maxWidth: "100%",
+                  minWidth: 0,
+                  overflowX: "auto",
+                  overflowY: "hidden",
+                  scrollbarWidth: "thin",
+                  touchAction: "pan-x pan-y",
+                  overscrollBehaviorX: "contain",
+                  pb: 2,
+                  pt: 1
+                }}
+              >
+                <Box sx={{ display: "flex", justifyContent: "center", width: "max-content", minWidth: "100%" }}>
+                  <Box component="ul" sx={{ listStyle: "none", display: "flex", p: 0, m: 0 }}>
+                    <UnitBranch branch={hierarchy.root!} />
+                  </Box>
+                </Box>
               </Box>
-            </Box>
-          </Box>
+            </>
+          )}
           {positionedUnits.length > 0 && (
             <Stack
               component="section"
@@ -173,9 +181,6 @@ export default function OrganizationUnitHierarchyView({
               aria-label="ผังบุคลากรตามหน่วยงาน"
               sx={{ minWidth: 0, width: "100%" }}
             >
-              <Typography variant="h2" sx={{ fontSize: "1.4rem", fontWeight: 700 }}>
-                ผังบุคลากร
-              </Typography>
               {positionedUnits.map(({ unit }) => (
                 <Box
                   component="section"
@@ -184,9 +189,11 @@ export default function OrganizationUnitHierarchyView({
                   aria-label={"ผังบุคลากร " + unit.title}
                   sx={{ width: "100%", minWidth: 0 }}
                 >
-                  <Typography variant="h3" sx={{ fontSize: "1.15rem", fontWeight: 700, mb: 2 }}>
-                    {unit.title}
-                  </Typography>
+                  {unit.contentId !== hierarchy.root!.unit.contentId && (
+                    <Typography variant="h3" sx={{ fontSize: "1.15rem", fontWeight: 700, mb: 2 }}>
+                      {unit.title}
+                    </Typography>
+                  )}
                   <OrganizationUnitPositionContent
                     unit={unit}
                     positions={positionsByUnit.get(unit.contentId) ?? []}
