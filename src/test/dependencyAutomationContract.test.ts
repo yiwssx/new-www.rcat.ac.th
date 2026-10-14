@@ -77,7 +77,7 @@ describe("dependency automation contract", () => {
   });
 
   it("keeps the jsdom 30.1 MUI focus-restoration compatibility patch narrow", () => {
-    expect(pnpmWorkspace).toContain('"@mui/material@9.4.0": patches/@mui__material@9.4.0.patch');
+    expect(pnpmWorkspace).toContain('"@mui/material@>=9.4.0 <9.6.0": patches/@mui__material@9.4.0.patch');
     expect(muiFocusTrapPatch).toContain('typeof nodeToRestore.current?.focus === "function"');
     expect(muiFocusTrapPatch.match(/^diff --git /gmu)).toHaveLength(2);
   });
