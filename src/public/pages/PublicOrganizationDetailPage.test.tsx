@@ -153,6 +153,10 @@ describe("Phase 7 responsive public organization renderer", () => {
     mock.data = { unit: baseUnit, ancestors: [], units: [baseUnit], positions: [position], media: [] };
     const screenDepartment = setup();
     expect(await screen.findByText("วุฒิการศึกษา: ปริญญาโท")).toBeInTheDocument();
+    // Selected department is already identified by the page H1; no one-unit diagram above people.
+    expect(screen.getAllByRole("heading", { name: "แผนกวิชา" })).toHaveLength(1);
+    expect(screen.queryByRole("region", { name: "ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "ผังบุคลากร" })).not.toBeInTheDocument();
     screenDepartment.unmount();
     const workUnit = { ...baseUnit, unitKind: "work" };
     mock.data = { unit: workUnit, ancestors: [], units: [workUnit], positions: [position], media: [] };
