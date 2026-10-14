@@ -205,11 +205,11 @@ describe("Organization V2.2 Phase 3 position composition", () => {
     expect(screen.getByRole("link", { name: "หน่วยงาน empty" })).toBeInTheDocument();
     const staffDetails = screen.getAllByRole("button", { name: "ดูรายละเอียด บุคลากรคนเดียวกัน" });
     fireEvent.click(staffDetails[0]);
-    expect(screen.getByText(/หน้าที่รับผิดชอบ: หน้าที่ lead/)).toBeInTheDocument();
+    expect(screen.getByText("หน้าที่ lead")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "ปิด" }));
     fireEvent.click(staffDetails[1]);
-    expect(screen.getByText(/หน้าที่รับผิดชอบ: หน้าที่ teacher/)).toBeInTheDocument();
-    expect(screen.getByText(/วุฒิการศึกษา: ปริญญาโท/)).toBeInTheDocument();
+    expect(screen.getByText("หน้าที่ teacher")).toBeInTheDocument();
+    expect(screen.getByText("ปริญญาโท")).toBeInTheDocument();
     expect(screen.getAllByText("ตำแหน่ง assistant")).toHaveLength(1);
   });
 
