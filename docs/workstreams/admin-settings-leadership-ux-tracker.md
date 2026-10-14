@@ -65,6 +65,7 @@ Routes must be actual route-level pages, not tabs that mount the full 1,652-line
 - Site saves now calculate changed keys for the active category and PUT **only those keys**, using existing Worker partial merge semantics. Changes to the same key since initial load are rejected with a reload message. This is best-effort client-side conflict detection, not atomic compare-and-swap.
 - Initial direct-link/access controls and cross-section overwrite regression added; running full CI and operator verification is still required.
 - Scope guard: no Worker/D1 schema changes, dependency or workflow changes, Organization Chart edits or Homepage Leadership Rotation implementation.
+- Worker audit: `adminStructuredParity.ts` merges partial site-settings PUTs with the current record.
 
 ## 4. Workstream B — Homepage Executive Portrait Rotation (issue #600)
 
