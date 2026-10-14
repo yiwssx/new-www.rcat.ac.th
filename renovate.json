@@ -20,10 +20,10 @@
   "automergeStrategy": "merge-commit",
   "platformAutomerge": false,
   "ignoreTests": false,
-  "prConcurrentLimit": 6,
-  "branchConcurrentLimit": 6,
-  "prHourlyLimit": 4,
-  "commitHourlyLimit": 8,
+  "prConcurrentLimit": 20,
+  "branchConcurrentLimit": 20,
+  "prHourlyLimit": 20,
+  "commitHourlyLimit": 24,
   "lockFileMaintenance": {
     "enabled": false
   },
