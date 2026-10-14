@@ -122,6 +122,45 @@ function position(
   };
 }
 
+describe("Organization V2.4 leaf-page presentation", () => {
+  it("skips a one-card unit hierarchy and duplicate public headings while keeping personnel visible", () => {
+    const root = { ...unit("root", null), chartMode: "rows" as const };
+    render(
+      <OrganizationUnitHierarchyView
+        hierarchy={buildPublicOrganizationHierarchy([root], "root")}
+        positionsByUnit={new Map([["root", [position("lead", "root", "person-1")]]])}
+        media={new Map()}
+      />
+    );
+
+    expect(screen.queryByRole("heading", { name: "ผังโครงสร้างหน่วยงาน" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "ผังบุคลากร" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "หน่วยงาน root" })).not.toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "ผังบุคลากร หน่วยงาน root" })).toBeInTheDocument();
+    expect(screen.getByText("บุคลากรคนเดียวกัน")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "ผังบุคลากรแบบระดับและแถว เลื่อนแนวนอนได้" })).toHaveAttribute(
+      "data-org-position-flow",
+      "top-down"
+    );
+  });
+
+  it("retains the horizontal unit navigator and distinct descendant headings when children exist", () => {
+    const units = [unit("root", null), unit("child", "root")];
+    render(
+      <OrganizationUnitHierarchyView
+        hierarchy={buildPublicOrganizationHierarchy(units, "root")}
+        positionsByUnit={new Map([["child", [position("lead", "child", "person-1")]]])}
+        media={new Map()}
+      />
+    );
+    expect(screen.getByRole("heading", { name: "ผังโครงสร้างหน่วยงาน" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "หน่วยงาน child" })).toBeInTheDocument();
+    expect(screen.getByText("บุคลากรคนเดียวกัน")).toBeInTheDocument();
+  });
+});
+
 describe("Organization V2.2 Phase 3 position composition", () => {
   it("renders each saved mode inside its own unit with a shared person's distinct duty assignments exactly once", () => {
     const root = {
