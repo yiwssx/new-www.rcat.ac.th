@@ -24,10 +24,10 @@ describe("dependency automation contract", () => {
     expect(renovate.schedule).toEqual(["* 0-6 * * *"]);
     expect(renovate.updateNotScheduled).toBe(false);
     expect(renovate.automergeSchedule).toEqual(["* 0-6 * * *"]);
-    expect(renovate.prConcurrentLimit).toBe(6);
-    expect(renovate.branchConcurrentLimit).toBe(6);
-    expect(renovate.prHourlyLimit).toBe(4);
-    expect(renovate.commitHourlyLimit).toBe(8);
+    expect(renovate.prConcurrentLimit).toBe(20);
+    expect(renovate.branchConcurrentLimit).toBe(20);
+    expect(renovate.prHourlyLimit).toBe(20);
+    expect(renovate.commitHourlyLimit).toBe(24);
     expect(renovate.rebaseWhen).toBe("behind-base-branch");
     expect(renovate.platformAutomerge).toBe(false);
   });
