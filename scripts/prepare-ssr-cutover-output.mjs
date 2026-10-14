@@ -58,11 +58,10 @@ await rename(indexPath, csrPath);
 const releaseManifest = createProductionReleaseManifest(process.env);
 if (releaseManifest) {
   // Generated after Vite's output cleanup, never committed as an editable file.
-  await writeFile(
-    path.join(distDir, RELEASE_PATH.slice(1)),
-    JSON.stringify(releaseManifest) + "\n",
-    { encoding: "utf8", flag: "wx" }
-  );
+  await writeFile(path.join(distDir, RELEASE_PATH.slice(1)), JSON.stringify(releaseManifest) + "\n", {
+    encoding: "utf8",
+    flag: "wx"
+  });
   console.log("Prepared exact-SHA production release attestation.");
 }
 

@@ -84,8 +84,16 @@ test("stale, absent or untrusted live witnesses cannot pass", async () => {
   assert.equal(await probe(mockResponse("not JSON")), "failure");
   assert.equal(await probe(mockResponse("x".repeat(4096))), "failure");
   assert.equal(
-    await inspectLiveProductionRelease({ sha: SHA, read: async () => { throw new Error("network"); } }),
+    await inspectLiveProductionRelease({
+      sha: SHA,
+      read: async () => {
+        throw new Error("network");
+      }
+    }),
     "pending"
   );
-  assert.equal(await inspectLiveProductionRelease({ sha: "broken", read: async () => mockResponse(manifest) }), "failure");
+  assert.equal(
+    await inspectLiveProductionRelease({ sha: "broken", read: async () => mockResponse(manifest) }),
+    "failure"
+  );
 });

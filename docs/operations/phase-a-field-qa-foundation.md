@@ -75,7 +75,7 @@ The primary gate uses Vercel's GitHub **commit status**. A documented connector 
 
 ### Canonical Vercel release witness — 2026-10-14
 
-When both GitHub reporting channels stay pending (run 38545987281), the build script `scripts/prepare-ssr-cutover-output.mjs` writes `dist/rcat-release.json` *after* Vite finishes. The only accepted source of identity is Vercel's build-time `VERCEL_GIT_*` metadata. The generator does not read local `.env` secrets, authenticate visitors, or change site data. Preview builds do not emit this production witness.
+When both GitHub reporting channels stay pending (run 38545987281), the build script `scripts/prepare-ssr-cutover-output.mjs` writes `dist/rcat-release.json` _after_ Vite finishes. The only accepted source of identity is Vercel's build-time `VERCEL_GIT_*` metadata. The generator does not read local `.env` secrets, authenticate visitors, or change site data. Preview builds do not emit this production witness.
 
 The exact-SHA checker reads `https://www.rcat.ac.th/rcat-release.json?sha=<40-hex>` over HTTPS with no redirects, validates JSON identity (`provider=vercel`, `environment=production`, `repository=yiwssx/new-www.rcat.ac.th`, `ref=main`) and the requested SHA. It requires no-store response headers; an absent/stale marker waits, while invalid or unexpected metadata fails closed. The check is only used when the release is runtime-impacting and both native GitHub evidence channels have not completed. It cannot substitute an ignored-build success or bypass the actual Playwright browser tests.
 

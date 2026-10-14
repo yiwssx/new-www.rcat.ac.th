@@ -1,10 +1,7 @@
 // Last-resort read-only release gate when both Vercel GitHub reporting channels are stale.
 // The live canonical HTTPS origin must serve the manifest generated during its Vercel build.
 import { pathToFileURL } from "node:url";
-import {
-  RELEASE_PATH,
-  verifyProductionReleaseManifest
-} from "./production-release-manifest.mjs";
+import { RELEASE_PATH, verifyProductionReleaseManifest } from "./production-release-manifest.mjs";
 
 const ORIGIN = "https://www.rcat.ac.th";
 
