@@ -22,7 +22,7 @@ export default function PublicOrganizationDetailPage({ slug }: Props) {
   const data = query.data;
   const departmentIndex = useQuery({
     queryKey: ["public-organization-published-department-index"],
-    queryFn: () => getPublicOrganizationIndex({ consumeAbortSignal: false }),
+    queryFn: () => getPublicOrganizationIndex(),
     enabled: Boolean(data && isAcademicDivision(data.unit)),
     staleTime: 60_000
   });
