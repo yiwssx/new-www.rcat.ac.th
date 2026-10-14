@@ -34,6 +34,7 @@ import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
 import PageHeader from "../components/PageHeader";
+import HomepageSettingsWorkflowGuide from "../components/HomepageSettingsWorkflowGuide";
 import { staticSurfaceSx } from "../../design-system/componentStyles";
 import { useAuth } from "../../context/authSessionContext";
 import { projectSettings } from "../../config/projectSettings";
@@ -700,6 +701,7 @@ export default function SettingsPage({ section }: { section: SettingsCategory })
 
   return (
     <Box>
+      {section === "homepage" && <HomepageSettingsWorkflowGuide />}
       <PageHeader title={currentSection?.label ?? "ตั้งค่า"} description={currentSection?.description ?? ""} />
       {!canManage && (
         <Alert severity="info" sx={{ mb: 3 }}>
