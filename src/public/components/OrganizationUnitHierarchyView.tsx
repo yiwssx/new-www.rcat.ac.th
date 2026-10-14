@@ -144,34 +144,34 @@ export default function OrganizationUnitHierarchyView({
         <>
           {hasChildUnits && (
             <>
-          <Typography variant="body2" color="text.secondary">
-            ผังแสดงหน่วยงานแม่ด้านบนและหน่วยงานลูกด้านล่าง หน่วยงานระดับเดียวกันอยู่ข้างกัน
-          </Typography>
-          <Box
-            role="region"
-            className="rcat-focus-ring"
-            data-org-direction="top-down"
-            tabIndex={0}
-            aria-label="ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้"
-            sx={{
-              width: "100%",
-              maxWidth: "100%",
-              minWidth: 0,
-              overflowX: "auto",
-              overflowY: "hidden",
-              scrollbarWidth: "thin",
-              touchAction: "pan-x pan-y",
-              overscrollBehaviorX: "contain",
-              pb: 2,
-              pt: 1
-            }}
-          >
-            <Box sx={{ display: "flex", justifyContent: "center", width: "max-content", minWidth: "100%" }}>
-              <Box component="ul" sx={{ listStyle: "none", display: "flex", p: 0, m: 0 }}>
-                <UnitBranch branch={hierarchy.root!} />
+              <Typography variant="body2" color="text.secondary">
+                ผังแสดงหน่วยงานแม่ด้านบนและหน่วยงานลูกด้านล่าง หน่วยงานระดับเดียวกันอยู่ข้างกัน
+              </Typography>
+              <Box
+                role="region"
+                className="rcat-focus-ring"
+                data-org-direction="top-down"
+                tabIndex={0}
+                aria-label="ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้"
+                sx={{
+                  width: "100%",
+                  maxWidth: "100%",
+                  minWidth: 0,
+                  overflowX: "auto",
+                  overflowY: "hidden",
+                  scrollbarWidth: "thin",
+                  touchAction: "pan-x pan-y",
+                  overscrollBehaviorX: "contain",
+                  pb: 2,
+                  pt: 1
+                }}
+              >
+                <Box sx={{ display: "flex", justifyContent: "center", width: "max-content", minWidth: "100%" }}>
+                  <Box component="ul" sx={{ listStyle: "none", display: "flex", p: 0, m: 0 }}>
+                    <UnitBranch branch={hierarchy.root!} />
+                  </Box>
+                </Box>
               </Box>
-            </Box>
-          </Box>
             </>
           )}
           {positionedUnits.length > 0 && (
