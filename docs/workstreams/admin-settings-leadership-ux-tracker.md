@@ -116,7 +116,7 @@ The new editor belongs under **Settings → Leadership**, with five clearly labe
 | P0   | Create #599 and #600; commit this tracking plan to `main` through a documentation-only PR                      | Latest `main`                     | **In progress until planning PR actually merged** |
 | P1   | Implement A1–A4 on `feature/admin-settings-route-refactor`                                                     | P0                                | Implemented in PR #602; pending acceptance        |
 | P2   | Verify A5–A6 and release Settings navigation without changing homepage behavior                                | P1                                | CI/UAT pending                                    |
-| P3   | Implement B1–B3 on `feature/homepage-leadership-rotation`                                                      | P2; stable Leadership admin route | Code implemented; CI/UAT pending                   |
+| P3   | Implement B1–B3 on `feature/homepage-leadership-rotation`                                                      | P2; stable Leadership admin route | Code implemented; CI/UAT pending                  |
 | P4   | Verify B4–B6, compatible release order and operator review                                                     | P3                                | Not started                                       |
 | P5   | Update issues and tracker with exact PRs, hashes, CI evidence, production verification and operator acceptance | Each release                      | Not started                                       |
 

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { defaultSiteSettings, normalizeLeadershipSettings, normalizeSiteSettings } from "../../../services/siteSettings";
+import {
+  defaultSiteSettings,
+  normalizeLeadershipSettings,
+  normalizeSiteSettings
+} from "../../../services/siteSettings";
 import { getHomepageLeadershipPortraits, getLoopedLeadershipIndex } from "./leadershipRotation";
 
 describe("homepage leadership rotation model", () => {
@@ -20,7 +24,10 @@ describe("homepage leadership rotation model", () => {
       }
     });
     expect(getHomepageLeadershipPortraits(settings).map((p) => [p.slot, p.name])).toEqual([
-      [0, "Director"], [1, "Deputy A"], [2, "Deputy B"], [4, "Deputy D"]
+      [0, "Director"],
+      [1, "Deputy A"],
+      [2, "Deputy B"],
+      [4, "Deputy D"]
     ]);
     expect(getLoopedLeadershipIndex(4, 4)).toBe(0);
     expect(getLoopedLeadershipIndex(-1, 4)).toBe(3);
@@ -28,8 +35,9 @@ describe("homepage leadership rotation model", () => {
   });
 
   it("keeps the original director-only view when no roster is configured", () => {
-    expect(getHomepageLeadershipPortraits({ ...defaultSiteSettings, directorName: "Existing Director" }))
-      .toEqual([{ slot: 0, name: "Existing Director", title: "", description: "", imageUrl: "" }]);
+    expect(getHomepageLeadershipPortraits({ ...defaultSiteSettings, directorName: "Existing Director" })).toEqual([
+      { slot: 0, name: "Existing Director", title: "", description: "", imageUrl: "" }
+    ]);
     expect(getHomepageLeadershipPortraits(defaultSiteSettings)).toEqual([]);
   });
 
@@ -49,10 +57,12 @@ describe("homepage leadership rotation model", () => {
     expect(normalized.deputies[0].name).toBe("Person A");
     expect(normalized.deputies[0].imageUrl).toBe("");
     expect(normalized.deputies[2].enabled).toBe(false);
-    expect(getHomepageLeadershipPortraits({
-      ...defaultSiteSettings,
-      leadership: normalized
-    }).map((p) => p.name)).toEqual(["Person A", "D"]);
+    expect(
+      getHomepageLeadershipPortraits({
+        ...defaultSiteSettings,
+        leadership: normalized
+      }).map((p) => p.name)
+    ).toEqual(["Person A", "D"]);
     expect(normalizeLeadershipSettings(null).autoplayIntervalSeconds).toBe(6);
   });
 });

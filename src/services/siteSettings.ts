@@ -1,4 +1,10 @@
-import type { FooterDirectoryGroup, FooterDirectoryLink, HomepageLeadershipSettings, LeadershipDeputy, SiteSettings } from "../features/cms-settings/types";
+import type {
+  FooterDirectoryGroup,
+  FooterDirectoryLink,
+  HomepageLeadershipSettings,
+  LeadershipDeputy,
+  SiteSettings
+} from "../features/cms-settings/types";
 import { buildGoogleDriveThumbnailUrl, extractGoogleDriveFileId } from "../shared/media/publicImageSources";
 
 const shortTextMaxLength = 120;
@@ -198,11 +204,10 @@ export function normalizeLeadershipSettings(value: unknown): HomepageLeadershipS
   const seconds = Number(source.autoplayIntervalSeconds);
   const deputiesSource = Array.isArray(source.deputies) ? source.deputies : [];
   return {
-    autoplayIntervalSeconds: Number.isFinite(seconds) && seconds > 0
-      ? Math.max(3, Math.min(30, Math.round(seconds)))
-      : 6,
+    autoplayIntervalSeconds:
+      Number.isFinite(seconds) && seconds > 0 ? Math.max(3, Math.min(30, Math.round(seconds))) : 6,
     deputies: Array.from({ length: 4 }, (_, index): LeadershipDeputy => {
-      const deputy = isRecord(deputiesSource[index]) ? deputiesSource[index] as Record<string, unknown> : {};
+      const deputy = isRecord(deputiesSource[index]) ? (deputiesSource[index] as Record<string, unknown>) : {};
       return {
         enabled: deputy.enabled === true,
         name: normalizeText(deputy.name, shortTextMaxLength),

@@ -126,30 +126,57 @@ describe("P5H Admin write-boundary validation", () => {
   });
 
   it("validates nested deputy portrait URLs and rejects incomplete enabled slots", async () => {
-    const buildRequest = (leadership: unknown) => new Request("https://worker.test/api/admin/settings/site", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ leadership })
-    });
+    const buildRequest = (leadership: unknown) =>
+      new Request("https://worker.test/api/admin/settings/site", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leadership })
+      });
     const base = {
       autoplayIntervalSeconds: 6,
-      deputies: [{ enabled: true, name: "Deputy A", title: "Vice Principal", description: "", imageUrl: "https://cdn.example.test/deputy.jpg" }]
+      deputies: [
+        {
+          enabled: true,
+          name: "Deputy A",
+          title: "Vice Principal",
+          description: "",
+          imageUrl: "https://cdn.example.test/deputy.jpg"
+        }
+      ]
     };
     await expect(validateAdminLinkWriteRequest(buildRequest(base))).resolves.toBeUndefined();
-    await expect(validateAdminLinkWriteRequest(buildRequest({
-      ...base,
-      deputies: [{ ...base.deputies[0], imageUrl: "javascript:alert(1)" }]
-    }))).rejects.toThrow("invalid deputy portrait URL");
-    await expect(validateAdminLinkWriteRequest(buildRequest({
-      ...base,
-      deputies: [{ ...base.deputies[0], name: "" }]
-    }))).rejects.toThrow("incomplete deputy profile");
-    await expect(validateAdminLinkWriteRequest(buildRequest({
-      ...base, autoplayIntervalSeconds: 100
-    }))).rejects.toThrow("invalid leadership interval");
-    await expect(validateAdminLinkWriteRequest(buildRequest({
-      ...base, deputies: Array.from({ length: 5 }, () => base.deputies[0])
-    }))).rejects.toThrow("invalid leadership roster");
+    await expect(
+      validateAdminLinkWriteRequest(
+        buildRequest({
+          ...base,
+          deputies: [{ ...base.deputies[0], imageUrl: "javascript:alert(1)" }]
+        })
+      )
+    ).rejects.toThrow("invalid deputy portrait URL");
+    await expect(
+      validateAdminLinkWriteRequest(
+        buildRequest({
+          ...base,
+          deputies: [{ ...base.deputies[0], name: "" }]
+        })
+      )
+    ).rejects.toThrow("incomplete deputy profile");
+    await expect(
+      validateAdminLinkWriteRequest(
+        buildRequest({
+          ...base,
+          autoplayIntervalSeconds: 100
+        })
+      )
+    ).rejects.toThrow("invalid leadership interval");
+    await expect(
+      validateAdminLinkWriteRequest(
+        buildRequest({
+          ...base,
+          deputies: Array.from({ length: 5 }, () => base.deputies[0])
+        })
+      )
+    ).rejects.toThrow("invalid leadership roster");
   });
 
   it("accepts supported external-service batches and media resource URLs", async () => {

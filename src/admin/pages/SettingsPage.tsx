@@ -152,10 +152,10 @@ function getSiteSettingsValidationMessage(settings: SiteSettings): { title: stri
         text: `ตำแหน่งที่ ${index + 1} ที่เปิดใช้งานต้องระบุชื่อและตำแหน่งก่อนบันทึก`
       };
     }
-    if (deputy.imageUrl.trim() && (
-      !deputy.imageUrl.trim().startsWith("https://") ||
-      !isValidCmsLink(deputy.imageUrl.trim(), "resource")
-    )) {
+    if (
+      deputy.imageUrl.trim() &&
+      (!deputy.imageUrl.trim().startsWith("https://") || !isValidCmsLink(deputy.imageUrl.trim(), "resource"))
+    ) {
       return {
         title: "URL รูปภาพผู้บริหารไม่ถูกต้อง",
         text: `รองผู้อำนวยการตำแหน่งที่ ${index + 1}: ใช้ลิงก์ HTTPS ที่ถูกต้องหรือเว้นว่าง`
@@ -927,8 +927,8 @@ export default function SettingsPage({ section }: { section: SettingsCategory })
                     {section === "leadership" && (
                       <Grid size={{ xs: 12 }}>
                         <Alert severity="info">
-                          ผู้อำนวยการใช้ข้อมูล 4 ช่องเดิมด้านล่างเป็นตำแหน่งแรก
-                          ตามด้วยรองผู้อำนวยการ 1–4 โดยแสดงเฉพาะหน้าแรก
+                          ผู้อำนวยการใช้ข้อมูล 4 ช่องเดิมด้านล่างเป็นตำแหน่งแรก ตามด้วยรองผู้อำนวยการ 1–4
+                          โดยแสดงเฉพาะหน้าแรก
                         </Alert>
                       </Grid>
                     )}
@@ -966,7 +966,9 @@ export default function SettingsPage({ section }: { section: SettingsCategory })
                       <>
                         {resolvePublicImageSource(siteSettings.directorImageUrl, "portrait").src && (
                           <Grid size={{ xs: 12 }}>
-                            <Typography variant="subtitle2" sx={{ mb: 1 }}>ตัวอย่างภาพผู้อำนวยการ (ลำดับที่ 1)</Typography>
+                            <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                              ตัวอย่างภาพผู้อำนวยการ (ลำดับที่ 1)
+                            </Typography>
                             <PublicResponsiveImage
                               source={siteSettings.directorImageUrl}
                               intent="portrait"

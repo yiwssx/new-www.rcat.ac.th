@@ -27,16 +27,16 @@ export default function LeadershipSettingsEditor({ value, disabled, onChange }: 
     if (disabled) return;
     onChange({
       ...settings,
-      deputies: settings.deputies.map((item, itemIndex) =>
-        itemIndex === index ? { ...item, [key]: changed } : item
-      )
+      deputies: settings.deputies.map((item, itemIndex) => (itemIndex === index ? { ...item, [key]: changed } : item))
     });
   }
 
   return (
     <Stack spacing={2} sx={{ width: "100%" }}>
       <Box>
-        <Typography variant="h3" sx={{ mb: 0.5 }}>การหมุนเวียนผู้บริหารบนหน้าแรก</Typography>
+        <Typography variant="h3" sx={{ mb: 0.5 }}>
+          การหมุนเวียนผู้บริหารบนหน้าแรก
+        </Typography>
         <Typography variant="body2" color="text.secondary">
           ระบบใช้ข้อมูลผู้อำนวยการด้านบนเป็นลำดับแรก แล้วแสดงรองผู้อำนวยการที่เปิดใช้งานตามลำดับ 1–4
           หากมีเพียงผู้อำนวยการ ระบบจะแสดงภาพคงที่เช่นเดิม
@@ -70,7 +70,9 @@ export default function LeadershipSettingsEditor({ value, disabled, onChange }: 
                       spacing={1}
                       sx={{ justifyContent: "space-between", alignItems: { sm: "center" } }}
                     >
-                      <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>{deputyLabels[index]}</Typography>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
+                        {deputyLabels[index]}
+                      </Typography>
                       <FormControlLabel
                         control={
                           <Switch
@@ -90,7 +92,11 @@ export default function LeadershipSettingsEditor({ value, disabled, onChange }: 
                       required={deputy.enabled}
                       value={deputy.name}
                       onChange={(event) => changeDeputy(index, "name", event.target.value)}
-                      helperText={deputy.enabled && !deputy.name.trim() ? "กรุณากรอกชื่อก่อนบันทึกตำแหน่งที่เปิดใช้งาน" : undefined}
+                      helperText={
+                        deputy.enabled && !deputy.name.trim()
+                          ? "กรุณากรอกชื่อก่อนบันทึกตำแหน่งที่เปิดใช้งาน"
+                          : undefined
+                      }
                       error={deputy.enabled && !deputy.name.trim()}
                     />
                     <TextField

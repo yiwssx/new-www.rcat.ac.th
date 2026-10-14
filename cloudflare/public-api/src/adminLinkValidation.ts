@@ -52,15 +52,19 @@ function validateLeadershipSettings(value: unknown) {
     if (!isRecord(deputy) || typeof deputy.enabled !== "boolean") {
       throw new Error(`invalid deputy profile ${index + 1}`);
     }
-    if (deputy.enabled && (
-      typeof deputy.name !== "string" || !deputy.name.trim() ||
-      typeof deputy.title !== "string" || !deputy.title.trim()
-    )) {
+    if (
+      deputy.enabled &&
+      (typeof deputy.name !== "string" ||
+        !deputy.name.trim() ||
+        typeof deputy.title !== "string" ||
+        !deputy.title.trim())
+    ) {
       throw new Error(`incomplete deputy profile ${index + 1}`);
     }
-    if (typeof deputy.imageUrl !== "string" || (
-      deputy.imageUrl.trim() && !deputy.imageUrl.trim().startsWith("https://")
-    )) {
+    if (
+      typeof deputy.imageUrl !== "string" ||
+      (deputy.imageUrl.trim() && !deputy.imageUrl.trim().startsWith("https://"))
+    ) {
       throw new Error(`invalid deputy portrait URL ${index + 1}`);
     }
     assertLink(deputy.imageUrl, "resource", `deputy portrait URL ${index + 1}`);

@@ -99,11 +99,7 @@ export function HomepageLeadershipRotation({ siteSettings }: { siteSettings: Sit
         />
       </Box>
       {canRotate && (
-        <Stack
-          direction="row"
-          spacing={1}
-          sx={{ alignItems: "center", justifyContent: "center", mt: 0.5 }}
-        >
+        <Stack direction="row" spacing={1} sx={{ alignItems: "center", justifyContent: "center", mt: 0.5 }}>
           <IconButton size="small" onClick={() => move(-1)} aria-label="ผู้บริหารก่อนหน้า">
             <ArrowBackIosNewOutlinedIcon fontSize="small" />
           </IconButton>
@@ -119,8 +115,15 @@ export function HomepageLeadershipRotation({ siteSettings }: { siteSettings: Sit
         aria-live="polite"
         aria-atomic="true"
         sx={{
-          position: "absolute", width: 1, height: 1, padding: 0, margin: -1,
-          overflow: "hidden", clip: "rect(0, 0, 0, 0)", whiteSpace: "nowrap", border: 0
+          position: "absolute",
+          width: 1,
+          height: 1,
+          padding: 0,
+          margin: -1,
+          overflow: "hidden",
+          clip: "rect(0, 0, 0, 0)",
+          whiteSpace: "nowrap",
+          border: 0
         }}
       >
         {announcement}
