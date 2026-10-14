@@ -3,7 +3,7 @@
 **Repository:** `yiwssx/new-www.rcat.ac.th`  
 **Created:** 2026-10-14 (Asia/Bangkok)  
 **Baseline inspected:** `main` at `3e51accb46f5025be03f7826112a43c0afa8d873`  
-**Status:** **PLANNED — DOCUMENTATION ONLY; NO UI IMPLEMENTATION OR PRODUCTION RELEASE**  
+**Status:** **ACTIVE — SETTINGS CODE PR #602; CI AND PRODUCTION UAT NOT YET ACCEPTED; LEADERSHIP ROTATION NOT STARTED**  
 **Planning branch:** `docs/admin-settings-leadership-ux-plan-20261014`  
 **Planning PR:** [#601 — docs(ui-ux): track admin settings split and executive rotation](https://github.com/yiwssx/new-www.rcat.ac.th/pull/601)  
 **Implementation issues:** [#599 — Settings navigation](https://github.com/yiwssx/new-www.rcat.ac.th/issues/599) and [#600 — Leadership rotation](https://github.com/yiwssx/new-www.rcat.ac.th/issues/600)  
@@ -57,6 +57,15 @@ Routes must be actual route-level pages, not tabs that mount the full 1,652-line
 
 **Acceptance:** an editor can open any settings category directly, understand their current category without scrolling a monolithic page, edit/save only permitted fields, reload without losing state, and not accidentally overwrite another category's edits.
 
+### Implementation checkpoint — 2026-10-14, PR #602
+
+- Feature branch: `feature/admin-settings-route-refactor`; [PR #602](https://github.com/yiwssx/new-www.rcat.ac.th/pull/602).
+- Added separate Settings overview and seven `settings/<category>` routes under the existing `settings.read` guard; updated the collapsible submenu without touching Organization navigation.
+- Split the **rendered** Settings form and data queries by category; no longer show the long combined form on any settings route. Shared Settings form logic remains in `SettingsPage.tsx`; further file/module extraction can be independently evaluated after behavior is verified.
+- Site saves now calculate changed keys for the active category and PUT **only those keys**, using existing Worker partial merge semantics. Changes to the same key since initial load are rejected with a reload message. This is best-effort client-side conflict detection, not atomic compare-and-swap.
+- Initial direct-link/access controls and cross-section overwrite regression added; running full CI and operator verification is still required.
+- Scope guard: no Worker/D1 schema changes, dependency or workflow changes, Organization Chart edits or Homepage Leadership Rotation implementation.
+
 ## 4. Workstream B — Homepage Executive Portrait Rotation (issue #600)
 
 ### Functional contract
@@ -93,8 +102,8 @@ The new editor belongs under **Settings → Leadership**, with five clearly labe
 | Step | Deliverable                                                                                                    | Depends on                        | State                                             |
 | ---- | -------------------------------------------------------------------------------------------------------------- | --------------------------------- | ------------------------------------------------- |
 | P0   | Create #599 and #600; commit this tracking plan to `main` through a documentation-only PR                      | Latest `main`                     | **In progress until planning PR actually merged** |
-| P1   | Implement A1–A4 on `feature/admin-settings-route-refactor`                                                     | P0                                | Not started                                       |
-| P2   | Verify A5–A6 and release Settings navigation without changing homepage behavior                                | P1                                | Not started                                       |
+| P1   | Implement A1–A4 on `feature/admin-settings-route-refactor`                                                     | P0                                | Implemented in PR #602; pending acceptance         |
+| P2   | Verify A5–A6 and release Settings navigation without changing homepage behavior                                | P1                                | CI/UAT pending                                    |
 | P3   | Implement B1–B3 on `feature/homepage-leadership-rotation`                                                      | P2; stable Leadership admin route | Not started                                       |
 | P4   | Verify B4–B6, compatible release order and operator review                                                     | P3                                | Not started                                       |
 | P5   | Update issues and tracker with exact PRs, hashes, CI evidence, production verification and operator acceptance | Each release                      | Not started                                       |
