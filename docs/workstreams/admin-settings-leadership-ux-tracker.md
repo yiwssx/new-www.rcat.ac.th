@@ -19,14 +19,14 @@ The operator requested a fresh UI/UX workstream with two separate tasks:
 
 ## 2. Verified code baseline and findings
 
-| Current area | Source | Finding |
-| --- | --- | --- |
-| Settings monolith | `src/admin/pages/SettingsPage.tsx` | ~1,652 lines covering display/date, public site, homepage, visitor stats, role overview and security; several save actions |
-| Admin routing | `src/routes.tsx` | Single guarded `/admin/settings` route using `settings.read` |
-| Admin navigation | `src/admin/layout/CmsShell.tsx` | Single Settings navigation item |
-| Settings data contracts | `src/features/cms-settings/types.ts` and `src/features/cms-settings/api.ts` | Site, homepage and display have existing typed contracts and API calls |
-| Public leadership | `src/public/components/home/DirectorHeroCard.tsx`, `src/public/components/home/HomeHeroSection.tsx` | Current card reads one director from `SiteSettings` and appears on the homepage |
-| Home loading | `src/public/pages/PublicHomePage.tsx` | Home already normalizes site and homepage settings from its public snapshot |
+| Current area            | Source                                                                                              | Finding                                                                                                                    |
+| ----------------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Settings monolith       | `src/admin/pages/SettingsPage.tsx`                                                                  | ~1,652 lines covering display/date, public site, homepage, visitor stats, role overview and security; several save actions |
+| Admin routing           | `src/routes.tsx`                                                                                    | Single guarded `/admin/settings` route using `settings.read`                                                               |
+| Admin navigation        | `src/admin/layout/CmsShell.tsx`                                                                     | Single Settings navigation item                                                                                            |
+| Settings data contracts | `src/features/cms-settings/types.ts` and `src/features/cms-settings/api.ts`                         | Site, homepage and display have existing typed contracts and API calls                                                     |
+| Public leadership       | `src/public/components/home/DirectorHeroCard.tsx`, `src/public/components/home/HomeHeroSection.tsx` | Current card reads one director from `SiteSettings` and appears on the homepage                                            |
+| Home loading            | `src/public/pages/PublicHomePage.tsx`                                                               | Home already normalizes site and homepage settings from its public snapshot                                                |
 
 **Architecture risk:** splitting a single site-settings object across multiple pages can overwrite changes made elsewhere if each page saves a stale whole-object snapshot. The implementation must prove conflict-safe persistence, not merely split the visual sections.
 
@@ -89,14 +89,14 @@ The new editor belongs under **Settings → Leadership**, with five clearly labe
 
 ## 5. Overall plan and order
 
-| Step | Deliverable | Depends on | State |
-| --- | --- | --- | --- |
-| P0 | Create #599 and #600; commit this tracking plan to `main` through a documentation-only PR | Latest `main` | **In progress until planning PR actually merged** |
-| P1 | Implement A1–A4 on `feature/admin-settings-route-refactor` | P0 | Not started |
-| P2 | Verify A5–A6 and release Settings navigation without changing homepage behavior | P1 | Not started |
-| P3 | Implement B1–B3 on `feature/homepage-leadership-rotation` | P2; stable Leadership admin route | Not started |
-| P4 | Verify B4–B6, compatible release order and operator review | P3 | Not started |
-| P5 | Update issues and tracker with exact PRs, hashes, CI evidence, production verification and operator acceptance | Each release | Not started |
+| Step | Deliverable                                                                                                    | Depends on                        | State                                             |
+| ---- | -------------------------------------------------------------------------------------------------------------- | --------------------------------- | ------------------------------------------------- |
+| P0   | Create #599 and #600; commit this tracking plan to `main` through a documentation-only PR                      | Latest `main`                     | **In progress until planning PR actually merged** |
+| P1   | Implement A1–A4 on `feature/admin-settings-route-refactor`                                                     | P0                                | Not started                                       |
+| P2   | Verify A5–A6 and release Settings navigation without changing homepage behavior                                | P1                                | Not started                                       |
+| P3   | Implement B1–B3 on `feature/homepage-leadership-rotation`                                                      | P2; stable Leadership admin route | Not started                                       |
+| P4   | Verify B4–B6, compatible release order and operator review                                                     | P3                                | Not started                                       |
+| P5   | Update issues and tracker with exact PRs, hashes, CI evidence, production verification and operator acceptance | Each release                      | Not started                                       |
 
 **Scope rule:** use one implementation branch + one PR for each workstream. Do not mix A/B implementation into the planning PR. Feature work should not be marked complete before CI, protected release (if required) and hands-on operator validation.
 
