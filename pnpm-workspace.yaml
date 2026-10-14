@@ -17,6 +17,6 @@ overrides:
   "sharp@<0.35.5": 0.35.5
   "undici@>=7.0.0 <7.29.1": 7.29.1
 patchedDependencies:
-  "@mui/material@9.4.0": patches/@mui__material@9.4.0.patch
+  "@mui/material@>=9.4.0 <9.6.0": patches/@mui__material@9.4.0.patch
 
 strictDepBuilds: true
