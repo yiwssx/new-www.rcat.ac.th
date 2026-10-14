@@ -46,5 +46,10 @@ export function publishedDepartmentLinks(units: readonly PublicOrganizationUnit[
       seen.add(unit.contentId);
       return true;
     })
-    .sort((a, b) => a.sortOrder - b.sortOrder || a.title.localeCompare(b.title, "th"));
+    .sort(
+      (a, b) =>
+        Number(a.parentContentId !== null) - Number(b.parentContentId !== null) ||
+        a.sortOrder - b.sortOrder ||
+        a.title.localeCompare(b.title, "th")
+    );
 }
