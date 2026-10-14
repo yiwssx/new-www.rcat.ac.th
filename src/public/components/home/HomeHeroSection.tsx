@@ -9,7 +9,7 @@ import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import PublicResponsiveImage from "../../../shared/media/PublicResponsiveImage";
 import { normalizeSafeHref } from "../../../utils/safeUrl";
-import { DirectorHeroCard } from "./DirectorHeroCard";
+import { HomepageLeadershipRotation } from "./HomepageLeadershipRotation";
 import { SiteSettings } from "../../../types";
 import { designTokens } from "../../../design-system/tokens";
 
@@ -202,7 +202,7 @@ export function HomeHeroSection({ siteSettings }: { siteSettings: SiteSettings }
         </Stack>
       </Box>
       <Box sx={{ width: "100%", height: "100%", display: "flex" }}>
-        <DirectorHeroCard siteSettings={siteSettings} />
+        <HomepageLeadershipRotation siteSettings={siteSettings} />
       </Box>
     </Box>
   );
