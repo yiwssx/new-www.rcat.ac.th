@@ -222,11 +222,12 @@ describe("Organization V2.2 Phase 3 position composition", () => {
     expect(within(rail).getByText("ตำแหน่ง assistant")).toBeInTheDocument();
   });
 
-  it("keeps A/B/Cards charts outside narrow diagram cards in full-width personnel sections", () => {
+  it("keeps A/B/Cards charts outside narrow diagram cards when descendant unit navigation is present", () => {
     const root = { ...unit("root", null), chartMode: "rows" as const };
+    const descendant = unit("child", "root");
     render(
       <OrganizationUnitHierarchyView
-        hierarchy={buildPublicOrganizationHierarchy([root], "root")}
+        hierarchy={buildPublicOrganizationHierarchy([root, descendant], "root")}
         positionsByUnit={
           new Map([["root", [position("lead", "root", "person-1"), position("deputy", "root", "person-2")]]])
         }
