@@ -111,7 +111,9 @@ describe("Phase 7 responsive public organization renderer", () => {
     expect(screen.getByRole("link", { name: "งานย่อย" })).toHaveAttribute("href", "/organization/sub");
     expect(screen.getByText("หัวหน้างาน")).toBeInTheDocument();
     expect(screen.getByText("บุคลากรตัวอย่าง")).toBeInTheDocument();
-    expect(screen.getByText("ประสานงาน")).toBeInTheDocument();
+    expect(screen.queryByText("ประสานงาน")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "ดูรายละเอียด บุคลากรตัวอย่าง" }));
+    expect(screen.getByText(/หน้าที่รับผิดชอบ: ประสานงาน/)).toBeInTheDocument();
     expect(screen.queryByText(/อีเมล:|โทรศัพท์:/)).not.toBeInTheDocument();
   });
 
