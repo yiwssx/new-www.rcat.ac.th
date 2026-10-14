@@ -1,14 +1,8 @@
 import type { SiteSettings } from "../../../features/cms-settings/types";
 
-export const settingsCategories = [
-  "general",
-  "homepage",
-  "leadership",
-  "footer",
-  "appearance",
-  "visitors",
-  "access"
-] as const;
+import { settingsCategories } from "../../../config/adminSettingsCategories";
+
+export { settingsCategories };
 
 export type SettingsCategory = (typeof settingsCategories)[number];
 export type SiteSettingsCategory = Extract<SettingsCategory, "general" | "leadership" | "footer" | "appearance">;
