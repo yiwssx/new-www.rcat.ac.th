@@ -40,6 +40,33 @@ function validateFooterDirectoryGroups(value: unknown) {
   });
 }
 
+function validateLeadershipSettings(value: unknown) {
+  if (!isRecord(value) || !Array.isArray(value.deputies) || value.deputies.length > 4) {
+    throw new Error("invalid leadership roster");
+  }
+  const seconds = value.autoplayIntervalSeconds;
+  if (typeof seconds !== "number" || !Number.isInteger(seconds) || seconds < 3 || seconds > 30) {
+    throw new Error("invalid leadership interval");
+  }
+  value.deputies.forEach((deputy: unknown, index: number) => {
+    if (!isRecord(deputy) || typeof deputy.enabled !== "boolean") {
+      throw new Error(`invalid deputy profile ${index + 1}`);
+    }
+    if (deputy.enabled && (
+      typeof deputy.name !== "string" || !deputy.name.trim() ||
+      typeof deputy.title !== "string" || !deputy.title.trim()
+    )) {
+      throw new Error(`incomplete deputy profile ${index + 1}`);
+    }
+    if (typeof deputy.imageUrl !== "string" || (
+      deputy.imageUrl.trim() && !deputy.imageUrl.trim().startsWith("https://")
+    )) {
+      throw new Error(`invalid deputy portrait URL ${index + 1}`);
+    }
+    assertLink(deputy.imageUrl, "resource", `deputy portrait URL ${index + 1}`);
+  });
+}
+
 function validateSettingsBody(kind: string, body: JsonRecord) {
   if (kind === "site") {
     ["admissionUrl", "facebookUrl", "youtubeUrl", "tiktokUrl", "messengerUrl", "mapUrl"].forEach((field) => {
@@ -53,6 +80,7 @@ function validateSettingsBody(kind: string, body: JsonRecord) {
       }
     });
     validateFooterDirectoryGroups(body.footerDirectoryGroups);
+    if ("leadership" in body) validateLeadershipSettings(body.leadership);
     return;
   }
 
