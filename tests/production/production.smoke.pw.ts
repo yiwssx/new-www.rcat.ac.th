@@ -90,7 +90,16 @@ async function expectNoHorizontalOverflow(page: Page) {
       .sort((left, right) => right.overflow - left.overflow)
       .slice(0, 20);
 
-    return { viewportWidth, documentOverflow, offenders };
+    return {
+      viewportWidth,
+      // When this assertion fails, identify discrepancies between the browser
+      // layout viewport and the actually visible document client area.
+      layoutViewportWidth: window.innerWidth,
+      visualViewportWidth: window.visualViewport?.width ?? null,
+      bodyWidth: Math.round(document.body.getBoundingClientRect().width),
+      documentOverflow,
+      offenders
+    };
   });
 
   expect(report.offenders, JSON.stringify(report, null, 2)).toEqual([]);
