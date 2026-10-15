@@ -266,11 +266,17 @@ test("mobile Messenger stays viewport-anchored outside a filtered mourning shell
     const control = document.querySelector<HTMLElement>('[data-public-floating-messenger="true"]');
     if (!shell || !control) throw new Error("Mourning shell or Messenger control not rendered");
 
-    // Reproduce the 24px wider filtered containing block observed in production.
+    // Reproduce the 24px scroll-width mismatch in production. A filtered
+    // containing block on <body> must not reposition the fixed Messenger.
+    document.body.style.width = "calc(100vw + 24px)";
+    document.body.style.filter = "grayscale(100%)";
     shell.style.width = "calc(100% + 24px)";
 
     return {
       viewportWidth: document.documentElement.clientWidth,
+      containingBlockWidth: document.body.getBoundingClientRect().width,
+      documentOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      layoutViewportWidth: window.innerWidth,
       right: control.getBoundingClientRect().right,
       left: control.getBoundingClientRect().left,
       position: getComputedStyle(control).position,
@@ -284,6 +290,8 @@ test("mobile Messenger stays viewport-anchored outside a filtered mourning shell
   expect(placement.controlFilter).not.toBe("none");
   expect(placement.position).toBe("fixed");
   expect(placement.nestedUnderFilteredShell).toBe(false);
+  expect(placement.containingBlockWidth).toBeGreaterThan(placement.viewportWidth);
+  expect(placement.documentOverflow).toBeGreaterThan(0);
   expect(placement.left).toBeGreaterThanOrEqual(0);
   expect(placement.right).toBeLessThanOrEqual(placement.viewportWidth - 8);
 });
