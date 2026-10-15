@@ -1014,12 +1014,16 @@ function PublicSiteShellFrame({
               </Stack>
             </Container>
           </Box>
-          <FloatingMessengerButton
-            enabled={siteSettings.messengerEnabled && !introGateVisible}
-            href={siteSettings.messengerUrl}
-            label={siteSettings.messengerLabel}
-          />
         </Box>
+        {/* Keep fixed-position controls outside the filtered mourning shell.
+            CSS filter creates a containing block for fixed descendants and can
+            push the Messenger control offscreen when the shell overflows. */}
+        <FloatingMessengerButton
+          enabled={siteSettings.messengerEnabled && !introGateVisible}
+          href={siteSettings.messengerUrl}
+          label={siteSettings.messengerLabel}
+          grayscale={mourningGrayscaleEnabled}
+        />
       </PublicMediaLoadingProvider>
     </PublicSiteShellRegistrationContext.Provider>
   );
