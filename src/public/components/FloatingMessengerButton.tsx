@@ -1,10 +1,34 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Box from "@mui/material/Box";
 import Fab from "@mui/material/Fab";
 import Tooltip from "@mui/material/Tooltip";
 import { normalizeSafeHref } from "../../utils/safeUrl";
 import { focusVisibleSx } from "../../design-system/componentStyles";
 import { designTokens } from "../../design-system/tokens";
+
+// Browser emulation and some overflowing layouts can expose a smaller visible
+// client area than the CSS containing block used by position: fixed.
+// Anchor to the document's measurable viewport rather than its scroll width.
+function subscribeVisibleViewportWidth(onChange: () => void) {
+  window.addEventListener("resize", onChange);
+  window.visualViewport?.addEventListener("resize", onChange);
+  const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(onChange);
+  observer?.observe(document.documentElement);
+
+  return () => {
+    window.removeEventListener("resize", onChange);
+    window.visualViewport?.removeEventListener("resize", onChange);
+    observer?.disconnect();
+  };
+}
+
+function getVisibleViewportWidth() {
+  return document.documentElement.clientWidth || null;
+}
+
+function getServerVisibleViewportWidth() {
+  return null;
+}
 
 interface FloatingMessengerButtonProps {
   href?: string;
@@ -35,6 +59,11 @@ export default function FloatingMessengerButton({
   const normalizedHref = normalizeSafeHref(href || "");
   const pathname = typeof window === "undefined" ? "/" : window.location.pathname;
   const [dismissed, setDismissed] = useState(false);
+  const visibleViewportWidth = useSyncExternalStore(
+    subscribeVisibleViewportWidth,
+    getVisibleViewportWidth,
+    getServerVisibleViewportWidth
+  );
 
   useEffect(() => {
     // Route changes reset dismissal; refresh resets it naturally because it is not persisted.
@@ -54,7 +83,15 @@ export default function FloatingMessengerButton({
           position: "fixed",
           // Apply mourning grayscale on the control itself, without changing its viewport positioning.
           filter: grayscale ? "grayscale(100%) contrast(105%)" : undefined,
-          right: { xs: 16, md: 24 },
+          // right: 16px used the wider (436px) layout containing block on Pixel 7
+          // while documentElement.clientWidth was only 412px. An explicit left
+          // coordinate keeps the control on the *visible* side of that mismatch.
+          left: {
+            xs: visibleViewportWidth === null ? "calc(100vw - 16px)" : `${visibleViewportWidth - 16}px`,
+            md: visibleViewportWidth === null ? "calc(100vw - 24px)" : `${visibleViewportWidth - 24}px`
+          },
+          right: "auto",
+          transform: "translateX(-100%)",
           bottom: {
             xs: "calc(16px + env(safe-area-inset-bottom))",
             md: 96,
