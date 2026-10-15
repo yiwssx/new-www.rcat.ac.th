@@ -10,6 +10,7 @@ interface FloatingMessengerButtonProps {
   href?: string;
   label?: string;
   enabled?: boolean;
+  grayscale?: boolean;
 }
 
 function MessengerIcon() {
@@ -28,7 +29,8 @@ function MessengerIcon() {
 export default function FloatingMessengerButton({
   href,
   label = "แชทกับเจ้าหน้าที่",
-  enabled = false
+  enabled = false,
+  grayscale = false
 }: FloatingMessengerButtonProps) {
   const normalizedHref = normalizeSafeHref(href || "");
   const pathname = typeof window === "undefined" ? "/" : window.location.pathname;
@@ -47,8 +49,11 @@ export default function FloatingMessengerButton({
   return (
     <Tooltip title={label} placement="left">
       <Box
+        data-public-floating-messenger="true"
         sx={(theme) => ({
           position: "fixed",
+          // Apply mourning grayscale on the control itself, without changing its viewport positioning.
+          filter: grayscale ? "grayscale(100%) contrast(105%)" : undefined,
           right: { xs: 16, md: 24 },
           bottom: {
             xs: "calc(16px + env(safe-area-inset-bottom))",
