@@ -8,10 +8,7 @@ import ArrowBackIosNewOutlinedIcon from "@mui/icons-material/ArrowBackIosNewOutl
 import ArrowForwardIosOutlinedIcon from "@mui/icons-material/ArrowForwardIosOutlined";
 import type { SiteSettings } from "../../../features/cms-settings/types";
 import { normalizeLeadershipSettings } from "../../../services/siteSettings";
-import {
-  resolvePublicImageFallbackSource,
-  resolvePublicImageSource
-} from "../../../shared/media/publicImageSources";
+import { resolvePublicImageFallbackSource, resolvePublicImageSource } from "../../../shared/media/publicImageSources";
 import { usePublicMediaLoading } from "../../../shared/media/publicMediaLoadingState";
 import { DirectorHeroCard } from "./DirectorHeroCard";
 import {
