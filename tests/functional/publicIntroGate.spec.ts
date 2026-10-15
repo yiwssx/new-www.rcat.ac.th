@@ -16,7 +16,7 @@ const viewports = [
   { width: 844, height: 390 }
 ] as const;
 
-function createIntroSnapshot() {
+function createIntroSnapshot(mourningModeEnabled = false) {
   const base = createPublicHomeSnapshot();
 
   return {
@@ -24,6 +24,7 @@ function createIntroSnapshot() {
     siteSettings: {
       ...base.siteSettings,
       messengerEnabled: true,
+      mourningModeEnabled,
       messengerUrl: "https://m.me/rcat",
       messengerLabel
     },
@@ -43,7 +44,7 @@ function createIntroSnapshot() {
   };
 }
 
-async function installIntroFixture(page: Page) {
+async function installIntroFixture(page: Page, mourningModeEnabled = false) {
   await page.addInitScript(() => {
     const initializationKey = "__intro_gate_fixture_initialized__";
 
@@ -66,12 +67,12 @@ async function installIntroFixture(page: Page) {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify(createIntroSnapshot())
+      body: JSON.stringify(createIntroSnapshot(mourningModeEnabled))
     });
   });
 
   await page.route("**/api/public/shell", async (route) => {
-    const snapshot = createIntroSnapshot();
+    const snapshot = createIntroSnapshot(mourningModeEnabled);
 
     await route.fulfill({
       status: 200,
@@ -90,7 +91,7 @@ async function installIntroFixture(page: Page) {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify(createIntroSnapshot().visitorStats)
+      body: JSON.stringify(createIntroSnapshot(mourningModeEnabled).visitorStats)
     });
   });
 
@@ -246,3 +247,44 @@ for (const viewport of viewports) {
     await expect(messenger).toBeVisible();
   });
 }
+
+
+test("mobile Messenger stays viewport-anchored outside a filtered mourning shell", async ({ page }) => {
+  await page.setViewportSize({ width: 412, height: 915 });
+  await installIntroFixture(page, true);
+  await page.goto("/");
+
+  const dialog = page.getByRole("dialog", { name: "หน้าแนะนำก่อนเข้าสู่เว็บไซต์" });
+  await expect(dialog).toBeVisible();
+  await page.getByRole("button", { name: "เข้าสู่เว็บไซต์" }).click();
+  await expect(dialog).toHaveCount(0);
+
+  const messenger = page.locator('[data-public-floating-messenger="true"]');
+  await expect(messenger).toBeVisible();
+
+  const placement = await page.evaluate(() => {
+    const shell = document.querySelector<HTMLElement>(".rcat-page.rcat-mourning-mode");
+    const control = document.querySelector<HTMLElement>('[data-public-floating-messenger="true"]');
+    if (!shell || !control) throw new Error("Mourning shell or Messenger control not rendered");
+
+    // Reproduce the 24px wider filtered containing block observed in production.
+    shell.style.width = "calc(100% + 24px)";
+
+    return {
+      viewportWidth: document.documentElement.clientWidth,
+      right: control.getBoundingClientRect().right,
+      left: control.getBoundingClientRect().left,
+      position: getComputedStyle(control).position,
+      shellFilter: getComputedStyle(shell).filter,
+      controlFilter: getComputedStyle(control).filter,
+      nestedUnderFilteredShell: shell.contains(control)
+    };
+  });
+
+  expect(placement.shellFilter).not.toBe("none");
+  expect(placement.controlFilter).not.toBe("none");
+  expect(placement.position).toBe("fixed");
+  expect(placement.nestedUnderFilteredShell).toBe(false);
+  expect(placement.left).toBeGreaterThanOrEqual(0);
+  expect(placement.right).toBeLessThanOrEqual(placement.viewportWidth - 8);
+});
