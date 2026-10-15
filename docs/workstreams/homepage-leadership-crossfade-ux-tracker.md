@@ -3,16 +3,16 @@
 **Issue:** [#622](https://github.com/yiwssx/new-www.rcat.ac.th/issues/622)
 **Branch:** `feature/leadership-crossfade-polish-550ms`
 **Base main:** `5059139c1c20d5976787ee1058fbbb26e22cb5a8`
-**Status:** ACTIVE — IMPLEMENTATION IN PROGRESS (2026-10-15, Asia/Bangkok)
+**Status:** ACTIVE — CODE + TESTS COMMITTED; PR QUALITY PENDING (2026-10-15, Asia/Bangkok)
 
 ## Scope and acceptance
 
 Approved: 550 ms Crossfade + Gentle Rise (6 px), unchanged six-second default leadership cadence, no added dependencies. Keep portrait, name, position, description as one consistent incoming/outgoing card. Warm next portrait before transitions, preserve current card while waiting for images, reduce flashing and reflow.
 
-- [ ] T1 Layered crossfade and rise, cleanup on transition change/unmount, no remount flicker.
-- [ ] T2 Warm images ahead, bound image failure/stalls; respect media gate and preserve fallback image behavior.
-- [ ] T3 Preserve 6-second looping, manual arrows/keyboard, pause on hover/focus/hidden, reduced motion, director-only static view and responsive footprint.
-- [ ] T4 Tests for overlap/550ms completion, loading delay, images failing, manual rapid clicks and reduced motion.
+- [x] T1 Layered crossfade and rise, cleanup on transition change/unmount, no remount flicker.
+- [x] T2 Warm images ahead, bound image failure/stalls; respect media gate and preserve fallback image behavior.
+- [x] T3 Preserve 6-second looping, manual arrows/keyboard, pause on hover/focus/hidden, reduced motion, director-only static view and responsive footprint.
+- [x] T4 Tests for overlap/550ms completion, loading delay, images failing, manual rapid clicks and reduced motion.
 - [ ] T5 Exact-head CI quality, documentation, governed merge; operator field QA is separate from CI and not assumed.
 
 ## Implementation plan
@@ -23,6 +23,7 @@ Modify `src/public/components/home/HomepageLeadershipRotation.tsx` for a bounded
 
 - Baseline inspected: `HomepageLeadershipRotation.tsx` directly replaces a single `DirectorHeroCard` at each interval without a visual transition or preloading. `PublicResponsiveImage` uses lazy loading by default for portraits.
 - [x] Issue #622 created; dedicated branch created from reviewed `main`.
-- [ ] Code/tests committed.
+- [x] Code/tests committed: rotation, narrow card image-load override, focused tests.
+- [ ] Exact-head CI needs to validate these changes; implementation is not accepted until checks are green.
 - [ ] PR opened and CI passed.
 - [ ] Merge verified.
