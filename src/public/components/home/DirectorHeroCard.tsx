@@ -5,10 +5,17 @@ import { alpha } from "@mui/material/styles";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import EmptyState from "../../../shared/components/EmptyState";
 import PublicResponsiveImage from "../../../shared/media/PublicResponsiveImage";
+import type { PublicImageLoadMode } from "../../../shared/media/PublicResponsiveImage";
 import { SiteSettings } from "../../../types";
 import { resolvePublicImageSource } from "../../../shared/media/publicImageSources";
 
-export function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings }) {
+export function DirectorHeroCard({
+  siteSettings,
+  imageLoadMode = "near-viewport"
+}: {
+  siteSettings: SiteSettings;
+  imageLoadMode?: PublicImageLoadMode;
+}) {
   const directorImageUrl = resolvePublicImageSource(siteSettings.directorImageUrl, "portrait").src;
   const hasDirectorInfo = Boolean(
     siteSettings.directorName ||
@@ -70,7 +77,7 @@ export function DirectorHeroCard({ siteSettings }: { siteSettings: SiteSettings 
                 intent="portrait"
                 sizes="(max-width: 600px) 160px, (max-width: 900px) 176px, 192px"
                 alt={directorImageAlt}
-                loadMode="near-viewport"
+                loadMode={imageLoadMode}
                 nearViewportMargin="160px 0px"
                 aspectRatio="3 / 4"
                 fill
