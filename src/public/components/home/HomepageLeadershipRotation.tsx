@@ -183,16 +183,14 @@ export function HomepageLeadershipRotation({ siteSettings }: { siteSettings: Sit
   useEffect(() => {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
     const preference = window.matchMedia(REDUCED_MOTION_QUERY);
-    const update = () => setReducedMotion(preference.matches);
+    const update = () => {
+      setReducedMotion(preference.matches);
+      if (preference.matches) completeTransition();
+    };
     update();
     preference.addEventListener?.("change", update);
     return () => preference.removeEventListener?.("change", update);
-  }, []);
-
-  useEffect(() => {
-    if (!reducedMotion) return;
-    completeTransition();
-  }, [completeTransition, reducedMotion]);
+  }, [completeTransition]);
 
   useEffect(() => {
     if (!canRotate) return;
