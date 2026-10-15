@@ -248,7 +248,6 @@ for (const viewport of viewports) {
   });
 }
 
-
 test("mobile Messenger stays viewport-anchored outside a filtered mourning shell", async ({ page }) => {
   await page.setViewportSize({ width: 412, height: 915 });
   await installIntroFixture(page, true);
