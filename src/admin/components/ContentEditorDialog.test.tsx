@@ -273,6 +273,7 @@ describe("ContentEditorDialog", () => {
     });
 
     expect(screen.getByRole("textbox", { name: "ลิงก์หมวดหมู่" })).toHaveValue(categorySlugPreview);
+    expect(screen.queryByRole("textbox", { name: "slug หมวดหมู่" })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "ดำเนินการต่อ" }));
 
