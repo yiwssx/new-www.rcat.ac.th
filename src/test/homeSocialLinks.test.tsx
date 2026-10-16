@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import HomeSocialLinksCard from "../public/components/home/HomeSocialLinksCard";
-import { buildFacebookPagePluginUrl } from "../public/utils/facebookPagePlugin";
+import { FACEBOOK_PAGE_HEADER_HEIGHT, buildFacebookPagePluginUrl } from "../public/utils/facebookPagePlugin";
 import {
   DEFAULT_SOCIAL_WIDGET,
   normalizeHomepageSocialWidget,
@@ -57,13 +57,16 @@ describe("homepage social widget model", () => {
     expect(socialFacebookPageUrl("https://www.facebook.com/")).toBe("");
     expect(socialHttpsUrl("javascript:alert(1)")).toBe("");
     expect(socialHttpsUrl("https://user:password@example.org/")).toBe("");
-    const plugin = new URL(buildFacebookPagePluginUrl("https://www.facebook.com/rcat", 610, 520));
+    const plugin = new URL(buildFacebookPagePluginUrl("https://www.facebook.com/rcat", 610));
     expect(plugin.hostname).toBe("www.facebook.com");
     expect(plugin.pathname).toBe("/plugins/page.php");
     expect(plugin.searchParams.get("width")).toBe("500");
-    expect(plugin.searchParams.get("height")).toBe("520");
-    expect(plugin.searchParams.get("tabs")).toBe("timeline");
-    expect(buildFacebookPagePluginUrl("https://evil.example/", 320, 520)).toBe("");
+    expect(plugin.searchParams.get("height")).toBe(String(FACEBOOK_PAGE_HEADER_HEIGHT));
+    expect(plugin.searchParams.get("tabs")).toBe("");
+    expect(plugin.searchParams.get("small_header")).toBe("false");
+    expect(plugin.searchParams.get("hide_cover")).toBe("false");
+    expect(plugin.searchParams.get("hide_cta")).toBe("false");
+    expect(buildFacebookPagePluginUrl("https://evil.example/", 320)).toBe("");
   });
 
   it("renders one page plugin and links with distinct groups and custom logos", () => {
@@ -74,9 +77,7 @@ describe("homepage social widget model", () => {
     const { container } = render(<HomeSocialLinksCard pageUrl="https://www.facebook.com/rcat" settings={settings} />);
     measurement.mockRestore();
     expect(container.querySelectorAll('[data-public-deferred-embed="true"]')).toHaveLength(1);
-    expect(
-      container.querySelector('[data-public-deferred-embed="true"]')?.getAttribute("data-public-embed-load-mode")
-    ).toBe("near-viewport");
+    expect(container.querySelector('[data-public-deferred-embed="true"]')?.getAttribute("data-public-embed-load-mode")).toBe("near-viewport");
     expect(screen.getByText("Facebook แผนกวิชา")).toBeTruthy();
     expect(screen.getByText("Facebook งานและหน่วยงาน")).toBeTruthy();
     expect(screen.queryByText("ปิดการแสดงผล")).toBeNull();
