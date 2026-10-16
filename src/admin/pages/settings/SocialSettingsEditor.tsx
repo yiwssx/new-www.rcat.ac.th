@@ -125,7 +125,7 @@ export default function SocialSettingsEditor({ value, disabled, canUploadMedia, 
             <Typography variant="h3">Facebook Page วิทยาลัย</Typography>
             <Alert severity="info">
               แสดงเฉพาะส่วนหัวของเพจ Facebook โดยไม่มีโพสต์หรือไทม์ไลน์
-              พร้อมลิงก์เปิดเพจอย่างเป็นทางการ URL เพจแก้ไขได้ในช่อง Facebook URL ด้านบน
+              พร้อมลิงก์เปิดเพจอย่างเป็นทางการ สามารถแก้ไข URL เพจได้จากช่อง Facebook URL ในหน้าตั้งค่านี้
             </Alert>
             <FormControlLabel
               control={
