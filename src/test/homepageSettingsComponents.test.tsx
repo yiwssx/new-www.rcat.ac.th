@@ -646,8 +646,8 @@ describe("homepage settings public sections", () => {
       />
     );
 
-    expect(screen.getByRole("region", { name: "ผู้เข้าชมเว็บไซต์" })).toBeInTheDocument();
-    expect(screen.getByText("ผู้เข้าชมเว็บไซต์")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "ภาพรวมผู้เข้าชม" })).toBeInTheDocument();
+    expect(screen.getByText("ภาพรวมผู้เข้าชม")).toBeInTheDocument();
     expect(screen.getByText("สถิติผู้เข้าชมเว็บไซต์")).toBeInTheDocument();
     expect(screen.getByText(/^อัปเดต/)).toBeInTheDocument();
 
