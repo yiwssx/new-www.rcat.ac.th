@@ -135,7 +135,7 @@ describe("PublicContentDetailPage public UX regressions", () => {
     expect(screen.queryByText("ปรับปรุงล่าสุด")).not.toBeInTheDocument();
 
     expect(within(article).getByText("ข่าว")).toBeInTheDocument();
-    expect(within(article).getByText("เผยแพร่แล้ว")).toBeInTheDocument();
+    expect(within(article).queryByText("เผยแพร่แล้ว")).not.toBeInTheDocument();
     expect(within(article).getByText("14 พฤษภาคม 2569")).toBeInTheDocument();
     expect(within(article).getByText("ผู้เผยแพร่: งานประชาสัมพันธ์")).toBeInTheDocument();
     expect(within(article).getByText("ผู้เข้าดู 42 ครั้ง")).toBeInTheDocument();
@@ -210,7 +210,7 @@ describe("PublicContentDetailPage public UX regressions", () => {
 
     // Verify article metadata renders correctly
     expect(within(article).getByText("ประกาศ")).toBeInTheDocument();
-    expect(within(article).getByText("เผยแพร่แล้ว")).toBeInTheDocument();
+    expect(within(article).queryByText("เผยแพร่แล้ว")).not.toBeInTheDocument();
     expect(within(article).getByText("14 พฤษภาคม 2569")).toBeInTheDocument();
     expect(within(article).getByText("ผู้เผยแพร่: งานประชาสัมพันธ์")).toBeInTheDocument();
     expect(within(article).getByText("ผู้เข้าดู 42 ครั้ง")).toBeInTheDocument();
