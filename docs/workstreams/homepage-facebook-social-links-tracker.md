@@ -120,7 +120,7 @@ The optional SiteSettings contract is implemented in PR #633, with the exact sha
 
 - **Operator decision:** both icon library and custom uploaded logos are required; completed P0 scope confirmation.
 - **PR:** [#633](https://github.com/yiwssx/new-www.rcat.ac.th/pull/633) (draft). Code provided: `src/features/cms-settings/socialWidget.ts`, `src/admin/pages/settings/SocialSettingsEditor.tsx`, `src/public/components/home/HomeSocialLinksCard.tsx`, `src/shared/components/SocialLinkIcon.tsx`, existing Settings site normalization/navigation, Worker URL validation/public contract, and tests.
-- **No new package:** existing React, MUI, and Media Bridge reused.
+- **No new package:** existing React, MUI, and Media Bridge are reused.
 - **Initial CI run** [#38841831203](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38841831203): Dependency Preflight, Dependencies, Integration, and Worker reported success. Static Quality initially failed Prettier (8 changed files), and Build/Governance initially failed due missing MUI icon import names and invalid MUI v9 props. **Initial CI is not green.** The import/props defects were corrected in subsequent commits; exact-head CI remains required.
 - **P1–P3 status:** implementation proposed on PR #633, _not accepted/checked off_. Do not misrepresent draft code as production-verified.
 - **Outstanding:** actual upload persistence, saved page URL, 360/390/430px and desktop screenshots, public Meta Page plugin appearance, accessibility, and real Worker/frontend deployment are not yet attested. Work continues until CI green before requesting operator production UAT.
