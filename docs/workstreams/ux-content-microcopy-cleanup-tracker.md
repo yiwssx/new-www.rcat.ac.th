@@ -91,14 +91,14 @@ Simplify technical and internal-facing text across RCAT public pages and routine
 
 ## 2026-10-16 source quality and field acceptance matrix
 
-| Surface / role | Source changes | Automated verification | Remaining field UAT |
-| --- | --- | --- | --- |
-| Public / homepage, 360–430px and desktop | Thai visitor metrics, section eyebrow, service links and social-widget placement | Unit + responsive Functional E2E PASS on #639 | Mobile layout, authentic visitor figures, social links and link navigation |
-| Public / news, blog, jobs and procurement | Remove CMS captions, redundant published badges and generic CMS-author names | Unit + integration + build PASS on #639 | Real CMS articles, legitimate publisher bylines, dates and empty states |
-| Public / departments and contact | Plain-language summaries and empty map guidance | Build + Unit PASS on #639 | Live navigation, department data and Google Maps fallback |
-| Admin / editorial, media, documents, menus | Plain-language forms, tasks, workflow and category permalink | Unit + Functional E2E PASS on #640 | Authenticated operator flows with no real writes, accessible names and dialog behavior |
-| Admin / settings, integrations, system health | Human-centered labels and troubleshooting while retaining expert links | Unit + governance + CodeQL PASS on #640 | Authorized Admin roles, errors, narrow viewport and diagnostics visibility |
-| Admin / portable backup/recovery | Clear merge-versus-replace and authentication warnings | Unit + static/security analysis PASS on #640 | Read-only operator walkthrough; **do not execute restore** |
-| Release / exact-head approval | No protected operations or data changes | CI and CodeQL passed on recorded exact heads | Production/preview browser evidence, owner acceptance and post-merge verification pending |
+| Surface / role                                | Source changes                                                                   | Automated verification                        | Remaining field UAT                                                                       |
+| --------------------------------------------- | -------------------------------------------------------------------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Public / homepage, 360–430px and desktop      | Thai visitor metrics, section eyebrow, service links and social-widget placement | Unit + responsive Functional E2E PASS on #639 | Mobile layout, authentic visitor figures, social links and link navigation                |
+| Public / news, blog, jobs and procurement     | Remove CMS captions, redundant published badges and generic CMS-author names     | Unit + integration + build PASS on #639       | Real CMS articles, legitimate publisher bylines, dates and empty states                   |
+| Public / departments and contact              | Plain-language summaries and empty map guidance                                  | Build + Unit PASS on #639                     | Live navigation, department data and Google Maps fallback                                 |
+| Admin / editorial, media, documents, menus    | Plain-language forms, tasks, workflow and category permalink                     | Unit + Functional E2E PASS on #640            | Authenticated operator flows with no real writes, accessible names and dialog behavior    |
+| Admin / settings, integrations, system health | Human-centered labels and troubleshooting while retaining expert links           | Unit + governance + CodeQL PASS on #640       | Authorized Admin roles, errors, narrow viewport and diagnostics visibility                |
+| Admin / portable backup/recovery              | Clear merge-versus-replace and authentication warnings                           | Unit + static/security analysis PASS on #640  | Read-only operator walkthrough; **do not execute restore**                                |
+| Release / exact-head approval                 | No protected operations or data changes                                          | CI and CodeQL passed on recorded exact heads  | Production/preview browser evidence, owner acceptance and post-merge verification pending |
 
 **Note:** This is a scoped source/evidence matrix, not a claim that all runtime or role/viewport combinations were tested in production. Original/new copy pairs are visible in each PR's Files Changed diff; the named paths and intended reasons are documented above. The operator may request wording changes before merge.
