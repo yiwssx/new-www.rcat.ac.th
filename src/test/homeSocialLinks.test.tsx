@@ -1,6 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import HomeSocialLinksCard, { buildFacebookPagePluginUrl } from "../public/components/home/HomeSocialLinksCard";
+import HomeSocialLinksCard from "../public/components/home/HomeSocialLinksCard";
+import { buildFacebookPagePluginUrl } from "../public/utils/facebookPagePlugin";
 import {
   DEFAULT_SOCIAL_WIDGET,
   normalizeHomepageSocialWidget,
