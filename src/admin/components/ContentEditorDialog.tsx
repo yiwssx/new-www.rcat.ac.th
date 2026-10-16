@@ -879,7 +879,7 @@ export default function ContentEditorDialog({
                     color: "text.secondary"
                   }}
                 >
-                  slug หมวดหมู่: {categoryToSlugList(pendingDraft.category).join(", ")}
+                  ลิงก์หมวดหมู่: {categoryToSlugList(pendingDraft.category).join(", ")}
                 </Typography>
               )}
               {!!normalizeTags(pendingDraft.tags).length && (
@@ -923,7 +923,7 @@ export default function ContentEditorDialog({
                   fullWidth
                 />
                 <TextField
-                  label="slug ลิงก์ถาวร"
+                  label="ลิงก์ถาวรของเนื้อหา"
                   value={draft.slug}
                   onChange={(event) => handleSlugChange(event.target.value)}
                   helperText="ใช้คำคั่นด้วยขีดกลาง เช่น student-life-updates หรือข้อความภาษาไทย"
@@ -1090,7 +1090,7 @@ export default function ContentEditorDialog({
                   fullWidth
                 />
                 <TextField
-                  label="slug หมวดหมู่"
+                  label="ลิงก์หมวดหมู่"
                   value={categorySlugs.join(", ")}
                   helperText="สร้างอัตโนมัติจากชื่อหมวดหมู่"
                   size="small"
@@ -1197,14 +1197,14 @@ export default function ContentEditorDialog({
                   SEO
                 </Typography>
                 <TextField
-                  label="ชื่อ SEO"
+                  label="ชื่อเรื่องสำหรับผลการค้นหา"
                   value={draft.seoTitle ?? ""}
                   onChange={(event) => updateDraft("seoTitle", event.target.value)}
                   size="small"
                   fullWidth
                 />
                 <TextField
-                  label="คำอธิบาย SEO"
+                  label="คำอธิบายสำหรับผลการค้นหา"
                   value={draft.seoDescription ?? ""}
                   onChange={(event) => updateDraft("seoDescription", event.target.value)}
                   size="small"
