@@ -60,9 +60,9 @@ interface HomepageSocialLink {
   category: "department" | "unit";
   label: string;
   href: string;
-  icon: string; // stable allowlisted ID; image upload is pending confirmation
+  iconKey: string; // stable allowlisted key or custom
+  iconUrl: string; // validated public image URL for custom logo
   enabled: boolean;
-  sortOrder: number;
 }
 interface HomepageSocialSettings {
   enabled: boolean;
@@ -77,7 +77,7 @@ interface SiteSettings {
 }
 ```
 
-Contract is a **proposal, not committed runtime code**. Default is disabled/empty so existing production data remains unchanged, and malformed items fail closed. Bind `facebookUrl` to one canonical editor owner (the new Social page) or document a deliberate read-only link in General. If the field changes category, preserve old values and all public uses. Validate nested types, count/text limits, valid `https` links and supported icon keys on both client and Worker. Persist through existing site settings JSON using scoped PATCH. Verify public metadata projection includes the new field.
+The optional SiteSettings contract is implemented in PR #633, with the exact shape in `src/features/cms-settings/socialWidget.ts`. Default is disabled/empty so existing production data remains unchanged, and malformed items fail closed. Bind `facebookUrl` to one canonical editor owner (the new Social page) or document a deliberate read-only link in General. If the field changes category, preserve old values and all public uses. Validate nested types, count/text limits, valid `https` links and supported icon keys on both client and Worker. Persist through existing site settings JSON using scoped PATCH. Verify public metadata projection includes the new field.
 
 ## 4. Responsive / embed and safety contract
 
@@ -92,7 +92,7 @@ Contract is a **proposal, not committed runtime code**. Default is disabled/empt
 
 | Phase | Deliverable                                                                                            | Acceptance / evidence                                                                                                                         | Status |
 | ----- | ------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| P0    | Scope, reference review, inspect SiteSettings / Worker, confirm icon interpretation and real Page link | Owner confirms outstanding icon choice; record design decision                                                                                | [ ]    |
+| P0    | Scope, reference review, SiteSettings / Worker and icon interpretation                      | Both icon options confirmed 2026-10-16; Page URL is configured later in CMS                                                                                | [x]    |
 | P1    | New Settings category, route, editor, picker, preview, partial save                                    | Add/edit/reorder/delete, enable/disable, reload, permissions, conflict safety                                                                 | [ ]    |
 | P2    | Optional settings contract, normalization, Worker validation and public projection                     | Backward compatibility, API read/write tests, safe defaults, no implicit production data migration                                            | [ ]    |
 | P3    | Responsive Page plugin and linked social directory                                                     | Desktop below visitor stats; mobile last before footer; proper URL/embed/error/no-data states                                                 | [ ]    |
