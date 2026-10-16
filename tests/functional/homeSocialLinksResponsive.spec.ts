@@ -89,22 +89,36 @@ for (const width of [390, 1280]) {
     await expect(widget.getByText("งานประชาสัมพันธ์ตัวอย่าง")).toBeVisible();
     await expect(widget.locator('[data-public-deferred-embed="true"]')).toHaveCount(1);
 
-    const visitorBox = await visitors.boundingBox();
-    const widgetBox = await widget.boundingBox();
-    const footerBox = await footer.boundingBox();
-    expect(visitorBox).not.toBeNull();
-    expect(widgetBox).not.toBeNull();
-    expect(footerBox).not.toBeNull();
-    expect(widgetBox!.y).toBeGreaterThan(visitorBox!.y + visitorBox!.height - 3);
-    expect(footerBox!.y).toBeGreaterThan(widgetBox!.y + widgetBox!.height - 3);
-
-    const horizontalOverflow = await page.evaluate(
-      () => document.documentElement.scrollWidth - document.documentElement.clientWidth
-    );
-    expect(horizontalOverflow).toBeLessThanOrEqual(1);
+    // Read all geometry in a single browser evaluation. Reading separate boundingBox()
+    // calls across asynchronous layout/scroll updates can mix different viewport frames.
+    const readLayout = () =>
+      page.evaluate(() => {
+        const visitorsElement = document.querySelector('[aria-label="Website Visitors"]');
+        const widgetElement = document.querySelector('[data-home-social-widget="true"]');
+        const footerElement = document.querySelector('[data-cls-region="dark-footer"]');
+        if (!visitorsElement || !widgetElement || !footerElement) return null;
+        const visitorBox = visitorsElement.getBoundingClientRect();
+        const widgetBox = widgetElement.getBoundingClientRect();
+        const footerBox = footerElement.getBoundingClientRect();
+        return {
+          belowVisitors: widgetBox.top >= visitorBox.bottom - 3,
+          beforeFooter: footerBox.top >= widgetBox.bottom - 3,
+          widgetWidth: widgetBox.width,
+          horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
+        };
+      });
+    await expect
+      .poll(async () => {
+        const layout = await readLayout();
+        return layout ? { belowVisitors: layout.belowVisitors, beforeFooter: layout.beforeFooter } : null;
+      })
+      .toEqual({ belowVisitors: true, beforeFooter: true });
+    const layout = await readLayout();
+    expect(layout).not.toBeNull();
+    expect(layout!.horizontalOverflow).toBeLessThanOrEqual(1);
     if (width === 390) {
-      expect(widgetBox!.width).toBeGreaterThan(280);
-      expect(widgetBox!.width).toBeLessThanOrEqual(390);
+      expect(layout!.widgetWidth).toBeGreaterThan(280);
+      expect(layout!.widgetWidth).toBeLessThanOrEqual(390);
     }
   });
 }
