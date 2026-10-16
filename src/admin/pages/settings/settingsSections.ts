@@ -55,7 +55,7 @@ export function isSiteSettingsCategory(category: SettingsCategory): category is 
 
 export const settingsNavigation: ReadonlyArray<{ id: SettingsCategory; label: string; description: string }> = [
   { id: "general", label: "ข้อมูลเว็บไซต์", description: "ข้อมูลสถานศึกษา ช่องทางติดต่อ และภาพหน้าแรก" },
-  { id: "homepage", label: "หน้าแรก", description: "Intro Gate ประกาศวิ่ง และวิดีโอ" },
+  { id: "homepage", label: "หน้าแรก", description: "หน้าต้อนรับ ประกาศวิ่ง และวิดีโอ" },
   { id: "leadership", label: "ผู้บริหารสถานศึกษา", description: "ภาพและข้อมูลผู้บริหารที่แสดงบนหน้าแรก" },
   { id: "footer", label: "ส่วนท้ายเว็บไซต์", description: "ลิงก์ส่วนท้ายและ Messenger" },
   { id: "appearance", label: "การแสดงผล", description: "วันที่ เวลา ริบบิ้น และโหมดไว้อาลัย" },
