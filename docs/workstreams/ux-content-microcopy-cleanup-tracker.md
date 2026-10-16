@@ -12,9 +12,10 @@
 
 ## Final closure record — 2026-10-16 (authoritative; supersedes pending checkpoints)
 
-**Decision:** Owner explicitly accepted the implemented Public/Admin microcopy iteration for closure and will consider further refinements as new work. This is approval to close the *current scoped delivery*, not an assertion that the owner manually completed mobile or authenticated-Admin UAT.
+**Decision:** Owner explicitly accepted the implemented Public/Admin microcopy iteration for closure and will consider further refinements as new work. This is approval to close the _current scoped delivery_, not an assertion that the owner manually completed mobile or authenticated-Admin UAT.
 
 **Merged code and evidence:**
+
 - Admin [PR #640](https://github.com/yiwssx/new-www.rcat.ac.th/pull/640) **MERGED** into `main@80f1c8cef59c18159d26b8e099687419164882f4`. PR CI [#38886724906](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38886724906) SUCCESS, main push CI [#38887527735](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38887527735) SUCCESS, Production Verification [#38888017906](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38888017906) SUCCESS.
 - Public [PR #639](https://github.com/yiwssx/new-www.rcat.ac.th/pull/639) **MERGED** into `main@3549bab7caafb98c26871753ac45bbbabdf74151`. PR CI [#38888687535](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38888687535) SUCCESS, Prettier SUCCESS. Latest main push CI [#38889251433](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38889251433) SUCCESS (10/10 required jobs), [Production Verification #38889769389](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38889769389) SUCCESS, **Read-only Browser Field QA job SUCCESS**.
 - Vercel exact-SHA Production deployment `dpl_2SE9TvcjnAmq67w44D5a1S59g6Zi` for `3549bab7` is **READY**. This is separate from the two canceled branch Preview attempts (ignored-build policy).
