@@ -43,7 +43,7 @@ export function VisitorStatsCard({ stats }: { stats?: VisitorStatsSettings }) {
   return (
     <Card
       component="section"
-      aria-label="ผู้เข้าชมเว็บไซต์"
+      aria-label="ภาพรวมผู้เข้าชม"
       sx={{
         borderTop: "5px solid",
         borderColor: "secondary.main",
@@ -97,7 +97,7 @@ export function VisitorStatsCard({ stats }: { stats?: VisitorStatsSettings }) {
                     lineHeight: 1.2
                   }}
                 >
-                  ผู้เข้าชมเว็บไซต์
+                  ภาพรวมผู้เข้าชม
                 </Typography>
                 <Typography
                   variant="body2"
@@ -109,7 +109,7 @@ export function VisitorStatsCard({ stats }: { stats?: VisitorStatsSettings }) {
                     wordBreak: "normal"
                   }}
                 >
-                  สถิติผู้เข้าชมเว็บไซต์
+                  สถิติภาพรวมผู้เข้าชม
                 </Typography>
               </Box>
             </Stack>
