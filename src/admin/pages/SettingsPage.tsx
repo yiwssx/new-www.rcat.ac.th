@@ -276,10 +276,10 @@ const siteSettingFields: Array<{
   { key: "facebookUrl", label: "Facebook URL", helperText: "ใช้ลิงก์ https:// หรือเว้นว่าง" },
   { key: "youtubeUrl", label: "YouTube URL", helperText: "ใช้ลิงก์ https:// หรือเว้นว่าง" },
   { key: "tiktokUrl", label: "TikTok URL", helperText: "ใช้ลิงก์ https:// หรือเว้นว่าง" },
-  { key: "heroTitle", label: "หัวข้อ Hero" },
-  { key: "heroDescription", label: "คำอธิบาย Hero", multiline: true },
-  { key: "heroChip", label: "ป้าย Hero" },
-  { key: "heroImageUrl", label: "Hero image URL", helperText: "ใช้ลิงก์รูปภาพ https:// หรือเว้นว่าง" },
+  { key: "heroTitle", label: "หัวข้อส่วนต้อนรับหน้าแรก" },
+  { key: "heroDescription", label: "ข้อความแนะนำบนหน้าแรก", multiline: true },
+  { key: "heroChip", label: "ป้ายข้อความหน้าแรก" },
+  { key: "heroImageUrl", label: "ลิงก์รูปภาพหน้าแรก", helperText: "ใช้ลิงก์รูปภาพ https:// หรือเว้นว่าง" },
   { key: "directorName", label: "ชื่อผู้บริหาร" },
   { key: "directorTitle", label: "ตำแหน่งผู้บริหาร" },
   { key: "directorDescription", label: "คำอธิบายผู้บริหาร", multiline: true },
@@ -1388,7 +1388,7 @@ export default function SettingsPage({ section }: { section: SettingsCategory })
                       mb: 2
                     }}
                   >
-                    ควบคุมส่วน Intro Gate, ประกาศวิ่ง และวิดีโอแนะนำสถานศึกษาที่แสดงในหน้าเว็บไซต์สาธารณะ
+                    จัดการหน้าต้อนรับก่อนเข้าสู่เว็บไซต์ ประกาศวิ่ง และวิดีโอแนะนำสถานศึกษา
                   </Typography>
 
                   {homepageSettingsQuery.isError && (
@@ -1408,7 +1408,7 @@ export default function SettingsPage({ section }: { section: SettingsCategory })
                         }}
                       >
                         <LoginOutlinedIcon color="primary" />
-                        <Typography variant="h4">Intro Gate</Typography>
+                        <Typography variant="h4">หน้าต้อนรับก่อนเข้าสู่เว็บไซต์</Typography>
                       </Stack>
                       <Grid container spacing={1.5}>
                         <Grid size={{ xs: 12 }}>
@@ -1419,24 +1419,21 @@ export default function SettingsPage({ section }: { section: SettingsCategory })
                                 onChange={(event) => handleHomepageIntroGateChange("enabled", event.target.checked)}
                               />
                             }
-                            label="เปิดใช้งาน Intro Gate"
+                            label="เปิดใช้งานหน้าต้อนรับ"
                           />
                         </Grid>
                         <Grid size={{ xs: 12, md: 6 }}>
                           <TextField
-                            label="รูปภาพ Intro Gate URL"
+                            label="ลิงก์รูปภาพหน้าต้อนรับ"
                             value={homepageSettings.introGate.imageUrl}
                             onChange={(event) => handleHomepageIntroGateChange("imageUrl", event.target.value)}
                             helperText={
                               <Stack component="span" spacing={0.35}>
                                 <Box component="span">
-                                  แนะนำให้อัปโหลดรูปไปยังสื่อของเว็บไซต์, ใช้ path คงที่เช่น
-                                  /intro/intro-gate-2026.webp, ใช้ Google Drive share link ที่ตั้งค่า Anyone with the
-                                  link, หรือใช้ CDN/storage ที่เป็นของเรา
+                                  ควรใช้ภาพจากคลังสื่อเว็บไซต์ หรือ Google Drive ที่อนุญาตให้ผู้มีลิงก์ดูไฟล์ได้
                                 </Box>
                                 <Box component="span" sx={{ color: "warning.main", fontWeight: 800 }}>
-                                  ห้ามใช้ลิงก์ Facebook CDN โดยตรง เช่น scontent...fbcdn.net เพราะเป็นลิงก์ชั่วคราว
-                                  และอาจไม่แสดงบนมือถือ
+                                  ไม่ควรใช้ลิงก์ภาพที่คัดลอกจาก Facebook โดยตรง เพราะอาจหมดอายุและไม่แสดงบนมือถือ
                                 </Box>
                               </Stack>
                             }
@@ -1446,7 +1443,7 @@ export default function SettingsPage({ section }: { section: SettingsCategory })
                         </Grid>
                         <Grid size={{ xs: 12, md: 6 }}>
                           <TextField
-                            label="คำอธิบายรูปภาพ alt"
+                            label="คำอธิบายรูปภาพสำหรับโปรแกรมอ่านหน้าจอ"
                             value={homepageSettings.introGate.imageAlt}
                             onChange={(event) => handleHomepageIntroGateChange("imageAlt", event.target.value)}
                             size="small"
@@ -1489,10 +1486,10 @@ export default function SettingsPage({ section }: { section: SettingsCategory })
                         </Grid>
                         <Grid size={{ xs: 12, md: 6 }}>
                           <TextField
-                            label="sessionStorage key"
+                            label="รหัสรุ่นหน้าต้อนรับ"
                             value={homepageSettings.introGate.storageKey}
                             onChange={(event) => handleHomepageIntroGateChange("storageKey", event.target.value)}
-                            helperText="เปลี่ยน key เมื่อต้องการให้ผู้ใช้เห็น Intro Gate ใหม่อีกครั้ง"
+                            helperText="เปลี่ยนรหัสรุ่นเมื่อต้องการให้หน้าต้อนรับแสดงอีกครั้งบนอุปกรณ์ที่เคยเข้าชมแล้ว"
                             size="small"
                             fullWidth
                           />

@@ -86,8 +86,8 @@ export default function PortableBackupRecoveryPanel() {
   async function recover() {
     if (!payload) return;
     const confirmation = await appSwal.fire({
-      title: "ยืนยันการกู้คืนแบบ Merge?",
-      html: `ไฟล์ <b>${fileName}</b><br/>ระบบจะ upsert ข้อมูล CMS ที่อยู่ในไฟล์โดยไม่ล้างฐานข้อมูล และจะไม่แตะตารางบัญชี รหัสผ่าน MFA หรือ Session`,
+      title: "ยืนยันการนำข้อมูลจากไฟล์สำรองกลับเข้าระบบ?",
+      html: `ไฟล์ <b>${fileName}</b><br/>ระบบจะเพิ่มรายการที่ยังไม่มีและปรับปรุงข้อมูลเดิมจากไฟล์ โดยไม่ล้างข้อมูลทั้งหมดหรือแก้ไขข้อมูลบัญชี รหัสผ่าน และการเข้าสู่ระบบ`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "ยืนยันการกู้คืน",
@@ -103,7 +103,7 @@ export default function PortableBackupRecoveryPanel() {
       await appSwal.fire({
         icon: "success",
         title: "กู้คืนข้อมูลสำเร็จ",
-        text: `ประมวลผล ${result.restoredRows} แถว · schema v${result.schemaVersion}`,
+        text: `เพิ่มหรือปรับปรุงข้อมูล ${result.restoredRows} รายการสำเร็จ`,
         confirmButtonText: "ตกลง"
       });
     } catch (currentError) {
@@ -118,16 +118,16 @@ export default function PortableBackupRecoveryPanel() {
           <Box>
             <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
               <RestorePageOutlinedIcon color="warning" />
-              <Typography variant="h3">กู้คืนข้อมูลแบบ Portable Merge</Typography>
+              <Typography variant="h3">กู้คืนข้อมูลจากไฟล์สำรอง</Typography>
             </Stack>
             <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
-              รองรับไฟล์ schema v1/v2 ขนาดไม่เกิน 4 MB ตรวจคอลัมน์กับ D1 ก่อนเขียน และต้องยืนยัน MFA ล่าสุดก่อนดำเนินการ
+              รองรับไฟล์สำรองรุ่น 1 หรือ 2 ขนาดไม่เกิน 4 MB ระบบจะตรวจสอบไฟล์และให้ยืนยันตัวตนอีกครั้งก่อนกู้คืน
             </Typography>
           </Box>
 
           <Alert severity="warning">
-            ฟังก์ชันนี้ไม่ใช่ Full Replace: ข้อมูลในไฟล์จะถูก upsert เฉพาะตาราง CMS ที่อนุญาต
-            เพื่อหลีกเลี่ยงการล้างข้อมูลหรือเขียนทับระบบยืนยันตัวตนโดยไม่ตั้งใจ
+            การกู้คืนจะเพิ่มหรือปรับปรุงเฉพาะข้อมูลเว็บไซต์ในไฟล์ ไม่ล้างข้อมูลทั้งหมด
+            และไม่เปลี่ยนข้อมูลบัญชีหรือการยืนยันตัวตน
           </Alert>
           {error && <Alert severity="error">{error}</Alert>}
 
@@ -145,14 +145,14 @@ export default function PortableBackupRecoveryPanel() {
               disabled={mutation.isPending}
               onClick={() => inputRef.current?.click()}
             >
-              เลือกไฟล์ JSON
+              เลือกไฟล์สำรองข้อมูล (.json)
             </Button>
             {payload && (
               <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
                 <Chip label={fileName} />
-                <Chip label={`schema v${payload.schemaVersion}`} variant="outlined" />
-                <Chip label={`${Object.keys(payload.tables).length} tables`} variant="outlined" />
-                <Chip label={`ประมาณ ${rowCount} rows`} variant="outlined" />
+                <Chip label={`รูปแบบข้อมูล v${payload.schemaVersion}`} variant="outlined" />
+                <Chip label={`${Object.keys(payload.tables).length} ตารางข้อมูล`} variant="outlined" />
+                <Chip label={`ประมาณ ${rowCount} รายการ`} variant="outlined" />
               </Stack>
             )}
           </Stack>
@@ -165,7 +165,7 @@ export default function PortableBackupRecoveryPanel() {
               disabled={!payload || mutation.isPending}
               onClick={() => void recover()}
             >
-              {mutation.isPending ? "กำลังกู้คืนข้อมูล" : "กู้คืนแบบ Merge"}
+              {mutation.isPending ? "กำลังกู้คืนข้อมูล" : "เริ่มกู้คืนข้อมูล"}
             </Button>
           </Box>
         </Stack>

@@ -58,29 +58,29 @@ export default function IntegrationsPage() {
     <Box>
       <PageHeader
         title="การเชื่อมต่อระบบ"
-        description="Cloudflare จัดการข้อมูลโครงสร้าง ส่วน Apps Script และ Google Drive ทำหน้าที่เป็นสะพานสื่อและไฟล์"
+        description="ตรวจสอบการเชื่อมต่อบริการข้อมูลและพื้นที่จัดเก็บไฟล์ของเว็บไซต์"
       />
       {(status === "bootstrapping" || (bridgeQueryEnabled && bridgeQuery.isLoading)) && (
         <LinearProgress sx={{ mb: 3 }} />
       )}
       {bridgeSessionExpired && (
         <Alert severity="warning" sx={{ mb: 3 }}>
-          เซสชัน CMS หมดอายุ ระบบกำลังนำกลับไปยังหน้าเข้าสู่ระบบ
+          หมดเวลาเข้าสู่ระบบ กรุณาเข้าสู่ระบบอีกครั้ง
         </Alert>
       )}
       {bridgeForbidden && (
         <Alert severity="warning" sx={{ mb: 3 }}>
-          บัญชีนี้ไม่มีสิทธิ์ตรวจสอบสถานะสะพานสื่อ
+          บัญชีนี้ไม่มีสิทธิ์ตรวจสอบสถานะการเชื่อมต่อไฟล์
         </Alert>
       )}
       {bridgeNotConfigured && (
         <Alert severity="warning" sx={{ mb: 3 }}>
-          สะพานสื่อหรือพื้นที่จัดเก็บ Google Drive ยังไม่ได้กำหนดค่าฝั่งเซิร์ฟเวอร์
+          ยังไม่ได้ตั้งค่าการเชื่อมต่อบริการไฟล์หรือ Google Drive
         </Alert>
       )}
       {bridgeUnavailable && (
         <Alert severity="warning" sx={{ mb: 3 }}>
-          ไม่สามารถตรวจสอบสถานะสะพานสื่อหรือพื้นที่จัดเก็บ Google Drive ได้ในขณะนี้
+          ไม่สามารถตรวจสอบการเชื่อมต่อบริการไฟล์หรือ Google Drive ได้ในขณะนี้
         </Alert>
       )}
       <Grid container spacing={2.5}>

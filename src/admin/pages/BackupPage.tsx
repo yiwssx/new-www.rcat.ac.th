@@ -131,7 +131,7 @@ export default function BackupPage() {
     <Box>
       <PageHeader
         title="สำรองข้อมูลระบบ"
-        description="สร้างไฟล์สำรองข้อมูล D1 แบบ JSON จากข้อมูลระบบที่ใช้กับเว็บไซต์และ CMS"
+        description="ดาวน์โหลดข้อมูลสำรองของเว็บไซต์เพื่อใช้ตรวจสอบหรือกู้คืนเมื่อจำเป็น"
       />
       <AuditActivityWorkflowGuide />
       <Stack spacing={2.5}>
@@ -258,7 +258,7 @@ export default function BackupPage() {
                     mb: 2
                   }}
                 >
-                  ดาวน์โหลดไฟล์ JSON ที่รวมข้อมูลจากตารางหลักของ Cloudflare D1
+                  ดาวน์โหลดไฟล์สำรองข้อมูลของเว็บไซต์เพื่อจัดเก็บไว้ในที่ปลอดภัย
                 </Typography>
                 <Button
                   variant="contained"

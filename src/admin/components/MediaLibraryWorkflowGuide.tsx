@@ -29,7 +29,7 @@ export default function MediaLibraryWorkflowGuide() {
       <CardContent>
         <Stack spacing={1.5}>
           <Box>
-            <Typography sx={{ fontWeight: 900 }}>ลำดับงานคลังสื่อแบบ WordPress-like</Typography>
+            <Typography sx={{ fontWeight: 900 }}>ขั้นตอนจัดการคลังสื่อ</Typography>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
               ใช้เป็นเช็กลิสต์ก่อนอัปโหลดและเลือกใช้สื่อ เพื่อให้ค้นหาและนำกลับมาใช้ซ้ำได้ง่าย
             </Typography>
