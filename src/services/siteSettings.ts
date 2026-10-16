@@ -1,3 +1,4 @@
+import { DEFAULT_SOCIAL_WIDGET, normalizeHomepageSocialWidget } from "../features/cms-settings/socialWidget";
 import type {
   FooterDirectoryGroup,
   FooterDirectoryLink,
@@ -55,6 +56,7 @@ export const defaultSiteSettings: SiteSettings = {
   address: "",
   admissionUrl: "",
   facebookUrl: "",
+  homepageSocial: DEFAULT_SOCIAL_WIDGET,
   youtubeUrl: "",
   tiktokUrl: "",
   heroTitle: neutralSiteName,
@@ -287,6 +289,11 @@ export function normalizeSiteSettings(input: unknown): SiteSettings {
 
   (Object.keys(defaultSiteSettings) as Array<keyof SiteSettings>).forEach((key) => {
     if (!(key in source)) {
+      return;
+    }
+
+    if (key === "homepageSocial") {
+      normalized.homepageSocial = normalizeHomepageSocialWidget(source[key]);
       return;
     }
 
