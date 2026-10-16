@@ -36,6 +36,8 @@ import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
 import PageHeader from "../components/PageHeader";
 import HomepageSettingsWorkflowGuide from "../components/HomepageSettingsWorkflowGuide";
 import LeadershipSettingsEditor from "./settings/LeadershipSettingsEditor";
+import SocialSettingsEditor from "./settings/SocialSettingsEditor";
+import { normalizeHomepageSocialWidget, validateHomepageSocialDraft } from "../../features/cms-settings/socialWidget";
 import PublicResponsiveImage from "../../shared/media/PublicResponsiveImage";
 import { resolvePublicImageSource } from "../../shared/media/publicImageSources";
 import { staticSurfaceSx } from "../../design-system/componentStyles";
@@ -246,6 +248,7 @@ type SiteSettingTextKey = Exclude<
   keyof SiteSettings,
   | "footerDirectoryGroups"
   | "leadership"
+  | "homepageSocial"
   | "messengerEnabled"
   | "messengerUrl"
   | "messengerLabel"
@@ -654,6 +657,10 @@ export default function SettingsPage({ section }: { section: SettingsCategory })
 
       // Preserve partially typed URLs in the draft, but persist canonical
       // HTTPS / Google Drive portrait URLs after validating the raw input.
+      if (patch.homepageSocial) {
+        validateHomepageSocialDraft(patch.homepageSocial);
+        patch.homepageSocial = normalizeHomepageSocialWidget(patch.homepageSocial);
+      }
       if (patch.leadership) {
         patch.leadership = normalizeLeadershipSettings(patch.leadership);
       }
@@ -924,6 +931,18 @@ export default function SettingsPage({ section }: { section: SettingsCategory })
                     ข้อมูลส่วนนี้จะแสดงในหน้าเว็บไซต์สาธารณะและถูกบันทึกใน Settings sheet ของ Apps Script
                   </Typography>
                   <Grid container spacing={1.5}>
+                    {section === "social" && (
+                      <Grid size={{ xs: 12 }}>
+                        <SocialSettingsEditor
+                          value={siteSettings.homepageSocial}
+                          disabled={!canManage}
+                          onChange={(value) => {
+                            if (!canManage) return;
+                            setSiteSettings((current) => ({ ...current, homepageSocial: value }));
+                          }}
+                        />
+                      </Grid>
+                    )}
                     {section === "leadership" && (
                       <Grid size={{ xs: 12 }}>
                         <Alert severity="info">
