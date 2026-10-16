@@ -44,11 +44,12 @@ describe("home news card visual balance", () => {
     const card = screen.getByRole("link", { name: /ข่าวประชาสัมพันธ์สำหรับทดสอบการ์ดหน้าแรก/ });
     const mediaSlot = container.querySelector('[data-public-content-card-media-slot="regular"]') as HTMLElement;
     const image = within(card).getByRole("img", { name: "Home news thumbnail" });
-    const readingMeta = within(card).getByText("Admin · อ่าน 1 นาที");
+    const readingMeta = within(card).getByText("อ่าน 1 นาที");
 
     expect(card).toHaveAttribute("data-public-content-card-presentation", "home-news");
     expect(mediaSlot).toHaveStyle({ width: "120px", height: "90px" });
     expect(image).toBeInTheDocument();
     expect(readingMeta.closest(".MuiChip-root")).toBeNull();
+    expect(within(card).queryByText("Admin")).not.toBeInTheDocument();
   });
 });
