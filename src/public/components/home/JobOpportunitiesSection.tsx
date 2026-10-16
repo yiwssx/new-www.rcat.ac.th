@@ -55,7 +55,7 @@ export function JobOpportunitiesSection({ items }: { items: PublicContentCardIte
       {visibleItems.length === 0 ? (
         <EmptyState
           title="ยังไม่มีข่าวสมัครงาน/จัดหาอาชีพ"
-          description="เมื่อมีประกาศรับสมัครงานหรือข่าวจัดหาอาชีพที่เผยแพร่แล้ว ระบบจะแสดงรายการในส่วนนี้"
+          description="ติดตามประกาศรับสมัครงานและข่าวจัดหาอาชีพของวิทยาลัยได้ที่นี่"
         />
       ) : (
         <Grid container spacing={{ xs: 1.5, md: 1.8 }}>
