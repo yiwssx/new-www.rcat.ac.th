@@ -67,8 +67,8 @@ describe("homepage social widget model", () => {
 
   it("renders one page plugin and links with distinct groups and custom logos", () => {
     const { container } = render(<HomeSocialLinksCard pageUrl="https://www.facebook.com/rcat" settings={settings} />);
-    expect(container.querySelectorAll("iframe")).toHaveLength(1);
-    expect(container.querySelector("iframe")?.getAttribute("loading")).toBe("lazy");
+    expect(container.querySelectorAll('[data-public-deferred-embed="true"]')).toHaveLength(1);
+    expect(container.querySelector('[data-public-deferred-embed="true"]')?.getAttribute("data-public-embed-load-mode")).toBe("near-viewport");
     expect(screen.getByText("Facebook แผนกวิชา")).toBeTruthy();
     expect(screen.getByText("Facebook งานและหน่วยงาน")).toBeTruthy();
     expect(screen.queryByText("ปิดการแสดงผล")).toBeNull();
