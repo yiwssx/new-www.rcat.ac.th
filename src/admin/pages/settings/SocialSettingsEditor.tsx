@@ -124,8 +124,8 @@ export default function SocialSettingsEditor({ value, disabled, canUploadMedia, 
           <Stack spacing={2}>
             <Typography variant="h3">Facebook Page วิทยาลัย</Typography>
             <Alert severity="info">
-              แสดงเฉพาะส่วนหัวของเพจ Facebook โดยไม่มีโพสต์หรือไทม์ไลน์
-              พร้อมลิงก์เปิดเพจอย่างเป็นทางการ สามารถแก้ไข URL เพจได้จากช่อง Facebook URL ในหน้าตั้งค่านี้
+              แสดงเฉพาะส่วนหัวของเพจ Facebook โดยไม่มีโพสต์หรือไทม์ไลน์ พร้อมลิงก์เปิดเพจอย่างเป็นทางการ สามารถแก้ไข URL
+              เพจได้จากช่อง Facebook URL ในหน้าตั้งค่านี้
             </Alert>
             <FormControlLabel
               control={
@@ -147,7 +147,6 @@ export default function SocialSettingsEditor({ value, disabled, canUploadMedia, 
               }
               label="แสดงส่วนหัว Facebook Page"
             />
-
           </Stack>
         </CardContent>
       </Card>

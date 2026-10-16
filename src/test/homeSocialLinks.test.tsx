@@ -77,7 +77,9 @@ describe("homepage social widget model", () => {
     const { container } = render(<HomeSocialLinksCard pageUrl="https://www.facebook.com/rcat" settings={settings} />);
     measurement.mockRestore();
     expect(container.querySelectorAll('[data-public-deferred-embed="true"]')).toHaveLength(1);
-    expect(container.querySelector('[data-public-deferred-embed="true"]')?.getAttribute("data-public-embed-load-mode")).toBe("near-viewport");
+    expect(
+      container.querySelector('[data-public-deferred-embed="true"]')?.getAttribute("data-public-embed-load-mode")
+    ).toBe("near-viewport");
     expect(screen.getByText("Facebook แผนกวิชา")).toBeTruthy();
     expect(screen.getByText("Facebook งานและหน่วยงาน")).toBeTruthy();
     expect(screen.queryByText("ปิดการแสดงผล")).toBeNull();
