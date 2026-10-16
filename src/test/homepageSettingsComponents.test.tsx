@@ -646,19 +646,19 @@ describe("homepage settings public sections", () => {
       />
     );
 
-    expect(screen.getByRole("region", { name: "Website Visitors" })).toBeInTheDocument();
-    expect(screen.getByText("Website Visitors")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "ผู้เข้าชมเว็บไซต์" })).toBeInTheDocument();
+    expect(screen.getByText("ผู้เข้าชมเว็บไซต์")).toBeInTheDocument();
     expect(screen.getByText("สถิติผู้เข้าชมเว็บไซต์")).toBeInTheDocument();
-    expect(screen.getByText(/^Updated/)).toBeInTheDocument();
+    expect(screen.getByText(/^อัปเดต/)).toBeInTheDocument();
 
     [
-      "Users Today",
-      "Users Yesterday",
-      "Users This Month",
-      "Users This Year",
-      "Total Users",
-      "Total views",
-      "Who's Online"
+      "วันนี้",
+      "เมื่อวาน",
+      "เดือนนี้",
+      "ปีนี้",
+      "ผู้เข้าชมทั้งหมด",
+      "ยอดเข้าชมทั้งหมด",
+      "กำลังใช้งานเว็บไซต์"
     ].forEach((label) => expect(screen.getByText(label)).toBeInTheDocument());
   });
 
