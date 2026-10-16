@@ -20,26 +20,28 @@ Add a controlled and responsive **Facebook & Social Links** homepage block.
 
 ### Observed implementation baseline
 
-| Area | Verified source | Finding |
-| --- | --- | --- |
-| Home layout | `src/public/pages/PublicHomePage.tsx` | Homepage is a responsive left/right MUI Grid; right-side Stack ends in `LiveVisitorStatsCard`. On mobile the right column follows the left, so adding the panel **after** the stats gives both requested placements without duplicate render/iframe. |
-| Settings submenu | `src/config/adminSettingsCategories.ts`, `src/admin/pages/settings/settingsSections.ts`, `src/admin/layout/CmsShell.tsx`, `src/routes.tsx` | Dedicated routes for settings categories already exist under `settings.read`. Extend this pattern instead of creating a parallel Settings SPA. |
-| Data model | `src/features/cms-settings/types.ts`, `src/services/siteSettings.ts` | `SiteSettings.facebookUrl` already exists; footer directory groups also exist but serve a different public placement and have no icon model. |
-| Save conflict handling | `settingsSections.ts` / prior [Admin Settings tracker](admin-settings-leadership-ux-tracker.md) | Existing scoped site-settings updates guard unrelated edits. Extend category key ownership without clobbering other categories. |
-| Current Facebook support | `src/utils/facebookEmbed.ts`, `src/shared/media/ResponsiveFacebookPluginEmbed.tsx` | Existing iframe utility embeds Facebook **posts**, not whole Page timelines. Implement Page plugin support as a separate utility/component, reusing established safe/deferred media patterns where applicable. |
-| Persistence / public data | Existing Worker site settings and public shell metadata adapters | Confirm the nested field validation and projection; plan additive compatibility rather than assuming a frontend-only change reaches production. |
+| Area                      | Verified source                                                                                                                            | Finding                                                                                                                                                                                                                                              |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Home layout               | `src/public/pages/PublicHomePage.tsx`                                                                                                      | Homepage is a responsive left/right MUI Grid; right-side Stack ends in `LiveVisitorStatsCard`. On mobile the right column follows the left, so adding the panel **after** the stats gives both requested placements without duplicate render/iframe. |
+| Settings submenu          | `src/config/adminSettingsCategories.ts`, `src/admin/pages/settings/settingsSections.ts`, `src/admin/layout/CmsShell.tsx`, `src/routes.tsx` | Dedicated routes for settings categories already exist under `settings.read`. Extend this pattern instead of creating a parallel Settings SPA.                                                                                                       |
+| Data model                | `src/features/cms-settings/types.ts`, `src/services/siteSettings.ts`                                                                       | `SiteSettings.facebookUrl` already exists; footer directory groups also exist but serve a different public placement and have no icon model.                                                                                                         |
+| Save conflict handling    | `settingsSections.ts` / prior [Admin Settings tracker](admin-settings-leadership-ux-tracker.md)                                            | Existing scoped site-settings updates guard unrelated edits. Extend category key ownership without clobbering other categories.                                                                                                                      |
+| Current Facebook support  | `src/utils/facebookEmbed.ts`, `src/shared/media/ResponsiveFacebookPluginEmbed.tsx`                                                         | Existing iframe utility embeds Facebook **posts**, not whole Page timelines. Implement Page plugin support as a separate utility/component, reusing established safe/deferred media patterns where applicable.                                       |
+| Persistence / public data | Existing Worker site settings and public shell metadata adapters                                                                           | Confirm the nested field validation and projection; plan additive compatibility rather than assuming a frontend-only change reaches production.                                                                                                      |
 
 ## 2. Admin IA and editor UX
 
 Proposed Settings submenu item: **Facebook และลิงก์หน่วยงาน** with its own directly navigable route `/admin/settings/social`.
 
 **Facebook Page block:**
+
 - Enable/disable the embed.
 - Canonical school Facebook Page URL (use the existing `siteSettings.facebookUrl` field where possible; do not introduce a conflicting second school-page URL).
 - Display heading; bounded adjustable height (candidate default 520px, revise after real Page plugin QA); live preview at desktop and mobile widths.
 - Browser fallback: display a normal **เปิดเพจ Facebook วิทยาลัย** hyperlink if the plugin cannot load, is blocked or URL is unset. Hidden/empty blocks must not leave a tall blank region.
 
 **Social directory editor:**
+
 - Add/edit/delete links, label, link URL, category (แผนกวิชา / งานหรือหน่วยงาน), icon picker, visible toggle and order within a category.
 - Accessible reorder actions (up/down; drag and drop not required), concise URL errors, copy-friendly URL input and unsaved-change handling.
 - Public displays only enabled, valid records; empty categories hide; all entries are data-driven.
@@ -86,14 +88,14 @@ Contract is a **proposal, not committed runtime code**. Default is disabled/empt
 
 ## 5. Phase gates / actionable checklist
 
-| Phase | Deliverable | Acceptance / evidence | Status |
-| --- | --- | --- | --- |
-| P0 | Scope, reference review, inspect SiteSettings / Worker, confirm icon interpretation and real Page link | Owner confirms outstanding icon choice; record design decision | [ ] |
-| P1 | New Settings category, route, editor, picker, preview, partial save | Add/edit/reorder/delete, enable/disable, reload, permissions, conflict safety | [ ] |
-| P2 | Optional settings contract, normalization, Worker validation and public projection | Backward compatibility, API read/write tests, safe defaults, no implicit production data migration | [ ] |
-| P3 | Responsive Page plugin and linked social directory | Desktop below visitor stats; mobile last before footer; proper URL/embed/error/no-data states | [ ] |
-| P4 | Quality + security verification | Unit, integration, Functional E2E, accessibility, 390px/mobile and desktop visual checks; no regressions, all required exact-head CI green | [ ] |
-| P5 | Approved merge and production release / verification | PR merged only after required checks; Worker/frontend deployment order attested; operator validates live page and explicitly approves closure | [ ] |
+| Phase | Deliverable                                                                                            | Acceptance / evidence                                                                                                                         | Status |
+| ----- | ------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| P0    | Scope, reference review, inspect SiteSettings / Worker, confirm icon interpretation and real Page link | Owner confirms outstanding icon choice; record design decision                                                                                | [ ]    |
+| P1    | New Settings category, route, editor, picker, preview, partial save                                    | Add/edit/reorder/delete, enable/disable, reload, permissions, conflict safety                                                                 | [ ]    |
+| P2    | Optional settings contract, normalization, Worker validation and public projection                     | Backward compatibility, API read/write tests, safe defaults, no implicit production data migration                                            | [ ]    |
+| P3    | Responsive Page plugin and linked social directory                                                     | Desktop below visitor stats; mobile last before footer; proper URL/embed/error/no-data states                                                 | [ ]    |
+| P4    | Quality + security verification                                                                        | Unit, integration, Functional E2E, accessibility, 390px/mobile and desktop visual checks; no regressions, all required exact-head CI green    | [ ]    |
+| P5    | Approved merge and production release / verification                                                   | PR merged only after required checks; Worker/frontend deployment order attested; operator validates live page and explicitly approves closure | [ ]    |
 
 ### Functional acceptance matrix
 
