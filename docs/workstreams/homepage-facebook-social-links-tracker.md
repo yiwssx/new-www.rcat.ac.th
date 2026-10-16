@@ -2,9 +2,11 @@
 
 **Repository:** `yiwssx/new-www.rcat.ac.th`  
 **Created:** 2026-10-16 (Asia/Bangkok)  
-**Status:** **PLANNING ONLY — OWNER ICON DECISION PENDING; NO IMPLEMENTATION**  
+**Status:** **IMPLEMENTATION ON FEATURE BRANCH — CI/PRODUCTION VERIFICATION PENDING; NOT MERGED**  
 **Tracking issue:** [#631](https://github.com/yiwssx/new-www.rcat.ac.th/issues/631)  
 **Planning branch:** `docs/homepage-facebook-social-links-plan-20261016`  
+**Implementation branch:** `feature/homepage-facebook-social-links`  
+**Implementation PR:** [#633](https://github.com/yiwssx/new-www.rcat.ac.th/pull/633) (draft; CI still being fixed)  
 **Reference:** owner-supplied screenshot showing college Facebook plugin followed by department social links; used as a structural reference, not copied as artwork or live production data.
 
 ## 1. Requirements and scope
@@ -45,7 +47,7 @@ Proposed Settings submenu item: **Facebook และลิงก์หน่ว�
 - Add/edit/delete links, label, link URL, category (แผนกวิชา / งานหรือหน่วยงาน), icon picker, visible toggle and order within a category.
 - Accessible reorder actions (up/down; drag and drop not required), concise URL errors, copy-friendly URL input and unsaved-change handling.
 - Public displays only enabled, valid records; empty categories hide; all entries are data-driven.
-- Icon model: stable string enum from a reviewed icon registry; **pending owner decision** on allowing custom uploaded images/logos.
+- Icon model: stable string enum from a reviewed icon registry, **plus owner-approved custom PNG/JPG/WebP uploads (max 2 MB) through the existing Drive media bridge**.
 - Existing footer directory link editor stays independent. No automatic copying, no duplicate public rendering.
 
 ## 3. Proposed data contract (subject to implementation review)
@@ -109,7 +111,16 @@ Contract is a **proposal, not committed runtime code**. Default is disabled/empt
 
 ## 6. Release boundaries and operator decisions
 
-- This tracker and issue are **planning only**. Do not implement, merge runtime changes, deploy Worker, seed links, or close the issue before the operator decides the icon requirement.
+- The operator approved both prebuilt icon selection and custom logo upload on 2026-10-16. Implementation is now on feature PR #633. **Do not merge runtime changes, deploy Worker, seed links, or close #631 before complete green verification and deployment acceptance.**
 - Do not infer real Facebook links from the reference screenshot. The owner/admin will supply the school's current Page URL and unit links in CMS, or the canonical `siteSettings.facebookUrl` will be used if verified.
 - Keep active UI/UX, organization and dependency workstreams out of scope. Do not change workflows, dependencies, visitor counters, legacy footer directory behavior or shared component contracts without explicit regression verification.
 - Update a checkbox only with verifiable evidence, linked PR/commit/CI and any manual acceptance notes; record deferred production checks as unverified.
+
+## 7. Implementation verification ledger — 2026-10-16
+
+- **Operator decision:** both icon library and custom uploaded logos are required; completed P0 scope confirmation.
+- **PR:** [#633](https://github.com/yiwssx/new-www.rcat.ac.th/pull/633) (draft). Code provided: `src/features/cms-settings/socialWidget.ts`, `src/admin/pages/settings/SocialSettingsEditor.tsx`, `src/public/components/home/HomeSocialLinksCard.tsx`, `src/shared/components/SocialLinkIcon.tsx`, existing Settings site normalization/navigation, Worker URL validation/public contract, and tests.
+- **No new package:** existing React, MUI, and Media Bridge reused.
+- **Initial CI run** [#38841831203](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38841831203): Dependency Preflight, Dependencies, Integration, and Worker reported success. Static Quality initially failed Prettier (8 changed files), and Build/Governance initially failed due missing MUI icon import names and invalid MUI v9 props. **Initial CI is not green.** The import/props defects were corrected in subsequent commits; exact-head CI remains required.
+- **P1–P3 status:** implementation proposed on PR #633, *not accepted/checked off*. Do not misrepresent draft code as production-verified.
+- **Outstanding:** actual upload persistence, saved page URL, 360/390/430px and desktop screenshots, public Meta Page plugin appearance, accessibility, and real Worker/frontend deployment are not yet attested. Work continues until CI green before requesting operator production UAT.
