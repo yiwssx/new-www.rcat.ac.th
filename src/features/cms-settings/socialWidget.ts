@@ -64,7 +64,10 @@ function record(value: unknown): Record<string, unknown> {
 export function socialHttpsUrl(value: unknown): string {
   if (typeof value !== "string") return "";
   const input = value.trim();
-  if (!input || input.includes("\\") || /[\s\u0000-\u001f\u007f]/.test(input)) return "";
+  if (!input || input.includes("\\") || /\s/.test(input) || [...input].some((char) => {
+    const code = char.charCodeAt(0);
+    return code < 32 || code === 127;
+  })) return "";
   try {
     const url = new URL(input);
     if (url.protocol !== "https:" || url.username || url.password || url.port) return "";
