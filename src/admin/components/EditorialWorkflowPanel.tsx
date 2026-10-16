@@ -149,7 +149,7 @@ export default function EditorialWorkflowPanel() {
         <Stack spacing={2}>
           <Box>
             <Typography variant="h2" sx={{ fontSize: "1.35rem" }}>
-              ตรวจทานเนื้อหาและถังขยะ
+              รายการรอตรวจทานและถังขยะ
             </Typography>
             <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
               ส่งเนื้อหาให้ตรวจทาน นำกลับมาแก้ไข หรือกู้คืนเนื้อหาที่ลบแล้ว
@@ -201,7 +201,7 @@ export default function EditorialWorkflowPanel() {
 
           {selected && !["draft", "review"].includes(selected.status) && (
             <Alert severity="info">
-              เนื้อหาสถานะ {statusLabel(selected.status)} ต้องยกเลิกการเผยแพร่ก่อนจึงจะนำกลับเข้าสู่ขั้นตอน ตรวจทานได้
+              เนื้อหาสถานะ {statusLabel(selected.status)} ต้องยกเลิกการเผยแพร่ก่อน จึงจะส่งกลับเข้าตรวจทานได้
             </Alert>
           )}
         </Stack>
