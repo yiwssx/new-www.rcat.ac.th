@@ -25,6 +25,8 @@
 
 **Artifact lifecycle:** Close this tracker with this documentation-only PR using repository-required CI; prior paragraphs labelled ACTIVE or PENDING below are historical checkpoints and superseded by this closure record.
 
+**Scope freeze:** Any new public/admin copy, layout, or accessibility changes require a separately scoped issue or tracker; do not silently reopen completed #634.
+
 ## Objective / scope
 
 Simplify technical and internal-facing text across RCAT public pages and routine Admin workflows without changing business behavior or impairing safety, accessibility, operational support, or advanced technical-administrator diagnostics.
