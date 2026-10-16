@@ -2,13 +2,30 @@
 
 **Repository:** `yiwssx/new-www.rcat.ac.th`  
 **Created:** 2026-10-16 (Asia/Bangkok)  
-**Status:** **ACTIVE — BOTH EXACT-HEAD CI GREEN; DEPLOYED UAT BLOCKED BY PREVIEW IGNORE POLICY**  
+**Status:** **COMPLETE — MERGED, PRODUCTION VERIFIED; MANUAL OWNER UAT DEFERRED**  
 **Tracking issue:** [#634](https://github.com/yiwssx/new-www.rcat.ac.th/issues/634)  
 **Implementation baseline:** `main@bfe0c948458f3eb6fdd951eeac7e78cadbc791bb` (2026-10-16, after Social Links closure)  
 **Implementation branch:** `fix/ux-public-microcopy-634` (based on latest main); original planning branch: `docs/ux-content-microcopy-cleanup-plan-20261016`  
-**Public implementation PR:** [#639](https://github.com/yiwssx/new-www.rcat.ac.th/pull/639) **READY FOR REVIEW; 14/14 CHECKS PASS**.  
-**Admin implementation PR:** [#640](https://github.com/yiwssx/new-www.rcat.ac.th/pull/640) **READY FOR REVIEW; 13/13 CHECKS PASS**.  
-**Production verification:** NOT RUN. Two preview attempts CANCELED by the existing ignored-build rule; no field UAT evidence.
+**Public implementation PR:** [#639](https://github.com/yiwssx/new-www.rcat.ac.th/pull/639) **MERGED** (`3549bab7`).  
+**Admin implementation PR:** [#640](https://github.com/yiwssx/new-www.rcat.ac.th/pull/640) **MERGED** (`80f1c8ce`).  
+**Production verification:** **PASSED**, `main@3549bab7`, run `38889769389` (Read-only Browser Field QA). Owner-led manual UAT was deferred, not marked passed.
+
+## Final closure record — 2026-10-16 (authoritative; supersedes pending checkpoints)
+
+**Decision:** Owner explicitly accepted the implemented Public/Admin microcopy iteration for closure and will consider further refinements as new work. This is approval to close the _current scoped delivery_, not an assertion that the owner manually completed mobile or authenticated-Admin UAT.
+
+**Merged code and evidence:**
+
+- Admin [PR #640](https://github.com/yiwssx/new-www.rcat.ac.th/pull/640) **MERGED** into `main@80f1c8cef59c18159d26b8e099687419164882f4`. PR CI [#38886724906](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38886724906) SUCCESS, main push CI [#38887527735](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38887527735) SUCCESS, Production Verification [#38888017906](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38888017906) SUCCESS.
+- Public [PR #639](https://github.com/yiwssx/new-www.rcat.ac.th/pull/639) **MERGED** into `main@3549bab7caafb98c26871753ac45bbbabdf74151`. PR CI [#38888687535](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38888687535) SUCCESS, Prettier SUCCESS. Latest main push CI [#38889251433](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38889251433) SUCCESS (10/10 required jobs), [Production Verification #38889769389](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38889769389) SUCCESS, **Read-only Browser Field QA job SUCCESS**.
+- Vercel exact-SHA Production deployment `dpl_2SE9TvcjnAmq67w44D5a1S59g6Zi` for `3549bab7` is **READY**. This is separate from the two canceled branch Preview attempts (ignored-build policy).
+- [Issue #634](https://github.com/yiwssx/new-www.rcat.ac.th/issues/634) **CLOSED (completed)** on 2026-10-16. Separate Organization UX #594 is unaffected.
+
+**Explicitly deferred / not claimed:** User-operated browser acceptance on real phones and authenticated Admin roles, production data editing/restoration tests, and any more expansive wording audit. The protected read-only Production Verification is **not** equivalent to those manual acceptance exercises. Neither the Vercel branch ignored-build policy nor production data was changed by this workstream. These are optional future follow-ups and **do not block the owner's accepted scope closure**.
+
+**Artifact lifecycle:** Close this tracker with this documentation-only PR using repository-required CI; prior paragraphs labelled ACTIVE or PENDING below are historical checkpoints and superseded by this closure record.
+
+**Scope freeze:** Any new public/admin copy, layout, or accessibility changes require a separately scoped issue or tracker; do not silently reopen completed #634.
 
 ## Objective / scope
 
@@ -39,19 +56,19 @@ Simplify technical and internal-facing text across RCAT public pages and routine
 
 ## Phase / checkpoint tracker
 
-| ID  | Deliverable                                                                                                                     | State                    |
-| --- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
-| T0  | Preliminary static code evidence and initial issue catalogue                                                                    | **DONE (static audit)**  |
-| T1  | Create planning issue + documentation tracker                                                                                   | **DONE**                 |
-| T2  | After explicit owner resume, reconcile `main` and concurrent #594 / #631, then produce full route/role/viewport evidence matrix | **PARTIAL (CI matrix)**  |
-| T3  | Owner-reviewed copy guidelines: Thai-first wording, status policy, expert exceptions, error/accessibility semantics             | **PENDING OWNER UAT**    |
-| T4  | Public P0 microcopy: system labels, CMS mentions, publication chips, generic authors and stats                                  | **DONE (CI verified)**   |
-| T5  | Public P1 microcopy: remaining sections, data-sourced copy, empty/loading/error states, accessibility                           | **PARTIAL (QA pending)** |
-| T6  | Routine Admin P1: workflows, form labels, helper texts, navigation, dialogs, settings, editor, org                              | **PARTIAL (QA pending)** |
-| T7  | Technical/Admin P1: backup, recovery, system health, integrations; preserve diagnostic and security context                     | **PARTIAL (QA pending)** |
-| T8  | Regressions: Thai wording tests, semantic/accessibility and sensitive error handling, existing UX/CI checks                     | **DONE (CI verified)**   |
-| T9  | Small scoped PRs only when approved; exact-head CI, desktop/mobile UAT and authorized merge/field verification                  | **PENDING FIELD UAT**    |
-| T10 | Owner acceptance, merge/production evidence, explicit tracker closure                                                           | **PENDING**              |
+| ID  | Deliverable                                                                                                                     | State                       |
+| --- | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| T0  | Preliminary static code evidence and initial issue catalogue                                                                    | **DONE (source audit)**     |
+| T1  | Create planning issue + documentation tracker                                                                                   | **DONE**                    |
+| T2  | After explicit owner resume, reconcile `main` and concurrent #594 / #631, then produce full route/role/viewport evidence matrix | **DONE (source matrix)**    |
+| T3  | Owner-reviewed copy guidelines: Thai-first wording, status policy, expert exceptions, error/accessibility semantics             | **DEFERRED (owner UAT)**    |
+| T4  | Public P0 microcopy: system labels, CMS mentions, publication chips, generic authors and stats                                  | **DONE (merged)**           |
+| T5  | Public P1 microcopy: remaining sections, data-sourced copy, empty/loading/error states, accessibility                           | **DELIVERED IN SCOPE**      |
+| T6  | Routine Admin P1: workflows, form labels, helper texts, navigation, dialogs, settings, editor, org                              | **DONE (merged)**           |
+| T7  | Technical/Admin P1: backup, recovery, system health, integrations; preserve diagnostic and security context                     | **DONE (merged)**           |
+| T8  | Regressions: Thai wording tests, semantic/accessibility and sensitive error handling, existing UX/CI checks                     | **DONE (CI)**               |
+| T9  | Small scoped PRs only when approved; exact-head CI, desktop/mobile UAT and authorized merge/field verification                  | **DONE (release gates)**    |
+| T10 | Owner acceptance, merge/production evidence, explicit tracker closure                                                           | **DONE (owner acceptance)** |
 
 ## Definition of done
 
