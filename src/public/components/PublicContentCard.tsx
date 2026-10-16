@@ -12,7 +12,8 @@ import { isFacebookEmbedContent } from "../../utils/facebookContent";
 import PublicResponsiveImage from "../../shared/media/PublicResponsiveImage";
 import FlagEmojiText from "../../shared/components/FlagEmojiText";
 import { normalizeSafeHref } from "../../utils/safeUrl";
-import { contentStatusLabels, contentTypeLabels } from "../../utils/thaiLabels";
+import { contentTypeLabels } from "../../utils/thaiLabels";
+import { getPublicAuthorLabel } from "../utils/publicAuthor";
 import { interactiveSurfaceSx } from "../../design-system/componentStyles";
 import { resolveCardThumbnail } from "./publicContentCardThumbnail";
 
@@ -49,6 +50,7 @@ export default function PublicContentCard({
   const categories = normalizeCategories(item.category);
   const isFacebookEmbed = isFacebookEmbedContent(item);
   const isHomeNews = presentation === "home-news" && !featured;
+  const publicAuthor = getPublicAuthorLabel(item.owner);
 
   return (
     <Card
@@ -114,7 +116,6 @@ export default function PublicContentCard({
               }}
             >
               <Chip label={contentTypeLabels[item.type]} size="small" />
-              <Chip label={contentStatusLabels[item.status]} size="small" variant="outlined" />
               {isFacebookEmbed && <Chip label="Facebook" size="small" color="primary" variant="outlined" />}
               {item.featured && <Chip label="แนะนำ" size="small" color="secondary" />}
               {categories.slice(0, 2).map((category) => (
@@ -184,16 +185,20 @@ export default function PublicContentCard({
                 mt: isHomeNews ? 1.5 : 2
               }}
             >
-              <Typography
-                variant="body2"
-                sx={{
-                  color: "text.secondary",
-                  ...(isHomeNews ? { fontSize: "0.75rem" } : {})
-                }}
-              >
-                {item.owner}
-                {isHomeNews && !!item.readingMinutes ? ` · อ่าน ${item.readingMinutes} นาที` : ""}
-              </Typography>
+              {(publicAuthor || (isHomeNews && !!item.readingMinutes)) && (
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "text.secondary",
+                    ...(isHomeNews ? { fontSize: "0.75rem" } : {})
+                  }}
+                >
+                  {publicAuthor}
+                  {isHomeNews && !!item.readingMinutes
+                    ? `${publicAuthor ? " · " : ""}อ่าน ${item.readingMinutes} นาที`
+                    : ""}
+                </Typography>
+              )}
               <Typography
                 variant="body2"
                 sx={{
