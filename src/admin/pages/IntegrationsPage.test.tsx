@@ -92,7 +92,7 @@ describe("IntegrationsPage", () => {
 
     renderPage();
 
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("เซสชัน CMS หมดอายุ"));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("หมดเวลาเข้าสู่ระบบ"));
   });
 
   it("shows a capability denial without describing it as Session expiry", async () => {
@@ -100,8 +100,8 @@ describe("IntegrationsPage", () => {
 
     renderPage();
 
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("ไม่มีสิทธิ์ตรวจสอบสถานะสะพานสื่อ"));
-    expect(screen.getByRole("alert")).not.toHaveTextContent("เซสชัน CMS หมดอายุ");
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("ไม่มีสิทธิ์ตรวจสอบสถานะการเชื่อมต่อไฟล์"));
+    expect(screen.getByRole("alert")).not.toHaveTextContent("หมดเวลาเข้าสู่ระบบ");
   });
 
   it("shows an upstream-unavailable state without describing it as Session expiry", async () => {
@@ -109,8 +109,8 @@ describe("IntegrationsPage", () => {
 
     renderPage();
 
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("ไม่สามารถตรวจสอบสถานะสะพานสื่อ"));
-    expect(screen.getByRole("alert")).not.toHaveTextContent("เซสชัน CMS หมดอายุ");
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("ไม่สามารถตรวจสอบการเชื่อมต่อบริการไฟล์"));
+    expect(screen.getByRole("alert")).not.toHaveTextContent("หมดเวลาเข้าสู่ระบบ");
   });
 
   it("does not query before CMS authentication or without media.read", () => {
@@ -122,6 +122,6 @@ describe("IntegrationsPage", () => {
     authMock.capabilities = [];
     renderPage();
     expect(checkMediaBridgeStatusMock).not.toHaveBeenCalled();
-    expect(screen.getByText("บัญชีนี้ไม่มีสิทธิ์ตรวจสอบสถานะสะพานสื่อ")).toBeInTheDocument();
+    expect(screen.getByText("บัญชีนี้ไม่มีสิทธิ์ตรวจสอบสถานะการเชื่อมต่อไฟล์")).toBeInTheDocument();
   });
 });
