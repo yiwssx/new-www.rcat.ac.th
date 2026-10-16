@@ -2,13 +2,13 @@
 
 **Repository:** `yiwssx/new-www.rcat.ac.th`  
 **Created:** 2026-10-16 (Asia/Bangkok)  
-**Status:** **ACTIVE — CODE CI VERIFIED; LATEST PUBLIC TRACKER HEAD RECHECK AND FIELD UAT PENDING**  
+**Status:** **ACTIVE — BOTH EXACT-HEAD CI GREEN; DEPLOYED UAT BLOCKED BY PREVIEW IGNORE POLICY**  
 **Tracking issue:** [#634](https://github.com/yiwssx/new-www.rcat.ac.th/issues/634)  
 **Implementation baseline:** `main@bfe0c948458f3eb6fdd951eeac7e78cadbc791bb` (2026-10-16, after Social Links closure)  
 **Implementation branch:** `fix/ux-public-microcopy-634` (based on latest main); original planning branch: `docs/ux-content-microcopy-cleanup-plan-20261016`  
-**Public implementation PR:** [#639](https://github.com/yiwssx/new-www.rcat.ac.th/pull/639) **DRAFT; CURRENT-HEAD CI RECHECK**.  
+**Public implementation PR:** [#639](https://github.com/yiwssx/new-www.rcat.ac.th/pull/639) **READY FOR REVIEW; 14/14 CHECKS PASS**.  
 **Admin implementation PR:** [#640](https://github.com/yiwssx/new-www.rcat.ac.th/pull/640) **READY FOR REVIEW; 13/13 CHECKS PASS**.  
-**Production verification:** NOT RUN; no branch preview deployment found as of latest Vercel check.
+**Production verification:** NOT RUN. Two preview attempts CANCELED by the existing ignored-build rule; no field UAT evidence.
 
 ## Objective / scope
 
@@ -102,3 +102,11 @@ Simplify technical and internal-facing text across RCAT public pages and routine
 | Release / exact-head approval                 | No protected operations or data changes                                          | CI and CodeQL passed on recorded exact heads  | Production/preview browser evidence, owner acceptance and post-merge verification pending |
 
 **Note:** This is a scoped source/evidence matrix, not a claim that all runtime or role/viewport combinations were tested in production. Original/new copy pairs are visible in each PR's Files Changed diff; the named paths and intended reasons are documented above. The operator may request wording changes before merge.
+
+## Verified exact-head checks and Preview deployment boundary — 2026-10-16
+
+- **Public [#639](https://github.com/yiwssx/new-www.rcat.ac.th/pull/639)**: READY FOR REVIEW; source head `dd722fd4ac163b59d6155c62cd29ef1e9a9371a2`, [CI #38881327183](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38881327183) SUCCESS; 14/14 checks GREEN including CodeQL and Prettier. This tracker documentation commit changes the branch head; re-verify new head checks before merge.
+- **Admin [#640](https://github.com/yiwssx/new-www.rcat.ac.th/pull/640)**: READY FOR REVIEW; head `69fa369aec5f4e432faed71aa29098382c6b012c`, [CI #38879679257](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38879679257) SUCCESS; 13/13 checks GREEN including CodeQL.
+- **Vercel Preview attempts**: Public `dpl_4Feh7fJqQUaVCgP5WhCwMhmxNovW`, Admin `dpl_8Yis8XZNaA2hAYTqQEtT2u3oRh8z`, pinned to above SHAs, `target=null` (Preview) only. Both CANCELED by `node scripts/vercel-ignore-build.mjs`: `Vercel build ignored: 1 non-runtime path(s) changed.` They are not usable previews.
+- **Explained mechanism**: `scripts/vercel-ignore-build.mjs` compares `HEAD^` to `HEAD`; the tip commits are docs/formatting while earlier PR commits modify real `src/` runtime code. Current `vercel.json` also intentionally limits Git auto-deploy branches. These shared deployment policies are **not modified** by #634 without separately approved corrective work.
+- **Acceptance**: Source CI green; manual Public desktop/mobile and authenticated Admin UAT NOT VERIFIED. No production changes, no CMS writes, no release and no merge. Keep #634 OPEN; next action is approved Preview/build-gate resolution and read-only field verification, then owner sign-off and protected release.
