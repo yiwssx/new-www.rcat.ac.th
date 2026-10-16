@@ -121,7 +121,7 @@ export default function ContentWorkflowGuide() {
       <CardContent>
         <Stack spacing={1.5}>
           <Box>
-            <Typography sx={{ fontWeight: 900 }}>ลำดับงานเขียนข่าวแบบ WordPress-like</Typography>
+            <Typography sx={{ fontWeight: 900 }}>ขั้นตอนเขียนและเผยแพร่ข่าว</Typography>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
               ใช้เป็นเช็กลิสต์ก่อนเปิดตัวแก้ไข เพื่อไม่ข้ามขั้นตอนสำคัญ
             </Typography>
@@ -169,8 +169,7 @@ export default function ContentWorkflowGuide() {
                 </Button>
               }
             >
-              สำหรับโพสต์ที่เจ้าของเป็น facebook-import
-              ซึ่งเผยแพร่ก่อนระบบสร้างภาพย่ออัตโนมัติและยังแสดงเป็นไอคอนโทรโข่ง
+              สำหรับโพสต์ Facebook เก่าที่นำเข้าระบบ ซึ่งเผยแพร่ก่อนระบบสร้างภาพย่ออัตโนมัติและยังแสดงเป็นไอคอนโทรโข่ง
             </Alert>
           )}
         </Stack>

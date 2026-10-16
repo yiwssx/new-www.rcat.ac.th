@@ -11,10 +11,7 @@ import { settingsNavigation } from "./settings/settingsSections";
 export default function SettingsOverviewPage() {
   return (
     <Box>
-      <PageHeader
-        title="ตั้งค่าระบบ"
-        description="เลือกหัวข้อที่ต้องการจัดการ แต่ละหมวดมีหน้าและที่อยู่ URL แยกจากกัน"
-      />
+      <PageHeader title="ตั้งค่าระบบ" description="เลือกหมวดการตั้งค่าที่ต้องการแก้ไข" />
       <Grid container spacing={2}>
         {settingsNavigation.map((item) => (
           <Grid key={item.id} size={{ xs: 12, sm: 6, lg: 4 }}>

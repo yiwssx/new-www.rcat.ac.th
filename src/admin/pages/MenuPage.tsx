@@ -353,7 +353,7 @@ export default function MenuPage() {
     <Box>
       <PageHeader
         title="เมนู"
-        description="จัดการโครงสร้างเมนูแบบลำดับชั้น เมนูย่อยจะแสดงเยื้องอยู่ใต้เมนูแม่เหมือนหน้าจัดการเมนูของ WordPress"
+        description="เพิ่ม แก้ไข และจัดลำดับเมนูหลักหรือเมนูย่อยสำหรับผู้เข้าชมเว็บไซต์"
         action={
           canManage ? (
             <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>

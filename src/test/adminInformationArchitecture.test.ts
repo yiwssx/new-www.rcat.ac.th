@@ -108,7 +108,7 @@ describe("M20 admin information architecture", () => {
     expect(backupPageSource).toContain("PortableBackupRecoveryPanel");
     expect(backupPageSource).toContain('"backup.restore"');
     expect(portableBackupRecoveryPanelSource).toContain("recoverD1Backup");
-    expect(portableBackupRecoveryPanelSource).toContain("กู้คืนแบบ Merge");
+    expect(portableBackupRecoveryPanelSource).toContain("กู้คืนข้อมูลจากไฟล์สำรอง");
     expect(portableBackupRecoveryPanelSource).toContain("MAX_BACKUP_FILE_BYTES = 4 * 1024 * 1024");
     expect(cmsShellSource).toContain('label: "สำรองข้อมูล"');
     expect(cmsShellSource).toContain('to: "/admin/backup"');

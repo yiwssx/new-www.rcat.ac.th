@@ -211,24 +211,23 @@ function RuntimeIncidentFeedCard({ feed, error }: { feed: RuntimeIncidentFeed | 
       <CardContent>
         <Stack spacing={2}>
           <Box>
-            <Typography variant="h2">Runtime Incident Feed · B2</Typography>
+            <Typography variant="h2">ประวัติเหตุขัดข้องของเว็บไซต์</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-              รวมเฉพาะ uncaught runtime errors, unhandled promise rejections และ API 5xx/network failures แบบ
-              privacy-safe
+              แสดงเหตุขัดข้องที่พบระหว่างการใช้งานเว็บไซต์ โดยไม่บันทึกข้อมูลส่วนตัวของผู้ใช้
             </Typography>
           </Box>
 
           <Alert severity="info">
-            ไม่เก็บ error message, stack trace, request/response body, query string, cookie, token, IP, email หรือ
-            User-Agent · เก็บเหตุการณ์ไม่เกิน 7 วัน และรวมเหตุซ้ำเป็นช่วงเวลา 5 นาที
+            ระบบไม่จัดเก็บรายละเอียดที่อาจมีข้อมูลส่วนตัว เช่น ข้อความผิดพลาด รหัสผ่าน หรือข้อมูลคำขอ เก็บประวัติไม่เกิน
+            7 วัน และรวมเหตุการณ์ที่เกิดซ้ำเพื่อลดรายการที่ไม่จำเป็น
           </Alert>
 
           {error ? (
             <Alert severity="warning">
-              ไม่สามารถอ่าน Runtime Incident Feed ได้ในขณะนี้ โดย health checks อื่นยังทำงานแยกตามปกติ
+              ไม่สามารถโหลดประวัติเหตุขัดข้องได้ในขณะนี้ การตรวจสอบส่วนอื่นยังทำงานตามปกติ
             </Alert>
           ) : feed && feed.items.length === 0 ? (
-            <Alert severity="success">ไม่พบ runtime incident ในช่วง {feed.windowHours} ชั่วโมงล่าสุด</Alert>
+            <Alert severity="success">ไม่พบเหตุขัดข้องในช่วง {feed.windowHours} ชั่วโมงล่าสุด</Alert>
           ) : feed ? (
             <Stack spacing={1.5}>
               <Typography variant="body2" color="text.secondary">
@@ -242,7 +241,7 @@ function RuntimeIncidentFeedCard({ feed, error }: { feed: RuntimeIncidentFeed | 
           ) : (
             <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
               <CircularProgress size={20} />
-              <Typography variant="body2">กำลังอ่าน Runtime Incident Feed...</Typography>
+              <Typography variant="body2">กำลังโหลดประวัติเหตุขัดข้อง...</Typography>
             </Stack>
           )}
         </Stack>
@@ -297,7 +296,7 @@ export default function SystemHealthPage() {
             <Typography variant="h1">สถานะระบบ</Typography>
           </Stack>
           <Typography color="text.secondary" sx={{ mt: 1 }}>
-            ตรวจเส้นทางสำคัญแบบ read-only จาก Admin โดยใช้ boundary และ Request ID ที่ระบบมีอยู่แล้ว
+            ตรวจสอบความพร้อมของบริการหลัก โดยไม่เปลี่ยนแปลงข้อมูลเว็บไซต์
           </Typography>
         </Box>
         <Button
@@ -312,7 +311,7 @@ export default function SystemHealthPage() {
       </Stack>
 
       <Alert severity="info">
-        หน้านี้ไม่สร้าง แก้ไข ลบ หรือ publish ข้อมูล และไม่ยิง Facebook thumbnail/import เพื่อใช้เป็น health check
+        การตรวจสอบนี้ไม่สร้าง แก้ไข หรือลบข้อมูลเว็บไซต์ และไม่ดำเนินการนำเข้าข้อมูลหรือไฟล์
       </Alert>
 
       {report ? (
@@ -350,9 +349,9 @@ export default function SystemHealthPage() {
         <CardContent>
           <Stack spacing={2}>
             <Box>
-              <Typography variant="h2">Operational guards ที่มีอยู่แล้ว</Typography>
+              <Typography variant="h2">การตรวจสอบระบบตามรอบ</Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                Phase B ไม่สร้าง monitoring stack ซ้ำ สถานะต่อไปนี้ยังมี owner อยู่ใน GitHub Actions ตาม governance เดิม
+                รายการตรวจสอบความปลอดภัยและความพร้อมใช้งานที่ระบบกำหนดไว้
               </Typography>
             </Box>
 
@@ -381,11 +380,10 @@ export default function SystemHealthPage() {
             </Box>
 
             <Typography variant="body2" color="text.secondary">
-              ดูผล workflow ล่าสุดได้ที่{" "}
+              ดูผลการตรวจสอบทางเทคนิคเพิ่มเติมได้ที่{" "}
               <Link href={GITHUB_ACTIONS_URL} target="_blank" rel="noreferrer">
                 GitHub Actions
               </Link>
-              . การรวมผล workflow ล่าสุดเข้าหน้านี้โดยไม่ใช้ token ฝั่ง browser เป็นขอบเขต B3
             </Typography>
           </Stack>
         </CardContent>

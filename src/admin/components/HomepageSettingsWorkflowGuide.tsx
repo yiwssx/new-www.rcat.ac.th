@@ -14,7 +14,7 @@ const homepageSettingsSteps = [
   {
     title: "2. ปรับส่วนหน้าแรก",
     status: "Configure",
-    description: "จัดการ hero, highlight, section และลิงก์ให้ตรงกับงานประชาสัมพันธ์ล่าสุด"
+    description: "จัดการภาพหน้าแรก เนื้อหาเด่น ส่วนต่าง ๆ และลิงก์ให้ตรงกับงานประชาสัมพันธ์ล่าสุด"
   },
   {
     title: "3. บันทึกและตรวจหน้าเว็บ",
@@ -29,7 +29,7 @@ export default function HomepageSettingsWorkflowGuide() {
       <CardContent>
         <Stack spacing={1.5}>
           <Box>
-            <Typography sx={{ fontWeight: 900 }}>ลำดับงานตั้งค่าหน้าแรกแบบ WordPress-like</Typography>
+            <Typography sx={{ fontWeight: 900 }}>ขั้นตอนตั้งค่าหน้าแรก</Typography>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
               ใช้เป็นเช็กลิสต์ก่อนแก้ค่าระบบและส่วนหน้าแรก เพื่อให้ข้อมูลสาธารณะถูกต้องก่อนเผยแพร่
             </Typography>

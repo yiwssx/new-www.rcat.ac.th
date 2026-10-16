@@ -220,7 +220,7 @@ describe("ContentEditorDialog", () => {
     renderEditor(null);
 
     const titleInput = screen.getByRole("textbox", { name: "ชื่อเรื่อง" });
-    const slugInput = screen.getByRole("textbox", { name: "slug ลิงก์ถาวร" });
+    const slugInput = screen.getByRole("textbox", { name: "ลิงก์ถาวรของเนื้อหา" });
 
     fireEvent.change(titleInput, { target: { value: "ข่าว" } });
     expect(slugInput).toHaveValue("ข่าว");
@@ -244,7 +244,7 @@ describe("ContentEditorDialog", () => {
     const importedSlug = "น้ำเพื่อการเกษตร";
     renderEditor(createContentItem({ slug: importedSlug, template: "standard" }), { onSave });
 
-    expect(screen.getByRole("textbox", { name: "slug ลิงก์ถาวร" })).toHaveValue(importedSlug);
+    expect(screen.getByRole("textbox", { name: "ลิงก์ถาวรของเนื้อหา" })).toHaveValue(importedSlug);
 
     fireEvent.click(screen.getByRole("button", { name: "ดำเนินการต่อ" }));
     fireEvent.click(screen.getByRole("button", { name: "บันทึก" }));
@@ -265,19 +265,20 @@ describe("ContentEditorDialog", () => {
     });
     renderEditor(item, { onSave });
 
-    fireEvent.change(screen.getByRole("textbox", { name: "slug ลิงก์ถาวร" }), {
+    fireEvent.change(screen.getByRole("textbox", { name: "ลิงก์ถาวรของเนื้อหา" }), {
       target: { value: "ข่าว รับสมัคร ปี 2569-" }
     });
     fireEvent.change(screen.getByRole("textbox", { name: "หมวดหมู่" }), {
       target: { value: categoryInput }
     });
 
-    expect(screen.getByRole("textbox", { name: "slug หมวดหมู่" })).toHaveValue(categorySlugPreview);
+    expect(screen.getByRole("textbox", { name: "ลิงก์หมวดหมู่" })).toHaveValue(categorySlugPreview);
+    expect(screen.queryByRole("textbox", { name: "slug หมวดหมู่" })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "ดำเนินการต่อ" }));
 
     expect(screen.getByText(`หมวดหมู่: ${normalizedCategory}`)).toBeInTheDocument();
-    expect(screen.getByText(`slug หมวดหมู่: ${categorySlugPreview}`)).toBeInTheDocument();
+    expect(screen.getByText(`ลิงก์หมวดหมู่: ${categorySlugPreview}`)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "บันทึก" }));
 
@@ -298,11 +299,11 @@ describe("ContentEditorDialog", () => {
   it("keeps English and numeric permalink sanitization compatible", () => {
     renderEditor(createContentItem({ template: "standard" }));
 
-    fireEvent.change(screen.getByRole("textbox", { name: "slug ลิงก์ถาวร" }), {
+    fireEvent.change(screen.getByRole("textbox", { name: "ลิงก์ถาวรของเนื้อหา" }), {
       target: { value: "Student Life / Updates 2569" }
     });
 
-    expect(screen.getByRole("textbox", { name: "slug ลิงก์ถาวร" })).toHaveValue("student-life-updates-2569");
+    expect(screen.getByRole("textbox", { name: "ลิงก์ถาวรของเนื้อหา" })).toHaveValue("student-life-updates-2569");
   });
 
   it("shows the Facebook Embed label and missing canonical_url warning", () => {

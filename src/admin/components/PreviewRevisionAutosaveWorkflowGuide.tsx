@@ -14,7 +14,7 @@ const previewRevisionSteps = [
   {
     title: "2. ทบทวนการแก้ไข",
     status: "Revision",
-    description: "ตรวจชื่อเรื่อง slug หมวดหมู่ และสื่อประกอบก่อนบันทึก"
+    description: "ตรวจชื่อเรื่อง ลิงก์ถาวร หมวดหมู่ และสื่อประกอบก่อนบันทึก"
   },
   {
     title: "3. กู้คืนฉบับร่าง",

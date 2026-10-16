@@ -29,7 +29,7 @@ export default function DocumentManagementWorkflowGuide() {
       <CardContent>
         <Stack spacing={1.5}>
           <Box>
-            <Typography sx={{ fontWeight: 900 }}>ลำดับงานจัดการเอกสารแบบ WordPress-like</Typography>
+            <Typography sx={{ fontWeight: 900 }}>ขั้นตอนจัดการเอกสาร</Typography>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
               ใช้เช็กลิสต์นี้ก่อนเพิ่มหรือแก้เอกสาร เพื่อให้ไฟล์พร้อมเผยแพร่และค้นหาได้ง่าย
             </Typography>

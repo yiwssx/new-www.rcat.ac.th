@@ -1177,7 +1177,7 @@ export default function DocumentsPage() {
                   </Button>
                   {advancedOpen && (
                     <TextField
-                      label="Media ID"
+                      label="รหัสสื่อที่เชื่อมกับเอกสาร"
                       value={editingDocument.mediaId}
                       onChange={(event) => updateEditingDocument("mediaId", event.target.value)}
                       helperText="ใช้เมื่อเชื่อมโยงกับไฟล์ในคลังสื่อ ระบบทั่วไปไม่จำเป็นต้องกรอกเอง"
