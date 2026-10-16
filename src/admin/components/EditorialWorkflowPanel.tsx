@@ -149,10 +149,10 @@ export default function EditorialWorkflowPanel() {
         <Stack spacing={2}>
           <Box>
             <Typography variant="h2" sx={{ fontSize: "1.35rem" }}>
-              Editorial Workflow และถังขยะ
+              ตรวจทานเนื้อหาและถังขยะ
             </Typography>
             <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
-              ส่งฉบับร่างเข้าตรวจทาน นำงานกลับมาแก้ไข และกู้คืนเนื้อหาที่ลบแบบ soft-delete
+              ส่งเนื้อหาให้ตรวจทาน นำกลับมาแก้ไข หรือกู้คืนเนื้อหาที่ลบแล้ว
             </Typography>
           </Box>
 
@@ -165,7 +165,7 @@ export default function EditorialWorkflowPanel() {
             onChange={(_, value) => setSelectedId(value?.id || "")}
             getOptionLabel={(option) => option.title}
             isOptionEqualToValue={(option, value) => option.id === value.id}
-            renderInput={(params) => <TextField {...params} label="เลือกเนื้อหาสำหรับ Workflow" />}
+            renderInput={(params) => <TextField {...params} label="เลือกเนื้อหาที่ต้องการจัดการ" />}
           />
 
           {selected && (
@@ -201,8 +201,8 @@ export default function EditorialWorkflowPanel() {
 
           {selected && !["draft", "review"].includes(selected.status) && (
             <Alert severity="info">
-              เนื้อหาสถานะ {statusLabel(selected.status)} ต้องยกเลิกการเผยแพร่ก่อนจึงจะย้อนกลับเข้าสู่ Editorial
-              Workflow ได้
+              เนื้อหาสถานะ {statusLabel(selected.status)} ต้องยกเลิกการเผยแพร่ก่อนจึงจะนำกลับเข้าสู่ขั้นตอน
+              ตรวจทานได้
             </Alert>
           )}
         </Stack>
