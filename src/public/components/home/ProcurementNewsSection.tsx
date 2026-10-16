@@ -12,7 +12,6 @@ import RequestQuoteOutlinedIcon from "@mui/icons-material/RequestQuoteOutlined";
 import type { PublicContentCardItem } from "../../../types";
 import EmptyState from "../../../shared/components/EmptyState";
 import PublicResponsiveImage from "../../../shared/media/PublicResponsiveImage";
-import SemanticStatusChip from "../../../design-system/components/SemanticStatusChip";
 import { formatDisplayDate } from "../../../utils/dateDisplay";
 import { normalizeSafeHref } from "../../../utils/safeUrl";
 import { usePublicHomeSnapshot } from "../../hooks/usePublicHomeSnapshot";
@@ -59,7 +58,7 @@ export function ProcurementNewsSection({ items }: { items: PublicContentCardItem
       {visibleItems.length === 0 ? (
         <EmptyState
           title="ยังไม่มีข่าวจัดซื้อจัดจ้าง"
-          description="เมื่อมีประกาศจัดซื้อจัดจ้างที่เผยแพร่แล้ว ระบบจะแสดงรายการในส่วนนี้"
+          description="ติดตามประกาศและข่าวจัดซื้อจัดจ้างของวิทยาลัยได้ที่นี่"
         />
       ) : (
         <Grid container spacing={{ xs: 1.5, md: 1.8 }}>
@@ -141,7 +140,6 @@ export function ProcurementNewsSection({ items }: { items: PublicContentCardItem
                           size="small"
                           color="primary"
                         />
-                        <SemanticStatusChip label="เผยแพร่แล้ว" status="published" />
                       </Stack>
 
                       <Typography
