@@ -90,14 +90,14 @@ The optional SiteSettings contract is implemented in PR #633, with the exact sha
 
 ## 5. Phase gates / actionable checklist
 
-| Phase | Deliverable                                                                        | Acceptance / evidence                                                                                                                         | Status |
-| ----- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| P0    | Scope, reference review, SiteSettings / Worker and icon interpretation             | Both icon options confirmed 2026-10-16; Page URL is configured later in CMS                                                                   | [x]    |
-| P1    | New Settings category, route, editor, picker, preview, partial save                | Add/edit/reorder/delete, enable/disable, reload, permissions, conflict safety                                                                 | [x]    |
-| P2    | Optional settings contract, normalization, Worker validation and public projection | Backward compatibility, API read/write tests, safe defaults, no implicit production data migration                                            | [x]    |
-| P3    | Responsive Page plugin and linked social directory                                 | Desktop below visitor stats; mobile last before footer; proper URL/embed/error/no-data states                                                 | [x]    |
-| P4    | Quality + security verification                                                    | Unit, integration, Functional E2E, static quality, build, and responsive automated 360/390/430/1280 checks; exact-head CI green               | [x]    |
-| P5    | Approved merge and production release / verification                               | PR #637 merged after green CI; frontend-only Production READY at exact SHA; operator explicitly accepted development closure                 | [x]    |
+| Phase | Deliverable                                                                        | Acceptance / evidence                                                                                                           | Status |
+| ----- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| P0    | Scope, reference review, SiteSettings / Worker and icon interpretation             | Both icon options confirmed 2026-10-16; Page URL is configured later in CMS                                                     | [x]    |
+| P1    | New Settings category, route, editor, picker, preview, partial save                | Add/edit/reorder/delete, enable/disable, reload, permissions, conflict safety                                                   | [x]    |
+| P2    | Optional settings contract, normalization, Worker validation and public projection | Backward compatibility, API read/write tests, safe defaults, no implicit production data migration                              | [x]    |
+| P3    | Responsive Page plugin and linked social directory                                 | Desktop below visitor stats; mobile last before footer; proper URL/embed/error/no-data states                                   | [x]    |
+| P4    | Quality + security verification                                                    | Unit, integration, Functional E2E, static quality, build, and responsive automated 360/390/430/1280 checks; exact-head CI green | [x]    |
+| P5    | Approved merge and production release / verification                               | PR #637 merged after green CI; frontend-only Production READY at exact SHA; operator explicitly accepted development closure    | [x]    |
 
 ### Functional acceptance matrix
 
@@ -151,11 +151,13 @@ The optional SiteSettings contract is implemented in PR #633, with the exact sha
 **Decision and authority:** Following the completed implementation and observed Facebook-hosted Timeline failures on both the college Page and NASA, the operator selected a **header-only official Facebook Page Plugin**, expressly rejected paid external providers, expiring Meta Graph API credentials and CMS news substitution, and explicitly instructed closure because development is finished. This is acceptance of the agreed **development scope**, not a certification that Meta's independently controlled header will always render every button or cover image.
 
 **Shipped outcome:**
+
 - School Facebook header uses the original native Meta Page Plugin with no Timeline tab, bounded **150px** space, responsive width, lazy loading, official Page link, and browser-provided Page controls when available.
 - Grouped department and administrative-unit social links, icon selection/custom logo support, ordering, visibility, and dedicated `/admin/settings/social` remain available. The obsolete visible height editor was removed; its stored key remains for backwards compatibility.
 - No subscription, new runtime dependency, Graph API token, D1 migration, Worker code change or separate Facebook post ingestion was introduced for this final mode.
 
 **Release evidence:**
+
 - Original implementation: [PR #633](https://github.com/yiwssx/new-www.rcat.ac.th/pull/633) merged; subsequent rejected CMS substitution [PR #635](https://github.com/yiwssx/new-www.rcat.ac.th/pull/635) was reverted by [PR #636](https://github.com/yiwssx/new-www.rcat.ac.th/pull/636).
 - Accepted final build: [PR #637](https://github.com/yiwssx/new-www.rcat.ac.th/pull/637) merged, [exact-head CI #38852065934](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38852065934) green on all jobs including unit, integration, functional E2E, static quality, build, Worker and governance.
 - Production: Vercel **READY**, deployment `dpl_A3M1XctBKS9cy42tekH8o23ZhZaD`, exact merge commit `0181a4402703dd25848d24d3c23c6570e5874158`.
