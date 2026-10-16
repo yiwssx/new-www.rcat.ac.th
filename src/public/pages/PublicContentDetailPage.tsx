@@ -143,9 +143,7 @@ function ContentDetailMetadata({
       >
         <Chip label={contentTypeLabels[item.type]} color="primary" />
         <Chip label={formatDisplayDate(item.publishAt)} variant="outlined" />
-        {publicAuthor && (
-          <Chip label={`ผู้เผยแพร่: ${publicAuthor}`} variant="outlined" />
-        )}
+        {publicAuthor && <Chip label={`ผู้เผยแพร่: ${publicAuthor}`} variant="outlined" />}
         <Chip label={`ผู้เข้าดู ${formatViewCount(displayedViewCount)} ครั้ง`} variant="outlined" />
       </Stack>
       {!!tagList.length && (

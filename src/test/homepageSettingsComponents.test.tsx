@@ -651,15 +651,9 @@ describe("homepage settings public sections", () => {
     expect(screen.getByText("สถิติผู้เข้าชมเว็บไซต์")).toBeInTheDocument();
     expect(screen.getByText(/^อัปเดต/)).toBeInTheDocument();
 
-    [
-      "วันนี้",
-      "เมื่อวาน",
-      "เดือนนี้",
-      "ปีนี้",
-      "ผู้เข้าชมทั้งหมด",
-      "ยอดเข้าชมทั้งหมด",
-      "กำลังใช้งานเว็บไซต์"
-    ].forEach((label) => expect(screen.getByText(label)).toBeInTheDocument());
+    ["วันนี้", "เมื่อวาน", "เดือนนี้", "ปีนี้", "ผู้เข้าชมทั้งหมด", "ยอดเข้าชมทั้งหมด", "กำลังใช้งานเว็บไซต์"].forEach(
+      (label) => expect(screen.getByText(label)).toBeInTheDocument()
+    );
   });
 
   it("does not render FloatingMessengerButton when disabled or missing href", () => {

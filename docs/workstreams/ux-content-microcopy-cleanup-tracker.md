@@ -20,36 +20,36 @@ Simplify technical and internal-facing text across RCAT public pages and routine
 
 ## Preliminary audit evidence (static source, not exhaustive field proof)
 
-| Area | Confirmed source evidence | Intended review |
-| --- | --- | --- |
-| Public route descriptions | `src/public/components/PublicSiteShell.tsx`, `src/public/pages/{PublicBlogPage,PublicDepartmentsPage,PublicContactPage}.tsx` | Remove public references to CMS |
-| Public content cards / detail | `src/public/components/PublicContentCard.tsx`, `src/public/pages/PublicContentDetailPage.tsx` | Remove redundant publication chips and generic system author metadata when not meaningful |
-| Public jobs / procurement | `src/public/components/home/{JobOpportunitiesSection,ProcurementNewsSection}.tsx` | Remove redundant `เผยแพร่แล้ว` chips |
-| Homepage headlines | `src/public/components/home/{HomeSectionHeading,ExternalServicesSection}.tsx` | Review `::` and mixed `Online Service Portal` / `E-Service` / Thai titles |
-| Visitor stats | `src/public/components/home/VisitorStatsCard.tsx` | Consistent Thai labels for visitor figures / last update |
-| Admin workflow guides | `src/admin/components/*WorkflowGuide.tsx` | Replace `WordPress-like` with task-centric steps |
-| Admin settings / editor | `src/admin/pages/SettingsPage.tsx`, `src/admin/components/ContentEditorDialog.tsx` | Explain Hero/Intro Gate/slug/SEO in operator language; preserve editable functions |
-| Admin organization | `src/admin/pages/OrganizationPage.tsx`, `src/admin/components/OrganizationUnitContextPreview.tsx` | Reduce jargon and implementation-oriented preview explanations |
-| Admin backups & governance | `src/admin/pages/BackupPage.tsx`, `src/admin/components/{PortableBackupRecoveryPanel,EditorialWorkflowPanel}.tsx` | Make recovery/data-loss consequences readable; retain required security warnings |
-| Admin health / integrations | `src/admin/pages/{SystemHealthPage,IntegrationsPage}.tsx` | Surface user-level state first, reserve technical details for expert users |
+| Area                          | Confirmed source evidence                                                                                                    | Intended review                                                                           |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Public route descriptions     | `src/public/components/PublicSiteShell.tsx`, `src/public/pages/{PublicBlogPage,PublicDepartmentsPage,PublicContactPage}.tsx` | Remove public references to CMS                                                           |
+| Public content cards / detail | `src/public/components/PublicContentCard.tsx`, `src/public/pages/PublicContentDetailPage.tsx`                                | Remove redundant publication chips and generic system author metadata when not meaningful |
+| Public jobs / procurement     | `src/public/components/home/{JobOpportunitiesSection,ProcurementNewsSection}.tsx`                                            | Remove redundant `เผยแพร่แล้ว` chips                                                      |
+| Homepage headlines            | `src/public/components/home/{HomeSectionHeading,ExternalServicesSection}.tsx`                                                | Review `::` and mixed `Online Service Portal` / `E-Service` / Thai titles                 |
+| Visitor stats                 | `src/public/components/home/VisitorStatsCard.tsx`                                                                            | Consistent Thai labels for visitor figures / last update                                  |
+| Admin workflow guides         | `src/admin/components/*WorkflowGuide.tsx`                                                                                    | Replace `WordPress-like` with task-centric steps                                          |
+| Admin settings / editor       | `src/admin/pages/SettingsPage.tsx`, `src/admin/components/ContentEditorDialog.tsx`                                           | Explain Hero/Intro Gate/slug/SEO in operator language; preserve editable functions        |
+| Admin organization            | `src/admin/pages/OrganizationPage.tsx`, `src/admin/components/OrganizationUnitContextPreview.tsx`                            | Reduce jargon and implementation-oriented preview explanations                            |
+| Admin backups & governance    | `src/admin/pages/BackupPage.tsx`, `src/admin/components/{PortableBackupRecoveryPanel,EditorialWorkflowPanel}.tsx`            | Make recovery/data-loss consequences readable; retain required security warnings          |
+| Admin health / integrations   | `src/admin/pages/{SystemHealthPage,IntegrationsPage}.tsx`                                                                    | Surface user-level state first, reserve technical details for expert users                |
 
 **Unverified:** production runtime, authenticated role-specific views, data-driven content and mobile breakpoints require separate later inspection. Two responsive E-Service placements are not confirmed duplication.
 
 ## Phase / checkpoint tracker
 
-| ID | Deliverable | State |
-| --- | --- | --- |
-| T0 | Preliminary static code evidence and initial issue catalogue | **DONE (partial audit)** |
-| T1 | Create planning issue + documentation tracker | **DONE** |
-| T2 | After explicit owner resume, reconcile `main` and concurrent #594 / #631, then produce full route/role/viewport evidence matrix | **PENDING** |
-| T3 | Owner-reviewed copy guidelines: Thai-first wording, status policy, expert exceptions, error/accessibility semantics | **ON HOLD** |
-| T4 | Public P0 microcopy: system labels, CMS mentions, publication chips, generic authors and stats | **ON HOLD** |
-| T5 | Public P1 microcopy: remaining sections, data-sourced copy, empty/loading/error states, accessibility | **ON HOLD** |
-| T6 | Routine Admin P1: workflows, form labels, helper texts, navigation, dialogs, settings, editor, org | **ON HOLD** |
-| T7 | Technical/Admin P1: backup, recovery, system health, integrations; preserve diagnostic and security context | **ON HOLD** |
-| T8 | Regressions: Thai wording tests, semantic/accessibility and sensitive error handling, existing UX/CI checks | **ON HOLD** |
-| T9 | Small scoped PRs only when approved; exact-head CI, desktop/mobile UAT and authorized merge/field verification | **ON HOLD** |
-| T10 | Owner acceptance, merge/production evidence, explicit tracker closure | **ON HOLD** |
+| ID  | Deliverable                                                                                                                     | State                    |
+| --- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| T0  | Preliminary static code evidence and initial issue catalogue                                                                    | **DONE (partial audit)** |
+| T1  | Create planning issue + documentation tracker                                                                                   | **DONE**                 |
+| T2  | After explicit owner resume, reconcile `main` and concurrent #594 / #631, then produce full route/role/viewport evidence matrix | **PENDING**              |
+| T3  | Owner-reviewed copy guidelines: Thai-first wording, status policy, expert exceptions, error/accessibility semantics             | **ON HOLD**              |
+| T4  | Public P0 microcopy: system labels, CMS mentions, publication chips, generic authors and stats                                  | **ON HOLD**              |
+| T5  | Public P1 microcopy: remaining sections, data-sourced copy, empty/loading/error states, accessibility                           | **ON HOLD**              |
+| T6  | Routine Admin P1: workflows, form labels, helper texts, navigation, dialogs, settings, editor, org                              | **ON HOLD**              |
+| T7  | Technical/Admin P1: backup, recovery, system health, integrations; preserve diagnostic and security context                     | **ON HOLD**              |
+| T8  | Regressions: Thai wording tests, semantic/accessibility and sensitive error handling, existing UX/CI checks                     | **ON HOLD**              |
+| T9  | Small scoped PRs only when approved; exact-head CI, desktop/mobile UAT and authorized merge/field verification                  | **ON HOLD**              |
+| T10 | Owner acceptance, merge/production evidence, explicit tracker closure                                                           | **ON HOLD**              |
 
 ## Definition of done
 
