@@ -10,14 +10,14 @@ import FacebookIcon from "@mui/icons-material/Facebook";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import SocialLinkIcon from "../../../shared/components/SocialLinkIcon";
 import PublicDeferredEmbed from "../../../shared/media/PublicDeferredEmbed";
-import { buildFacebookPagePluginUrl } from "../../utils/facebookPagePlugin";
+import { FACEBOOK_PAGE_HEADER_HEIGHT, buildFacebookPagePluginUrl } from "../../utils/facebookPagePlugin";
 import {
   normalizeHomepageSocialWidget,
   socialFacebookPageUrl,
   type HomepageSocialWidgetSettings
 } from "../../../features/cms-settings/socialWidget";
 
-function FacebookPageEmbed({ href, height }: { href: string; height: number }) {
+function FacebookPageEmbed({ href }: { href: string }) {
   const frameContainerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(340);
   useEffect(() => {
@@ -33,7 +33,7 @@ function FacebookPageEmbed({ href, height }: { href: string; height: number }) {
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
   }, []);
-  const url = width >= 180 ? buildFacebookPagePluginUrl(href, width, height) : "";
+  const url = width >= 180 ? buildFacebookPagePluginUrl(href, width) : "";
   return (
     <Box ref={frameContainerRef} sx={{ width: "100%", minWidth: 0, textAlign: "center" }}>
       {url ? (
@@ -46,13 +46,18 @@ function FacebookPageEmbed({ href, height }: { href: string; height: number }) {
           scrolling="no"
           frameBorder="0"
           width="100%"
-          height={height}
-          sx={{ display: "block", mx: "auto", width: "100%", maxWidth: 500, height }}
+          height={FACEBOOK_PAGE_HEADER_HEIGHT}
+          sx={{
+            display: "block",
+            mx: "auto",
+            width: "100%",
+            maxWidth: 500,
+            height: FACEBOOK_PAGE_HEADER_HEIGHT,
+            bgcolor: "background.paper",
+            borderRadius: 1
+          }}
         />
       ) : null}
-      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
-        หากไม่เห็นเนื้อหา Facebook อาจถูกจำกัดโดยเบราว์เซอร์ กรุณาเปิดเพจจากลิงก์ด้านล่าง
-      </Typography>
     </Box>
   );
 }
@@ -87,7 +92,7 @@ export default function HomeSocialLinksCard({
                 <FacebookIcon color="primary" />
                 <Typography variant="h3">Facebook วิทยาลัย</Typography>
               </Stack>
-              <FacebookPageEmbed href={facebookHref} height={widget.pageEmbedHeight} />
+              <FacebookPageEmbed href={facebookHref} />
               <Link
                 href={facebookHref}
                 target="_blank"

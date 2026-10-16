@@ -124,8 +124,8 @@ export default function SocialSettingsEditor({ value, disabled, canUploadMedia, 
           <Stack spacing={2}>
             <Typography variant="h3">Facebook Page วิทยาลัย</Typography>
             <Alert severity="info">
-              URL เพจหลักอยู่ในช่อง Facebook URL ด้านบน ส่วนนี้ฝังเพจทางการบนหน้าแรก หาก Facebook ปิดกั้น iframe
-              ผู้ใช้ยังเปิดเพจผ่านลิงก์ได้
+              แสดงเฉพาะส่วนหัวของเพจ Facebook โดยไม่มีโพสต์หรือไทม์ไลน์ พร้อมลิงก์เปิดเพจอย่างเป็นทางการ สามารถแก้ไข URL
+              เพจได้จากช่อง Facebook URL ในหน้าตั้งค่านี้
             </Alert>
             <FormControlLabel
               control={
@@ -145,25 +145,7 @@ export default function SocialSettingsEditor({ value, disabled, canUploadMedia, 
                   onChange={(event) => onChange({ ...settings, pageEmbedEnabled: event.target.checked })}
                 />
               }
-              label="แสดง Facebook Page แบบฝัง (Timeline)"
-            />
-            <TextField
-              label="ความสูงของ Facebook Page (px)"
-              type="number"
-              size="small"
-              value={settings.pageEmbedHeight}
-              disabled={locked}
-              onChange={(event) => {
-                const n = Number(event.target.value);
-                if (Number.isFinite(n))
-                  onChange({
-                    ...settings,
-                    pageEmbedHeight: Math.min(800, Math.max(300, Math.round(n)))
-                  });
-              }}
-              slotProps={{ htmlInput: { min: 300, max: 800, step: 10 } }}
-              helperText="ความกว้างจะปรับอัตโนมัติตามคอลัมน์ (สูง 300–800 px)"
-              sx={{ maxWidth: 370 }}
+              label="แสดงส่วนหัว Facebook Page"
             />
           </Stack>
         </CardContent>

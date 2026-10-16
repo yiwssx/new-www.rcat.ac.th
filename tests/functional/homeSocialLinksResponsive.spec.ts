@@ -27,7 +27,7 @@ const socialSettings = {
   ]
 };
 
-for (const width of [390, 1280]) {
+for (const width of [360, 390, 430, 1280]) {
   test(`homepage social links render below visitors and before footer at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 });
     await installPublicHomeFixture(page);
@@ -87,7 +87,9 @@ for (const width of [390, 1280]) {
     await expect(widget).toBeVisible();
     await expect(widget.getByText("แผนกวิชาตัวอย่าง")).toBeVisible();
     await expect(widget.getByText("งานประชาสัมพันธ์ตัวอย่าง")).toBeVisible();
-    await expect(widget.locator('[data-public-deferred-embed="true"]')).toHaveCount(1);
+    const facebookEmbed = widget.locator('[data-public-deferred-embed="true"]');
+    await expect(facebookEmbed).toHaveCount(1);
+    await expect(facebookEmbed).toHaveCSS("height", "150px");
 
     // Read all geometry in a single browser evaluation. Reading separate boundingBox()
     // calls across asynchronous layout/scroll updates can mix different viewport frames.
@@ -116,9 +118,9 @@ for (const width of [390, 1280]) {
     const layout = await readLayout();
     expect(layout).not.toBeNull();
     expect(layout!.horizontalOverflow).toBeLessThanOrEqual(1);
-    if (width === 390) {
+    if (width <= 430) {
       expect(layout!.widgetWidth).toBeGreaterThan(280);
-      expect(layout!.widgetWidth).toBeLessThanOrEqual(390);
+      expect(layout!.widgetWidth).toBeLessThanOrEqual(width);
     }
   });
 }
