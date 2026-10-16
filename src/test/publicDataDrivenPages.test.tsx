@@ -1066,12 +1066,12 @@ describe("public data-driven pages", () => {
     try {
       render(<PublicHomePage />);
 
-      const visitorStatsRegion = screen.getByRole("region", { name: "Website Visitors" });
-      const onlineLabel = within(visitorStatsRegion).getByText("Who's Online");
+      const visitorStatsRegion = screen.getByRole("region", { name: "ผู้เข้าชมเว็บไซต์" });
+      const onlineLabel = within(visitorStatsRegion).getByText("กำลังใช้งานเว็บไซต์");
 
-      expect(document.body).toHaveTextContent("Who's Online");
+      expect(document.body).toHaveTextContent("กำลังใช้งานเว็บไซต์");
       expect(onlineLabel.parentElement).toHaveTextContent("0");
-      expect(within(visitorStatsRegion).getByText("Total views")).toBeInTheDocument();
+      expect(within(visitorStatsRegion).getByText("ยอดเข้าชมทั้งหมด")).toBeInTheDocument();
       expect(within(visitorStatsRegion).getByText("12")).toBeInTheDocument();
       expect(screen.queryByText("Deferred program card")).not.toBeInTheDocument();
       expect(observerCallbacks.length).toBeGreaterThan(0);
@@ -1778,7 +1778,7 @@ describe("public data-driven pages", () => {
 
     render(<PublicHomePage />);
     await Promise.all([
-      screen.findByText("Website Visitors", undefined, { timeout: 10000 }),
+      screen.findByText("ผู้เข้าชมเว็บไซต์", undefined, { timeout: 10000 }),
       screen.findByText("ติดต่อและแผนที่", undefined, { timeout: 10000 }),
       screen.findByText("ผลงานและความภาคภูมิใจ", undefined, { timeout: 10000 }),
       screen.findAllByText("บริการออนไลน์และลิงก์ที่เกี่ยวข้อง", undefined, { timeout: 10000 })
@@ -1796,7 +1796,7 @@ describe("public data-driven pages", () => {
     const procurementIndex = pageText.indexOf("ข่าวจัดซื้อจัดจ้าง");
     const achievementsIndex = pageText.indexOf("ผลงานและความภาคภูมิใจ");
     const externalServicesIndex = pageText.indexOf("บริการออนไลน์และลิงก์ที่เกี่ยวข้อง");
-    const visitorStatsIndex = pageText.indexOf("Website Visitors");
+    const visitorStatsIndex = pageText.indexOf("ผู้เข้าชมเว็บไซต์");
 
     Object.entries({
       heroIndex,
@@ -1831,7 +1831,7 @@ describe("public data-driven pages", () => {
     expect(screen.getByText("ข่าวจัดซื้อจัดจ้าง")).toBeInTheDocument();
     expect(screen.getByText("ผลงานและความภาคภูมิใจ")).toBeInTheDocument();
     expect(screen.getByText("Regional innovation award")).toBeInTheDocument();
-    expect(screen.getByText("Website Visitors")).toBeInTheDocument();
+    expect(screen.getByText("ผู้เข้าชมเว็บไซต์")).toBeInTheDocument();
     expect(screen.getAllByText("บริการออนไลน์และลิงก์ที่เกี่ยวข้อง").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("กำหนดการ")).toHaveLength(1);
     expect(screen.getAllByText("ปฐมนิเทศนักศึกษาใหม่")).toHaveLength(1);
