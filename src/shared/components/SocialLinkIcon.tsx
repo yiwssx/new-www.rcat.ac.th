@@ -7,7 +7,7 @@ import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import EventOutlinedIcon from "@mui/icons-material/EventOutlined";
 import PublicOutlinedIcon from "@mui/icons-material/PublicOutlined";
-import WorkOutlineIcon from "@mui/icons-material/WorkOutline";
+import WorkOutlineIcon from "@mui/icons-material/WorkOutlineOutlined";
 import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
 import { socialHttpsUrl, type SocialIconKey } from "../../features/cms-settings/socialWidget";
 
