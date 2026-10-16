@@ -332,7 +332,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
 
   if (!item || item.status !== "published") {
     return (
-      <PublicSiteShell title="ไม่พบเนื้อหา" description="เนื้อหา CMS ที่ร้องขอยังไม่ได้เผยแพร่ในขณะนี้">
+      <PublicSiteShell title="ไม่พบเนื้อหา" description="ไม่พบข้อมูลที่ต้องการ หรือข้อมูลนี้ยังไม่เปิดให้เข้าชม">
         <Card>
           <CardContent sx={{ p: 3 }}>
             <Typography
