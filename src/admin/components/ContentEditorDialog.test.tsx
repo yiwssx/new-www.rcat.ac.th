@@ -272,12 +272,12 @@ describe("ContentEditorDialog", () => {
       target: { value: categoryInput }
     });
 
-    expect(screen.getByRole("textbox", { name: "slug หมวดหมู่" })).toHaveValue(categorySlugPreview);
+    expect(screen.getByRole("textbox", { name: "ลิงก์หมวดหมู่" })).toHaveValue(categorySlugPreview);
 
     fireEvent.click(screen.getByRole("button", { name: "ดำเนินการต่อ" }));
 
     expect(screen.getByText(`หมวดหมู่: ${normalizedCategory}`)).toBeInTheDocument();
-    expect(screen.getByText(`slug หมวดหมู่: ${categorySlugPreview}`)).toBeInTheDocument();
+    expect(screen.getByText(`ลิงก์หมวดหมู่: ${categorySlugPreview}`)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "บันทึก" }));
 
