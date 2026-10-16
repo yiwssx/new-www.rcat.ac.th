@@ -967,13 +967,13 @@ function PublicSiteShellFrame({
             <Container maxWidth="xl">
               <Stack
                 direction={{ xs: "column", md: "row" }}
-                spacing={2}
                 sx={{
+                  gap: 2,
                   justifyContent: "space-between",
-                  alignItems: { xs: "flex-start", md: "center" }
+                  alignItems: { xs: "stretch", md: "center" }
                 }}
               >
-                <Box>
+                <Box data-footer-branding="true" sx={{ order: { xs: 2, md: 1 } }}>
                   {siteSettings.footerTitle && (
                     <Typography
                       sx={{
@@ -993,22 +993,51 @@ function PublicSiteShellFrame({
                     </Typography>
                   )}
                 </Box>
-                <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2}>
+                <Stack
+                  data-footer-actions="true"
+                  direction="row"
+                  spacing={{ xs: 0.75, sm: 1.2 }}
+                  sx={{
+                    order: { xs: 1, md: 2 },
+                    width: { xs: "100%", md: "auto" },
+                    alignItems: "stretch"
+                  }}
+                >
+                  <Button
+                    color="inherit"
+                    href={normalizeSafeHref("/login")}
+                    startIcon={<AdminPanelSettingsOutlinedIcon />}
+                    sx={{
+                      flex: { xs: "1 1 0", md: "initial" },
+                      minWidth: 0,
+                      minHeight: 44,
+                      px: { xs: 0.75, sm: 1.5 },
+                      fontSize: { xs: "0.78rem", sm: "0.875rem" },
+                      lineHeight: 1.3,
+                      whiteSpace: "normal",
+                      textAlign: "center"
+                    }}
+                  >
+                    {STAFF_LOGIN_LABEL}
+                  </Button>
                   <Button
                     component="button"
                     type="button"
                     color="inherit"
                     onClick={handleBackToTop}
                     startIcon={<ArrowForwardOutlinedIcon sx={{ transform: "rotate(-90deg)" }} />}
+                    sx={{
+                      flex: { xs: "1 1 0", md: "initial" },
+                      minWidth: 0,
+                      minHeight: 44,
+                      px: { xs: 0.75, sm: 1.5 },
+                      fontSize: { xs: "0.78rem", sm: "0.875rem" },
+                      lineHeight: 1.3,
+                      whiteSpace: "normal",
+                      textAlign: "center"
+                    }}
                   >
                     {BACK_TO_TOP_LABEL}
-                  </Button>
-                  <Button
-                    color="inherit"
-                    href={normalizeSafeHref("/login")}
-                    startIcon={<AdminPanelSettingsOutlinedIcon />}
-                  >
-                    {STAFF_LOGIN_LABEL}
                   </Button>
                 </Stack>
               </Stack>
