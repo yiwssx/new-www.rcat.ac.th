@@ -142,7 +142,7 @@ function getPublicRouteShellDefaults(pathname: string): PublicRouteShellDefaults
     },
     "/news": {
       title: "ข่าว",
-      description: "กิจกรรมล่าสุด เรื่องราวในสถานศึกษา และข่าวประชาสัมพันธ์จาก CMS"
+      description: "กิจกรรมล่าสุด เรื่องราวในสถานศึกษา และข่าวประชาสัมพันธ์ของวิทยาลัย"
     },
     "/announcements": {
       title: "ประกาศ",
@@ -154,11 +154,11 @@ function getPublicRouteShellDefaults(pathname: string): PublicRouteShellDefaults
     },
     "/blog": {
       title: "บทความ",
-      description: "บทความและเนื้อหาระยะยาวที่เผยแพร่จาก CMS"
+      description: "บทความ ความรู้ และเรื่องราวจากวิทยาลัย"
     },
     "/departments": {
       title: "แผนกวิชา",
-      description: "ข้อมูลแผนกวิชาที่เผยแพร่จาก CMS"
+      description: "ข้อมูลแผนกวิชาและสาขาวิชาที่เปิดสอน"
     },
     "/documents": {
       title: "เอกสารเผยแพร่",
@@ -170,7 +170,7 @@ function getPublicRouteShellDefaults(pathname: string): PublicRouteShellDefaults
     },
     "/contact": {
       title: "ติดต่อ",
-      description: "ข้อมูลติดต่อที่เผยแพร่จาก CMS"
+      description: "ที่อยู่ เบอร์โทรศัพท์ และช่องทางติดต่อวิทยาลัย"
     },
     "/search": {
       title: "ค้นหา",

@@ -52,7 +52,7 @@ export default function PublicDepartmentsPage() {
   return (
     <PublicSiteShell
       title="แผนกวิชา"
-      description="ข้อมูลแผนกวิชาที่เผยแพร่จาก CMS"
+      description="ข้อมูลแผนกวิชาและสาขาวิชาที่เปิดสอน"
       preloadedSiteSettings={data.siteSettings}
       preloadedHomepageSettings={data.homepageSettings}
       preloadedDisplaySettings={data.displaySettings}

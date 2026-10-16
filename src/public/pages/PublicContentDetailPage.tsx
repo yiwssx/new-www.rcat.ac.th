@@ -29,7 +29,8 @@ import { usePublicContentDetail } from "../hooks/usePublicContentDetail";
 import { MediaContentBlock, parseContentBodyToBlocks } from "../../utils/contentBlocks";
 import { normalizeSafeHref, normalizeSafeResourceUrl } from "../../utils/safeUrl";
 import { CONTENT_TEMPLATE_LABELS, resolveContentTemplate } from "../../utils/contentTemplate";
-import { contentStatusLabels, contentTypeLabels } from "../../utils/thaiLabels";
+import { contentTypeLabels } from "../../utils/thaiLabels";
+import { getPublicAuthorLabel } from "../utils/publicAuthor";
 import { ContentItem, MediaAsset } from "../../types";
 import { focusVisibleSx } from "../../design-system/componentStyles";
 import { formatDisplayDate } from "../../utils/dateDisplay";
@@ -128,6 +129,8 @@ function ContentDetailMetadata({
   tagList: string[];
   displayedViewCount: number;
 }) {
+  const publicAuthor = getPublicAuthorLabel(item.owner);
+
   return (
     <Stack spacing={1}>
       <Stack
@@ -139,9 +142,8 @@ function ContentDetailMetadata({
         }}
       >
         <Chip label={contentTypeLabels[item.type]} color="primary" />
-        <Chip label={contentStatusLabels[item.status]} variant="outlined" />
         <Chip label={formatDisplayDate(item.publishAt)} variant="outlined" />
-        <Chip label={`ผู้เผยแพร่: ${item.owner || "ไม่ระบุ"}`} variant="outlined" />
+        {publicAuthor && <Chip label={`ผู้เผยแพร่: ${publicAuthor}`} variant="outlined" />}
         <Chip label={`ผู้เข้าดู ${formatViewCount(displayedViewCount)} ครั้ง`} variant="outlined" />
       </Stack>
       {!!tagList.length && (
@@ -332,7 +334,7 @@ export default function PublicContentDetailPage({ slug }: PublicContentDetailPag
 
   if (!item || item.status !== "published") {
     return (
-      <PublicSiteShell title="ไม่พบเนื้อหา" description="เนื้อหา CMS ที่ร้องขอยังไม่ได้เผยแพร่ในขณะนี้">
+      <PublicSiteShell title="ไม่พบเนื้อหา" description="ไม่พบข้อมูลที่ต้องการ หรือข้อมูลนี้ยังไม่เปิดให้เข้าชม">
         <Card>
           <CardContent sx={{ p: 3 }}>
             <Typography

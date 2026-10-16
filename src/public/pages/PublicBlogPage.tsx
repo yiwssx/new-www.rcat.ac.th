@@ -104,7 +104,7 @@ export default function PublicBlogPage() {
   return (
     <PublicSiteShell
       title="บทความ"
-      description="บทความและเนื้อหาระยะยาวที่เผยแพร่จาก CMS"
+      description="บทความ ความรู้ และเรื่องราวจากวิทยาลัย"
       preloadedSiteSettings={data.siteSettings}
       preloadedHomepageSettings={data.homepageSettings}
       preloadedDisplaySettings={data.displaySettings}

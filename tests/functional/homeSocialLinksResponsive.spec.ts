@@ -78,7 +78,7 @@ for (const width of [360, 390, 430, 1280]) {
 
     await page.goto("/");
 
-    const visitors = page.getByRole("region", { name: "Website Visitors" });
+    const visitors = page.getByRole("region", { name: "ภาพรวมผู้เข้าชม" });
     const widget = page.locator('[data-home-social-widget="true"]');
     const footer = page.locator('[data-cls-region="dark-footer"]');
 
@@ -95,7 +95,7 @@ for (const width of [360, 390, 430, 1280]) {
     // calls across asynchronous layout/scroll updates can mix different viewport frames.
     const readLayout = () =>
       page.evaluate(() => {
-        const visitorsElement = document.querySelector('[aria-label="Website Visitors"]');
+        const visitorsElement = document.querySelector('[aria-label="ภาพรวมผู้เข้าชม"]');
         const widgetElement = document.querySelector('[data-home-social-widget="true"]');
         const footerElement = document.querySelector('[data-cls-region="dark-footer"]');
         if (!visitorsElement || !widgetElement || !footerElement) return null;

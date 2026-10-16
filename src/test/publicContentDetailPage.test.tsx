@@ -203,7 +203,7 @@ describe("PublicContentDetailPage", () => {
     expect(screen.queryByRole("link", { name: "กลับไปหน้ารายการ" })).not.toBeInTheDocument();
 
     expect(within(article).getByText("ประกาศ")).toBeInTheDocument();
-    expect(within(article).getByText("เผยแพร่แล้ว")).toBeInTheDocument();
+    expect(within(article).queryByText("เผยแพร่แล้ว")).not.toBeInTheDocument();
     expect(within(article).getByText("3 พฤษภาคม 2569")).toBeInTheDocument();
     expect(within(article).queryByText(/3 พฤษภาคม 2569\s+\d{1,2}:\d{2}/)).not.toBeInTheDocument();
     expect(within(article).getByText("ผู้เผยแพร่: งานประชาสัมพันธ์")).toBeInTheDocument();
@@ -325,7 +325,7 @@ describe("PublicContentDetailPage", () => {
     expect(screen.queryByText("เทมเพลต")).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "URL หลัก" })).not.toBeInTheDocument();
     expect(screen.getByText("ข่าว")).toBeInTheDocument();
-    expect(screen.getByText("เผยแพร่แล้ว")).toBeInTheDocument();
+    expect(screen.queryByText("เผยแพร่แล้ว")).not.toBeInTheDocument();
     expect(screen.getByText("3 พฤษภาคม 2569")).toBeInTheDocument();
     expect(screen.queryByText(/3 พฤษภาคม 2569\s+\d{1,2}:\d{2}/)).not.toBeInTheDocument();
     expect(screen.getByText("ผู้เผยแพร่: งานประชาสัมพันธ์")).toBeInTheDocument();
