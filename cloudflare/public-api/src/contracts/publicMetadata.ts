@@ -9,6 +9,20 @@ export interface PublicSiteSettingsContract {
   address: string;
   admissionUrl: string;
   facebookUrl: string;
+  homepageSocial?: {
+    enabled: boolean;
+    pageEmbedEnabled: boolean;
+    pageEmbedHeight: number;
+    links: Array<{
+      id: string;
+      category: "department" | "unit";
+      label: string;
+      href: string;
+      iconKey: string;
+      iconUrl: string;
+      enabled: boolean;
+    }>;
+  };
   youtubeUrl: string;
   tiktokUrl: string;
   heroTitle: string;
