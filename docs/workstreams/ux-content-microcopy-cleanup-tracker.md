@@ -2,12 +2,12 @@
 
 **Repository:** `yiwssx/new-www.rcat.ac.th`  
 **Created:** 2026-10-16 (Asia/Bangkok)  
-**Status:** **ACTIVE — SOURCE CI GREEN; FIELD UAT AND MERGE PENDING**  
+**Status:** **ACTIVE — CODE CI VERIFIED; LATEST PUBLIC TRACKER HEAD RECHECK AND FIELD UAT PENDING**  
 **Tracking issue:** [#634](https://github.com/yiwssx/new-www.rcat.ac.th/issues/634)  
 **Implementation baseline:** `main@bfe0c948458f3eb6fdd951eeac7e78cadbc791bb` (2026-10-16, after Social Links closure)  
 **Implementation branch:** `fix/ux-public-microcopy-634` (based on latest main); original planning branch: `docs/ux-content-microcopy-cleanup-plan-20261016`  
-**Public implementation PR:** [#639](https://github.com/yiwssx/new-www.rcat.ac.th/pull/639) **DRAFT; EXACT-HEAD CI PASSED**.  
-**Admin implementation PR:** [#640](https://github.com/yiwssx/new-www.rcat.ac.th/pull/640) **DRAFT; CI RECHECK PENDING**.  
+**Public implementation PR:** [#639](https://github.com/yiwssx/new-www.rcat.ac.th/pull/639) **DRAFT; CURRENT-HEAD CI RECHECK**.  
+**Admin implementation PR:** [#640](https://github.com/yiwssx/new-www.rcat.ac.th/pull/640) **READY FOR REVIEW; 13/13 CHECKS PASS**.  
 **Production verification:** NOT RUN; no branch preview deployment found as of latest Vercel check.
 
 ## Objective / scope
@@ -77,8 +77,8 @@ Simplify technical and internal-facing text across RCAT public pages and routine
 ## Durable execution state
 
 - **Current authoritative baseline:** `main@bfe0c948458f3eb6fdd951eeac7e78cadbc791bb`; revalidate before merge.
-- **Public PR #639:** `fix/ux-public-microcopy-634@c4ce7cfd1aed24eebec0bf9c0aa60c2e4fa5f604`; exact-head [CI #38879501130](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38879501130) **SUCCESS (10/10 jobs)**, plus Prettier and CodeQL **SUCCESS**. This tracker update creates a new head requiring fresh CI before merge.
-- **Admin PR #640:** `fix/ux-admin-microcopy-634@69fa369aec5f4e432faed71aa29098382c6b012c`; exact-head [CI #38879679257](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38879679257) **SUCCESS (10/10 jobs)**, CodeQL **SUCCESS**.
+- **Public PR #639:** implementation checkpoint `fix/ux-public-microcopy-634@c4ce7cfd1aed24eebec0bf9c0aa60c2e4fa5f604`; exact-head [CI #38879501130](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38879501130) **SUCCESS (10/10 jobs)**, plus Prettier and CodeQL **SUCCESS**. This tracker update creates a new head requiring fresh CI before merge.
+- **Admin PR #640:** OPEN / READY FOR REVIEW at `fix/ux-admin-microcopy-634@69fa369aec5f4e432faed71aa29098382c6b012c`; exact-head [CI #38879679257](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38879679257) **SUCCESS (10/10 jobs)**, CodeQL **SUCCESS**.
 - **Concurrency:** Independent Organization UX #594 remains open for owner Android/portrait/structure UAT; #631 was closed. Both #634 PRs avoid #594's active layout files.
 - **Release boundary:** source checks green on recorded heads; real deployed preview and authenticated Admin/mobile owner QA **NOT VERIFIED**, owner signoff **NOT RECORDED**. No production mutation or automatic authenticated write probe.
 - **Next:** finish this tracker checkpoint and verify its new PR #639 SHA/checks; move both drafts to review-ready only after accepted checks; seek public desktop/mobile and authenticated Admin field evidence before authorized merge. Do not close #634 prematurely.
