@@ -29,7 +29,7 @@ export default function UserRoleCapabilityWorkflowGuide() {
       <CardContent>
         <Stack spacing={1.5}>
           <Box>
-            <Typography sx={{ fontWeight: 900 }}>ลำดับงานบทบาทและสิทธิ์ผู้ใช้แบบ WordPress-like</Typography>
+            <Typography sx={{ fontWeight: 900 }}>ขั้นตอนจัดการผู้ใช้และสิทธิ์</Typography>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
               ใช้เช็กลิสต์นี้ก่อนเพิ่มหรือแก้ผู้ใช้ เพื่อให้สิทธิ์ตรงกับหน้าที่และลดความเสี่ยงจากสิทธิ์เกินจำเป็น
             </Typography>
