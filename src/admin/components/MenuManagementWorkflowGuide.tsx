@@ -29,7 +29,7 @@ export default function MenuManagementWorkflowGuide() {
       <CardContent>
         <Stack spacing={1.5}>
           <Box>
-            <Typography sx={{ fontWeight: 900 }}>ลำดับงานจัดการเมนูแบบ WordPress-like</Typography>
+            <Typography sx={{ fontWeight: 900 }}>ขั้นตอนจัดการเมนูเว็บไซต์</Typography>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
               ใช้เช็กลิสต์นี้ก่อนเพิ่ม แก้ หรือจัดลำดับเมนู เพื่อให้โครงสร้างหน้าเว็บชัดเจนและไม่ทำให้ผู้ชมหลงทาง
             </Typography>
