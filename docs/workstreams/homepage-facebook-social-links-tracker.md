@@ -2,16 +2,16 @@
 
 **Repository:** `yiwssx/new-www.rcat.ac.th`  
 **Created:** 2026-10-16 (Asia/Bangkok)  
-**Status:** **IMPLEMENTED ON FEATURE PR #633 — FINAL EXACT-HEAD CI PENDING; PRODUCTION UAT PENDING**  
+**Status:** **CLOSED — IMPLEMENTATION ACCEPTED BY OPERATOR (2026-10-16)**  
 **Tracking issue:** [#631](https://github.com/yiwssx/new-www.rcat.ac.th/issues/631)  
 **Planning branch:** `docs/homepage-facebook-social-links-plan-20261016`  
 **Implementation branch:** `feature/homepage-facebook-social-links`  
-**Implementation PR:** [#633](https://github.com/yiwssx/new-www.rcat.ac.th/pull/633) (draft until exact-head CI green)  
+**Implementation PR:** [#633](https://github.com/yiwssx/new-www.rcat.ac.th/pull/633) (merged); **final header-only PR:** [#637](https://github.com/yiwssx/new-www.rcat.ac.th/pull/637) (merged)  
 **Reference:** owner-supplied screenshot showing college Facebook plugin followed by department social links; used as a structural reference, not copied as artwork or live production data.
 
 ## 1. Requirements and scope
 
-Add a controlled and responsive **Facebook & Social Links** homepage block.
+Add a controlled and responsive **Facebook & Social Links** homepage block. **Historical requirements and early plan below are superseded by the operator-approved header-only outcome recorded in sections 9–10.**
 
 1. Embed the college **Facebook Page / Timeline** (not a single post) with width fitted to its parent card, bounded configurable height, and graceful loading/error/link fallback.
 2. Underneath, display **links to Facebook Pages of departments and administrative units**. Admin can enter a display label, HTTPS URL, select an icon, toggle visibility and reorder links. Group by `department` and `unit` for meaningful headings; avoid hardcoded organization names.
@@ -96,8 +96,8 @@ The optional SiteSettings contract is implemented in PR #633, with the exact sha
 | P1    | New Settings category, route, editor, picker, preview, partial save                | Add/edit/reorder/delete, enable/disable, reload, permissions, conflict safety                                                                 | [x]    |
 | P2    | Optional settings contract, normalization, Worker validation and public projection | Backward compatibility, API read/write tests, safe defaults, no implicit production data migration                                            | [x]    |
 | P3    | Responsive Page plugin and linked social directory                                 | Desktop below visitor stats; mobile last before footer; proper URL/embed/error/no-data states                                                 | [x]    |
-| P4    | Quality + security verification                                                    | Unit, integration, Functional E2E, accessibility, 390px/mobile and desktop visual checks; no regressions, all required exact-head CI green    | [ ]    |
-| P5    | Approved merge and production release / verification                               | PR merged only after required checks; Worker/frontend deployment order attested; operator validates live page and explicitly approves closure | [ ]    |
+| P4    | Quality + security verification                                                    | Unit, integration, Functional E2E, static quality, build, and responsive automated 360/390/430/1280 checks; exact-head CI green               | [x]    |
+| P5    | Approved merge and production release / verification                               | PR #637 merged after green CI; frontend-only Production READY at exact SHA; operator explicitly accepted development closure                 | [x]    |
 
 ### Functional acceptance matrix
 
@@ -145,3 +145,20 @@ The optional SiteSettings contract is implemented in PR #633, with the exact sha
 - **Acceptance:** issue #631 stays **OPEN** until the operator confirms the public Page header looks complete. The application cannot guarantee which Facebook-controlled elements render inside the cross-origin iframe, so do not claim Meta's Page header is pixel-perfect without production browser proof.
 
 - **CI formatting note:** initial Static Quality flagged Prettier in the Social Settings editor and unit test; repository PR autofix normalized those files on branch. Re-run exact-head CI on a user-authored commit after the autofix; do not interpret bot-generated `action_required` as a passing quality gate.
+
+## 10. Closure record — 2026-10-16 (supersedes earlier pending statuses)
+
+**Decision and authority:** Following the completed implementation and observed Facebook-hosted Timeline failures on both the college Page and NASA, the operator selected a **header-only official Facebook Page Plugin**, expressly rejected paid external providers, expiring Meta Graph API credentials and CMS news substitution, and explicitly instructed closure because development is finished. This is acceptance of the agreed **development scope**, not a certification that Meta's independently controlled header will always render every button or cover image.
+
+**Shipped outcome:**
+- School Facebook header uses the original native Meta Page Plugin with no Timeline tab, bounded **150px** space, responsive width, lazy loading, official Page link, and browser-provided Page controls when available.
+- Grouped department and administrative-unit social links, icon selection/custom logo support, ordering, visibility, and dedicated `/admin/settings/social` remain available. The obsolete visible height editor was removed; its stored key remains for backwards compatibility.
+- No subscription, new runtime dependency, Graph API token, D1 migration, Worker code change or separate Facebook post ingestion was introduced for this final mode.
+
+**Release evidence:**
+- Original implementation: [PR #633](https://github.com/yiwssx/new-www.rcat.ac.th/pull/633) merged; subsequent rejected CMS substitution [PR #635](https://github.com/yiwssx/new-www.rcat.ac.th/pull/635) was reverted by [PR #636](https://github.com/yiwssx/new-www.rcat.ac.th/pull/636).
+- Accepted final build: [PR #637](https://github.com/yiwssx/new-www.rcat.ac.th/pull/637) merged, [exact-head CI #38852065934](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38852065934) green on all jobs including unit, integration, functional E2E, static quality, build, Worker and governance.
+- Production: Vercel **READY**, deployment `dpl_A3M1XctBKS9cy42tekH8o23ZhZaD`, exact merge commit `0181a4402703dd25848d24d3c23c6570e5874158`.
+- Automated viewport geometry exercised at 360/390/430/1280px; **not claimed:** an independent pixel-level production-browser inspection of Facebook's third-party header, all configurable user-upload scenarios or Meta platform availability. The operator chose to accept/close development despite these third-party/manual limitations.
+
+**Closure:** P0–P5 reflect implementation completed, automated verification and release verified, and operator-requested closure. Issue [#631](https://github.com/yiwssx/new-www.rcat.ac.th/issues/631) should be closed as **completed**, not `not_planned`. New independent defects or Meta regressions should be logged separately. Historical 'pending' and 'do not close' statements in sections 6–9 document intermediate states and **are no longer current**.
