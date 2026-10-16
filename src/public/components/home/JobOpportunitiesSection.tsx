@@ -12,7 +12,6 @@ import WorkOutlineOutlinedIcon from "@mui/icons-material/WorkOutlineOutlined";
 import type { PublicContentCardItem } from "../../../types";
 import EmptyState from "../../../shared/components/EmptyState";
 import PublicResponsiveImage from "../../../shared/media/PublicResponsiveImage";
-import SemanticStatusChip from "../../../design-system/components/SemanticStatusChip";
 import { formatDisplayDate } from "../../../utils/dateDisplay";
 import { normalizeSafeHref } from "../../../utils/safeUrl";
 import { usePublicHomeSnapshot } from "../../hooks/usePublicHomeSnapshot";
@@ -137,7 +136,6 @@ export function JobOpportunitiesSection({ items }: { items: PublicContentCardIte
                           size="small"
                           color="primary"
                         />
-                        <SemanticStatusChip label="เผยแพร่แล้ว" status="published" />
                       </Stack>
 
                       <Typography
