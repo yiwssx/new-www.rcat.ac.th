@@ -14,7 +14,7 @@ import Typography from "@mui/material/Typography";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
 import SocialLinkIcon from "../../../shared/components/SocialLinkIcon";
 import { saveMediaAsset } from "../../../features/cms-media";
@@ -201,7 +201,7 @@ export default function SocialSettingsEditor({ value, disabled, onChange }: Prop
             {settings.links.map((link, index) => (
               <Box key={link.id} sx={{ border: "1px solid", borderColor: "divider", p: 2, borderRadius: 2 }}>
                 <Stack spacing={1.5}>
-                  <Stack direction="row" alignItems="center" spacing={1}>
+                  <Stack direction="row" sx={{ alignItems: "center" }} spacing={1}>
                     <SocialLinkIcon
                       iconKey={link.iconKey}
                       iconUrl={link.iconUrl}
@@ -228,7 +228,7 @@ export default function SocialSettingsEditor({ value, disabled, onChange }: Prop
                     fullWidth
                     value={link.label}
                     disabled={locked}
-                    inputProps={{ maxLength: 120 }}
+                    slotProps={{ htmlInput: { maxLength: 120 } }}
                     onChange={(event) => changeLink(index, { label: event.target.value })}
                   />
                   <TextField
@@ -274,7 +274,7 @@ export default function SocialSettingsEditor({ value, disabled, onChange }: Prop
                     </TextField>
                   </Stack>
                   {link.iconKey === "custom" && (
-                    <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ sm: "center" }}>
+                    <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ alignItems: { sm: "center" } }}>
                       <Button
                         component="label"
                         variant="outlined"
@@ -300,7 +300,7 @@ export default function SocialSettingsEditor({ value, disabled, onChange }: Prop
                     </Stack>
                   )}
                   <Divider />
-                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }} useFlexGap>
                     <Button
                       size="small"
                       startIcon={<ArrowUpwardIcon />}
