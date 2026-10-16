@@ -13,7 +13,7 @@ export default function SettingsOverviewPage() {
     <Box>
       <PageHeader
         title="ตั้งค่าระบบ"
-        description="เลือกหัวข้อที่ต้องการจัดการ แต่ละหมวดมีหน้าและที่อยู่ URL แยกจากกัน"
+        description="เลือกหมวดการตั้งค่าที่ต้องการแก้ไข"
       />
       <Grid container spacing={2}>
         {settingsNavigation.map((item) => (
