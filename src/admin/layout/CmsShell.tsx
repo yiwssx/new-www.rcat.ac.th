@@ -70,6 +70,7 @@ type AdminPath =
   | "/admin/settings/footer"
   | "/admin/settings/appearance"
   | "/admin/settings/visitors"
+  | "/admin/settings/social"
   | "/admin/settings/access"
   | "/admin/account/security";
 

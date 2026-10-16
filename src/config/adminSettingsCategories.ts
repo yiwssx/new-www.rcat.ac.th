@@ -9,5 +9,6 @@ export const settingsCategories = [
   "footer",
   "appearance",
   "visitors",
+  "social",
   "access"
 ] as const;
