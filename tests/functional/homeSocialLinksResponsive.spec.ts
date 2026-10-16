@@ -78,7 +78,7 @@ for (const width of [360, 390, 430, 1280]) {
 
     await page.goto("/");
 
-    const visitors = page.getByRole("region", { name: "Website Visitors" });
+    const visitors = page.getByRole("region", { name: "ภาพรวมผู้เข้าชม" });
     const widget = page.locator('[data-home-social-widget="true"]');
     const footer = page.locator('[data-cls-region="dark-footer"]');
 
