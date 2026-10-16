@@ -29,7 +29,7 @@ export default function AdminDashboardWorkflowGuide() {
       <CardContent>
         <Stack spacing={1.5}>
           <Box>
-            <Typography sx={{ fontWeight: 900 }}>ลำดับงานหน้าแดชบอร์ดแบบ WordPress-like</Typography>
+            <Typography sx={{ fontWeight: 900 }}>ขั้นตอนดูแลงานจากแดชบอร์ด</Typography>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
               ใช้หน้าแดชบอร์ดเป็นจุดเริ่มงานประจำวันและเป็นทางลัดไปยังงานดูแลเว็บหลัก
             </Typography>
