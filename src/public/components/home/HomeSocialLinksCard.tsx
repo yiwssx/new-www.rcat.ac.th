@@ -93,7 +93,7 @@ export default function HomeSocialLinksCard({
         <Stack spacing={2}>
           {widget.pageEmbedEnabled && facebookHref && (
             <Box>
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
+              <Stack direction="row" spacing={1} sx={{ mb: 1.5, alignItems: "center" }}>
                 <FacebookIcon color="primary" />
                 <Typography variant="h3">Facebook วิทยาลัย</Typography>
               </Stack>
