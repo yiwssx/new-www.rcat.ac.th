@@ -2,13 +2,13 @@
 
 **Repository:** `yiwssx/new-www.rcat.ac.th`  
 **Created:** 2026-10-16 (Asia/Bangkok)  
-**Status:** **ACTIVE — PUBLIC P0 IMPLEMENTATION IN PROGRESS; ADMIN PENDING**  
+**Status:** **ACTIVE — SOURCE CI GREEN; FIELD UAT AND MERGE PENDING**  
 **Tracking issue:** [#634](https://github.com/yiwssx/new-www.rcat.ac.th/issues/634)  
 **Implementation baseline:** `main@bfe0c948458f3eb6fdd951eeac7e78cadbc791bb` (2026-10-16, after Social Links closure)  
 **Implementation branch:** `fix/ux-public-microcopy-634` (based on latest main); original planning branch: `docs/ux-content-microcopy-cleanup-plan-20261016`  
-**Public implementation PR:** [#639](https://github.com/yiwssx/new-www.rcat.ac.th/pull/639) **DRAFT; CI RECHECK PENDING**.  
+**Public implementation PR:** [#639](https://github.com/yiwssx/new-www.rcat.ac.th/pull/639) **DRAFT; EXACT-HEAD CI PASSED**.  
 **Admin implementation PR:** [#640](https://github.com/yiwssx/new-www.rcat.ac.th/pull/640) **DRAFT; CI RECHECK PENDING**.  
-**Production verification:** NOT RUN.
+**Production verification:** NOT RUN; no branch preview deployment found as of latest Vercel check.
 
 ## Objective / scope
 
@@ -41,17 +41,17 @@ Simplify technical and internal-facing text across RCAT public pages and routine
 
 | ID  | Deliverable                                                                                                                     | State                    |
 | --- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
-| T0  | Preliminary static code evidence and initial issue catalogue                                                                    | **DONE (partial audit)** |
+| T0  | Preliminary static code evidence and initial issue catalogue                                                                    | **DONE (static audit)**  |
 | T1  | Create planning issue + documentation tracker                                                                                   | **DONE**                 |
-| T2  | After explicit owner resume, reconcile `main` and concurrent #594 / #631, then produce full route/role/viewport evidence matrix | **PENDING**              |
-| T3  | Owner-reviewed copy guidelines: Thai-first wording, status policy, expert exceptions, error/accessibility semantics             | **ON HOLD**              |
-| T4  | Public P0 microcopy: system labels, CMS mentions, publication chips, generic authors and stats                                  | **ON HOLD**              |
-| T5  | Public P1 microcopy: remaining sections, data-sourced copy, empty/loading/error states, accessibility                           | **ON HOLD**              |
-| T6  | Routine Admin P1: workflows, form labels, helper texts, navigation, dialogs, settings, editor, org                              | **ON HOLD**              |
-| T7  | Technical/Admin P1: backup, recovery, system health, integrations; preserve diagnostic and security context                     | **ON HOLD**              |
-| T8  | Regressions: Thai wording tests, semantic/accessibility and sensitive error handling, existing UX/CI checks                     | **ON HOLD**              |
-| T9  | Small scoped PRs only when approved; exact-head CI, desktop/mobile UAT and authorized merge/field verification                  | **ON HOLD**              |
-| T10 | Owner acceptance, merge/production evidence, explicit tracker closure                                                           | **ON HOLD**              |
+| T2  | After explicit owner resume, reconcile `main` and concurrent #594 / #631, then produce full route/role/viewport evidence matrix | **PARTIAL (CI matrix)**  |
+| T3  | Owner-reviewed copy guidelines: Thai-first wording, status policy, expert exceptions, error/accessibility semantics             | **PENDING OWNER UAT**    |
+| T4  | Public P0 microcopy: system labels, CMS mentions, publication chips, generic authors and stats                                  | **DONE (CI verified)**   |
+| T5  | Public P1 microcopy: remaining sections, data-sourced copy, empty/loading/error states, accessibility                           | **PARTIAL (QA pending)** |
+| T6  | Routine Admin P1: workflows, form labels, helper texts, navigation, dialogs, settings, editor, org                              | **PARTIAL (QA pending)** |
+| T7  | Technical/Admin P1: backup, recovery, system health, integrations; preserve diagnostic and security context                     | **PARTIAL (QA pending)** |
+| T8  | Regressions: Thai wording tests, semantic/accessibility and sensitive error handling, existing UX/CI checks                     | **DONE (CI verified)**   |
+| T9  | Small scoped PRs only when approved; exact-head CI, desktop/mobile UAT and authorized merge/field verification                  | **PENDING FIELD UAT**    |
+| T10 | Owner acceptance, merge/production evidence, explicit tracker closure                                                           | **PENDING**              |
 
 ## Definition of done
 
@@ -76,16 +76,29 @@ Simplify technical and internal-facing text across RCAT public pages and routine
 
 ## Durable execution state
 
-- **Current work:** Public draft PR #639 and Admin draft PR #640 implement source-level microcopy improvements; exact-head CI and production/public/authenticated Admin UAT not yet verified.
-- **Baseline at resume:** `bfe0c948458f3eb6fdd951eeac7e78cadbc791bb`; refresh before merge.
-- **Concurrent work:** Organization Management UX V2.4 [#594](https://github.com/yiwssx/new-www.rcat.ac.th/issues/594), Facebook & Social Links [#631](https://github.com/yiwssx/new-www.rcat.ac.th/issues/631).
-- **Branch:** `fix/ux-public-microcopy-634`.
-- **Implementation:** public copy + tests planned; no migrations or deployments authorized.
-- **Blocker:** none for source-only work; CI/UAT gates required before merge.
-- **Exact next action:** inspect both PR #639 and #640 exact-head CI (including Prettier, strict lint, tests, SSR and C3 locator checks); resolve failures; confirm reviewer/browser acceptance before merge. Keep #594 out of scope.
+- **Current authoritative baseline:** `main@bfe0c948458f3eb6fdd951eeac7e78cadbc791bb`; revalidate before merge.
+- **Public PR #639:** `fix/ux-public-microcopy-634@c4ce7cfd1aed24eebec0bf9c0aa60c2e4fa5f604`; exact-head [CI #38879501130](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38879501130) **SUCCESS (10/10 jobs)**, plus Prettier and CodeQL **SUCCESS**. This tracker update creates a new head requiring fresh CI before merge.
+- **Admin PR #640:** `fix/ux-admin-microcopy-634@69fa369aec5f4e432faed71aa29098382c6b012c`; exact-head [CI #38879679257](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38879679257) **SUCCESS (10/10 jobs)**, CodeQL **SUCCESS**.
+- **Concurrency:** Independent Organization UX #594 remains open for owner Android/portrait/structure UAT; #631 was closed. Both #634 PRs avoid #594's active layout files.
+- **Release boundary:** source checks green on recorded heads; real deployed preview and authenticated Admin/mobile owner QA **NOT VERIFIED**, owner signoff **NOT RECORDED**. No production mutation or automatic authenticated write probe.
+- **Next:** finish this tracker checkpoint and verify its new PR #639 SHA/checks; move both drafts to review-ready only after accepted checks; seek public desktop/mobile and authenticated Admin field evidence before authorized merge. Do not close #634 prematurely.
 
 ## Checkpoint — 2026-10-16 additional PRs and CI
 
 - #639 early CI exposed legacy unit checks tied to removed `Admin` byline, duplicate section headings, and an E2E selector bound to `Website Visitors`. Fixes committed to source and test selectors; latest CI is pending/requeued, **not yet green**.
 - #640 independently improves editorial Admin, settings, integration, health and backup/restore copy. Updated targeted unit tests and protected C3 editor locator without executing production C3. Current CI pending; do not assume success.
 - No accepted production/browser field UAT for either PR yet. Both remain draft and no merge or deployment authorized at this checkpoint.
+
+## 2026-10-16 source quality and field acceptance matrix
+
+| Surface / role | Source changes | Automated verification | Remaining field UAT |
+| --- | --- | --- | --- |
+| Public / homepage, 360–430px and desktop | Thai visitor metrics, section eyebrow, service links and social-widget placement | Unit + responsive Functional E2E PASS on #639 | Mobile layout, authentic visitor figures, social links and link navigation |
+| Public / news, blog, jobs and procurement | Remove CMS captions, redundant published badges and generic CMS-author names | Unit + integration + build PASS on #639 | Real CMS articles, legitimate publisher bylines, dates and empty states |
+| Public / departments and contact | Plain-language summaries and empty map guidance | Build + Unit PASS on #639 | Live navigation, department data and Google Maps fallback |
+| Admin / editorial, media, documents, menus | Plain-language forms, tasks, workflow and category permalink | Unit + Functional E2E PASS on #640 | Authenticated operator flows with no real writes, accessible names and dialog behavior |
+| Admin / settings, integrations, system health | Human-centered labels and troubleshooting while retaining expert links | Unit + governance + CodeQL PASS on #640 | Authorized Admin roles, errors, narrow viewport and diagnostics visibility |
+| Admin / portable backup/recovery | Clear merge-versus-replace and authentication warnings | Unit + static/security analysis PASS on #640 | Read-only operator walkthrough; **do not execute restore** |
+| Release / exact-head approval | No protected operations or data changes | CI and CodeQL passed on recorded exact heads | Production/preview browser evidence, owner acceptance and post-merge verification pending |
+
+**Note:** This is a scoped source/evidence matrix, not a claim that all runtime or role/viewport combinations were tested in production. Original/new copy pairs are visible in each PR's Files Changed diff; the named paths and intended reasons are documented above. The operator may request wording changes before merge.
