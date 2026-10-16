@@ -1,5 +1,5 @@
 import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import HomeSocialLinksCard from "../public/components/home/HomeSocialLinksCard";
 import { buildFacebookPagePluginUrl } from "../public/utils/facebookPagePlugin";
 import {
@@ -67,7 +67,12 @@ describe("homepage social widget model", () => {
   });
 
   it("renders one page plugin and links with distinct groups and custom logos", () => {
+    // jsdom has no layout, so simulate a measured sidebar width before the sizing effect runs.
+    const measurement = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
+      width: 360
+    } as DOMRect);
     const { container } = render(<HomeSocialLinksCard pageUrl="https://www.facebook.com/rcat" settings={settings} />);
+    measurement.mockRestore();
     expect(container.querySelectorAll('[data-public-deferred-embed="true"]')).toHaveLength(1);
     expect(
       container.querySelector('[data-public-deferred-embed="true"]')?.getAttribute("data-public-embed-load-mode")
