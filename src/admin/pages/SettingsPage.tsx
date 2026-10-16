@@ -71,7 +71,7 @@ import {
 } from "../../types";
 import { formatDisplayDate, formatDisplayDateTime, formatDisplayTime } from "../../utils/dateDisplay";
 import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
-import { ADMIN_READ_ONLY_NOTICE, canManageAdminData } from "../utils/rbac";
+import { ADMIN_READ_ONLY_NOTICE, canManageAdminData, canManageMedia } from "../utils/rbac";
 import { isExampleHostname, isValidCmsLink } from "../../../shared/cmsLinkValidation";
 
 function toNonNegativeInteger(value: unknown): number {
@@ -935,6 +935,7 @@ export default function SettingsPage({ section }: { section: SettingsCategory })
                       <Grid size={{ xs: 12 }}>
                         <SocialSettingsEditor
                           value={siteSettings.homepageSocial}
+                          canUploadMedia={canManageMedia(capabilities)}
                           disabled={!canManage}
                           onChange={(value) => {
                             if (!canManage) return;
