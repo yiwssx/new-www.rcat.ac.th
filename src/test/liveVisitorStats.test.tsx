@@ -100,7 +100,7 @@ describe("live public visitor stats", () => {
     getLiveVisitorStatsMock.mockReturnValue(pendingStats.promise);
     renderLiveStats();
 
-    expect(screen.getByLabelText("Website Visitors")).toHaveTextContent("Who's Online1");
+    expect(screen.getByLabelText("ผู้เข้าชมเว็บไซต์")).toHaveTextContent("กำลังใช้งานเว็บไซต์1");
     expect(screen.getByText("7")).toBeInTheDocument();
     await flushTimers();
     expect(getLiveVisitorStatsMock).not.toHaveBeenCalled();
@@ -115,14 +115,14 @@ describe("live public visitor stats", () => {
     });
     await flushTimers();
     expect(getLiveVisitorStatsMock).toHaveBeenCalledTimes(1);
-    expect(screen.getByLabelText("Website Visitors")).toHaveTextContent("Who's Online1");
+    expect(screen.getByLabelText("ผู้เข้าชมเว็บไซต์")).toHaveTextContent("กำลังใช้งานเว็บไซต์1");
 
     await act(async () => {
       pendingStats.resolve(liveStats);
       await pendingStats.promise;
     });
     await flushTimers();
-    expect(screen.getByLabelText("Website Visitors")).toHaveTextContent("Who's Online3");
+    expect(screen.getByLabelText("ผู้เข้าชมเว็บไซต์")).toHaveTextContent("กำลังใช้งานเว็บไซต์3");
     expect(screen.getByText("7")).toBeInTheDocument();
   });
 
@@ -152,7 +152,7 @@ describe("live public visitor stats", () => {
     getLiveVisitorStatsMock.mockReturnValue(pendingStats.promise);
     renderLiveStats(initialStats, TEST_NOW - LIVE_INTERVAL_MS - 1);
 
-    expect(screen.getByLabelText("Website Visitors")).toHaveTextContent("Who's Online1");
+    expect(screen.getByLabelText("ผู้เข้าชมเว็บไซต์")).toHaveTextContent("กำลังใช้งานเว็บไซต์1");
     await flushTimers();
     expect(getLiveVisitorStatsMock).toHaveBeenCalledTimes(1);
 
@@ -161,7 +161,7 @@ describe("live public visitor stats", () => {
       await pendingStats.promise;
     });
     await flushTimers();
-    expect(screen.getByLabelText("Website Visitors")).toHaveTextContent("Who's Online3");
+    expect(screen.getByLabelText("ผู้เข้าชมเว็บไซต์")).toHaveTextContent("กำลังใช้งานเว็บไซต์3");
   });
 
   it("deduplicates the live GET for multiple consumers sharing the query key", async () => {
@@ -254,7 +254,7 @@ describe("live public visitor stats", () => {
 
     await flushTimers();
     expect(getLiveVisitorStatsMock).toHaveBeenCalledTimes(1);
-    expect(screen.getByLabelText("Website Visitors")).toHaveTextContent("Who's Online1");
+    expect(screen.getByLabelText("ผู้เข้าชมเว็บไซต์")).toHaveTextContent("กำลังใช้งานเว็บไซต์1");
 
     failedView.unmount();
     renderLiveStats(initialStats, TEST_NOW - LIVE_INTERVAL_MS - 1);
@@ -269,21 +269,21 @@ describe("live public visitor stats", () => {
       await vi.advanceTimersByTimeAsync(FAILURE_BACKOFF_MS - 1);
     });
     expect(getLiveVisitorStatsMock).toHaveBeenCalledTimes(1);
-    expect(screen.getByLabelText("Website Visitors")).toHaveTextContent("Who's Online1");
+    expect(screen.getByLabelText("ผู้เข้าชมเว็บไซต์")).toHaveTextContent("กำลังใช้งานเว็บไซต์1");
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1);
     });
     await flushTimers();
     expect(getLiveVisitorStatsMock).toHaveBeenCalledTimes(2);
-    expect(screen.getByLabelText("Website Visitors")).toHaveTextContent("Who's Online1");
+    expect(screen.getByLabelText("ผู้เข้าชมเว็บไซต์")).toHaveTextContent("กำลังใช้งานเว็บไซต์1");
 
     await act(async () => {
       recoveredStats.resolve(liveStats);
       await recoveredStats.promise;
     });
     await flushTimers();
-    expect(screen.getByLabelText("Website Visitors")).toHaveTextContent("Who's Online3");
+    expect(screen.getByLabelText("ผู้เข้าชมเว็บไซต์")).toHaveTextContent("กำลังใช้งานเว็บไซต์3");
     expect(warnSpy).toHaveBeenCalledWith(
       "Live visitor stats are temporarily unavailable; keeping the public snapshot.",
       expectedError
