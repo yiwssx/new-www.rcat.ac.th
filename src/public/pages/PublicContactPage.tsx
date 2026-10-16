@@ -91,7 +91,7 @@ function LargeMapCard({ mapUrl, mapEmbedUrl }: { mapUrl: string; mapEmbedUrl: st
                   fontWeight: 900
                 }}
               >
-                ยังไม่ได้ตั้งค่าแผนที่แบบฝัง
+                ดูที่ตั้งวิทยาลัยบน Google Maps
               </Typography>
               <Button
                 component="a"
@@ -123,7 +123,7 @@ export default function PublicContactPage() {
 
   if (!data) {
     return (
-      <PublicSiteShell title="ติดต่อ" description="ข้อมูลติดต่อที่เผยแพร่จาก CMS">
+      <PublicSiteShell title="ติดต่อ" description="ที่อยู่ เบอร์โทรศัพท์ และช่องทางติดต่อวิทยาลัย">
         {isError ? (
           <PublicErrorState
             onRetry={() => {
@@ -188,7 +188,7 @@ export default function PublicContactPage() {
   }
 
   return (
-    <PublicSiteShell title="ติดต่อ" description="ข้อมูลติดต่อที่เผยแพร่จาก CMS">
+    <PublicSiteShell title="ติดต่อ" description="ที่อยู่ เบอร์โทรศัพท์ และช่องทางติดต่อวิทยาลัย">
       <Grid container spacing={2.5}>
         <Grid size={{ xs: 12, lg: 5 }}>
           <Stack spacing={2.5}>
