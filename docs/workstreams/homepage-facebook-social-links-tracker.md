@@ -2,11 +2,11 @@
 
 **Repository:** `yiwssx/new-www.rcat.ac.th`  
 **Created:** 2026-10-16 (Asia/Bangkok)  
-**Status:** **IMPLEMENTATION ON FEATURE BRANCH — CI/PRODUCTION VERIFICATION PENDING; NOT MERGED**  
+**Status:** **IMPLEMENTED ON FEATURE PR #633 — FINAL EXACT-HEAD CI PENDING; PRODUCTION UAT PENDING**  
 **Tracking issue:** [#631](https://github.com/yiwssx/new-www.rcat.ac.th/issues/631)  
 **Planning branch:** `docs/homepage-facebook-social-links-plan-20261016`  
 **Implementation branch:** `feature/homepage-facebook-social-links`  
-**Implementation PR:** [#633](https://github.com/yiwssx/new-www.rcat.ac.th/pull/633) (draft; CI still being fixed)  
+**Implementation PR:** [#633](https://github.com/yiwssx/new-www.rcat.ac.th/pull/633) (draft until exact-head CI green)  
 **Reference:** owner-supplied screenshot showing college Facebook plugin followed by department social links; used as a structural reference, not copied as artwork or live production data.
 
 ## 1. Requirements and scope
@@ -93,9 +93,9 @@ The optional SiteSettings contract is implemented in PR #633, with the exact sha
 | Phase | Deliverable                                                                        | Acceptance / evidence                                                                                                                         | Status |
 | ----- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
 | P0    | Scope, reference review, SiteSettings / Worker and icon interpretation             | Both icon options confirmed 2026-10-16; Page URL is configured later in CMS                                                                   | [x]    |
-| P1    | New Settings category, route, editor, picker, preview, partial save                | Add/edit/reorder/delete, enable/disable, reload, permissions, conflict safety                                                                 | [ ]    |
-| P2    | Optional settings contract, normalization, Worker validation and public projection | Backward compatibility, API read/write tests, safe defaults, no implicit production data migration                                            | [ ]    |
-| P3    | Responsive Page plugin and linked social directory                                 | Desktop below visitor stats; mobile last before footer; proper URL/embed/error/no-data states                                                 | [ ]    |
+| P1    | New Settings category, route, editor, picker, preview, partial save                | Add/edit/reorder/delete, enable/disable, reload, permissions, conflict safety                                                                 | [x]    |
+| P2    | Optional settings contract, normalization, Worker validation and public projection | Backward compatibility, API read/write tests, safe defaults, no implicit production data migration                                            | [x]    |
+| P3    | Responsive Page plugin and linked social directory                                 | Desktop below visitor stats; mobile last before footer; proper URL/embed/error/no-data states                                                 | [x]    |
 | P4    | Quality + security verification                                                    | Unit, integration, Functional E2E, accessibility, 390px/mobile and desktop visual checks; no regressions, all required exact-head CI green    | [ ]    |
 | P5    | Approved merge and production release / verification                               | PR merged only after required checks; Worker/frontend deployment order attested; operator validates live page and explicitly approves closure | [ ]    |
 
@@ -122,7 +122,15 @@ The optional SiteSettings contract is implemented in PR #633, with the exact sha
 - **PR:** [#633](https://github.com/yiwssx/new-www.rcat.ac.th/pull/633) (draft). Code provided: `src/features/cms-settings/socialWidget.ts`, `src/admin/pages/settings/SocialSettingsEditor.tsx`, `src/public/components/home/HomeSocialLinksCard.tsx`, `src/shared/components/SocialLinkIcon.tsx`, existing Settings site normalization/navigation, Worker URL validation/public contract, and tests.
 - **No new package:** existing React, MUI, and Media Bridge are reused.
 - **Initial CI run** [#38841831203](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38841831203): Dependency Preflight, Dependencies, Integration, and Worker reported success. Static Quality initially failed Prettier (8 changed files), and Build/Governance initially failed due missing MUI icon import names and invalid MUI v9 props. **Initial CI is not green.** The import/props defects were corrected in subsequent commits; exact-head CI remains required.
-- **P1–P3 status:** implementation proposed on PR #633, _not accepted/checked off_. Do not misrepresent draft code as production-verified.
+- **P1–P3 status:** implementation completed in feature PR #633 and reviewed against source contract; Functional E2E passed on SHA `8ebb7f9` ([CI #38843624270](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38843624270)); all three checkboxes indicate **code implemented, not production/UAT acceptance**.
 - **Outstanding:** actual upload persistence, saved page URL, 360/390/430px and desktop screenshots, public Meta Page plugin appearance, accessibility, and real Worker/frontend deployment are not yet attested. Work continues until CI green before requesting operator production UAT.
 
 - **Additional regression coverage:** `tests/functional/homeSocialLinksResponsive.spec.ts` covers mobile 390px and desktop 1280px with deterministic public data; implementation uses `PublicDeferredEmbed` per media governance rules and applies `media.manage` upload permissions.
+
+## 8. Finalization handoff — 2026-10-16
+
+- **Operator instruction:** finish implementation and merge after all tests pass; operator will personally test and inspect the public website. Preserve the open issue #631 as the acceptance/UAT ledger until operator confirms closure.
+- **Failed gate diagnosed:** [CI #38843624270](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38843624270) passed eight individual technical jobs, including Functional E2E; the Unit Tests job failed exactly one of 2,713 tests in `src/test/homeSocialLinks.test.tsx:71` because jsdom measured zero width while the deferred Facebook iframe intentionally gates on a measurable container width. This is not evidence of a production browser rendering failure.
+- **Fix committed:** `53a7252115e939498a2ccfa77d57ecc21bffa758` mocks a 360px measurement for the specific DOM render assertion, preserving production geometry logic. [CI #38844628425](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/38844628425) must finish green before review/merge; this tracker update itself advances the PR head and requires **a fresh exact-head CI**.
+- **Still unverified:** actual Facebook Page iframe may be blocked by Facebook/privacy controls; icon upload and persistence against production media bridge; production Worker/frontend release order; final 360px/430px hands-on checks. These remain operator UAT and must not be marked complete based on CI alone.
+- **No fictitious production links:** the widget defaults off; after production release the operator sets the canonical school Facebook Page URL and enables it through `/admin/settings/social`, then supplies and enables department/unit links. If Worker deployment or Vercel release is blocked, do not claim live availability.
