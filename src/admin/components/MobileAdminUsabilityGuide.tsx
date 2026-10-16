@@ -31,7 +31,7 @@ export default function MobileAdminUsabilityGuide() {
           <Box>
             <Typography sx={{ fontWeight: 900 }}>ลำดับงานแอดมินบนมือถือ</Typography>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              ใช้เป็นเช็กลิสต์เวลาทดสอบ CMS บนมือถือ โดยยึดการแตะ การนำทาง และการตรวจผลเป็นหลัก
+              ตรวจความสะดวกในการใช้หน้าผู้ดูแลบนมือถือ ทั้งการแตะ การนำทาง และการตรวจผล
             </Typography>
           </Box>
           <Stack direction={{ xs: "column", md: "row" }} spacing={1.25}>
