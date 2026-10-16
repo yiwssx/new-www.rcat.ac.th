@@ -94,7 +94,7 @@ export function ExternalServicesSection({
               textTransform: "uppercase"
             }}
           >
-            Online Service Portal
+            บริการออนไลน์
           </Typography>
           <Typography
             variant="h2"
@@ -109,7 +109,7 @@ export function ExternalServicesSection({
           <Typography
             sx={(theme) => ({ color: alpha(theme.palette.common.white, 0.9), fontSize: { xs: "1rem", md: "1.18rem" } })}
           >
-            ระบบบริการออนไลน์
+            สำหรับนักเรียน นักศึกษา บุคลากร และผู้สนใจ
           </Typography>
         </Stack>
       </Box>
