@@ -129,6 +129,8 @@ function ContentDetailMetadata({
   tagList: string[];
   displayedViewCount: number;
 }) {
+  const publicAuthor = getPublicAuthorLabel(item.owner);
+
   return (
     <Stack spacing={1}>
       <Stack
@@ -141,8 +143,8 @@ function ContentDetailMetadata({
       >
         <Chip label={contentTypeLabels[item.type]} color="primary" />
         <Chip label={formatDisplayDate(item.publishAt)} variant="outlined" />
-        {getPublicAuthorLabel(item.owner) && (
-          <Chip label={`ผู้เผยแพร่: ${getPublicAuthorLabel(item.owner)}`} variant="outlined" />
+        {publicAuthor && (
+          <Chip label={`ผู้เผยแพร่: ${publicAuthor}`} variant="outlined" />
         )}
         <Chip label={`ผู้เข้าดู ${formatViewCount(displayedViewCount)} ครั้ง`} variant="outlined" />
       </Stack>
