@@ -218,8 +218,8 @@ function RuntimeIncidentFeedCard({ feed, error }: { feed: RuntimeIncidentFeed | 
           </Box>
 
           <Alert severity="info">
-            ระบบไม่จัดเก็บรายละเอียดที่อาจมีข้อมูลส่วนตัว เช่น ข้อความผิดพลาด รหัสผ่าน หรือข้อมูลคำขอ
-            เก็บประวัติไม่เกิน 7 วัน และรวมเหตุการณ์ที่เกิดซ้ำเพื่อลดรายการที่ไม่จำเป็น
+            ระบบไม่จัดเก็บรายละเอียดที่อาจมีข้อมูลส่วนตัว เช่น ข้อความผิดพลาด รหัสผ่าน หรือข้อมูลคำขอ เก็บประวัติไม่เกิน
+            7 วัน และรวมเหตุการณ์ที่เกิดซ้ำเพื่อลดรายการที่ไม่จำเป็น
           </Alert>
 
           {error ? (
@@ -384,7 +384,6 @@ export default function SystemHealthPage() {
               <Link href={GITHUB_ACTIONS_URL} target="_blank" rel="noreferrer">
                 GitHub Actions
               </Link>
-              
             </Typography>
           </Stack>
         </CardContent>

@@ -201,8 +201,7 @@ export default function EditorialWorkflowPanel() {
 
           {selected && !["draft", "review"].includes(selected.status) && (
             <Alert severity="info">
-              เนื้อหาสถานะ {statusLabel(selected.status)} ต้องยกเลิกการเผยแพร่ก่อนจึงจะนำกลับเข้าสู่ขั้นตอน
-              ตรวจทานได้
+              เนื้อหาสถานะ {statusLabel(selected.status)} ต้องยกเลิกการเผยแพร่ก่อนจึงจะนำกลับเข้าสู่ขั้นตอน ตรวจทานได้
             </Alert>
           )}
         </Stack>
