@@ -90,14 +90,14 @@ The optional SiteSettings contract is implemented in PR #633, with the exact sha
 
 ## 5. Phase gates / actionable checklist
 
-| Phase | Deliverable                                                                                            | Acceptance / evidence                                                                                                                         | Status |
-| ----- | ------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| P0    | Scope, reference review, SiteSettings / Worker and icon interpretation                      | Both icon options confirmed 2026-10-16; Page URL is configured later in CMS                                                                                | [x]    |
-| P1    | New Settings category, route, editor, picker, preview, partial save                                    | Add/edit/reorder/delete, enable/disable, reload, permissions, conflict safety                                                                 | [ ]    |
-| P2    | Optional settings contract, normalization, Worker validation and public projection                     | Backward compatibility, API read/write tests, safe defaults, no implicit production data migration                                            | [ ]    |
-| P3    | Responsive Page plugin and linked social directory                                                     | Desktop below visitor stats; mobile last before footer; proper URL/embed/error/no-data states                                                 | [ ]    |
-| P4    | Quality + security verification                                                                        | Unit, integration, Functional E2E, accessibility, 390px/mobile and desktop visual checks; no regressions, all required exact-head CI green    | [ ]    |
-| P5    | Approved merge and production release / verification                                                   | PR merged only after required checks; Worker/frontend deployment order attested; operator validates live page and explicitly approves closure | [ ]    |
+| Phase | Deliverable                                                                        | Acceptance / evidence                                                                                                                         | Status |
+| ----- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| P0    | Scope, reference review, SiteSettings / Worker and icon interpretation             | Both icon options confirmed 2026-10-16; Page URL is configured later in CMS                                                                   | [x]    |
+| P1    | New Settings category, route, editor, picker, preview, partial save                | Add/edit/reorder/delete, enable/disable, reload, permissions, conflict safety                                                                 | [ ]    |
+| P2    | Optional settings contract, normalization, Worker validation and public projection | Backward compatibility, API read/write tests, safe defaults, no implicit production data migration                                            | [ ]    |
+| P3    | Responsive Page plugin and linked social directory                                 | Desktop below visitor stats; mobile last before footer; proper URL/embed/error/no-data states                                                 | [ ]    |
+| P4    | Quality + security verification                                                    | Unit, integration, Functional E2E, accessibility, 390px/mobile and desktop visual checks; no regressions, all required exact-head CI green    | [ ]    |
+| P5    | Approved merge and production release / verification                               | PR merged only after required checks; Worker/frontend deployment order attested; operator validates live page and explicitly approves closure | [ ]    |
 
 ### Functional acceptance matrix
 
