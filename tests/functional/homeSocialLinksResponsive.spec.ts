@@ -69,7 +69,11 @@ for (const width of [390, 1280]) {
       });
     });
     await page.route("https://www.facebook.com/plugins/page.php**", async (route) => {
-      await route.fulfill({ status: 200, contentType: "text/html", body: "<html><body>Facebook fixture</body></html>" });
+      await route.fulfill({
+        status: 200,
+        contentType: "text/html",
+        body: "<html><body>Facebook fixture</body></html>"
+      });
     });
 
     await page.goto("/");
