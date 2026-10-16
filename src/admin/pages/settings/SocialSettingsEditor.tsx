@@ -31,10 +31,11 @@ import {
 interface Props {
   value?: HomepageSocialWidgetSettings;
   disabled: boolean;
+  canUploadMedia: boolean;
   onChange: (next: HomepageSocialWidgetSettings) => void;
 }
 
-export default function SocialSettingsEditor({ value, disabled, onChange }: Props) {
+export default function SocialSettingsEditor({ value, disabled, canUploadMedia, onChange }: Props) {
   const settings = value ?? DEFAULT_SOCIAL_WIDGET;
   const [uploadingId, setUploadingId] = useState("");
   const [uploadError, setUploadError] = useState("");
@@ -77,7 +78,7 @@ export default function SocialSettingsEditor({ value, disabled, onChange }: Prop
   }
 
   async function uploadIcon(index: number, file: File | undefined) {
-    if (locked || !file) return;
+    if (locked || !canUploadMedia || !file) return;
     if (
       !["image/png", "image/jpeg", "image/webp"].includes(file.type) ||
       file.size > 2 * 1024 * 1024 ||
@@ -279,7 +280,7 @@ export default function SocialSettingsEditor({ value, disabled, onChange }: Prop
                         component="label"
                         variant="outlined"
                         startIcon={<UploadFileOutlinedIcon />}
-                        disabled={locked}
+                        disabled={locked || !canUploadMedia}
                       >
                         {uploadingId === link.id ? "กำลังอัปโหลด..." : "อัปโหลดโลโก้ PNG/JPG/WebP"}
                         <input
@@ -295,7 +296,7 @@ export default function SocialSettingsEditor({ value, disabled, onChange }: Prop
                         />
                       </Button>
                       <Typography variant="caption" color="text.secondary" sx={{ overflowWrap: "anywhere" }}>
-                        {link.iconUrl ? "มีโลโก้ที่อัปโหลดแล้ว" : "ยังไม่ได้อัปโหลด (ขนาดสูงสุด 2 MB)"}
+                        {!canUploadMedia ? "บัญชีนี้ไม่มีสิทธิ์อัปโหลดสื่อ" : link.iconUrl ? "มีโลโก้ที่อัปโหลดแล้ว" : "ยังไม่ได้อัปโหลด (ขนาดสูงสุด 2 MB)"}
                       </Typography>
                     </Stack>
                   )}
