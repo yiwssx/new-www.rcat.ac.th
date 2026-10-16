@@ -164,3 +164,5 @@ The optional SiteSettings contract is implemented in PR #633, with the exact sha
 - Automated viewport geometry exercised at 360/390/430/1280px; **not claimed:** an independent pixel-level production-browser inspection of Facebook's third-party header, all configurable user-upload scenarios or Meta platform availability. The operator chose to accept/close development despite these third-party/manual limitations.
 
 **Closure:** P0–P5 reflect implementation completed, automated verification and release verified, and operator-requested closure. Issue [#631](https://github.com/yiwssx/new-www.rcat.ac.th/issues/631) should be closed as **completed**, not `not_planned`. New independent defects or Meta regressions should be logged separately. Historical 'pending' and 'do not close' statements in sections 6–9 document intermediate states and **are no longer current**.
+
+**Closure verification:** Documentation-only PR #638 updates this ledger.
