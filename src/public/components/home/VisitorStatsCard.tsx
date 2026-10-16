@@ -22,7 +22,7 @@ function formatStatValue(value: number) {
 }
 
 function getUpdatedLabel(updatedAt: string) {
-  return updatedAt ? `Updated ${formatDisplayDateTime(updatedAt)}` : "Updated";
+  return updatedAt ? `อัปเดต ${formatDisplayDateTime(updatedAt)}` : "รอข้อมูลล่าสุด";
 }
 
 export function VisitorStatsCard({ stats }: { stats?: VisitorStatsSettings }) {
@@ -33,17 +33,17 @@ export function VisitorStatsCard({ stats }: { stats?: VisitorStatsSettings }) {
   }
 
   const secondaryStats = [
-    { label: "Users Today", value: normalizedStats.usersToday },
-    { label: "Users Yesterday", value: normalizedStats.usersYesterday },
-    { label: "Users This Month", value: normalizedStats.usersThisMonth },
-    { label: "Users This Year", value: normalizedStats.usersThisYear },
-    { label: "Total Users", value: normalizedStats.totalUsers }
+    { label: "วันนี้", value: normalizedStats.usersToday },
+    { label: "เมื่อวาน", value: normalizedStats.usersYesterday },
+    { label: "เดือนนี้", value: normalizedStats.usersThisMonth },
+    { label: "ปีนี้", value: normalizedStats.usersThisYear },
+    { label: "ผู้เข้าชมทั้งหมด", value: normalizedStats.totalUsers }
   ];
 
   return (
     <Card
       component="section"
-      aria-label="Website Visitors"
+      aria-label="ผู้เข้าชมเว็บไซต์"
       sx={{
         borderTop: "5px solid",
         borderColor: "secondary.main",
@@ -97,7 +97,7 @@ export function VisitorStatsCard({ stats }: { stats?: VisitorStatsSettings }) {
                     lineHeight: 1.2
                   }}
                 >
-                  Website Visitors
+                  ผู้เข้าชมเว็บไซต์
                 </Typography>
                 <Typography
                   variant="body2"
@@ -152,7 +152,7 @@ export function VisitorStatsCard({ stats }: { stats?: VisitorStatsSettings }) {
                     fontWeight: 800
                   }}
                 >
-                  Total views
+                  ยอดเข้าชมทั้งหมด
                 </Typography>
                 <Typography sx={{ color: "primary.dark", fontSize: { xs: "1.75rem", md: "2rem" }, fontWeight: 900 }}>
                   {formatStatValue(normalizedStats.totalViews)}
@@ -228,7 +228,7 @@ export function VisitorStatsCard({ stats }: { stats?: VisitorStatsSettings }) {
                       fontWeight: 800
                     }}
                   >
-                    Who&apos;s Online
+                    กำลังใช้งานเว็บไซต์
                   </Typography>
                   <Typography sx={{ color: "primary.dark", fontWeight: 900 }}>
                     {formatStatValue(normalizedStats.onlineUsers)}
