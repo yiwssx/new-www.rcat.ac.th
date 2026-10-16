@@ -41,6 +41,20 @@ for (const width of [390, 1280]) {
     const configuredHome = {
       ...snapshot,
       siteSettings: configuredSite,
+      latestNews: [
+        {
+          id: "fb-social-news",
+          slug: "fb-social-news",
+          type: "news",
+          status: "published",
+          owner: "วิทยาลัย",
+          title: "กิจกรรมจาก Facebook วิทยาลัย",
+          summary: "ข่าวประชาสัมพันธ์ของวิทยาลัย",
+          template: "facebook-embed",
+          publishAt: "2026-10-15T07:00:00.000Z"
+        },
+        ...snapshot.latestNews
+      ],
       visitorStats: { ...snapshot.visitorStats, enabled: true }
     };
 
@@ -87,7 +101,13 @@ for (const width of [390, 1280]) {
     await expect(widget).toBeVisible();
     await expect(widget.getByText("แผนกวิชาตัวอย่าง")).toBeVisible();
     await expect(widget.getByText("งานประชาสัมพันธ์ตัวอย่าง")).toBeVisible();
+    await expect(widget.getByText("กิจกรรมจาก Facebook วิทยาลัย")).toBeVisible();
+    // The third-party iframe must not create a large empty area on initial load.
+    await expect(widget.locator('[data-public-deferred-embed="true"]')).toHaveCount(0);
+    await widget.getByRole("button", { name: "ดูไทม์ไลน์จาก Facebook" }).click();
     await expect(widget.locator('[data-public-deferred-embed="true"]')).toHaveCount(1);
+    await widget.getByRole("button", { name: "ซ่อนไทม์ไลน์" }).click();
+    await expect(widget.locator('[data-public-deferred-embed="true"]')).toHaveCount(0);
 
     // Read all geometry in a single browser evaluation. Reading separate boundingBox()
     // calls across asynchronous layout/scroll updates can mix different viewport frames.

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Divider from "@mui/material/Divider";
@@ -9,6 +10,12 @@ import Typography from "@mui/material/Typography";
 import FacebookIcon from "@mui/icons-material/Facebook";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import SocialLinkIcon from "../../../shared/components/SocialLinkIcon";
+import PublicResponsiveImage from "../../../shared/media/PublicResponsiveImage";
+import { resolveCardThumbnail } from "../publicContentCardThumbnail";
+import { isFacebookEmbedContent } from "../../../utils/facebookContent";
+import { normalizeSafeHref } from "../../../utils/safeUrl";
+import { formatDisplayDate } from "../../../utils/dateDisplay";
+import type { MediaAsset, PublicContentCardItem } from "../../../types";
 import PublicDeferredEmbed from "../../../shared/media/PublicDeferredEmbed";
 import { buildFacebookPagePluginUrl } from "../../utils/facebookPagePlugin";
 import {
@@ -57,16 +64,101 @@ function FacebookPageEmbed({ href, height }: { href: string; height: number }) {
   );
 }
 
+/**
+ * Facebook controls its cross-origin Page iframe. Its onload event is not a
+ * guarantee that Timeline posts appeared (a blank grey frame may still load).
+ * Keep a useful first-party summary visible and mount the iframe only on demand.
+ */
+function RecentFacebookPosts({ posts, mediaAssets }: { posts: PublicContentCardItem[]; mediaAssets: MediaAsset[] }) {
+  if (!posts.length) {
+    return (
+      <Typography variant="body2" color="text.secondary">
+        ติดตามข่าวสารและกิจกรรมล่าสุดได้จากเพจ Facebook ของวิทยาลัย
+      </Typography>
+    );
+  }
+
+  return (
+    <Stack spacing={1} data-facebook-post-preview="true">
+      <Typography variant="body2" color="text.secondary">
+        ข่าวจาก Facebook ที่เผยแพร่บนเว็บไซต์
+      </Typography>
+      {posts.map((post) => {
+        const image = resolveCardThumbnail(post, mediaAssets);
+        return (
+          <Box
+            key={post.id}
+            component="a"
+            href={normalizeSafeHref(`/content/${post.slug}`)}
+            sx={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 1.25,
+              minWidth: 0,
+              p: 1.25,
+              borderRadius: 2,
+              border: "1px solid",
+              borderColor: "divider",
+              textDecoration: "none",
+              color: "text.primary",
+              "&:hover": { bgcolor: "action.hover" }
+            }}
+          >
+            {image && (
+              <Box
+                sx={{
+                  width: 76,
+                  height: 66,
+                  minWidth: 76,
+                  position: "relative",
+                  overflow: "hidden",
+                  borderRadius: 1,
+                  bgcolor: "action.hover"
+                }}
+              >
+                <PublicResponsiveImage
+                  source={image}
+                  intent="content-card"
+                  alt={post.title}
+                  sizes="76px"
+                  loadMode="near-viewport"
+                  fill
+                  imageSx={{ objectFit: "cover" }}
+                />
+              </Box>
+            )}
+            <Box sx={{ minWidth: 0, flex: 1 }}>
+              <Typography variant="body2" sx={{ fontWeight: 700, overflowWrap: "anywhere", lineHeight: 1.5 }}>
+                {post.title}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {formatDisplayDate(post.publishAt)}
+              </Typography>
+            </Box>
+            <OpenInNewIcon aria-hidden="true" sx={{ fontSize: 16, color: "text.secondary" }} />
+          </Box>
+        );
+      })}
+    </Stack>
+  );
+}
+
 export default function HomeSocialLinksCard({
   pageUrl,
-  settings
+  settings,
+  posts = [],
+  mediaAssets = []
 }: {
   pageUrl: string;
   settings?: HomepageSocialWidgetSettings;
+  posts?: PublicContentCardItem[];
+  mediaAssets?: MediaAsset[];
 }) {
+  const [showIframe, setShowIframe] = useState(false);
   const widget = normalizeHomepageSocialWidget(settings);
   if (!widget.enabled) return null;
   const facebookHref = socialFacebookPageUrl(pageUrl);
+  const recentFacebookPosts = posts.filter(isFacebookEmbedContent).slice(0, 3);
   const links = widget.links.filter(
     (item) => item.enabled && item.label && item.href && (item.iconKey !== "custom" || item.iconUrl)
   );
@@ -77,25 +169,43 @@ export default function HomeSocialLinksCard({
       component="section"
       aria-label="ช่องทาง Facebook และหน่วยงาน"
       data-home-social-widget="true"
-      sx={{ width: "100%", minWidth: 0 }}
+      sx={{ width: "100%", minWidth: 0, maxWidth: "100%" }}
     >
       <CardContent sx={{ p: { xs: 2, sm: 2.5 } }}>
         <Stack spacing={2}>
           {widget.pageEmbedEnabled && facebookHref && (
-            <Box>
+            <Box sx={{ minWidth: 0 }}>
               <Stack direction="row" spacing={1} sx={{ mb: 1.5, alignItems: "center" }}>
                 <FacebookIcon color="primary" />
                 <Typography variant="h3">Facebook วิทยาลัย</Typography>
               </Stack>
-              <FacebookPageEmbed href={facebookHref} height={widget.pageEmbedHeight} />
-              <Link
-                href={facebookHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                sx={{ display: "inline-flex", gap: 0.5, alignItems: "center", mt: 1.5 }}
-              >
-                เปิด Facebook วิทยาลัย <OpenInNewIcon sx={{ fontSize: 16 }} />
-              </Link>
+              <RecentFacebookPosts posts={recentFacebookPosts} mediaAssets={mediaAssets} />
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mt: 1.5, alignItems: "flex-start" }}>
+                <Button
+                  size="small"
+                  variant="contained"
+                  href={facebookHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  endIcon={<OpenInNewIcon />}
+                >
+                  เปิด Facebook วิทยาลัย
+                </Button>
+                <Button
+                  size="small"
+                  variant="text"
+                  aria-expanded={showIframe}
+                  aria-controls="college-facebook-timeline"
+                  onClick={() => setShowIframe((current) => !current)}
+                >
+                  {showIframe ? "ซ่อนไทม์ไลน์" : "ดูไทม์ไลน์จาก Facebook"}
+                </Button>
+              </Stack>
+              {showIframe && (
+                <Box id="college-facebook-timeline" data-facebook-expanded-timeline="true" sx={{ mt: 2 }}>
+                  <FacebookPageEmbed href={facebookHref} height={widget.pageEmbedHeight} />
+                </Box>
+              )}
             </Box>
           )}
           {(["department", "unit"] as const).map((category) => {

@@ -431,7 +431,12 @@ export default function PublicHomePage() {
                   <LazyContactMapCard siteSettings={siteSettings} />
                 </DeferredHomeSection>
                 <LiveVisitorStatsCard initialStats={data.visitorStats} initialDataUpdatedAt={dataUpdatedAt} />
-                <HomeSocialLinksCard pageUrl={siteSettings.facebookUrl} settings={siteSettings.homepageSocial} />
+                <HomeSocialLinksCard
+                  pageUrl={siteSettings.facebookUrl}
+                  settings={siteSettings.homepageSocial}
+                  posts={latestNews}
+                  mediaAssets={mediaAssets}
+                />
               </Stack>
             </Grid>
           </Grid>
