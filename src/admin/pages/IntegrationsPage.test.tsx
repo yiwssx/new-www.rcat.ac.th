@@ -82,7 +82,9 @@ describe("IntegrationsPage", () => {
 
     renderPage();
 
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("ยังไม่ได้ตั้งค่าการเชื่อมต่อบริการไฟล์หรือ Google Drive"));
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent("ยังไม่ได้ตั้งค่าการเชื่อมต่อบริการไฟล์หรือ Google Drive")
+    );
     expect(screen.getByRole("alert")).not.toHaveTextContent("appsScriptUrlConfigured");
     expect(screen.getByRole("alert")).not.toHaveTextContent("bridgeTokenConfigured");
   });
