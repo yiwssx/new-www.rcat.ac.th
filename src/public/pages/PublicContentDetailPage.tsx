@@ -29,7 +29,8 @@ import { usePublicContentDetail } from "../hooks/usePublicContentDetail";
 import { MediaContentBlock, parseContentBodyToBlocks } from "../../utils/contentBlocks";
 import { normalizeSafeHref, normalizeSafeResourceUrl } from "../../utils/safeUrl";
 import { CONTENT_TEMPLATE_LABELS, resolveContentTemplate } from "../../utils/contentTemplate";
-import { contentStatusLabels, contentTypeLabels } from "../../utils/thaiLabels";
+import { contentTypeLabels } from "../../utils/thaiLabels";
+import { getPublicAuthorLabel } from "../utils/publicAuthor";
 import { ContentItem, MediaAsset } from "../../types";
 import { focusVisibleSx } from "../../design-system/componentStyles";
 import { formatDisplayDate } from "../../utils/dateDisplay";
@@ -139,9 +140,10 @@ function ContentDetailMetadata({
         }}
       >
         <Chip label={contentTypeLabels[item.type]} color="primary" />
-        <Chip label={contentStatusLabels[item.status]} variant="outlined" />
         <Chip label={formatDisplayDate(item.publishAt)} variant="outlined" />
-        <Chip label={`ผู้เผยแพร่: ${item.owner || "ไม่ระบุ"}`} variant="outlined" />
+        {getPublicAuthorLabel(item.owner) && (
+          <Chip label={`ผู้เผยแพร่: ${getPublicAuthorLabel(item.owner)}`} variant="outlined" />
+        )}
         <Chip label={`ผู้เข้าดู ${formatViewCount(displayedViewCount)} ครั้ง`} variant="outlined" />
       </Stack>
       {!!tagList.length && (
