@@ -138,7 +138,7 @@ export default function DashboardPage() {
           <Stack spacing={1.5}>
             <Typography variant="h3">แผนปรับ UX จากการใช้งานจริง</Typography>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              เริ่มใช้แดชบอร์ดเป็นจุดรวมแผนปรับ UX แบบ WordPress-like CMS โดยไม่เปลี่ยน backend/runtime boundary
+              ใช้ทางลัดเพื่อจัดการข่าว ประกาศ เอกสาร และการตั้งค่าเว็บไซต์
             </Typography>
             <Stack direction={{ xs: "column", md: "row" }} spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
               <Button href="/admin/content" variant="outlined">
