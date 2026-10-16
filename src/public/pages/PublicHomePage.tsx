@@ -14,6 +14,7 @@ import { HomeHeroSection } from "../components/home/HomeHeroSection";
 import { HomeIntroVideoSection } from "../components/home/HomeIntroVideoSection";
 import { LatestNewsSection } from "../components/home/LatestNewsSection";
 import { VisitorStatsCard } from "../components/home/VisitorStatsCard";
+import HomeSocialLinksCard from "../components/home/HomeSocialLinksCard";
 import { useLiveVisitorStats } from "../hooks/useLiveVisitorStats";
 import { usePublicHomeSnapshot } from "../hooks/usePublicHomeSnapshot";
 import { usePublicShellSnapshot } from "../hooks/usePublicShellSnapshot";
@@ -430,6 +431,7 @@ export default function PublicHomePage() {
                   <LazyContactMapCard siteSettings={siteSettings} />
                 </DeferredHomeSection>
                 <LiveVisitorStatsCard initialStats={data.visitorStats} initialDataUpdatedAt={dataUpdatedAt} />
+                <HomeSocialLinksCard pageUrl={siteSettings.facebookUrl} settings={siteSettings.homepageSocial} />
               </Stack>
             </Grid>
           </Grid>
