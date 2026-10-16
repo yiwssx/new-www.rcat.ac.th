@@ -6,7 +6,9 @@
 **Tracking issue:** [#634](https://github.com/yiwssx/new-www.rcat.ac.th/issues/634)  
 **Implementation baseline:** `main@bfe0c948458f3eb6fdd951eeac7e78cadbc791bb` (2026-10-16, after Social Links closure)  
 **Implementation branch:** `fix/ux-public-microcopy-634` (based on latest main); original planning branch: `docs/ux-content-microcopy-cleanup-plan-20261016`  
-**Public implementation PR:** [#639](https://github.com/yiwssx/new-www.rcat.ac.th/pull/639) **DRAFT; CI PENDING**. **Production verification:** NOT RUN.
+**Public implementation PR:** [#639](https://github.com/yiwssx/new-www.rcat.ac.th/pull/639) **DRAFT; CI RECHECK PENDING**.  
+**Admin implementation PR:** [#640](https://github.com/yiwssx/new-www.rcat.ac.th/pull/640) **DRAFT; CI RECHECK PENDING**.  
+**Production verification:** NOT RUN.
 
 ## Objective / scope
 
@@ -74,10 +76,16 @@ Simplify technical and internal-facing text across RCAT public pages and routine
 
 ## Durable execution state
 
-- **Current work:** public P0 changes proposed in draft PR #639; authored test expectations and helper tests. Exact-head CI and production UAT not verified.
+- **Current work:** Public draft PR #639 and Admin draft PR #640 implement source-level microcopy improvements; exact-head CI and production/public/authenticated Admin UAT not yet verified.
 - **Baseline at resume:** `bfe0c948458f3eb6fdd951eeac7e78cadbc791bb`; refresh before merge.
 - **Concurrent work:** Organization Management UX V2.4 [#594](https://github.com/yiwssx/new-www.rcat.ac.th/issues/594), Facebook & Social Links [#631](https://github.com/yiwssx/new-www.rcat.ac.th/issues/631).
 - **Branch:** `fix/ux-public-microcopy-634`.
 - **Implementation:** public copy + tests planned; no migrations or deployments authorized.
 - **Blocker:** none for source-only work; CI/UAT gates required before merge.
-- **Exact next action:** inspect PR #639 exact-head CI (including Prettier, strict lint, vitest/functional and SSR gates); fix required failures, then complete approved review/field QA. Keep #594 out of scope.
+- **Exact next action:** inspect both PR #639 and #640 exact-head CI (including Prettier, strict lint, tests, SSR and C3 locator checks); resolve failures; confirm reviewer/browser acceptance before merge. Keep #594 out of scope.
+
+## Checkpoint — 2026-10-16 additional PRs and CI
+
+- #639 early CI exposed legacy unit checks tied to removed `Admin` byline, duplicate section headings, and an E2E selector bound to `Website Visitors`. Fixes committed to source and test selectors; latest CI is pending/requeued, **not yet green**.
+- #640 independently improves editorial Admin, settings, integration, health and backup/restore copy. Updated targeted unit tests and protected C3 editor locator without executing production C3. Current CI pending; do not assume success.
+- No accepted production/browser field UAT for either PR yet. Both remain draft and no merge or deployment authorized at this checkpoint.
