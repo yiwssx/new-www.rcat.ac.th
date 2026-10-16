@@ -296,7 +296,11 @@ export default function SocialSettingsEditor({ value, disabled, canUploadMedia, 
                         />
                       </Button>
                       <Typography variant="caption" color="text.secondary" sx={{ overflowWrap: "anywhere" }}>
-                        {!canUploadMedia ? "บัญชีนี้ไม่มีสิทธิ์อัปโหลดสื่อ" : link.iconUrl ? "มีโลโก้ที่อัปโหลดแล้ว" : "ยังไม่ได้อัปโหลด (ขนาดสูงสุด 2 MB)"}
+                        {!canUploadMedia
+                          ? "บัญชีนี้ไม่มีสิทธิ์อัปโหลดสื่อ"
+                          : link.iconUrl
+                            ? "มีโลโก้ที่อัปโหลดแล้ว"
+                            : "ยังไม่ได้อัปโหลด (ขนาดสูงสุด 2 MB)"}
                       </Typography>
                     </Stack>
                   )}
