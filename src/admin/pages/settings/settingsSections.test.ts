@@ -10,11 +10,12 @@ import {
 
 describe("admin settings route partitions", () => {
   it("defines unique direct-link categories with a complete site-settings partition", () => {
-    expect(settingsCategories).toHaveLength(7);
+    expect(settingsCategories).toHaveLength(8);
     expect(new Set(settingsNavigation.map((item) => item.id)).size).toBe(settingsCategories.length);
     expect(settingsNavigation.map((item) => item.id)).toEqual([...settingsCategories]);
     expect(isSiteSettingsCategory("homepage")).toBe(false);
     expect(isSiteSettingsCategory("leadership")).toBe(true);
+    expect(isSiteSettingsCategory("social")).toBe(true);
     const keys = Object.values(siteSettingsKeys).flat();
     expect(new Set(keys).size).toBe(keys.length);
     expect(new Set(keys)).toEqual(new Set(Object.keys(defaultSiteSettings)));
