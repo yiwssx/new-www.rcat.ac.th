@@ -9,6 +9,7 @@ import Typography from "@mui/material/Typography";
 import FacebookIcon from "@mui/icons-material/Facebook";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import SocialLinkIcon from "../../../shared/components/SocialLinkIcon";
+import PublicDeferredEmbed from "../../../shared/media/PublicDeferredEmbed";
 import {
   normalizeHomepageSocialWidget,
   socialFacebookPageUrl,
@@ -50,14 +51,17 @@ function FacebookPageEmbed({ href, height }: { href: string; height: number }) {
   return (
     <Box ref={frameContainerRef} sx={{ width: "100%", minWidth: 0, textAlign: "center" }}>
       {url ? (
-        <Box
-          component="iframe"
+        <PublicDeferredEmbed
           title="Facebook เพจวิทยาลัย"
           src={url}
-          loading="lazy"
+          loadMode="near-viewport"
           referrerPolicy="strict-origin-when-cross-origin"
           allow="encrypted-media; picture-in-picture; web-share"
-          sx={{ display: "block", mx: "auto", border: 0, width: "100%", maxWidth: 500, height }}
+          scrolling="no"
+          frameBorder="0"
+          width="100%"
+          height={height}
+          sx={{ display: "block", mx: "auto", width: "100%", maxWidth: 500, height }}
         />
       ) : null}
       <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
