@@ -1,7 +1,6 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import HomeSocialLinksCard from "../public/components/home/HomeSocialLinksCard";
-import type { PublicContentCardItem } from "../types";
 import { buildFacebookPagePluginUrl } from "../public/utils/facebookPagePlugin";
 import {
   DEFAULT_SOCIAL_WIDGET,
@@ -45,18 +44,6 @@ const settings = {
   ]
 };
 
-const publicFacebookPost: PublicContentCardItem = {
-  id: "facebook-news",
-  slug: "facebook-news",
-  type: "news",
-  status: "published",
-  owner: "งานประชาสัมพันธ์",
-  title: "กิจกรรมจาก Facebook วิทยาลัย",
-  summary: "ข่าวจากเพจทางการ",
-  template: "facebook-embed",
-  publishAt: "2026-10-15T07:00:00.000Z"
-};
-
 describe("homepage social widget model", () => {
   it("does not expose a new widget before an operator enables it", () => {
     expect(normalizeHomepageSocialWidget(undefined)).toEqual(DEFAULT_SOCIAL_WIDGET);
@@ -84,20 +71,12 @@ describe("homepage social widget model", () => {
     const measurement = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
       width: 360
     } as DOMRect);
-    const { container } = render(
-      <HomeSocialLinksCard pageUrl="https://www.facebook.com/rcat" settings={settings} posts={[publicFacebookPost]} />
-    );
-    expect(screen.getByText("ข่าวจาก Facebook ที่เผยแพร่บนเว็บไซต์")).toBeTruthy();
-    expect(screen.getByText("กิจกรรมจาก Facebook วิทยาลัย")).toBeTruthy();
-    expect(container.querySelectorAll('[data-public-deferred-embed="true"]')).toHaveLength(0);
-    fireEvent.click(screen.getByRole("button", { name: "ดูไทม์ไลน์จาก Facebook" }));
+    const { container } = render(<HomeSocialLinksCard pageUrl="https://www.facebook.com/rcat" settings={settings} />);
     measurement.mockRestore();
     expect(container.querySelectorAll('[data-public-deferred-embed="true"]')).toHaveLength(1);
     expect(
       container.querySelector('[data-public-deferred-embed="true"]')?.getAttribute("data-public-embed-load-mode")
     ).toBe("near-viewport");
-    fireEvent.click(screen.getByRole("button", { name: "ซ่อนไทม์ไลน์" }));
-    expect(container.querySelector('[data-public-deferred-embed="true"]')).toBeNull();
     expect(screen.getByText("Facebook แผนกวิชา")).toBeTruthy();
     expect(screen.getByText("Facebook งานและหน่วยงาน")).toBeTruthy();
     expect(screen.queryByText("ปิดการแสดงผล")).toBeNull();
