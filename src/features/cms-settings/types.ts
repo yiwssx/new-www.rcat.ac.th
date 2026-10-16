@@ -1,3 +1,5 @@
+import type { HomepageSocialWidgetSettings } from "./socialWidget";
+
 export interface DisplaySettings {
   dateFormat: string;
   timeMode: "24h";
@@ -81,6 +83,8 @@ export interface SiteSettings {
   address: string;
   admissionUrl: string;
   facebookUrl: string;
+  /** Optional data-driven Facebook Page and social directory on the homepage. */
+  homepageSocial?: HomepageSocialWidgetSettings;
   youtubeUrl: string;
   tiktokUrl: string;
   heroTitle: string;
