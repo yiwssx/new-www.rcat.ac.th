@@ -109,7 +109,7 @@ export function VisitorStatsCard({ stats }: { stats?: VisitorStatsSettings }) {
                     wordBreak: "normal"
                   }}
                 >
-                  สถิติภาพรวมผู้เข้าชม
+                  สถิติผู้เข้าชมเว็บไซต์
                 </Typography>
               </Box>
             </Stack>
