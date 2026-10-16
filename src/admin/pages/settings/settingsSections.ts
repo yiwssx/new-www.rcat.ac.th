@@ -5,7 +5,10 @@ import { settingsCategories } from "../../../config/adminSettingsCategories";
 export { settingsCategories };
 
 export type SettingsCategory = (typeof settingsCategories)[number];
-export type SiteSettingsCategory = Extract<SettingsCategory, "general" | "leadership" | "footer" | "appearance" | "social">;
+export type SiteSettingsCategory = Extract<
+  SettingsCategory,
+  "general" | "leadership" | "footer" | "appearance" | "social"
+>;
 
 export const siteSettingsKeys: Record<SiteSettingsCategory, readonly (keyof SiteSettings)[]> = {
   general: [
@@ -41,7 +44,13 @@ export const siteSettingsKeys: Record<SiteSettingsCategory, readonly (keyof Site
 };
 
 export function isSiteSettingsCategory(category: SettingsCategory): category is SiteSettingsCategory {
-  return category === "general" || category === "leadership" || category === "footer" || category === "appearance" || category === "social";
+  return (
+    category === "general" ||
+    category === "leadership" ||
+    category === "footer" ||
+    category === "appearance" ||
+    category === "social"
+  );
 }
 
 export const settingsNavigation: ReadonlyArray<{ id: SettingsCategory; label: string; description: string }> = [
@@ -51,7 +60,11 @@ export const settingsNavigation: ReadonlyArray<{ id: SettingsCategory; label: st
   { id: "footer", label: "ส่วนท้ายเว็บไซต์", description: "ลิงก์ส่วนท้ายและ Messenger" },
   { id: "appearance", label: "การแสดงผล", description: "วันที่ เวลา ริบบิ้น และโหมดไว้อาลัย" },
   { id: "visitors", label: "สถิติผู้เข้าชม", description: "ดูสถิติและตั้งค่าการแสดงผล" },
-  { id: "social", label: "Facebook และลิงก์หน่วยงาน", description: "ฝังเพจวิทยาลัย จัดการลิงก์แผนกวิชาและงาน พร้อมไอคอนหรือโลโก้" },
+  {
+    id: "social",
+    label: "Facebook และลิงก์หน่วยงาน",
+    description: "ฝังเพจวิทยาลัย จัดการลิงก์แผนกวิชาและงาน พร้อมไอคอนหรือโลโก้"
+  },
   { id: "access", label: "บทบาทและความปลอดภัย", description: "ตรวจสอบบทบาทและนโยบายความปลอดภัย" }
 ];
 

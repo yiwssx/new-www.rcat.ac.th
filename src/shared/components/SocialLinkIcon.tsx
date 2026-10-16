@@ -26,8 +26,14 @@ const iconComponents = {
 };
 
 export default function SocialLinkIcon({
-  iconKey, iconUrl, label
-}: { iconKey: SocialIconKey; iconUrl?: string; label: string }) {
+  iconKey,
+  iconUrl,
+  label
+}: {
+  iconKey: SocialIconKey;
+  iconUrl?: string;
+  label: string;
+}) {
   const safeImage = iconKey === "custom" ? socialHttpsUrl(iconUrl) : "";
   if (safeImage) {
     return <Avatar alt={label} src={safeImage} variant="rounded" sx={{ width: 30, height: 30 }} />;

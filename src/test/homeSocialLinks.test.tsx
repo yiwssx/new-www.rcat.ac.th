@@ -14,19 +14,31 @@ const settings = {
   enabled: true,
   links: [
     {
-      id: "dept1", category: "department" as const, label: "แผนกวิชาคอมพิวเตอร์",
-      href: "https://www.facebook.com/department1", iconKey: "computer" as const,
-      iconUrl: "", enabled: true
+      id: "dept1",
+      category: "department" as const,
+      label: "แผนกวิชาคอมพิวเตอร์",
+      href: "https://www.facebook.com/department1",
+      iconKey: "computer" as const,
+      iconUrl: "",
+      enabled: true
     },
     {
-      id: "unit1", category: "unit" as const, label: "งานประชาสัมพันธ์",
-      href: "https://www.facebook.com/office1", iconKey: "custom" as const,
-      iconUrl: "https://drive.google.com/thumbnail?id=abc&sz=w256", enabled: true
+      id: "unit1",
+      category: "unit" as const,
+      label: "งานประชาสัมพันธ์",
+      href: "https://www.facebook.com/office1",
+      iconKey: "custom" as const,
+      iconUrl: "https://drive.google.com/thumbnail?id=abc&sz=w256",
+      enabled: true
     },
     {
-      id: "hidden", category: "department" as const, label: "ปิดการแสดงผล",
-      href: "https://www.facebook.com/hidden", iconKey: "facebook" as const,
-      iconUrl: "", enabled: false
+      id: "hidden",
+      category: "department" as const,
+      label: "ปิดการแสดงผล",
+      href: "https://www.facebook.com/hidden",
+      iconKey: "facebook" as const,
+      iconUrl: "",
+      enabled: false
     }
   ]
 };
@@ -69,28 +81,44 @@ describe("homepage social widget model", () => {
   });
 
   it("allows published links without requiring the Facebook Page iframe", () => {
-    const { container } = render(<HomeSocialLinksCard
-      pageUrl="" settings={{ ...settings, pageEmbedEnabled: false }}
-    />);
+    const { container } = render(
+      <HomeSocialLinksCard pageUrl="" settings={{ ...settings, pageEmbedEnabled: false }} />
+    );
     expect(container.querySelector("iframe")).toBeNull();
     expect(screen.getByText("งานประชาสัมพันธ์")).toBeTruthy();
   });
 
   it("filters malformed links and refuses invalid admin drafts", () => {
     const normalized = normalizeHomepageSocialWidget({
-      enabled: true, pageEmbedHeight: 9999, links: [
-        { id: "bad", category: "unit", label: "Bad", href: "javascript:alert(1)", iconKey: "custom", iconUrl: "", enabled: true }
+      enabled: true,
+      pageEmbedHeight: 9999,
+      links: [
+        {
+          id: "bad",
+          category: "unit",
+          label: "Bad",
+          href: "javascript:alert(1)",
+          iconKey: "custom",
+          iconUrl: "",
+          enabled: true
+        }
       ]
     });
     expect(normalized.pageEmbedHeight).toBe(800);
     expect(normalized.links[0].href).toBe("");
     expect(normalized.links[0].iconKey).toBe("link");
     expect(() => validateHomepageSocialDraft(settings)).not.toThrow();
-    expect(() => validateHomepageSocialDraft({
-      ...settings, links: [{ ...settings.links[0], href: "javascript:alert(1)" }]
-    })).toThrow("HTTPS");
-    expect(() => validateHomepageSocialDraft({
-      ...settings, links: [{ ...settings.links[0], iconKey: "custom", iconUrl: "" }]
-    })).toThrow("อัปโหลด");
+    expect(() =>
+      validateHomepageSocialDraft({
+        ...settings,
+        links: [{ ...settings.links[0], href: "javascript:alert(1)" }]
+      })
+    ).toThrow("HTTPS");
+    expect(() =>
+      validateHomepageSocialDraft({
+        ...settings,
+        links: [{ ...settings.links[0], iconKey: "custom", iconUrl: "" }]
+      })
+    ).toThrow("อัปโหลด");
   });
 });

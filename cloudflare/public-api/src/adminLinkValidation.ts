@@ -72,31 +72,51 @@ function validateLeadershipSettings(value: unknown) {
 }
 
 const socialIconKeys = new Set([
-  "facebook", "school", "computer", "business", "campaign",
-  "groups", "calendar", "public", "work", "link", "custom"
+  "facebook",
+  "school",
+  "computer",
+  "business",
+  "campaign",
+  "groups",
+  "calendar",
+  "public",
+  "work",
+  "link",
+  "custom"
 ]);
 
 function validateHomepageSocialSettings(value: unknown) {
-  if (!isRecord(value) || typeof value.enabled !== "boolean" ||
-      typeof value.pageEmbedEnabled !== "boolean" ||
-      !Number.isInteger(value.pageEmbedHeight) ||
-      Number(value.pageEmbedHeight) < 300 ||
-      Number(value.pageEmbedHeight) > 800 ||
-      !Array.isArray(value.links) || value.links.length > 100) {
+  if (
+    !isRecord(value) ||
+    typeof value.enabled !== "boolean" ||
+    typeof value.pageEmbedEnabled !== "boolean" ||
+    !Number.isInteger(value.pageEmbedHeight) ||
+    Number(value.pageEmbedHeight) < 300 ||
+    Number(value.pageEmbedHeight) > 800 ||
+    !Array.isArray(value.links) ||
+    value.links.length > 100
+  ) {
     throw new Error("invalid homepage social settings");
   }
   const ids = new Set<string>();
   value.links.forEach((unknownLink, index) => {
-    if (!isRecord(unknownLink) ||
-        typeof unknownLink.id !== "string" || !unknownLink.id || unknownLink.id.length > 96 ||
-        ids.has(unknownLink.id) ||
-        (unknownLink.category !== "department" && unknownLink.category !== "unit") ||
-        typeof unknownLink.label !== "string" || !unknownLink.label.trim() || unknownLink.label.length > 120 ||
-        typeof unknownLink.href !== "string" ||
-        !unknownLink.href.trim().startsWith("https://") ||
-        typeof unknownLink.iconKey !== "string" || !socialIconKeys.has(unknownLink.iconKey) ||
-        typeof unknownLink.iconUrl !== "string" ||
-        typeof unknownLink.enabled !== "boolean") {
+    if (
+      !isRecord(unknownLink) ||
+      typeof unknownLink.id !== "string" ||
+      !unknownLink.id ||
+      unknownLink.id.length > 96 ||
+      ids.has(unknownLink.id) ||
+      (unknownLink.category !== "department" && unknownLink.category !== "unit") ||
+      typeof unknownLink.label !== "string" ||
+      !unknownLink.label.trim() ||
+      unknownLink.label.length > 120 ||
+      typeof unknownLink.href !== "string" ||
+      !unknownLink.href.trim().startsWith("https://") ||
+      typeof unknownLink.iconKey !== "string" ||
+      !socialIconKeys.has(unknownLink.iconKey) ||
+      typeof unknownLink.iconUrl !== "string" ||
+      typeof unknownLink.enabled !== "boolean"
+    ) {
       throw new Error(`invalid social link ${index + 1}`);
     }
     ids.add(unknownLink.id as string);

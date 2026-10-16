@@ -77,11 +77,18 @@ export default function HomeSocialLinksCard({
   const widget = normalizeHomepageSocialWidget(settings);
   if (!widget.enabled) return null;
   const facebookHref = socialFacebookPageUrl(pageUrl);
-  const links = widget.links.filter((item) => item.enabled && item.label && item.href && (item.iconKey !== "custom" || item.iconUrl));
+  const links = widget.links.filter(
+    (item) => item.enabled && item.label && item.href && (item.iconKey !== "custom" || item.iconUrl)
+  );
   if ((!widget.pageEmbedEnabled || !facebookHref) && links.length === 0) return null;
 
   return (
-    <Card component="section" aria-label="ช่องทาง Facebook และหน่วยงาน" data-home-social-widget="true" sx={{ width: "100%", minWidth: 0 }}>
+    <Card
+      component="section"
+      aria-label="ช่องทาง Facebook และหน่วยงาน"
+      data-home-social-widget="true"
+      sx={{ width: "100%", minWidth: 0 }}
+    >
       <CardContent sx={{ p: { xs: 2, sm: 2.5 } }}>
         <Stack spacing={2}>
           {widget.pageEmbedEnabled && facebookHref && (
@@ -117,10 +124,19 @@ export default function HomeSocialLinksCard({
                       target="_blank"
                       rel="noopener noreferrer"
                       underline="hover"
-                      sx={{ py: 1.2, display: "flex", alignItems: "center", gap: 1.5, overflowWrap: "anywhere", minWidth: 0 }}
+                      sx={{
+                        py: 1.2,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1.5,
+                        overflowWrap: "anywhere",
+                        minWidth: 0
+                      }}
                     >
                       <SocialLinkIcon iconKey={item.iconKey} iconUrl={item.iconUrl} label={item.label} />
-                      <Typography variant="body2" sx={{ flex: 1, minWidth: 0 }}>{item.label}</Typography>
+                      <Typography variant="body2" sx={{ flex: 1, minWidth: 0 }}>
+                        {item.label}
+                      </Typography>
                       <OpenInNewIcon aria-hidden="true" color="action" sx={{ fontSize: 17 }} />
                     </Link>
                   ))}

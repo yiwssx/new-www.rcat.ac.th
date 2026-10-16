@@ -1,7 +1,16 @@
 /** Public-facing, backwards-compatible CMS configuration for the homepage social block. */
 export const SOCIAL_ICON_KEYS = [
-  "facebook", "school", "computer", "business", "campaign",
-  "groups", "calendar", "public", "work", "link", "custom"
+  "facebook",
+  "school",
+  "computer",
+  "business",
+  "campaign",
+  "groups",
+  "calendar",
+  "public",
+  "work",
+  "link",
+  "custom"
 ] as const;
 
 export type SocialIconKey = (typeof SOCIAL_ICON_KEYS)[number];
@@ -49,7 +58,7 @@ const iconSet: ReadonlySet<string> = new Set(SOCIAL_ICON_KEYS);
 const facebookHosts = new Set(["facebook.com", "www.facebook.com", "m.facebook.com", "web.facebook.com"]);
 
 function record(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 }
 
 export function socialHttpsUrl(value: unknown): string {
@@ -70,7 +79,8 @@ export function socialFacebookPageUrl(value: unknown): string {
   if (!href) return "";
   const url = new URL(href);
   return facebookHosts.has(url.hostname.toLowerCase()) && url.pathname !== "/" && !url.pathname.startsWith("/plugins/")
-    ? href : "";
+    ? href
+    : "";
 }
 
 export function normalizeHomepageSocialWidget(value: unknown): HomepageSocialWidgetSettings {
@@ -83,13 +93,15 @@ export function normalizeHomepageSocialWidget(value: unknown): HomepageSocialWid
     pageEmbedHeight: Number.isFinite(height) ? Math.round(Math.min(800, Math.max(300, height))) : 520,
     links: links.map((value): HomepageSocialLink => {
       const item = record(value);
-      const iconKey = typeof item.iconKey === "string" && iconSet.has(item.iconKey)
-        ? item.iconKey as SocialIconKey : "facebook";
+      const iconKey =
+        typeof item.iconKey === "string" && iconSet.has(item.iconKey) ? (item.iconKey as SocialIconKey) : "facebook";
       const iconUrl = socialHttpsUrl(item.iconUrl);
       return {
         id: String(item.id ?? "").slice(0, 96),
         category: item.category === "unit" ? "unit" : "department",
-        label: String(item.label ?? "").trim().slice(0, 120),
+        label: String(item.label ?? "")
+          .trim()
+          .slice(0, 120),
         href: socialHttpsUrl(item.href),
         iconKey: iconKey === "custom" && !iconUrl ? "link" : iconKey,
         iconUrl,
