@@ -158,7 +158,9 @@ describe("Organization V2.4 leaf-page presentation", () => {
       />
     );
     expect(screen.getByRole("heading", { name: "ผังโครงสร้างหน่วยงาน" })).toBeInTheDocument();
-    expect(screen.queryByText("ผังแสดงหน่วยงานแม่ด้านบนและหน่วยงานลูกด้านล่าง หน่วยงานระดับเดียวกันอยู่ข้างกัน")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("ผังแสดงหน่วยงานแม่ด้านบนและหน่วยงานลูกด้านล่าง หน่วยงานระดับเดียวกันอยู่ข้างกัน")
+    ).not.toBeInTheDocument();
     const diagram = screen.getByRole("region", { name: "ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้" });
     expect(within(diagram).getAllByRole("link")).toHaveLength(2);
     expect(diagram.querySelectorAll('[data-org-unit-navigation-card="true"]')).toHaveLength(2);
