@@ -3,39 +3,80 @@ import { installAuthenticatedDesignSystemCmsFixture } from "./fixtures/designSys
 
 const units = [
   {
-    content_id: "division-1", parent_content_id: null, unit_kind: "division",
-    sort_order: 0, slug: "division-1", title: "ฝ่ายบริหาร",
-    summary: "", status: "published", publish_at: "", unpublish_at: "",
-    content_revision: 0, unit_revision: 0
+    content_id: "division-1",
+    parent_content_id: null,
+    unit_kind: "division",
+    sort_order: 0,
+    slug: "division-1",
+    title: "ฝ่ายบริหาร",
+    summary: "",
+    status: "published",
+    publish_at: "",
+    unpublish_at: "",
+    content_revision: 0,
+    unit_revision: 0
   },
   {
-    content_id: "work-1", parent_content_id: "division-1", unit_kind: "work",
-    sort_order: 0, slug: "work-1", title: "งานการบัญชี",
-    summary: "", status: "published", publish_at: "", unpublish_at: "",
-    content_revision: 0, unit_revision: 0
+    content_id: "work-1",
+    parent_content_id: "division-1",
+    unit_kind: "work",
+    sort_order: 0,
+    slug: "work-1",
+    title: "งานการบัญชี",
+    summary: "",
+    status: "published",
+    publish_at: "",
+    unpublish_at: "",
+    content_revision: 0,
+    unit_revision: 0
   },
   {
-    content_id: "work-2", parent_content_id: "division-1", unit_kind: "work",
-    sort_order: 1, slug: "work-2", title: "งานการเงิน",
-    summary: "", status: "published", publish_at: "", unpublish_at: "",
-    content_revision: 0, unit_revision: 0
+    content_id: "work-2",
+    parent_content_id: "division-1",
+    unit_kind: "work",
+    sort_order: 1,
+    slug: "work-2",
+    title: "งานการเงิน",
+    summary: "",
+    status: "published",
+    publish_at: "",
+    unpublish_at: "",
+    content_revision: 0,
+    unit_revision: 0
   }
 ];
 const positions = [
   {
-    id: "position-1", unit_content_id: "work-1", title: "เจ้าหน้าที่ประจำงาน",
-    group_label: "", group_sort_order: 0, sort_order: 0, display_style: "default",
-    occupant_limit: 1, revision: 5
+    id: "position-1",
+    unit_content_id: "work-1",
+    title: "เจ้าหน้าที่ประจำงาน",
+    group_label: "",
+    group_sort_order: 0,
+    sort_order: 0,
+    display_style: "default",
+    occupant_limit: 1,
+    revision: 5
   },
   {
-    id: "position-2", unit_content_id: "work-2", title: "เจ้าหน้าที่งานการเงิน",
-    group_label: "", group_sort_order: 0, sort_order: 0, display_style: "default",
-    occupant_limit: 2, revision: 3
+    id: "position-2",
+    unit_content_id: "work-2",
+    title: "เจ้าหน้าที่งานการเงิน",
+    group_label: "",
+    group_sort_order: 0,
+    sort_order: 0,
+    display_style: "default",
+    occupant_limit: 2,
+    revision: 3
   }
 ];
 const assignment = {
-  id: "assignment-1", personnel_id: "person-1", position_id: "position-1",
-  duty_detail: "", sort_order: 0, enabled: 1, revision: 7
+  id: "assignment-1",
+  personnel_id: "person-1",
+  position_id: "position-1",
+  duty_detail: "",
+  sort_order: 0,
+  enabled: 1,
+  revision: 7
 };
 const person = { id: "person-1", display_name: "บุคลากรหนึ่งคน", active: 1, revision: 3 };
 
@@ -49,10 +90,12 @@ async function installTransferFixture(page: Page) {
     const target = new URL(proxyPath, "https://example.invalid");
     if (target.pathname === "/api/admin/capabilities") {
       await route.fulfill({
-        status: 200, contentType: "application/json",
-        body: JSON.stringify({ role: "admin", capabilities: [
-          "dashboard.read", "organization.read", "organization.manage", "users.read-self"
-        ] })
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          role: "admin",
+          capabilities: ["dashboard.read", "organization.read", "organization.manage", "users.read-self"]
+        })
       });
       return;
     }
@@ -77,22 +120,30 @@ async function installTransferFixture(page: Page) {
     }
     const collection = target.pathname.split("/").pop() ?? "";
     const unitId = target.searchParams.get("unitContentId");
-    const items = collection === "units"
-      ? units
-      : collection === "positions"
-        ? unitId
-          ? positions.filter((item) => item.unit_content_id === unitId)
-          : positions
-        : collection === "assignments"
-          ? unitId === "work-1" ? [assignment] : []
-          : collection === "personnel"
-            ? unitId === "work-1" ? [person] : []
-            : [];
+    const items =
+      collection === "units"
+        ? units
+        : collection === "positions"
+          ? unitId
+            ? positions.filter((item) => item.unit_content_id === unitId)
+            : positions
+          : collection === "assignments"
+            ? unitId === "work-1"
+              ? [assignment]
+              : []
+            : collection === "personnel"
+              ? unitId === "work-1"
+                ? [person]
+                : []
+              : [];
     await route.fulfill({
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
-        items, total: items.length, nextOffset: null, maximumItems: 100,
+        items,
+        total: items.length,
+        nextOffset: null,
+        maximumItems: 100,
         generatedAt: "2026-10-18T00:00:00.000Z"
       })
     });
@@ -118,7 +169,9 @@ test("single-occupant drag opens transfer dialog and cancel does not write", asy
   expect(requests).toHaveLength(0);
 });
 
-test("assignment transfer chooser selects another work unit, requires confirmation and keeps revision", async ({ page }) => {
+test("assignment transfer chooser selects another work unit, requires confirmation and keeps revision", async ({
+  page
+}) => {
   const requests = await installTransferFixture(page);
   await page.getByRole("button", { name: "ย้ายตำแหน่งหรือหน่วยงาน" }).click();
   const dialog = page.getByRole("dialog", { name: "ย้ายบุคลากรข้ามตำแหน่งหรือหน่วยงาน" });
@@ -134,7 +187,9 @@ test("assignment transfer chooser selects another work unit, requires confirmati
   await page.getByRole("button", { name: "ยืนยันย้าย", exact: true }).click();
   await expect.poll(() => requests.length).toBe(1);
   expect(requests[0]).toMatchObject({
-    method: "PATCH", path: "/api/admin/organization/assignments/assignment-1",
-    revision: "7", body: { positionId: "position-2", autoSortOrder: true }
+    method: "PATCH",
+    path: "/api/admin/organization/assignments/assignment-1",
+    revision: "7",
+    body: { positionId: "position-2", autoSortOrder: true }
   });
 });
