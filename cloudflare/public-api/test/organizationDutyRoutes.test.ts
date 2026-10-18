@@ -1,6 +1,8 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AdminIdentity } from "../src/auth/adminAccess";
+import { moveAuditedOrganizationAssignment } from "../src/db/organizationAssignmentMove";
+
 import {
   createAuditedOrganizationAssignment,
   createAuditedOrganizationPosition,
@@ -13,6 +15,7 @@ import type { OrganizationAssignmentRow, OrganizationPositionRow } from "../src/
 import type { Env } from "../src/env";
 import { handleAdminOrganizationDutyWrite } from "../src/routes/adminOrganizationDutyWrite";
 
+vi.mock("../src/db/organizationAssignmentMove", () => ({ moveAuditedOrganizationAssignment: vi.fn() }));
 vi.mock("../src/db/organizationDutyRepository", () => ({
   createAuditedOrganizationAssignment: vi.fn(),
   createAuditedOrganizationPosition: vi.fn(),
@@ -75,6 +78,7 @@ beforeEach(() => {
   vi.mocked(getAdminOrganizationAssignmentById).mockResolvedValue(assignment);
   vi.mocked(updateAuditedOrganizationPosition).mockResolvedValue(true);
   vi.mocked(updateAuditedOrganizationAssignment).mockResolvedValue(true);
+  vi.mocked(moveAuditedOrganizationAssignment).mockResolvedValue(true);
 });
 
 describe("Organization Chart protected position and assignment writes", () => {
@@ -159,6 +163,41 @@ describe("Organization Chart protected position and assignment writes", () => {
 
     vi.mocked(updateAuditedOrganizationAssignment).mockResolvedValue(false);
     expect((await dispatch("PATCH", "assignments/assignment-1", { dutyDetail: "New" }, "4"))?.status).toBe(409);
+  });
+
+  it("transfers one assignment with server-owned append and source revision without altering personnel", async () => {
+    const result = await dispatch(
+      "PATCH",
+      "assignments/assignment-1",
+      { positionId: "position-in-another-unit", autoSortOrder: true },
+      "4"
+    );
+    expect(result?.status).toBe(200);
+    expect(moveAuditedOrganizationAssignment).toHaveBeenCalledWith(
+      env,
+      {
+        id: "assignment-1",
+        expectedRevision: 4,
+        expectedSourcePositionId: "position-1",
+        destinationPositionId: "position-in-another-unit",
+        personnelId: "person-1"
+      },
+      identity.actor
+    );
+    expect(updateAuditedOrganizationAssignment).not.toHaveBeenCalled();
+    expect((await dispatch("PATCH", "assignments/assignment-1", {
+      positionId: "position-1", autoSortOrder: true
+    }, "4"))?.status).toBe(400);
+    expect((await dispatch("PATCH", "assignments/assignment-1", {
+      positionId: "position-in-another-unit", autoSortOrder: true, enabled: false
+    }, "4"))?.status).toBe(400);
+    expect((await dispatch("PATCH", "assignments/assignment-1", {
+      positionId: "position-in-another-unit", autoSortOrder: true
+    }))?.status).toBe(428);
+    vi.mocked(moveAuditedOrganizationAssignment).mockResolvedValueOnce(false);
+    expect((await dispatch("PATCH", "assignments/assignment-1", {
+      positionId: "position-in-another-unit", autoSortOrder: true
+    }, "4"))?.status).toBe(409);
   });
 
   it("supports revision-guarded cross-unit reassignment and manual deactivation", async () => {
