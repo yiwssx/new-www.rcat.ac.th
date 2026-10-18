@@ -10,14 +10,16 @@ const api = vi.hoisted(() => ({
   list: vi.fn(),
   create: vi.fn(),
   update: vi.fn(),
-  remove: vi.fn()
+  remove: vi.fn(),
+  transfer: vi.fn()
 }));
 vi.mock("../../features/organization-admin/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../features/organization-admin/api")>()),
   getOrganizationCollection: api.list,
   createOrganizationRecord: api.create,
   updateOrganizationRecord: api.update,
-  deleteOrganizationRecord: api.remove
+  deleteOrganizationRecord: api.remove,
+  transferOrganizationAssignment: api.transfer
 }));
 vi.mock("../../utils/swal", () => ({
   appSwal: { fire: vi.fn(async () => ({ isConfirmed: true })), close: vi.fn(async () => {}) },
@@ -57,7 +59,7 @@ const units: OrganizationUnitListRow[] = [
   }
 ];
 
-function setup(canManage: boolean, view: "legacy" | "positions" | "charts" = "legacy") {
+function setup(canManage: boolean, view: "legacy" | "positions" | "assignments" | "charts" = "legacy") {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } }
   });
@@ -103,6 +105,7 @@ beforeEach(() => {
   api.create.mockResolvedValue({ item: {} });
   api.update.mockResolvedValue({ item: {} });
   api.remove.mockResolvedValue({ deleted: true });
+  api.transfer.mockResolvedValue({ item: {} });
 });
 
 describe("Phase 6 accessible Organization builder", () => {
@@ -222,6 +225,87 @@ describe("Phase 6 accessible Organization builder", () => {
     fireEvent.click(screen.getByText("งานสารบรรณ"));
     expect(await screen.findByRole("button", { name: "ลากจัดลำดับ A" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "ลากจัดลำดับ B" })).toBeInTheDocument();
+  });
+
+  it("lets the only occupant of a position open a safe cross-unit transfer dialog", async () => {
+    api.list.mockImplementation(
+      async (collection: string, _limit: number, _offset: number, options?: { unitContentId?: string }) => ({
+        items:
+          collection === "positions"
+            ? options?.unitContentId === "division-1"
+              ? [
+                  {
+                    id: "position-target",
+                    unit_content_id: "division-1",
+                    title: "เจ้าหน้าที่ฝ่าย",
+                    group_label: "",
+                    group_sort_order: 0,
+                    sort_order: 0,
+                    display_style: "default",
+                    occupant_limit: 2,
+                    revision: 0
+                  }
+                ]
+              : [
+                  {
+                    id: "position-1",
+                    unit_content_id: "work-1",
+                    title: "เจ้าหน้าที่ประจำงาน",
+                    group_label: "",
+                    group_sort_order: 0,
+                    sort_order: 0,
+                    display_style: "default",
+                    occupant_limit: 1,
+                    revision: 4
+                  }
+                ]
+            : collection === "assignments"
+              ? [
+                  {
+                    id: "assignment-only",
+                    personnel_id: "person-1",
+                    position_id: "position-1",
+                    duty_detail: "",
+                    sort_order: 0,
+                    enabled: 1,
+                    revision: 2
+                  }
+                ]
+              : collection === "personnel"
+                ? [{ id: "person-1", display_name: "บุคลากรคนเดียว", active: 1, revision: 0 }]
+                : [],
+        nextOffset: null,
+        maximumItems: 100,
+        generatedAt: ""
+      })
+    );
+    setup(true, "assignments");
+    fireEvent.click(screen.getByText("งานสารบรรณ"));
+    expect(await screen.findByRole("button", { name: "ลากจัดลำดับ บุคลากรคนเดียว" })).toBeEnabled();
+    expect(screen.getByLabelText("วางบุคลากรเพื่อย้ายข้ามตำแหน่งหรือหน่วยงาน")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "ย้ายตำแหน่งหรือหน่วยงาน" }));
+    expect(screen.getByRole("dialog", { name: "ย้ายบุคลากรข้ามตำแหน่งหรือหน่วยงาน" })).toBeInTheDocument();
+    fireEvent.mouseDown(screen.getByRole("combobox", { name: "หน่วยงานปลายทาง" }));
+    fireEvent.click(screen.getByRole("option", { name: "ฝ่ายบริหาร" }));
+    await waitFor(() =>
+      expect(api.list).toHaveBeenCalledWith("positions", 100, 0, {
+        includeTotal: true,
+        unitContentId: "division-1"
+      })
+    );
+    expect(screen.getByRole("combobox", { name: "หน่วยงานปลายทาง" })).toHaveTextContent("ฝ่ายบริหาร");
+    await waitFor(() => expect(screen.getByRole("combobox", { name: "ตำแหน่งปลายทาง" })).toBeEnabled());
+    fireEvent.mouseDown(screen.getByRole("combobox", { name: "ตำแหน่งปลายทาง" }));
+    fireEvent.click(await screen.findByRole("option", { name: "เจ้าหน้าที่ฝ่าย" }));
+    fireEvent.click(screen.getByRole("button", { name: "ตรวจสอบและยืนยันการย้าย" }));
+    expect(screen.getByText("ยืนยันย้ายการมอบหมาย?")).toBeInTheDocument();
+    expect(api.transfer).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: /^ยืนยันย้าย$/u }));
+    await waitFor(() => {
+      expect(api.transfer).toHaveBeenCalledWith("assignment-only", 2, "position-target");
+    });
+    expect(api.remove).not.toHaveBeenCalled();
+    expect(api.create).not.toHaveBeenCalled();
   });
 
   it("creates a unit-scoped position through the dedicated audited facade", async () => {

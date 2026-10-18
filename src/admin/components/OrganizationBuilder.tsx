@@ -27,6 +27,7 @@ import {
   getOrganizationCollection,
   invalidateOrganizationQueries,
   reorderOrganizationRecords,
+  transferOrganizationAssignment,
   updateOrganizationRecord,
   type OrganizationAssignmentRow,
   type OrganizationAssignmentWrite,
@@ -37,6 +38,8 @@ import {
 } from "../../features/organization-admin";
 import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 import { OrganizationSortableRow } from "./OrganizationSortableRow";
+import OrganizationAssignmentTransferDialog from "./OrganizationAssignmentTransferDialog";
+import OrganizationAssignmentTransferTarget from "./OrganizationAssignmentTransferTarget";
 import OrganizationChartLayoutEditor from "./OrganizationChartLayoutEditor";
 import OrganizationUnitContextPreview from "./OrganizationUnitContextPreview";
 import {
@@ -141,6 +144,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
   const [positionForm, setPositionForm] = useState<PositionForm | null>(null);
   const [assignmentEditing, setAssignmentEditing] = useState<OrganizationAssignmentRow | null>(null);
   const [assignmentForm, setAssignmentForm] = useState<AssignmentForm | null>(null);
+  const [movingAssignment, setMovingAssignment] = useState<OrganizationAssignmentRow | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [dialogError, setDialogError] = useState("");
@@ -401,6 +405,42 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
     setBusy(false);
     await appSwal.close();
     await showSuccessResult("ลบรายการสำเร็จ");
+  }
+
+  function openTransfer(assignment: OrganizationAssignmentRow) {
+    if (!canManage || busy || assignmentsQuery.isPending || assignmentsQuery.hasNextPage || assignmentsQuery.isError) {
+      setError("กรุณาโหลดหน้าที่ทั้งหมดในหน่วยงานนี้ก่อนย้ายการมอบหมาย");
+      return;
+    }
+    setError("");
+    setMovingAssignment(assignment);
+  }
+
+  async function confirmTransfer(position: OrganizationPositionRow, _targetUnit: OrganizationUnitListRow) {
+    const assignment = movingAssignment;
+    if (!canManage || busy || !assignment || assignment.position_id === position.id) return;
+    setBusy(true);
+    setError("");
+    showBlockingLoading("กำลังย้ายบุคลากร");
+    try {
+      await transferOrganizationAssignment(assignment.id, assignment.revision, position.id);
+    } catch (cause) {
+      await appSwal.close();
+      const message = isAdminStaleRevisionError(cause)
+        ? "การมอบหมายถูกแก้ไขโดยผู้ดูแลอื่น กรุณาโหลดรายการล่าสุด"
+        : asMessage(cause);
+      setError(message);
+      await refresh().catch(() => {});
+      setBusy(false);
+      await showErrorResult("ย้ายการมอบหมายไม่สำเร็จ", new Error(message), "ตรวจสอบความจุหรือข้อมูลซ้ำแล้วลองใหม่");
+      return;
+    }
+    setMovingAssignment(null);
+    await refresh().catch(() => setError("ย้ายแล้ว แต่โหลดรายการล่าสุดไม่สำเร็จ กรุณารีเฟรช"));
+    setNotice("ย้ายการมอบหมายและบันทึกประวัติแล้ว");
+    setBusy(false);
+    await appSwal.close();
+    await showSuccessResult("ย้ายการมอบหมายสำเร็จ");
   }
 
   async function saveReorder(
@@ -722,6 +762,11 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                                 onDragEnd={({ operation, canceled }) => {
                                   if (canceled || !isSortable(operation.source)) return;
                                   const source = operation.source;
+                                  if (operation.target?.id === "transfer:" + position.id) {
+                                    const assignment = assigned.find((item) => item.id === source.id);
+                                    if (assignment) openTransfer(assignment);
+                                    return;
+                                  }
                                   if (
                                     source.initialIndex === source.index ||
                                     source.index < 0 ||
@@ -742,9 +787,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                                     index={index}
                                     group={position.id}
                                     label={byPerson.get(assignment.personnel_id)?.display_name ?? assignment.id}
-                                    disabled={
-                                      !canManage || busy || Boolean(assignmentsQuery.hasNextPage) || assigned.length < 2
-                                    }
+                                    disabled={!canManage || busy || Boolean(assignmentsQuery.hasNextPage)}
                                   >
                                     <Box sx={{ bgcolor: "action.hover", borderRadius: 1, p: 1 }}>
                                       <Stack
@@ -783,10 +826,26 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                                             </Button>
                                           </Stack>
                                         )}
+                                        {canManage && (view === "legacy" || view === "assignments") && (
+                                          <Button
+                                            size="small"
+                                            variant="outlined"
+                                            disabled={busy || Boolean(assignmentsQuery.hasNextPage)}
+                                            onClick={() => openTransfer(assignment)}
+                                          >
+                                            ย้ายตำแหน่งหรือหน่วยงาน
+                                          </Button>
+                                        )}
                                       </Stack>
                                     </Box>
                                   </OrganizationSortableRow>
                                 ))}
+                                {canManage && assigned.length > 0 && (
+                                  <OrganizationAssignmentTransferTarget
+                                    id={"transfer:" + position.id}
+                                    disabled={busy || Boolean(assignmentsQuery.hasNextPage)}
+                                  />
+                                )}
                               </DragDropProvider>
                               {canManage && (view === "legacy" || view === "assignments") && (
                                 <Button
@@ -1122,6 +1181,17 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
               </Button>
             </DialogActions>
           </Dialog>
+          {movingAssignment && (
+            <OrganizationAssignmentTransferDialog
+              assignment={movingAssignment}
+              sourcePosition={positions.find((item) => item.id === movingAssignment.position_id)}
+              sourceUnit={selectedUnit}
+              units={units}
+              busy={busy}
+              onClose={() => !busy && setMovingAssignment(null)}
+              onTransfer={confirmTransfer}
+            />
+          )}
         </Stack>
       </CardContent>
     </Card>
