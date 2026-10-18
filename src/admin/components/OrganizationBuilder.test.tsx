@@ -300,7 +300,7 @@ describe("Phase 6 accessible Organization builder", () => {
     fireEvent.click(screen.getByRole("button", { name: "ตรวจสอบและยืนยันการย้าย" }));
     expect(screen.getByText("ยืนยันย้ายการมอบหมาย?")).toBeInTheDocument();
     expect(api.transfer).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "ยืนยันย้าย", exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: /^ยืนยันย้าย$/u }));
     await waitFor(() => {
       expect(api.transfer).toHaveBeenCalledWith("assignment-only", 2, "position-target");
     });
