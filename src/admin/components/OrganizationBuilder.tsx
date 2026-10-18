@@ -27,6 +27,7 @@ import {
   getOrganizationCollection,
   invalidateOrganizationQueries,
   reorderOrganizationRecords,
+  transferOrganizationAssignment,
   updateOrganizationRecord,
   type OrganizationAssignmentRow,
   type OrganizationAssignmentWrite,
@@ -37,6 +38,8 @@ import {
 } from "../../features/organization-admin";
 import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
 import { OrganizationSortableRow } from "./OrganizationSortableRow";
+import OrganizationAssignmentTransferDialog from "./OrganizationAssignmentTransferDialog";
+import OrganizationAssignmentTransferTarget from "./OrganizationAssignmentTransferTarget";
 import OrganizationChartLayoutEditor from "./OrganizationChartLayoutEditor";
 import OrganizationUnitContextPreview from "./OrganizationUnitContextPreview";
 import {
@@ -141,6 +144,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
   const [positionForm, setPositionForm] = useState<PositionForm | null>(null);
   const [assignmentEditing, setAssignmentEditing] = useState<OrganizationAssignmentRow | null>(null);
   const [assignmentForm, setAssignmentForm] = useState<AssignmentForm | null>(null);
+  const [movingAssignment, setMovingAssignment] = useState<OrganizationAssignmentRow | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [dialogError, setDialogError] = useState("");
@@ -401,6 +405,53 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
     setBusy(false);
     await appSwal.close();
     await showSuccessResult("ลบรายการสำเร็จ");
+  }
+
+  function openTransfer(assignment: OrganizationAssignmentRow) {
+    if (!canManage || busy || assignmentsQuery.isPending || assignmentsQuery.hasNextPage || assignmentsQuery.isError) {
+      setError("กรุณาโหลดหน้าที่ทั้งหมดในหน่วยงานนี้ก่อนย้ายการมอบหมาย");
+      return;
+    }
+    setError("");
+    setMovingAssignment(assignment);
+  }
+
+  async function confirmTransfer(position: OrganizationPositionRow, targetUnit: OrganizationUnitListRow) {
+    const assignment = movingAssignment;
+    if (!canManage || busy || !assignment || assignment.position_id === position.id) return;
+    const source = positions.find((row) => row.id === assignment.position_id);
+    const name = byPerson.get(assignment.personnel_id)?.display_name ?? assignment.personnel_id;
+    const confirmed = await appSwal.fire({
+      title: "ยืนยันย้ายการมอบหมาย?",
+      text: `${name}: จาก ${selectedUnit?.title ?? "หน่วยงานเดิม"} / ${source?.title ?? assignment.position_id} ไป ${targetUnit.title} / ${position.title}`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "ยืนยันย้าย",
+      cancelButtonText: "ยกเลิก"
+    });
+    if (!confirmed.isConfirmed) return;
+    setBusy(true);
+    setError("");
+    showBlockingLoading("กำลังย้ายบุคลากร");
+    try {
+      await transferOrganizationAssignment(assignment.id, assignment.revision, position.id);
+    } catch (cause) {
+      await appSwal.close();
+      const message = isAdminStaleRevisionError(cause)
+        ? "การมอบหมายถูกแก้ไขโดยผู้ดูแลอื่น กรุณาโหลดรายการล่าสุด"
+        : asMessage(cause);
+      setError(message);
+      await refresh().catch(() => {});
+      setBusy(false);
+      await showErrorResult("ย้ายการมอบหมายไม่สำเร็จ", new Error(message), "ตรวจสอบความจุหรือข้อมูลซ้ำแล้วลองใหม่");
+      return;
+    }
+    setMovingAssignment(null);
+    await refresh().catch(() => setError("ย้ายแล้ว แต่โหลดรายการล่าสุดไม่สำเร็จ กรุณารีเฟรช"));
+    setNotice("ย้ายการมอบหมายและบันทึกประวัติแล้ว");
+    setBusy(false);
+    await appSwal.close();
+    await showSuccessResult("ย้ายการมอบหมายสำเร็จ");
   }
 
   async function saveReorder(
