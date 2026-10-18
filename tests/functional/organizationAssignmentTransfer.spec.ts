@@ -169,7 +169,9 @@ test("single-occupant drag opens transfer dialog and cancel does not write", asy
   expect(requests).toHaveLength(0);
 });
 
-test("assignment transfer chooser selects another work unit, requires confirmation and keeps revision", async ({ page }) => {
+test("assignment transfer chooser selects another work unit, requires confirmation and keeps revision", async ({
+  page
+}) => {
   const requests = await installTransferFixture(page);
   await test.step("open cross-unit destination dialog", async () => {
     await page.getByRole("button", { name: "ย้ายตำแหน่งหรือหน่วยงาน", exact: true }).click({ timeout: 8000 });
@@ -197,8 +199,10 @@ test("assignment transfer chooser selects another work unit, requires confirmati
     await page.getByRole("button", { name: "ยืนยันย้าย", exact: true }).click({ timeout: 8000 });
     await expect.poll(() => requests.length, { timeout: 8000 }).toBe(1);
     expect(requests[0]).toMatchObject({
-      method: "PATCH", path: "/api/admin/organization/assignments/assignment-1",
-      revision: "7", body: { positionId: "position-2", autoSortOrder: true }
+      method: "PATCH",
+      path: "/api/admin/organization/assignments/assignment-1",
+      revision: "7",
+      body: { positionId: "position-2", autoSortOrder: true }
     });
   });
 });
