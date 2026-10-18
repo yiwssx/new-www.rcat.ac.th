@@ -298,6 +298,9 @@ describe("Phase 6 accessible Organization builder", () => {
     fireEvent.mouseDown(screen.getByRole("combobox", { name: "ตำแหน่งปลายทาง" }));
     fireEvent.click(await screen.findByRole("option", { name: "เจ้าหน้าที่ฝ่าย" }));
     fireEvent.click(screen.getByRole("button", { name: "ตรวจสอบและยืนยันการย้าย" }));
+    expect(screen.getByText("ยืนยันย้ายการมอบหมาย?")).toBeInTheDocument();
+    expect(api.transfer).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "ยืนยันย้าย", exact: true }));
     await waitFor(() => {
       expect(api.transfer).toHaveBeenCalledWith("assignment-only", 2, "position-target");
     });
