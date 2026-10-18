@@ -1194,6 +1194,17 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
               </Button>
             </DialogActions>
           </Dialog>
+          {movingAssignment && (
+            <OrganizationAssignmentTransferDialog
+              assignment={movingAssignment}
+              sourcePosition={positions.find((item) => item.id === movingAssignment.position_id)}
+              sourceUnit={selectedUnit}
+              units={units}
+              busy={busy}
+              onClose={() => !busy && setMovingAssignment(null)}
+              onTransfer={confirmTransfer}
+            />
+          )}
         </Stack>
       </CardContent>
     </Card>
