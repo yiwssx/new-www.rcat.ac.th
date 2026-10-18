@@ -174,7 +174,9 @@ test("assignment transfer chooser selects another work unit, requires confirmati
 }) => {
   const requests = await installTransferFixture(page);
   await test.step("open cross-unit destination dialog", async () => {
-    await page.getByRole("button", { name: "ย้ายตำแหน่งหรือหน่วยงาน", exact: true }).click({ timeout: 8000 });
+    const handle = page.getByRole("button", { name: "ลากจัดลำดับ บุคลากรหนึ่งคน", exact: true });
+    await expect(handle).toBeEnabled();
+    await handle.dragTo(page.getByLabel("วางบุคลากรเพื่อย้ายข้ามตำแหน่งหรือหน่วยงาน"), { steps: 15 });
     await expect(page.getByRole("dialog", { name: "ย้ายบุคลากรข้ามตำแหน่งหรือหน่วยงาน" })).toBeVisible();
   });
   const dialog = page.getByRole("dialog", { name: "ย้ายบุคลากรข้ามตำแหน่งหรือหน่วยงาน" });
@@ -192,11 +194,11 @@ test("assignment transfer chooser selects another work unit, requires confirmati
   });
   await test.step("open second confirmation without writing", async () => {
     await dialog.getByRole("button", { name: "ตรวจสอบและยืนยันการย้าย" }).click({ timeout: 8000 });
-    await expect(page.getByText("ยืนยันย้ายการมอบหมาย?")).toBeVisible({ timeout: 8000 });
+    await expect(dialog.getByText("ยืนยันย้ายการมอบหมาย?")).toBeVisible({ timeout: 8000 });
     expect(requests).toHaveLength(0);
   });
   await test.step("confirm and send exactly one revision-guarded transfer", async () => {
-    await page.getByRole("button", { name: "ยืนยันย้าย", exact: true }).click({ timeout: 8000 });
+    await dialog.getByRole("button", { name: "ยืนยันย้าย", exact: true }).click({ timeout: 8000 });
     await expect.poll(() => requests.length, { timeout: 8000 }).toBe(1);
     expect(requests[0]).toMatchObject({
       method: "PATCH",
