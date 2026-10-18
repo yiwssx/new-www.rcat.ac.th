@@ -287,6 +287,13 @@ describe("Phase 6 accessible Organization builder", () => {
     expect(screen.getByRole("dialog", { name: "ย้ายบุคลากรข้ามตำแหน่งหรือหน่วยงาน" })).toBeInTheDocument();
     fireEvent.mouseDown(screen.getByRole("combobox", { name: "หน่วยงานปลายทาง" }));
     fireEvent.click(screen.getByRole("option", { name: "ฝ่ายบริหาร" }));
+    await waitFor(() =>
+      expect(api.list).toHaveBeenCalledWith("positions", 100, 0, {
+        includeTotal: true,
+        unitContentId: "division-1"
+      })
+    );
+    expect(screen.getByRole("combobox", { name: "หน่วยงานปลายทาง" })).toHaveTextContent("ฝ่ายบริหาร");
     await waitFor(() => expect(screen.getByRole("combobox", { name: "ตำแหน่งปลายทาง" })).toBeEnabled());
     fireEvent.mouseDown(screen.getByRole("combobox", { name: "ตำแหน่งปลายทาง" }));
     fireEvent.click(await screen.findByRole("option", { name: "เจ้าหน้าที่ฝ่าย" }));
