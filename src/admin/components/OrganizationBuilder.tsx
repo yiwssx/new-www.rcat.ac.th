@@ -416,20 +416,9 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
     setMovingAssignment(assignment);
   }
 
-  async function confirmTransfer(position: OrganizationPositionRow, targetUnit: OrganizationUnitListRow) {
+  async function confirmTransfer(position: OrganizationPositionRow, _targetUnit: OrganizationUnitListRow) {
     const assignment = movingAssignment;
     if (!canManage || busy || !assignment || assignment.position_id === position.id) return;
-    const source = positions.find((row) => row.id === assignment.position_id);
-    const name = byPerson.get(assignment.personnel_id)?.display_name ?? assignment.personnel_id;
-    const confirmed = await appSwal.fire({
-      title: "ยืนยันย้ายการมอบหมาย?",
-      text: `${name}: จาก ${selectedUnit?.title ?? "หน่วยงานเดิม"} / ${source?.title ?? assignment.position_id} ไป ${targetUnit.title} / ${position.title}`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "ยืนยันย้าย",
-      cancelButtonText: "ยกเลิก"
-    });
-    if (!confirmed.isConfirmed) return;
     setBusy(true);
     setError("");
     showBlockingLoading("กำลังย้ายบุคลากร");
