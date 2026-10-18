@@ -139,10 +139,12 @@ export default function OrganizationAssignmentTransferDialog({
           )}
           {reviewMove && position && unit && (
             <Alert severity="warning" role="status" aria-label="ยืนยันการย้ายบุคลากร">
-              <Typography sx={{ fontWeight: 700 }} component="p">ยืนยันย้ายการมอบหมาย?</Typography>
+              <Typography sx={{ fontWeight: 700 }} component="p">
+                ยืนยันย้ายการมอบหมาย?
+              </Typography>
               <Typography variant="body2">
-                จาก {sourceUnit?.title ?? "หน่วยงานปัจจุบัน"} / {sourcePosition?.title ?? assignment.position_id}
-                {" "}ไปยัง {unit.title} / {position.title}
+                จาก {sourceUnit?.title ?? "หน่วยงานปัจจุบัน"} / {sourcePosition?.title ?? assignment.position_id} ไปยัง{" "}
+                {unit.title} / {position.title}
               </Typography>
               การยืนยันนี้จะบันทึกการมอบหมายใหม่ทันที โดยข้อมูลบุคลากรเดิมยังคงอยู่
             </Alert>
