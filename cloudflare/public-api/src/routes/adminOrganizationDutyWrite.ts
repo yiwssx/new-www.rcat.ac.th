@@ -1,4 +1,5 @@
 import type { AdminIdentity } from "../auth/adminAccess";
+import { moveAuditedOrganizationAssignment } from "../db/organizationAssignmentMove";
 import {
   createAuditedOrganizationAssignment,
   createAuditedOrganizationPosition,
@@ -149,8 +150,37 @@ export async function handleAdminOrganizationDutyWrite(
     if (isUpdate && previous && previous.revision !== revision) return errorResponse("stale revision", 409);
 
     const changes = await readJson(request);
+    if (isUpdate && collection === "assignments" && changes.autoSortOrder === true) {
+      const old = previous as OrganizationAssignmentRow;
+      const destination = changes.positionId;
+      // Transfer requests change only the destination. Other duty/profile fields
+      // remain attached to the existing audited assignment.
+      if (
+        Object.keys(changes).sort().join(",") !== "autoSortOrder,positionId" ||
+        typeof destination !== "string" ||
+        !/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$/.test(destination) ||
+        destination === old.position_id
+      ) {
+        return errorResponse("invalid assignment transfer destination", 400);
+      }
+      const transferred = await moveAuditedOrganizationAssignment(
+        env,
+        {
+          id: old.id,
+          expectedRevision: revision as number,
+          expectedSourcePositionId: old.position_id,
+          destinationPositionId: destination,
+          personnelId: old.personnel_id
+        },
+        identity.actor
+      );
+      if (!transferred)
+        return errorResponse("assignment changed or recipient already assigned; refresh and retry", 409);
+      const persisted = await getAdminOrganizationAssignmentById(env, old.id);
+      return ok(persisted);
+    }
     if (isUpdate && "autoSortOrder" in changes)
-      return errorResponse("automatic order applies only to new records", 400);
+      return errorResponse("automatic order applies only to new records or position transfers", 400);
     if (isCreate && changes.autoSortOrder === true && "sortOrder" in changes)
       return errorResponse("choose automatic or explicit sort order", 400);
     const now = new Date().toISOString();
