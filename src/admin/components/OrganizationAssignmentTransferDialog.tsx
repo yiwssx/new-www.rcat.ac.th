@@ -39,6 +39,7 @@ export default function OrganizationAssignmentTransferDialog({
   const [unitId, setUnitId] = useState(sourceUnit?.content_id ?? "");
   const [positionId, setPositionId] = useState("");
   const [unitSearch, setUnitSearch] = useState("");
+  const [reviewMove, setReviewMove] = useState(false);
   const search = useQuery({
     queryKey: ["admin-organization", "transfer-unit-search", unitSearch.trim()],
     enabled: unitSearch.trim().length > 0,
@@ -84,7 +85,7 @@ export default function OrganizationAssignmentTransferDialog({
             size="small"
             value={unitSearch}
             onChange={(event) => setUnitSearch(event.target.value)}
-            disabled={busy}
+            disabled={busy || reviewMove}
             slotProps={{ htmlInput: { maxLength: 160 } }}
             helperText="ค้นหาหน่วยงานที่ยังไม่ได้โหลดในรายการ"
           />
@@ -94,10 +95,11 @@ export default function OrganizationAssignmentTransferDialog({
             select
             fullWidth
             value={unitId}
-            disabled={busy}
+            disabled={busy || reviewMove}
             onChange={(event) => {
               setUnitId(event.target.value);
               setPositionId("");
+              setReviewMove(false);
             }}
           >
             {availableUnits.map((item) => (
@@ -110,9 +112,12 @@ export default function OrganizationAssignmentTransferDialog({
             label="ตำแหน่งปลายทาง"
             select
             fullWidth
-            disabled={busy || targetQuery.isPending || targetQuery.isError}
+            disabled={busy || reviewMove || targetQuery.isPending || targetQuery.isError}
             value={positionId}
-            onChange={(event) => setPositionId(event.target.value)}
+            onChange={(event) => {
+              setPositionId(event.target.value);
+              setReviewMove(false);
+            }}
           >
             {targets
               .filter((target) => target.id !== assignment.position_id)
@@ -126,13 +131,23 @@ export default function OrganizationAssignmentTransferDialog({
           {targetQuery.hasNextPage && (
             <Button
               variant="outlined"
-              disabled={targetQuery.isFetchingNextPage || busy}
+              disabled={targetQuery.isFetchingNextPage || busy || reviewMove}
               onClick={() => void targetQuery.fetchNextPage()}
             >
               โหลดตำแหน่งเพิ่มเติม
             </Button>
           )}
-          {position && unit && (
+          {reviewMove && position && unit && (
+            <Alert severity="warning" role="status" aria-label="ยืนยันการย้ายบุคลากร">
+              <Typography sx={{ fontWeight: 700 }} component="p">ยืนยันย้ายการมอบหมาย?</Typography>
+              <Typography variant="body2">
+                จาก {sourceUnit?.title ?? "หน่วยงานปัจจุบัน"} / {sourcePosition?.title ?? assignment.position_id}
+                {" "}ไปยัง {unit.title} / {position.title}
+              </Typography>
+              การยืนยันนี้จะบันทึกการมอบหมายใหม่ทันที โดยข้อมูลบุคลากรเดิมยังคงอยู่
+            </Alert>
+          )}
+          {!reviewMove && position && unit && (
             <Alert severity="warning">
               ปลายทาง: {unit.title} / {position.title} — ระบบจะเรียงต่อท้ายตำแหน่งปลายทางจากข้อมูลบนเซิร์ฟเวอร์
               และขอให้ยืนยันอีกครั้งก่อนบันทึก
@@ -141,17 +156,28 @@ export default function OrganizationAssignmentTransferDialog({
         </Stack>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} disabled={busy}>
-          ยกเลิก
+        <Button
+          disabled={busy}
+          onClick={() => {
+            if (reviewMove) setReviewMove(false);
+            else onClose();
+          }}
+        >
+          {reviewMove ? "ย้อนกลับแก้ไข" : "ยกเลิก"}
         </Button>
         <Button
           variant="contained"
           disabled={busy || !position || !unit || targetQuery.isError}
           onClick={() => {
-            if (position && unit) void onTransfer(position, unit);
+            if (!position || !unit) return;
+            if (!reviewMove) {
+              setReviewMove(true);
+              return;
+            }
+            void onTransfer(position, unit);
           }}
         >
-          ตรวจสอบและยืนยันการย้าย
+          {reviewMove ? "ยืนยันย้าย" : "ตรวจสอบและยืนยันการย้าย"}
         </Button>
       </DialogActions>
     </Dialog>
