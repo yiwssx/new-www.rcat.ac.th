@@ -335,6 +335,21 @@ test.describe("Organization hierarchy: managers above horizontal sibling units",
       const region = page.getByRole("region", { name: "ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้" });
       await expect(region).toBeVisible();
       await expect(region.getByRole("link", { name: "งานย่อยด้านหลักสูตร" })).toBeAttached();
+      await expect(
+        page.getByText("ผังแสดงหน่วยงานแม่ด้านบนและหน่วยงานลูกด้านล่าง หน่วยงานระดับเดียวกันอยู่ข้างกัน")
+      ).toHaveCount(0);
+      await expect(region.getByText(/หน่วยงานรับผิดชอบงานวางแผนด้านวิชาการ/)).toHaveCount(0);
+
+      const rootCard = region.locator('[data-org-unit-id="division-1"] > [data-org-unit-navigation-card="true"]');
+      const workCard = region.locator('[data-org-unit-id="work-1"] > [data-org-unit-navigation-card="true"]');
+      const rootSize = await rootCard.boundingBox();
+      const workSize = await workCard.boundingBox();
+      expect(rootSize).not.toBeNull();
+      expect(workSize).not.toBeNull();
+      expect(rootSize!.width).toBeLessThanOrEqual(208);
+      expect(rootSize!.height).toBeLessThanOrEqual(98);
+      expect(workSize!.width).toBeLessThanOrEqual(196);
+      expect(workSize!.height).toBeLessThanOrEqual(94);
 
       const rootLink = region.getByRole("link", { name: "ฝ่ายวิชาการ" });
       const grandchild = region.getByRole("link", { name: "งานย่อยด้านหลักสูตร" });
