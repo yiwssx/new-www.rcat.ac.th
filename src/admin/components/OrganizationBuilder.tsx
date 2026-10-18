@@ -773,6 +773,11 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                                 onDragEnd={({ operation, canceled }) => {
                                   if (canceled || !isSortable(operation.source)) return;
                                   const source = operation.source;
+                                  if (operation.target?.id === "transfer:" + position.id) {
+                                    const assignment = assigned.find((item) => item.id === source.id);
+                                    if (assignment) openTransfer(assignment);
+                                    return;
+                                  }
                                   if (
                                     source.initialIndex === source.index ||
                                     source.index < 0 ||
@@ -794,7 +799,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                                     group={position.id}
                                     label={byPerson.get(assignment.personnel_id)?.display_name ?? assignment.id}
                                     disabled={
-                                      !canManage || busy || Boolean(assignmentsQuery.hasNextPage) || assigned.length < 2
+                                      !canManage || busy || Boolean(assignmentsQuery.hasNextPage)
                                     }
                                   >
                                     <Box sx={{ bgcolor: "action.hover", borderRadius: 1, p: 1 }}>
@@ -834,10 +839,26 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                                             </Button>
                                           </Stack>
                                         )}
+                                        {canManage && (view === "legacy" || view === "assignments") && (
+                                          <Button
+                                            size="small"
+                                            variant="outlined"
+                                            disabled={busy || Boolean(assignmentsQuery.hasNextPage)}
+                                            onClick={() => openTransfer(assignment)}
+                                          >
+                                            ย้ายตำแหน่งหรือหน่วยงาน
+                                          </Button>
+                                        )}
                                       </Stack>
                                     </Box>
                                   </OrganizationSortableRow>
                                 ))}
+                                {canManage && assigned.length > 0 && (
+                                  <OrganizationAssignmentTransferTarget
+                                    id={"transfer:" + position.id}
+                                    disabled={busy || Boolean(assignmentsQuery.hasNextPage)}
+                                  />
+                                )}
                               </DragDropProvider>
                               {canManage && (view === "legacy" || view === "assignments") && (
                                 <Button
