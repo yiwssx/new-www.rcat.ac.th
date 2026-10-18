@@ -157,12 +157,12 @@ async function installTransferFixture(page: Page) {
 
 test("single-occupant drag opens transfer dialog and cancel does not write", async ({ page }) => {
   const requests = await installTransferFixture(page);
-  const handle = page.getByRole("button", { name: "ลากจัดลำดับ บุคลากรหนึ่งคน" });
+  const handle = page.getByRole("button", { name: "ลากจัดลำดับ บุคลากรหนึ่งคน", exact: true });
   const destination = page.getByLabel("วางบุคลากรเพื่อย้ายข้ามตำแหน่งหรือหน่วยงาน");
   await expect(handle).toBeVisible();
   await expect(handle).toBeEnabled();
   await expect(destination).toBeVisible();
-  await handle.dragTo(destination);
+  await handle.dragTo(destination, { steps: 15 });
   await expect(page.getByRole("dialog", { name: "ย้ายบุคลากรข้ามตำแหน่งหรือหน่วยงาน" })).toBeVisible();
   await page.getByRole("dialog").getByRole("button", { name: "ยกเลิก" }).click();
   await expect(page.getByRole("dialog", { name: "ย้ายบุคลากรข้ามตำแหน่งหรือหน่วยงาน" })).toHaveCount(0);
@@ -173,7 +173,7 @@ test("assignment transfer chooser selects another work unit, requires confirmati
   page
 }) => {
   const requests = await installTransferFixture(page);
-  await page.getByRole("button", { name: "ย้ายตำแหน่งหรือหน่วยงาน" }).click();
+  await page.getByRole("button", { name: "ย้ายตำแหน่งหรือหน่วยงาน", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "ย้ายบุคลากรข้ามตำแหน่งหรือหน่วยงาน" });
   await dialog.getByRole("combobox", { name: "หน่วยงานปลายทาง" }).click();
   await page.getByRole("option", { name: "งานการเงิน" }).click();
