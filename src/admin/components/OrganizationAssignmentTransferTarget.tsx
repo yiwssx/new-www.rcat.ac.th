@@ -3,13 +3,7 @@ import Typography from "@mui/material/Typography";
 import { useDroppable } from "@dnd-kit/react";
 
 /** Drop a staff row here to choose another position or organizational unit. */
-export default function OrganizationAssignmentTransferTarget({
-  id,
-  disabled
-}: {
-  id: string;
-  disabled: boolean;
-}) {
+export default function OrganizationAssignmentTransferTarget({ id, disabled }: { id: string; disabled: boolean }) {
   const { ref, isDropTarget } = useDroppable({ id, disabled });
   return (
     <Box

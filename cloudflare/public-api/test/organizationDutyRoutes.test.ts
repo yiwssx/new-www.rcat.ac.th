@@ -185,19 +185,55 @@ describe("Organization Chart protected position and assignment writes", () => {
       identity.actor
     );
     expect(updateAuditedOrganizationAssignment).not.toHaveBeenCalled();
-    expect((await dispatch("PATCH", "assignments/assignment-1", {
-      positionId: "position-1", autoSortOrder: true
-    }, "4"))?.status).toBe(400);
-    expect((await dispatch("PATCH", "assignments/assignment-1", {
-      positionId: "position-in-another-unit", autoSortOrder: true, enabled: false
-    }, "4"))?.status).toBe(400);
-    expect((await dispatch("PATCH", "assignments/assignment-1", {
-      positionId: "position-in-another-unit", autoSortOrder: true
-    }))?.status).toBe(428);
+    expect(
+      (
+        await dispatch(
+          "PATCH",
+          "assignments/assignment-1",
+          {
+            positionId: "position-1",
+            autoSortOrder: true
+          },
+          "4"
+        )
+      )?.status
+    ).toBe(400);
+    expect(
+      (
+        await dispatch(
+          "PATCH",
+          "assignments/assignment-1",
+          {
+            positionId: "position-in-another-unit",
+            autoSortOrder: true,
+            enabled: false
+          },
+          "4"
+        )
+      )?.status
+    ).toBe(400);
+    expect(
+      (
+        await dispatch("PATCH", "assignments/assignment-1", {
+          positionId: "position-in-another-unit",
+          autoSortOrder: true
+        })
+      )?.status
+    ).toBe(428);
     vi.mocked(moveAuditedOrganizationAssignment).mockResolvedValueOnce(false);
-    expect((await dispatch("PATCH", "assignments/assignment-1", {
-      positionId: "position-in-another-unit", autoSortOrder: true
-    }, "4"))?.status).toBe(409);
+    expect(
+      (
+        await dispatch(
+          "PATCH",
+          "assignments/assignment-1",
+          {
+            positionId: "position-in-another-unit",
+            autoSortOrder: true
+          },
+          "4"
+        )
+      )?.status
+    ).toBe(409);
   });
 
   it("supports revision-guarded cross-unit reassignment and manual deactivation", async () => {

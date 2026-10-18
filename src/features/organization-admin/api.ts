@@ -233,11 +233,7 @@ export async function reorderOrganizationRecords(
 
 /** Move the existing assignment (not the person profile) to another unit/position.
  * Server appends atomically under the assignment revision and destination capacity guard. */
-export async function transferOrganizationAssignment(
-  id: string,
-  revision: number,
-  destinationPositionId: string
-) {
+export async function transferOrganizationAssignment(id: string, revision: number, destinationPositionId: string) {
   return requestCloudflareAdmin<{ item: OrganizationAssignmentRow }>(entityPath("assignments", id), {
     method: "PATCH",
     headers: revisionHeaders(revision),

@@ -798,9 +798,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                                     index={index}
                                     group={position.id}
                                     label={byPerson.get(assignment.personnel_id)?.display_name ?? assignment.id}
-                                    disabled={
-                                      !canManage || busy || Boolean(assignmentsQuery.hasNextPage)
-                                    }
+                                    disabled={!canManage || busy || Boolean(assignmentsQuery.hasNextPage)}
                                   >
                                     <Box sx={{ bgcolor: "action.hover", borderRadius: 1, p: 1 }}>
                                       <Stack

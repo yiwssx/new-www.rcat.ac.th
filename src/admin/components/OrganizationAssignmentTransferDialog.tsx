@@ -65,13 +65,17 @@ export default function OrganizationAssignmentTransferDialog({
   const position = targets.find((item) => item.id === positionId);
   const unit = availableUnits.find((item) => item.content_id === unitId);
   return (
-    <Dialog open onClose={busy ? undefined : onClose} fullWidth maxWidth="sm" aria-labelledby="organization-transfer-title">
+    <Dialog
+      open
+      onClose={busy ? undefined : onClose}
+      fullWidth
+      maxWidth="sm"
+      aria-labelledby="organization-transfer-title"
+    >
       <DialogTitle id="organization-transfer-title">ย้ายบุคลากรข้ามตำแหน่งหรือหน่วยงาน</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
-          <Alert severity="info">
-            การย้ายเปลี่ยนเฉพาะการมอบหมายนี้ ไม่ลบบุคลากรหรือการมอบหมายรายการอื่น
-          </Alert>
+          <Alert severity="info">การย้ายเปลี่ยนเฉพาะการมอบหมายนี้ ไม่ลบบุคลากรหรือการมอบหมายรายการอื่น</Alert>
           <Typography variant="body2">
             ต้นทาง: {sourceUnit?.title ?? "หน่วยงานปัจจุบัน"} / {sourcePosition?.title ?? assignment.position_id}
           </Typography>
@@ -137,7 +141,9 @@ export default function OrganizationAssignmentTransferDialog({
         </Stack>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} disabled={busy}>ยกเลิก</Button>
+        <Button onClick={onClose} disabled={busy}>
+          ยกเลิก
+        </Button>
         <Button
           variant="contained"
           disabled={busy || !position || !unit || targetQuery.isError}

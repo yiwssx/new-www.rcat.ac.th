@@ -174,7 +174,8 @@ export async function handleAdminOrganizationDutyWrite(
         },
         identity.actor
       );
-      if (!transferred) return errorResponse("assignment changed or recipient already assigned; refresh and retry", 409);
+      if (!transferred)
+        return errorResponse("assignment changed or recipient already assigned; refresh and retry", 409);
       const persisted = await getAdminOrganizationAssignmentById(env, old.id);
       return ok(persisted);
     }

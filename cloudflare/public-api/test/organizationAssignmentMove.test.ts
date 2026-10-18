@@ -48,17 +48,29 @@ function assignment(id: string, person: string, positionId: string, rank: number
 }
 function current(id: string) {
   return db.prepare("SELECT * FROM organization_assignments WHERE id = ?").get(id) as {
-    id: string; position_id: string; sort_order: number; revision: number; personnel_id: string; enabled: number;
+    id: string;
+    position_id: string;
+    sort_order: number;
+    revision: number;
+    personnel_id: string;
+    enabled: number;
   };
 }
 function auditCount() {
   return (db.prepare("SELECT COUNT(*) AS total FROM admin_audit_log").get() as { total: number }).total;
 }
 const move = (destinationPositionId: string, expectedRevision = 0) =>
-  moveAuditedOrganizationAssignment(env, {
-    id: "source", expectedRevision, expectedSourcePositionId: "position-a",
-    destinationPositionId, personnelId: "person-a"
-  }, "editor");
+  moveAuditedOrganizationAssignment(
+    env,
+    {
+      id: "source",
+      expectedRevision,
+      expectedSourcePositionId: "position-a",
+      destinationPositionId,
+      personnelId: "person-a"
+    },
+    "editor"
+  );
 beforeEach(() => {
   db = new DatabaseSync(":memory:");
   db.exec("PRAGMA foreign_keys = ON");
@@ -89,13 +101,20 @@ describe("organization cross-unit DnD assignment transfer", () => {
     assignment("existing", "person-b", "position-b", 9);
     expect(await move("position-b")).toBe(true);
     expect(current("source")).toMatchObject({
-      personnel_id: "person-a", position_id: "position-b", sort_order: 10, revision: 1, enabled: 1
+      personnel_id: "person-a",
+      position_id: "position-b",
+      sort_order: 10,
+      revision: 1,
+      enabled: 1
     });
     expect(auditCount()).toBe(1);
-    expect(JSON.parse((db.prepare("SELECT metadata_json FROM admin_audit_log").get() as {metadata_json:string}).metadata_json))
-      .toMatchObject({operation:"transfer",fromPositionId:"position-a",toPositionId:"position-b"});
+    expect(
+      JSON.parse(
+        (db.prepare("SELECT metadata_json FROM admin_audit_log").get() as { metadata_json: string }).metadata_json
+      )
+    ).toMatchObject({ operation: "transfer", fromPositionId: "position-a", toPositionId: "position-b" });
     expect(current("existing").revision).toBe(0);
-    expect((db.prepare("SELECT COUNT(*) AS c FROM personnel").get() as {c:number}).c).toBe(3);
+    expect((db.prepare("SELECT COUNT(*) AS c FROM personnel").get() as { c: number }).c).toBe(3);
   });
   it("accepts empty destination without fabricating a duplicate personnel", async () => {
     expect(await move("position-b")).toBe(true);
@@ -121,6 +140,6 @@ describe("organization cross-unit DnD assignment transfer", () => {
   it("retains unrelated concurrent assignments and manual deactivation state", async () => {
     assignment("other", "person-a", "position-c", 3, 0);
     expect(await move("position-b")).toBe(true);
-    expect(current("other")).toMatchObject({position_id:"position-c",enabled:0,revision:0});
+    expect(current("other")).toMatchObject({ position_id: "position-c", enabled: 0, revision: 0 });
   });
 });

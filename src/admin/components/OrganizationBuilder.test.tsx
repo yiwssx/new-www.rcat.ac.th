@@ -228,28 +228,57 @@ describe("Phase 6 accessible Organization builder", () => {
   });
 
   it("lets the only occupant of a position open a safe cross-unit transfer dialog", async () => {
-    api.list.mockImplementation(async (collection: string, _limit: number, _offset: number, options?: { unitContentId?: string }) => ({
-      items:
-        collection === "positions"
-          ? options?.unitContentId === "division-1"
-            ? [{
-                id: "position-target", unit_content_id: "division-1", title: "เจ้าหน้าที่ฝ่าย", group_label: "",
-                group_sort_order: 0, sort_order: 0, display_style: "default", occupant_limit: 2, revision: 0
-              }]
-            : [{
-                id: "position-1", unit_content_id: "work-1", title: "เจ้าหน้าที่ประจำงาน", group_label: "",
-                group_sort_order: 0, sort_order: 0, display_style: "default", occupant_limit: 1, revision: 4
-              }]
-          : collection === "assignments"
-            ? [{
-                id: "assignment-only", personnel_id: "person-1", position_id: "position-1",
-                duty_detail: "", sort_order: 0, enabled: 1, revision: 2
-              }]
-            : collection === "personnel"
-              ? [{ id: "person-1", display_name: "บุคลากรคนเดียว", active: 1, revision: 0 }]
-              : [],
-      nextOffset: null, maximumItems: 100, generatedAt: ""
-    }));
+    api.list.mockImplementation(
+      async (collection: string, _limit: number, _offset: number, options?: { unitContentId?: string }) => ({
+        items:
+          collection === "positions"
+            ? options?.unitContentId === "division-1"
+              ? [
+                  {
+                    id: "position-target",
+                    unit_content_id: "division-1",
+                    title: "เจ้าหน้าที่ฝ่าย",
+                    group_label: "",
+                    group_sort_order: 0,
+                    sort_order: 0,
+                    display_style: "default",
+                    occupant_limit: 2,
+                    revision: 0
+                  }
+                ]
+              : [
+                  {
+                    id: "position-1",
+                    unit_content_id: "work-1",
+                    title: "เจ้าหน้าที่ประจำงาน",
+                    group_label: "",
+                    group_sort_order: 0,
+                    sort_order: 0,
+                    display_style: "default",
+                    occupant_limit: 1,
+                    revision: 4
+                  }
+                ]
+            : collection === "assignments"
+              ? [
+                  {
+                    id: "assignment-only",
+                    personnel_id: "person-1",
+                    position_id: "position-1",
+                    duty_detail: "",
+                    sort_order: 0,
+                    enabled: 1,
+                    revision: 2
+                  }
+                ]
+              : collection === "personnel"
+                ? [{ id: "person-1", display_name: "บุคลากรคนเดียว", active: 1, revision: 0 }]
+                : [],
+        nextOffset: null,
+        maximumItems: 100,
+        generatedAt: ""
+      })
+    );
     setup(true, "assignments");
     fireEvent.click(screen.getByText("งานสารบรรณ"));
     expect(await screen.findByRole("button", { name: "ลากจัดลำดับ บุคลากรคนเดียว" })).toBeEnabled();
