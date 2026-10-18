@@ -169,27 +169,36 @@ test("single-occupant drag opens transfer dialog and cancel does not write", asy
   expect(requests).toHaveLength(0);
 });
 
-test("assignment transfer chooser selects another work unit, requires confirmation and keeps revision", async ({
-  page
-}) => {
+test("assignment transfer chooser selects another work unit, requires confirmation and keeps revision", async ({ page }) => {
   const requests = await installTransferFixture(page);
-  await page.getByRole("button", { name: "ย้ายตำแหน่งหรือหน่วยงาน", exact: true }).click();
+  await test.step("open cross-unit destination dialog", async () => {
+    await page.getByRole("button", { name: "ย้ายตำแหน่งหรือหน่วยงาน", exact: true }).click({ timeout: 8000 });
+    await expect(page.getByRole("dialog", { name: "ย้ายบุคลากรข้ามตำแหน่งหรือหน่วยงาน" })).toBeVisible();
+  });
   const dialog = page.getByRole("dialog", { name: "ย้ายบุคลากรข้ามตำแหน่งหรือหน่วยงาน" });
-  await dialog.getByRole("combobox", { name: "หน่วยงานปลายทาง" }).click();
-  await page.getByRole("option", { name: "งานการเงิน" }).click();
-  await dialog.getByRole("combobox", { name: "ตำแหน่งปลายทาง" }).click();
-  await page.getByRole("option", { name: "เจ้าหน้าที่งานการเงิน" }).click();
-  await expect(dialog.getByText(/ปลายทาง: งานการเงิน/)).toBeVisible();
-  expect(requests).toHaveLength(0);
-  await dialog.getByRole("button", { name: "ตรวจสอบและยืนยันการย้าย" }).click();
-  await expect(page.getByText("ยืนยันย้ายการมอบหมาย?")).toBeVisible();
-  expect(requests).toHaveLength(0);
-  await page.getByRole("button", { name: "ยืนยันย้าย", exact: true }).click();
-  await expect.poll(() => requests.length).toBe(1);
-  expect(requests[0]).toMatchObject({
-    method: "PATCH",
-    path: "/api/admin/organization/assignments/assignment-1",
-    revision: "7",
-    body: { positionId: "position-2", autoSortOrder: true }
+  await test.step("choose different organizational unit", async () => {
+    await dialog.getByRole("combobox", { name: "หน่วยงานปลายทาง" }).click({ timeout: 8000 });
+    await page.getByRole("option", { name: "งานการเงิน" }).click({ timeout: 8000 });
+    await expect(dialog.getByRole("combobox", { name: "หน่วยงานปลายทาง" })).toContainText("งานการเงิน");
+  });
+  await test.step("choose an existing destination position", async () => {
+    await expect(dialog.getByRole("combobox", { name: "ตำแหน่งปลายทาง" })).toBeEnabled();
+    await dialog.getByRole("combobox", { name: "ตำแหน่งปลายทาง" }).click({ timeout: 8000 });
+    await page.getByRole("option", { name: "เจ้าหน้าที่งานการเงิน" }).click({ timeout: 8000 });
+    await expect(dialog.getByText(/ปลายทาง: งานการเงิน/)).toBeVisible();
+    expect(requests).toHaveLength(0);
+  });
+  await test.step("open second confirmation without writing", async () => {
+    await dialog.getByRole("button", { name: "ตรวจสอบและยืนยันการย้าย" }).click({ timeout: 8000 });
+    await expect(page.getByText("ยืนยันย้ายการมอบหมาย?")).toBeVisible({ timeout: 8000 });
+    expect(requests).toHaveLength(0);
+  });
+  await test.step("confirm and send exactly one revision-guarded transfer", async () => {
+    await page.getByRole("button", { name: "ยืนยันย้าย", exact: true }).click({ timeout: 8000 });
+    await expect.poll(() => requests.length, { timeout: 8000 }).toBe(1);
+    expect(requests[0]).toMatchObject({
+      method: "PATCH", path: "/api/admin/organization/assignments/assignment-1",
+      revision: "7", body: { positionId: "position-2", autoSortOrder: true }
+    });
   });
 });
