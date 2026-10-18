@@ -47,38 +47,30 @@ function UnitBranch({ branch }: { branch: PublicOrganizationUnitBranch }) {
         alignItems: "center",
         flex: "0 0 auto",
         width: "max-content",
-        minWidth: 228
+        minWidth: branch.level === 0 ? 204 : 192
       }}
     >
       <Card
         variant="outlined"
+        data-org-unit-navigation-card="true"
         sx={{
-          width: 228,
-          minHeight: 112,
+          width: branch.level === 0 ? 204 : 192,
+          minHeight: branch.level === 0 ? 80 : 76,
           borderRadius: 2,
           bgcolor: branch.level === 0 ? "action.hover" : "background.paper",
           borderColor: branch.level === 0 ? "primary.main" : "divider"
         }}
       >
-        <CardContent sx={{ p: 1.75, "&:last-child": { pb: 1.75 } }}>
+        <CardContent sx={{ p: 1.25, "&:last-child": { pb: 1.25 } }}>
           <Typography
             component="div"
-            variant="subtitle1"
+            variant="body2"
             sx={{ fontWeight: 700, lineHeight: 1.4, textAlign: "center", overflowWrap: "anywhere" }}
           >
             <Link href={"/organization/" + encodeURIComponent(unit.slug)} underline="hover" color="inherit">
               {unit.title}
             </Link>
           </Typography>
-          {unit.summary && (
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{ mt: 1, whiteSpace: "pre-line", overflowWrap: "anywhere", textAlign: "center" }}
-            >
-              {unit.summary}
-            </Typography>
-          )}
         </CardContent>
       </Card>
       {children.length > 0 && (
@@ -90,20 +82,20 @@ function UnitBranch({ branch }: { branch: PublicOrganizationUnitBranch }) {
             flexDirection: "row",
             justifyContent: "center",
             alignItems: "flex-start",
-            gap: 2,
+            gap: 1.5,
             listStyle: "none",
             position: "relative",
             width: "max-content",
             minWidth: "100%",
             m: 0,
             p: 0,
-            pt: 4,
+            pt: 3,
             "&::before": {
               content: '""',
               position: "absolute",
               top: 0,
               left: "50%",
-              height: 32,
+              height: 24,
               borderLeft: "2px solid",
               borderColor: "divider"
             }
@@ -169,9 +161,6 @@ export default function OrganizationUnitHierarchyView({
         <>
           {hasChildUnits && (
             <>
-              <Typography variant="body2" color="text.secondary">
-                ผังแสดงหน่วยงานแม่ด้านบนและหน่วยงานลูกด้านล่าง หน่วยงานระดับเดียวกันอยู่ข้างกัน
-              </Typography>
               <Box
                 role="region"
                 className="rcat-focus-ring"

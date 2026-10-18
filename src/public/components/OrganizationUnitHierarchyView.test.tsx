@@ -71,7 +71,10 @@ describe("Organization Unit Hierarchy V2.2 Phase 2", () => {
     const child = { ...unit("long", "root"), title, summary: "รายละเอียด\nที่ต้องตัดบรรทัดตามพื้นที่" };
     setup([unit("root", null), child]);
     expect(screen.getByRole("link", { name: title })).toHaveAttribute("href", "/organization/long");
-    expect(screen.getByText(/รายละเอียด/)).toBeInTheDocument();
+    // The detail route retains the summary; the compact unit navigator must only show links.
+    const diagram = screen.getByRole("region", { name: "ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้" });
+    expect(within(diagram).queryByText(/รายละเอียด/)).not.toBeInTheDocument();
+    expect(within(diagram).getByRole("link", { name: title })).toBeInTheDocument();
   });
 
   it("fails explicitly rather than building thousands of unbounded DOM nodes", () => {
@@ -155,7 +158,12 @@ describe("Organization V2.4 leaf-page presentation", () => {
       />
     );
     expect(screen.getByRole("heading", { name: "ผังโครงสร้างหน่วยงาน" })).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้" })).toBeInTheDocument();
+    expect(
+      screen.queryByText("ผังแสดงหน่วยงานแม่ด้านบนและหน่วยงานลูกด้านล่าง หน่วยงานระดับเดียวกันอยู่ข้างกัน")
+    ).not.toBeInTheDocument();
+    const diagram = screen.getByRole("region", { name: "ผังลำดับชั้นหน่วยงาน เลื่อนแนวนอนได้" });
+    expect(within(diagram).getAllByRole("link")).toHaveLength(2);
+    expect(diagram.querySelectorAll('[data-org-unit-navigation-card="true"]')).toHaveLength(2);
     expect(screen.getByRole("heading", { name: "หน่วยงาน child" })).toBeInTheDocument();
     expect(screen.getByText("บุคลากรคนเดียวกัน")).toBeInTheDocument();
   });
