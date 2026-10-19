@@ -70,13 +70,60 @@ export function organizationTreeItems(units: readonly OrganizationUnitListRow[])
   return roots;
 }
 
+export interface OrganizationPositionGroup {
+  label: string;
+  positions: OrganizationPositionRow[];
+}
+
+/** Group identity is the label, not its historical sort index.
+ * Legacy data can repeat group_sort_order or spread a label across indices;
+ * displaying one contiguous group makes drag targets and positions deterministic.
+ */
+export function positionGroupsForUnit(positions: readonly OrganizationPositionRow[], unitId: string) {
+  const groups = new Map<string, OrganizationPositionGroup>();
+  const order = new Map<string, number>();
+  for (const position of positions) {
+    if (position.unit_content_id !== unitId) continue;
+    const group = groups.get(position.group_label) ?? { label: position.group_label, positions: [] };
+    group.positions.push(position);
+    groups.set(position.group_label, group);
+    order.set(position.group_label, Math.min(order.get(position.group_label) ?? Infinity, position.group_sort_order));
+  }
+  return [...groups.values()]
+    .sort((a, b) => (order.get(a.label) ?? 0) - (order.get(b.label) ?? 0) || a.label.localeCompare(b.label, "th"))
+    .map((group) => ({
+      ...group,
+      positions: group.positions.sort(
+        (a, b) => a.sort_order - b.sort_order || a.title.localeCompare(b.title, "th") || a.id.localeCompare(b.id)
+      )
+    }));
+}
+
 export function positionsForUnit(positions: readonly OrganizationPositionRow[], unitId: string) {
-  return positions
-    .filter((position) => position.unit_content_id === unitId)
-    .sort(
-      (a, b) =>
-        a.group_sort_order - b.group_sort_order || a.sort_order - b.sort_order || a.title.localeCompare(b.title, "th")
-    );
+  return positionGroupsForUnit(positions, unitId).flatMap((group) => group.positions);
+}
+
+/** An assignment never moves when its organizational position changes group. */
+export function movePositionBetweenGroups(
+  groups: readonly OrganizationPositionGroup[],
+  positionId: string,
+  targetLabel: string
+): OrganizationPositionGroup[] {
+  const source = groups.find((group) => group.positions.some((position) => position.id === positionId));
+  const target = groups.find((group) => group.label === targetLabel);
+  if (!source || !target || source.label === target.label)
+    return groups.map((group) => ({ ...group, positions: [...group.positions] }));
+  const moved = source.positions.find((position) => position.id === positionId);
+  if (!moved) return groups.map((group) => ({ ...group, positions: [...group.positions] }));
+  return groups
+    .map((group) => ({
+      ...group,
+      positions:
+        group.label === targetLabel
+          ? [...group.positions, moved]
+          : group.positions.filter((position) => position.id !== positionId)
+    }))
+    .filter((group) => group.positions.length > 0);
 }
 
 /** Append after the highest persisted order; zero remains the canonical first value. */
