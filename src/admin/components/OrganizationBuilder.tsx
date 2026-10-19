@@ -209,7 +209,8 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
     !positionsQuery.isError &&
     !positionsQuery.hasNextPage &&
     visiblePositions.length > 0 &&
-    visiblePositions.length <= 500;
+    visiblePositions.length <= 500 &&
+    positionGroups.length <= 100;
   const assignmentsByPosition = useMemo(() => {
     const result = new Map<string, OrganizationAssignmentRow[]>();
     for (const assignment of assignments) {
