@@ -111,7 +111,8 @@ export function movePositionBetweenGroups(
 ): OrganizationPositionGroup[] {
   const source = groups.find((group) => group.positions.some((position) => position.id === positionId));
   const target = groups.find((group) => group.label === targetLabel);
-  if (!source || !target || source.label === target.label) return groups.map((group) => ({ ...group, positions: [...group.positions] }));
+  if (!source || !target || source.label === target.label)
+    return groups.map((group) => ({ ...group, positions: [...group.positions] }));
   const moved = source.positions.find((position) => position.id === positionId);
   if (!moved) return groups.map((group) => ({ ...group, positions: [...group.positions] }));
   return groups

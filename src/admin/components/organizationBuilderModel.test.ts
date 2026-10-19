@@ -91,20 +91,49 @@ describe("Phase 6 Organization builder model", () => {
       { id: "a", unit_content_id: "work", title: "A", group_label: "หัวหน้า", group_sort_order: 0, sort_order: 0 },
       { id: "b", unit_content_id: "work", title: "B", group_label: "เจ้าหน้าที่", group_sort_order: 0, sort_order: 0 },
       { id: "c", unit_content_id: "work", title: "C", group_label: "เจ้าหน้าที่", group_sort_order: 4, sort_order: 1 },
-      { id: "outside", unit_content_id: "other", title: "X", group_label: "หัวหน้า", group_sort_order: 0, sort_order: 0 }
+      {
+        id: "outside",
+        unit_content_id: "other",
+        title: "X",
+        group_label: "หัวหน้า",
+        group_sort_order: 0,
+        sort_order: 0
+      }
     ] as OrganizationPositionRow[];
     const groups = positionGroupsForUnit(positions, "work");
     expect(groups.map((group) => [group.label, group.positions.map((item) => item.id)])).toEqual([
-      ["เจ้าหน้าที่", ["b", "c"]], ["หัวหน้า", ["a"]]
+      ["เจ้าหน้าที่", ["b", "c"]],
+      ["หัวหน้า", ["a"]]
     ]);
     expect(positionsForUnit(positions, "work").map((item) => item.id)).toEqual(["b", "c", "a"]);
   });
 
   it("allows a sole position to change groups without losing its assigned identity", () => {
     const positions = [
-      { id: "only", unit_content_id: "work", title: "Head", group_label: "หัวหน้า", group_sort_order: 0, sort_order: 0 },
-      { id: "b", unit_content_id: "work", title: "Staff", group_label: "เจ้าหน้าที่", group_sort_order: 1, sort_order: 0 },
-      { id: "c", unit_content_id: "work", title: "Staff2", group_label: "เจ้าหน้าที่", group_sort_order: 1, sort_order: 1 }
+      {
+        id: "only",
+        unit_content_id: "work",
+        title: "Head",
+        group_label: "หัวหน้า",
+        group_sort_order: 0,
+        sort_order: 0
+      },
+      {
+        id: "b",
+        unit_content_id: "work",
+        title: "Staff",
+        group_label: "เจ้าหน้าที่",
+        group_sort_order: 1,
+        sort_order: 0
+      },
+      {
+        id: "c",
+        unit_content_id: "work",
+        title: "Staff2",
+        group_label: "เจ้าหน้าที่",
+        group_sort_order: 1,
+        sort_order: 1
+      }
     ] as OrganizationPositionRow[];
     const groups = positionGroupsForUnit(positions, "work");
     const moved = movePositionBetweenGroups(groups, "only", "เจ้าหน้าที่");
@@ -115,5 +144,4 @@ describe("Phase 6 Organization builder model", () => {
     expect(movePositionBetweenGroups(groups, "only", "หัวหน้า")).toEqual(groups);
     expect(movePositionBetweenGroups(groups, "missing", "เจ้าหน้าที่")).toEqual(groups);
   });
-
 });
