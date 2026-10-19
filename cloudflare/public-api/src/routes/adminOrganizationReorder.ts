@@ -150,7 +150,12 @@ export async function handleAdminOrganizationReorder(
     return null;
   }
   const raw: unknown = await request.json().catch(() => null);
-  if (raw && typeof raw === "object" && !Array.isArray(raw) && (raw as Record<string, unknown>).collection === "position-layout") {
+  if (
+    raw &&
+    typeof raw === "object" &&
+    !Array.isArray(raw) &&
+    (raw as Record<string, unknown>).collection === "position-layout"
+  ) {
     try {
       const input = parsePositionLayout(raw);
       const updated = await saveAuditedPositionLayout(env, input, identity.actor);
