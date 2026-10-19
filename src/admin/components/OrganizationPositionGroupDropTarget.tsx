@@ -21,9 +21,7 @@ export default function OrganizationPositionGroupDropTarget({
     <Box
       ref={ref}
       data-organization-position-group-target={id}
-      aria-label={
-        (groupOrder ? "วางกลุ่มเพื่อจัดลำดับที่ " : "วางตำแหน่งในกลุ่ม ") + (groupLabel || "ไม่ระบุกลุ่ม")
-      }
+      aria-label={(groupOrder ? "วางกลุ่มเพื่อจัดลำดับที่ " : "วางตำแหน่งในกลุ่ม ") + (groupLabel || "ไม่ระบุกลุ่ม")}
       sx={{
         p: 1.5,
         minHeight: 56,
