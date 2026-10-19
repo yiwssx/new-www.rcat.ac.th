@@ -174,3 +174,38 @@ test("group order can be changed by keyboard-accessible controls", async ({ page
     ]
   });
 });
+
+test("dragging a group heading changes group order without moving personnel", async ({ page }) => {
+  const writes = await installGroupedPositionFixture(page);
+  const source = page.getByRole("button", { name: "ลากจัดลำดับ กลุ่ม หัวหน้า", exact: true });
+  const destination = page.getByRole("button", { name: "ลากจัดลำดับ กลุ่ม เจ้าหน้าที่", exact: true });
+  await expect(source).toBeEnabled();
+  await expect(destination).toBeEnabled();
+  await source.dragTo(destination, { steps: 20 });
+  await expect.poll(() => writes.length).toBe(1);
+  expect(writes[0]).toMatchObject({
+    collection: "position-layout",
+    scopeId: "work-1",
+    groups: [
+      { label: "เจ้าหน้าที่", items: [{ id: "pos-b" }, { id: "pos-c" }] },
+      { label: "หัวหน้า", items: [{ id: "pos-a" }] }
+    ]
+  });
+});
+
+test("dragging within one position group only reorders the group's positions", async ({ page }) => {
+  const writes = await installGroupedPositionFixture(page);
+  const source = page.getByRole("button", { name: "ลากจัดลำดับ เจ้าหน้าที่การบัญชี", exact: true });
+  const destination = page.getByRole("button", { name: "ลากจัดลำดับ ผู้ช่วยเจ้าหน้าที่", exact: true });
+  await expect(source).toBeEnabled();
+  await source.dragTo(destination, { steps: 20 });
+  await expect.poll(() => writes.length).toBe(1);
+  expect(writes[0]).toMatchObject({
+    collection: "position-layout",
+    scopeId: "work-1",
+    groups: [
+      { label: "หัวหน้า", items: [{ id: "pos-a" }] },
+      { label: "เจ้าหน้าที่", items: [{ id: "pos-c" }, { id: "pos-b" }] }
+    ]
+  });
+});
