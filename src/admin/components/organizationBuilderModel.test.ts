@@ -95,9 +95,9 @@ describe("Phase 6 Organization builder model", () => {
     ] as OrganizationPositionRow[];
     const groups = positionGroupsForUnit(positions, "work");
     expect(groups.map((group) => [group.label, group.positions.map((item) => item.id)])).toEqual([
-      ["หัวหน้า", ["a"]], ["เจ้าหน้าที่", ["b", "c"]]
+      ["เจ้าหน้าที่", ["b", "c"]], ["หัวหน้า", ["a"]]
     ]);
-    expect(positionsForUnit(positions, "work").map((item) => item.id)).toEqual(["a", "b", "c"]);
+    expect(positionsForUnit(positions, "work").map((item) => item.id)).toEqual(["b", "c", "a"]);
   });
 
   it("allows a sole position to change groups without losing its assigned identity", () => {
