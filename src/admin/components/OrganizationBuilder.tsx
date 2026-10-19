@@ -1316,6 +1316,60 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
               </Button>
             </DialogActions>
           </Dialog>
+          <Dialog
+            open={movingPositionId !== null}
+            onClose={() => !busy && setMovingPositionId(null)}
+            maxWidth="sm"
+            fullWidth
+            aria-labelledby="move-position-group-title"
+          >
+            <DialogTitle id="move-position-group-title">ย้ายตำแหน่งข้ามกลุ่ม</DialogTitle>
+            <DialogContent>
+              <Stack spacing={2} sx={{ mt: 1 }}>
+                <Typography>
+                  ตำแหน่ง: {visiblePositions.find((position) => position.id === movingPositionId)?.title ?? ""}
+                </Typography>
+                <Typography variant="body2">
+                  กลุ่มเดิม: {visiblePositions.find((position) => position.id === movingPositionId)?.group_label || "ไม่ระบุกลุ่ม"}
+                </Typography>
+                <TextField
+                  select
+                  label="กลุ่มปลายทาง"
+                  value={targetGroupLabel}
+                  disabled={busy}
+                  onChange={(event) => setTargetGroupLabel(event.target.value)}
+                >
+                  {positionGroups
+                    .filter((group) => group.label !== visiblePositions.find((position) => position.id === movingPositionId)?.group_label)
+                    .map((group) => (
+                      <MenuItem key={group.label} value={group.label}>
+                        {group.label || "ไม่ระบุกลุ่ม"}
+                      </MenuItem>
+                    ))}
+                </TextField>
+                <Alert severity="info">
+                  ระบบจะย้ายตำแหน่งและผู้ดำรงตำแหน่งเดิมไปอยู่ภายใต้กลุ่มที่เลือก
+                  โดยไม่แก้ข้อมูลบุคลากรหรือการมอบหมาย เมื่อยืนยันแล้วจะบันทึกลำดับทั้งหน่วยงานพร้อมกัน
+                </Alert>
+              </Stack>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setMovingPositionId(null)} disabled={busy}>ยกเลิก</Button>
+              <Button
+                variant="contained"
+                disabled={
+                  !canSortPositionLayout || !positionGroups.some(
+                    (group) =>
+                      group.label === targetGroupLabel &&
+                      !group.positions.some((position) => position.id === movingPositionId)
+                  )
+                }
+                onClick={confirmPositionGroupTransfer}
+              >
+                ยืนยันย้ายตำแหน่ง
+              </Button>
+            </DialogActions>
+          </Dialog>
           {movingAssignment && (
             <OrganizationAssignmentTransferDialog
               assignment={movingAssignment}
