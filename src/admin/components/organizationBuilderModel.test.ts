@@ -9,6 +9,8 @@ import {
   flattenOrganizationHierarchy,
   organizationTreeItems,
   nextOrganizationSortOrder,
+  movePositionBetweenGroups,
+  positionGroupsForUnit,
   positionsForUnit
 } from "./organizationBuilderModel";
 
@@ -84,4 +86,34 @@ describe("Phase 6 Organization builder model", () => {
     ] as OrganizationAssignmentRow[];
     expect(enabledDistinctOccupants(assignments, "p")).toBe(2);
   });
+  it("keeps every group contiguous even if legacy group indexes collide or a label spans multiple indexes", () => {
+    const positions = [
+      { id: "a", unit_content_id: "work", title: "A", group_label: "หัวหน้า", group_sort_order: 0, sort_order: 0 },
+      { id: "b", unit_content_id: "work", title: "B", group_label: "เจ้าหน้าที่", group_sort_order: 0, sort_order: 0 },
+      { id: "c", unit_content_id: "work", title: "C", group_label: "เจ้าหน้าที่", group_sort_order: 4, sort_order: 1 },
+      { id: "outside", unit_content_id: "other", title: "X", group_label: "หัวหน้า", group_sort_order: 0, sort_order: 0 }
+    ] as OrganizationPositionRow[];
+    const groups = positionGroupsForUnit(positions, "work");
+    expect(groups.map((group) => [group.label, group.positions.map((item) => item.id)])).toEqual([
+      ["หัวหน้า", ["a"]], ["เจ้าหน้าที่", ["b", "c"]]
+    ]);
+    expect(positionsForUnit(positions, "work").map((item) => item.id)).toEqual(["a", "b", "c"]);
+  });
+
+  it("allows a sole position to change groups without losing its assigned identity", () => {
+    const positions = [
+      { id: "only", unit_content_id: "work", title: "Head", group_label: "หัวหน้า", group_sort_order: 0, sort_order: 0 },
+      { id: "b", unit_content_id: "work", title: "Staff", group_label: "เจ้าหน้าที่", group_sort_order: 1, sort_order: 0 },
+      { id: "c", unit_content_id: "work", title: "Staff2", group_label: "เจ้าหน้าที่", group_sort_order: 1, sort_order: 1 }
+    ] as OrganizationPositionRow[];
+    const groups = positionGroupsForUnit(positions, "work");
+    const moved = movePositionBetweenGroups(groups, "only", "เจ้าหน้าที่");
+    expect(moved).toHaveLength(1);
+    expect(moved[0]?.positions.map((item) => item.id)).toEqual(["b", "c", "only"]);
+    expect(moved[0]?.positions[2]).toBe(positions[0]);
+    expect(groups[0]?.positions.map((item) => item.id)).toEqual(["only"]);
+    expect(movePositionBetweenGroups(groups, "only", "หัวหน้า")).toEqual(groups);
+    expect(movePositionBetweenGroups(groups, "missing", "เจ้าหน้าที่")).toEqual(groups);
+  });
+
 });
