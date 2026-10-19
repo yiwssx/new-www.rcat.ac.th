@@ -3,6 +3,8 @@ import { DatabaseSync } from "node:sqlite";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import migrationSql from "../migrations/0020_organization_content_foundation.sql?raw";
 import type { Env } from "../src/env";
+import type { AdminIdentity } from "../src/auth/adminAccess";
+import { handleAdminOrganizationReorder } from "../src/routes/adminOrganizationReorder";
 import {
   parsePositionLayout,
   saveAuditedPositionLayout,
@@ -182,6 +184,37 @@ describe("atomic grouped position layout API", () => {
       ["a", "A", 1, 0],
       ["b", "B", 0, 0],
       ["c", "B", 0, 1]
+    ]);
+  });
+
+  it("routes the protected full-layout request while keeping legacy reorder validation intact", async () => {
+    addPosition("a", "Group A", 0);
+    addPosition("b", "Group B", 1);
+    const send = async (value: unknown) => {
+      const request = new Request("https://admin.example/api/admin/organization/reorder", {
+        method: "POST",
+        body: JSON.stringify(value),
+        headers: { "Content-Type": "application/json" }
+      });
+      return handleAdminOrganizationReorder(
+        request, env, ["organization", "reorder"], { actor: "editor" } as AdminIdentity
+      );
+    };
+    const wrong = await send(layout([
+      { label: "Moved", items: [entry("a")] }
+    ]));
+    expect(wrong?.status).toBe(409);
+    expect(countAudit()).toBe(0);
+    const invalid = await send({ collection: "position-layout", scopeId: "unit-1", groups: [] });
+    expect(invalid?.status).toBe(400);
+    const accepted = await send(layout([
+      { label: "Group B", items: [entry("b"), entry("a")] }
+    ]));
+    expect(accepted?.status).toBe(200);
+    expect(await accepted?.json()).toMatchObject({ reordered: true, count: 2 });
+    expect(countAudit()).toBe(1);
+    expect(current().map((row) => [row.id,row.group_label,row.group_sort_order,row.sort_order])).toEqual([
+      ["a","Group B",0,1],["b","Group B",0,0]
     ]);
   });
 
