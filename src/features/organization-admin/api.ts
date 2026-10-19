@@ -240,3 +240,15 @@ export async function transferOrganizationAssignment(id: string, revision: numbe
     body: JSON.stringify({ positionId: destinationPositionId, autoSortOrder: true })
   });
 }
+
+/** Complete scoped unit layout. Reorder groups, positions within a group, and
+ * move positions between groups atomically with per-position revision guards. */
+export async function saveOrganizationPositionLayout(
+  unitContentId: string,
+  groups: readonly { label: string; items: readonly { id: string; revision: number }[] }[]
+) {
+  return requestCloudflareAdmin<{ reordered: true; count: number }>("/api/admin/organization/reorder", {
+    method: "POST",
+    body: JSON.stringify({ collection: "position-layout", scopeId: unitContentId, groups })
+  });
+}
