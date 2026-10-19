@@ -8,18 +8,22 @@ import { useDroppable } from "@dnd-kit/react";
 export default function OrganizationPositionGroupDropTarget({
   id,
   groupLabel,
-  disabled
+  disabled,
+  groupOrder = false
 }: {
   id: string;
   groupLabel: string;
   disabled: boolean;
+  groupOrder?: boolean;
 }) {
   const { ref, isDropTarget } = useDroppable({ id, disabled });
   return (
     <Box
       ref={ref}
       data-organization-position-group-target={id}
-      aria-label={"วางตำแหน่งในกลุ่ม " + (groupLabel || "ไม่ระบุกลุ่ม")}
+      aria-label={
+        (groupOrder ? "วางกลุ่มเพื่อจัดลำดับที่ " : "วางตำแหน่งในกลุ่ม ") + (groupLabel || "ไม่ระบุกลุ่ม")
+      }
       sx={{
         p: 1.5,
         minHeight: 56,
@@ -31,7 +35,13 @@ export default function OrganizationPositionGroupDropTarget({
       }}
     >
       <Typography variant="body2" color={isDropTarget ? "primary.main" : "text.secondary"}>
-        {isDropTarget ? "ปล่อยเพื่อเลือกย้ายตำแหน่ง" : "วางตำแหน่งในกลุ่มนี้"}
+        {isDropTarget
+          ? groupOrder
+            ? "ปล่อยเพื่อจัดลำดับกลุ่ม"
+            : "ปล่อยเพื่อเลือกย้ายตำแหน่ง"
+          : groupOrder
+            ? "วางกลุ่มที่นี่เพื่อเปลี่ยนลำดับ"
+            : "วางตำแหน่งในกลุ่มนี้"}
       </Typography>
     </Box>
   );
