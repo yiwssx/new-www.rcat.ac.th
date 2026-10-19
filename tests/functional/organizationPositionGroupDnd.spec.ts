@@ -178,9 +178,9 @@ test("group order can be changed by keyboard-accessible controls", async ({ page
 test("dragging a group heading changes group order without moving personnel", async ({ page }) => {
   const writes = await installGroupedPositionFixture(page);
   const source = page.getByRole("button", { name: "ลากจัดลำดับ กลุ่ม หัวหน้า", exact: true });
-  const destination = page.getByRole("button", { name: "ลากจัดลำดับ กลุ่ม เจ้าหน้าที่", exact: true });
+  const destination = page.getByLabel("วางกลุ่มเพื่อจัดลำดับที่ เจ้าหน้าที่");
   await expect(source).toBeEnabled();
-  await expect(destination).toBeEnabled();
+  await expect(destination).toBeVisible();
   await source.dragTo(destination, { steps: 20 });
   await expect.poll(() => writes.length).toBe(1);
   expect(writes[0]).toMatchObject({
