@@ -538,6 +538,8 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
   function openPositionGroupTransfer(positionId: string, preferredLabel?: string) {
     if (!canSortPositionLayout || !visiblePositions.some((position) => position.id === positionId)) return;
     const source = visiblePositions.find((position) => position.id === positionId);
+    // Dropping into the source group must never silently default to a different destination.
+    if (preferredLabel !== undefined && source?.group_label === preferredLabel) return;
     const eligible = positionGroups.filter((group) => group.label !== source?.group_label);
     if (!eligible.length) return;
     setMovingPositionId(positionId);
