@@ -27,6 +27,7 @@ import {
   getOrganizationCollection,
   invalidateOrganizationQueries,
   reorderOrganizationRecords,
+  saveOrganizationPositionLayout,
   transferOrganizationAssignment,
   updateOrganizationRecord,
   type OrganizationAssignmentRow,
@@ -40,12 +41,15 @@ import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from
 import { OrganizationSortableRow } from "./OrganizationSortableRow";
 import OrganizationAssignmentTransferDialog from "./OrganizationAssignmentTransferDialog";
 import OrganizationAssignmentTransferTarget from "./OrganizationAssignmentTransferTarget";
+import OrganizationPositionGroupDropTarget from "./OrganizationPositionGroupDropTarget";
 import OrganizationChartLayoutEditor from "./OrganizationChartLayoutEditor";
 import OrganizationUnitContextPreview from "./OrganizationUnitContextPreview";
 import {
   enabledDistinctOccupants,
   flattenOrganizationHierarchy,
   nextOrganizationSortOrder,
+  movePositionBetweenGroups,
+  positionGroupsForUnit,
   organizationTreeItems,
   positionsForUnit
 } from "./organizationBuilderModel";
@@ -145,6 +149,8 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
   const [assignmentEditing, setAssignmentEditing] = useState<OrganizationAssignmentRow | null>(null);
   const [assignmentForm, setAssignmentForm] = useState<AssignmentForm | null>(null);
   const [movingAssignment, setMovingAssignment] = useState<OrganizationAssignmentRow | null>(null);
+  const [movingPositionId, setMovingPositionId] = useState<string | null>(null);
+  const [targetGroupLabel, setTargetGroupLabel] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [dialogError, setDialogError] = useState("");
@@ -192,6 +198,19 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
     () => positionsForUnit(positions, selectedUnit?.content_id ?? ""),
     [positions, selectedUnit?.content_id]
   );
+  const positionGroups = useMemo(
+    () => positionGroupsForUnit(positions, selectedUnit?.content_id ?? ""),
+    [positions, selectedUnit?.content_id]
+  );
+  const canSortPositionLayout =
+    canManage &&
+    !busy &&
+    !positionsQuery.isPending &&
+    !positionsQuery.isError &&
+    !positionsQuery.hasNextPage &&
+    visiblePositions.length > 0 &&
+    visiblePositions.length <= 500 &&
+    positionGroups.length <= 100;
   const assignmentsByPosition = useMemo(() => {
     const result = new Map<string, OrganizationAssignmentRow[]>();
     for (const assignment of assignments) {
@@ -483,8 +502,61 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
     await showSuccessResult("จัดลำดับสำเร็จ");
   }
 
-  const positionGroupKey = (position: OrganizationPositionRow) =>
-    JSON.stringify([position.unit_content_id, position.group_sort_order, position.group_label]);
+  async function savePositionLayout(
+    groups: readonly { label: string; positions: readonly OrganizationPositionRow[] }[]
+  ) {
+    if (!canSortPositionLayout || !selectedUnitId) return;
+    setBusy(true);
+    setError("");
+    setNotice("");
+    showBlockingLoading("กำลังบันทึกผังกลุ่มตำแหน่ง");
+    try {
+      await saveOrganizationPositionLayout(
+        selectedUnitId,
+        groups.map((group) => ({
+          label: group.label,
+          items: group.positions.map((position) => ({ id: position.id, revision: position.revision }))
+        }))
+      );
+    } catch (cause) {
+      await appSwal.close();
+      const message = isAdminStaleRevisionError(cause)
+        ? "ผังกลุ่มหรือตำแหน่งถูกแก้ไขแล้ว กรุณาโหลดข้อมูลล่าสุดก่อนจัดลำดับ"
+        : asMessage(cause);
+      setError(message);
+      await refresh().catch(() => {});
+      setBusy(false);
+      await showErrorResult("จัดผังตำแหน่งไม่สำเร็จ", new Error(message), "ตรวจสอบข้อมูลแล้วลองใหม่");
+      return;
+    }
+    await refresh().catch(() => setError("บันทึกแล้ว แต่โหลดผังล่าสุดไม่สำเร็จ กรุณารีเฟรช"));
+    setBusy(false);
+    setNotice("บันทึกลำดับกลุ่มและตำแหน่งเรียบร้อยแล้ว");
+    await appSwal.close();
+    await showSuccessResult("จัดผังตำแหน่งสำเร็จ");
+  }
+
+  function openPositionGroupTransfer(positionId: string, preferredLabel?: string) {
+    if (!canSortPositionLayout || !visiblePositions.some((position) => position.id === positionId)) return;
+    const source = visiblePositions.find((position) => position.id === positionId);
+    // Dropping into the source group must never silently default to a different destination.
+    if (preferredLabel !== undefined && source?.group_label === preferredLabel) return;
+    const eligible = positionGroups.filter((group) => group.label !== source?.group_label);
+    if (!eligible.length) return;
+    setMovingPositionId(positionId);
+    setTargetGroupLabel(
+      preferredLabel && eligible.some((group) => group.label === preferredLabel) ? preferredLabel : eligible[0]!.label
+    );
+  }
+
+  function confirmPositionGroupTransfer() {
+    if (!movingPositionId || !canSortPositionLayout) return;
+    const selected = visiblePositions.find((position) => position.id === movingPositionId);
+    if (!selected || selected.group_label === targetGroupLabel) return;
+    const updated = movePositionBetweenGroups(positionGroups, movingPositionId, targetGroupLabel);
+    setMovingPositionId(null);
+    void savePositionLayout(updated);
+  }
 
   const pageControl = (
     label: string,
@@ -675,192 +747,302 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                 {view !== "charts" && (
                   <DragDropProvider
                     onDragEnd={({ operation, canceled }) => {
-                      if (canceled || !isSortable(operation.source)) return;
+                      if (canceled || !isSortable(operation.source) || !canSortPositionLayout) return;
                       const source = operation.source;
-                      if (source.initialGroup !== source.group || source.initialIndex === source.index) return;
-                      const group = visiblePositions.filter((row) => positionGroupKey(row) === source.initialGroup);
-                      if (source.initialIndex < 0 || source.index < 0 || source.index >= group.length) return;
-                      const first = group[0];
-                      if (first) {
-                        void saveReorder(
-                          "positions",
-                          first.unit_content_id,
-                          arrayMove(group, source.initialIndex, source.index),
-                          first.group_label,
-                          first.group_sort_order
-                        );
+                      const sourceId = String(source.id);
+                      const targetId = String(operation.target?.id ?? "");
+                      if (sourceId.startsWith("position-layout-group:")) {
+                        // @dnd-kit may keep source.index unchanged when a sortable
+                        // heading is dropped over another group's independent heading.
+                        // Prefer the actual destination ID over the drag source index.
+                        const destination = targetId.startsWith("position-group-order-target:")
+                          ? Number(targetId.slice("position-group-order-target:".length))
+                          : targetId.startsWith("position-layout-group:")
+                            ? Number(targetId.slice("position-layout-group:".length))
+                            : targetId.startsWith("position-group-target:")
+                              ? Number(targetId.slice("position-group-target:".length))
+                              : positionGroups.findIndex((group) =>
+                                  group.positions.some((position) => position.id === targetId)
+                                );
+                        const sourceIndex = Number(sourceId.slice("position-layout-group:".length));
+                        const targetIndex = destination >= 0 ? destination : source.index;
+                        if (
+                          sourceIndex < 0 ||
+                          targetIndex < 0 ||
+                          sourceIndex >= positionGroups.length ||
+                          targetIndex >= positionGroups.length ||
+                          sourceIndex === targetIndex
+                        )
+                          return;
+                        void savePositionLayout(arrayMove(positionGroups, sourceIndex, targetIndex));
+                        return;
                       }
+                      if (targetId.startsWith("position-group-target:")) {
+                        const targetIndex = Number(targetId.slice("position-group-target:".length));
+                        const destination = positionGroups[targetIndex];
+                        if (destination) openPositionGroupTransfer(sourceId, destination.label);
+                        return;
+                      }
+                      if (source.initialGroup !== source.group || source.initialIndex === source.index) return;
+                      const sourceGroup = positionGroups.find((group) =>
+                        group.positions.some((position) => position.id === sourceId)
+                      );
+                      if (
+                        !sourceGroup ||
+                        source.initialIndex < 0 ||
+                        source.index < 0 ||
+                        source.index >= sourceGroup.positions.length
+                      )
+                        return;
+                      void savePositionLayout(
+                        positionGroups.map((group) =>
+                          group.label === sourceGroup.label
+                            ? { ...group, positions: arrayMove(group.positions, source.initialIndex, source.index) }
+                            : group
+                        )
+                      );
                     }}
                   >
-                    {visiblePositions.map((position) => {
-                      const assigned = assignmentsByPosition.get(position.id) ?? [];
-                      const siblings = visiblePositions.filter(
-                        (row) => positionGroupKey(row) === positionGroupKey(position)
-                      );
-                      return (
-                        <OrganizationSortableRow
-                          key={position.id}
-                          id={position.id}
-                          index={siblings.findIndex((row) => row.id === position.id)}
-                          group={positionGroupKey(position)}
-                          label={position.title}
-                          disabled={!canManage || busy || Boolean(positionsQuery.hasNextPage) || siblings.length < 2}
-                        >
-                          <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2 }}>
-                            <Stack spacing={1}>
-                              <Stack
-                                direction={{ xs: "column", sm: "row" }}
-                                spacing={1}
-                                sx={{ justifyContent: "space-between" }}
-                              >
-                                <Box sx={{ minWidth: 0 }}>
-                                  <Typography sx={{ fontWeight: 700, overflowWrap: "anywhere" }}>
-                                    {position.title}
-                                  </Typography>
-                                  <Stack direction="row" spacing={0.5} useFlexGap sx={{ flexWrap: "wrap" }}>
-                                    {position.group_label && (
-                                      <Chip size="small" label={position.group_label} variant="outlined" />
-                                    )}
-                                    <Chip
-                                      size="small"
-                                      label={"อันดับ " + (siblings.findIndex((row) => row.id === position.id) + 1)}
-                                      variant="outlined"
-                                    />
-                                    {position.occupant_limit !== null &&
-                                      !assignmentsQuery.hasNextPage &&
-                                      !assignmentsQuery.isPending &&
-                                      !assignmentsQuery.isError && (
-                                        <Chip
-                                          size="small"
-                                          label={
-                                            "ผู้ดำรงตำแหน่ง " +
-                                            enabledDistinctOccupants(assignments, position.id) +
-                                            "/" +
-                                            position.occupant_limit
-                                          }
-                                          variant="outlined"
-                                        />
-                                      )}
-                                  </Stack>
-                                </Box>
-                                {canManage && (view === "legacy" || view === "positions") && (
-                                  <Stack direction="row" useFlexGap sx={{ flexWrap: "wrap" }}>
-                                    <Button onClick={() => openPosition(position)} disabled={busy}>
-                                      แก้ไขตำแหน่ง
-                                    </Button>
-                                    <Button
-                                      color="error"
-                                      onClick={() => void remove("positions", position)}
-                                      disabled={busy}
-                                    >
-                                      ลบตำแหน่ง
-                                    </Button>
-                                  </Stack>
-                                )}
-                              </Stack>
-                              <DragDropProvider
-                                onDragEnd={({ operation, canceled }) => {
-                                  if (canceled || !isSortable(operation.source)) return;
-                                  const source = operation.source;
-                                  if (operation.target?.id === "transfer:" + position.id) {
-                                    const assignment = assigned.find((item) => item.id === source.id);
-                                    if (assignment) openTransfer(assignment);
-                                    return;
-                                  }
-                                  if (
-                                    source.initialIndex === source.index ||
-                                    source.index < 0 ||
-                                    source.index >= assigned.length
-                                  )
-                                    return;
-                                  void saveReorder(
-                                    "assignments",
-                                    position.id,
-                                    arrayMove(assigned, source.initialIndex, source.index)
-                                  );
-                                }}
-                              >
-                                {assigned.map((assignment, index) => (
-                                  <OrganizationSortableRow
-                                    key={assignment.id}
-                                    id={assignment.id}
-                                    index={index}
-                                    group={position.id}
-                                    label={byPerson.get(assignment.personnel_id)?.display_name ?? assignment.id}
-                                    disabled={!canManage || busy || Boolean(assignmentsQuery.hasNextPage)}
+                    {positionGroups.map((group, groupIndex) => (
+                      <Box
+                        key={group.label}
+                        sx={{ p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 2 }}
+                      >
+                        <Stack spacing={1.5}>
+                          <OrganizationSortableRow
+                            id={"position-layout-group:" + groupIndex}
+                            index={groupIndex}
+                            group={"position-layout-groups:" + selectedUnitId}
+                            label={"กลุ่ม " + (group.label || "ไม่ระบุกลุ่ม")}
+                            disabled={!canSortPositionLayout || positionGroups.length < 2}
+                          >
+                            <Stack
+                              direction="row"
+                              spacing={1}
+                              useFlexGap
+                              sx={{ alignItems: "center", flexWrap: "wrap" }}
+                            >
+                              <Typography sx={{ fontWeight: 700 }}>{group.label || "ตำแหน่งไม่ระบุกลุ่ม"}</Typography>
+                              <Chip size="small" variant="outlined" label={"กลุ่มลำดับ " + (groupIndex + 1)} />
+                              {canManage && (
+                                <>
+                                  <Button
+                                    size="small"
+                                    disabled={!canSortPositionLayout || groupIndex === 0}
+                                    onClick={() =>
+                                      void savePositionLayout(arrayMove(positionGroups, groupIndex, groupIndex - 1))
+                                    }
                                   >
-                                    <Box sx={{ bgcolor: "action.hover", borderRadius: 1, p: 1 }}>
-                                      <Stack
-                                        direction={{ xs: "column", sm: "row" }}
-                                        spacing={1}
-                                        sx={{ justifyContent: "space-between" }}
-                                      >
-                                        <Box sx={{ minWidth: 0 }}>
-                                          <Typography sx={{ overflowWrap: "anywhere" }}>
-                                            {byPerson.get(assignment.personnel_id)?.display_name ??
-                                              "บุคลากร " + assignment.personnel_id}
-                                          </Typography>
-                                          <Typography
-                                            variant="body2"
-                                            color="text.secondary"
-                                            sx={{ overflowWrap: "anywhere" }}
-                                          >
-                                            {assignment.duty_detail || "ยังไม่ระบุหน้าที่"} · ลำดับ {index + 1}
-                                            {assignment.enabled === 0 ? " · ปิดการแสดงผล" : ""}
-                                          </Typography>
-                                        </Box>
-                                        {canManage && (view === "legacy" || view === "assignments") && (
-                                          <Stack direction="row" useFlexGap sx={{ flexWrap: "wrap" }}>
-                                            <Button
-                                              disabled={busy}
-                                              onClick={() => openAssignment(assignment, position.id)}
-                                            >
-                                              แก้ไขหน้าที่
-                                            </Button>
-                                            <Button
-                                              color="error"
-                                              disabled={busy}
-                                              onClick={() => void remove("assignments", assignment)}
-                                            >
-                                              ลบหน้าที่
-                                            </Button>
-                                          </Stack>
-                                        )}
-                                        {canManage && (view === "legacy" || view === "assignments") && (
-                                          <Button
-                                            size="small"
-                                            variant="outlined"
-                                            disabled={busy || Boolean(assignmentsQuery.hasNextPage)}
-                                            onClick={() => openTransfer(assignment)}
-                                          >
-                                            ย้ายตำแหน่งหรือหน่วยงาน
-                                          </Button>
-                                        )}
-                                      </Stack>
-                                    </Box>
-                                  </OrganizationSortableRow>
-                                ))}
-                                {canManage && assigned.length > 0 && (
-                                  <OrganizationAssignmentTransferTarget
-                                    id={"transfer:" + position.id}
-                                    disabled={busy || Boolean(assignmentsQuery.hasNextPage)}
-                                  />
-                                )}
-                              </DragDropProvider>
-                              {canManage && (view === "legacy" || view === "assignments") && (
-                                <Button
-                                  variant="outlined"
-                                  disabled={busy || assignmentsQuery.isPending || assignmentsQuery.isError}
-                                  onClick={() => openAssignment(null, position.id)}
-                                >
-                                  มอบหมายบุคลากร
-                                </Button>
+                                    เลื่อนกลุ่มขึ้น
+                                  </Button>
+                                  <Button
+                                    size="small"
+                                    disabled={!canSortPositionLayout || groupIndex === positionGroups.length - 1}
+                                    onClick={() =>
+                                      void savePositionLayout(arrayMove(positionGroups, groupIndex, groupIndex + 1))
+                                    }
+                                  >
+                                    เลื่อนกลุ่มลง
+                                  </Button>
+                                </>
                               )}
                             </Stack>
-                          </Box>
-                        </OrganizationSortableRow>
-                      );
-                    })}
+                          </OrganizationSortableRow>
+                          {canManage && positionGroups.length > 1 && (
+                            <OrganizationPositionGroupDropTarget
+                              id={"position-group-order-target:" + groupIndex}
+                              groupLabel={group.label}
+                              groupOrder
+                              disabled={!canSortPositionLayout}
+                            />
+                          )}
+                          {group.positions.map((position) => {
+                            const assigned = assignmentsByPosition.get(position.id) ?? [];
+                            const siblings = group.positions;
+                            return (
+                              <OrganizationSortableRow
+                                key={position.id}
+                                id={position.id}
+                                index={siblings.findIndex((row) => row.id === position.id)}
+                                group={"position-layout-items:" + group.label}
+                                label={position.title}
+                                disabled={!canSortPositionLayout}
+                              >
+                                <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2 }}>
+                                  <Stack spacing={1}>
+                                    <Stack
+                                      direction={{ xs: "column", sm: "row" }}
+                                      spacing={1}
+                                      sx={{ justifyContent: "space-between" }}
+                                    >
+                                      <Box sx={{ minWidth: 0 }}>
+                                        <Typography sx={{ fontWeight: 700, overflowWrap: "anywhere" }}>
+                                          {position.title}
+                                        </Typography>
+                                        <Stack direction="row" spacing={0.5} useFlexGap sx={{ flexWrap: "wrap" }}>
+                                          {position.group_label && (
+                                            <Chip size="small" label={position.group_label} variant="outlined" />
+                                          )}
+                                          <Chip
+                                            size="small"
+                                            label={
+                                              "อันดับ " + (siblings.findIndex((row) => row.id === position.id) + 1)
+                                            }
+                                            variant="outlined"
+                                          />
+                                          {position.occupant_limit !== null &&
+                                            !assignmentsQuery.hasNextPage &&
+                                            !assignmentsQuery.isPending &&
+                                            !assignmentsQuery.isError && (
+                                              <Chip
+                                                size="small"
+                                                label={
+                                                  "ผู้ดำรงตำแหน่ง " +
+                                                  enabledDistinctOccupants(assignments, position.id) +
+                                                  "/" +
+                                                  position.occupant_limit
+                                                }
+                                                variant="outlined"
+                                              />
+                                            )}
+                                        </Stack>
+                                      </Box>
+                                      {canManage && (view === "legacy" || view === "positions") && (
+                                        <Stack direction="row" useFlexGap sx={{ flexWrap: "wrap" }}>
+                                          <Button onClick={() => openPosition(position)} disabled={busy}>
+                                            แก้ไขตำแหน่ง
+                                          </Button>
+                                          {positionGroups.length > 1 && (
+                                            <Button
+                                              onClick={() => openPositionGroupTransfer(position.id)}
+                                              disabled={!canSortPositionLayout}
+                                            >
+                                              ย้ายตำแหน่งข้ามกลุ่ม
+                                            </Button>
+                                          )}
+                                          <Button
+                                            color="error"
+                                            onClick={() => void remove("positions", position)}
+                                            disabled={busy}
+                                          >
+                                            ลบตำแหน่ง
+                                          </Button>
+                                        </Stack>
+                                      )}
+                                    </Stack>
+                                    <DragDropProvider
+                                      onDragEnd={({ operation, canceled }) => {
+                                        if (canceled || !isSortable(operation.source)) return;
+                                        const source = operation.source;
+                                        if (operation.target?.id === "transfer:" + position.id) {
+                                          const assignment = assigned.find((item) => item.id === source.id);
+                                          if (assignment) openTransfer(assignment);
+                                          return;
+                                        }
+                                        if (
+                                          source.initialIndex === source.index ||
+                                          source.index < 0 ||
+                                          source.index >= assigned.length
+                                        )
+                                          return;
+                                        void saveReorder(
+                                          "assignments",
+                                          position.id,
+                                          arrayMove(assigned, source.initialIndex, source.index)
+                                        );
+                                      }}
+                                    >
+                                      {assigned.map((assignment, index) => (
+                                        <OrganizationSortableRow
+                                          key={assignment.id}
+                                          id={assignment.id}
+                                          index={index}
+                                          group={position.id}
+                                          label={byPerson.get(assignment.personnel_id)?.display_name ?? assignment.id}
+                                          disabled={!canManage || busy || Boolean(assignmentsQuery.hasNextPage)}
+                                        >
+                                          <Box sx={{ bgcolor: "action.hover", borderRadius: 1, p: 1 }}>
+                                            <Stack
+                                              direction={{ xs: "column", sm: "row" }}
+                                              spacing={1}
+                                              sx={{ justifyContent: "space-between" }}
+                                            >
+                                              <Box sx={{ minWidth: 0 }}>
+                                                <Typography sx={{ overflowWrap: "anywhere" }}>
+                                                  {byPerson.get(assignment.personnel_id)?.display_name ??
+                                                    "บุคลากร " + assignment.personnel_id}
+                                                </Typography>
+                                                <Typography
+                                                  variant="body2"
+                                                  color="text.secondary"
+                                                  sx={{ overflowWrap: "anywhere" }}
+                                                >
+                                                  {assignment.duty_detail || "ยังไม่ระบุหน้าที่"} · ลำดับ {index + 1}
+                                                  {assignment.enabled === 0 ? " · ปิดการแสดงผล" : ""}
+                                                </Typography>
+                                              </Box>
+                                              {canManage && (view === "legacy" || view === "assignments") && (
+                                                <Stack direction="row" useFlexGap sx={{ flexWrap: "wrap" }}>
+                                                  <Button
+                                                    disabled={busy}
+                                                    onClick={() => openAssignment(assignment, position.id)}
+                                                  >
+                                                    แก้ไขหน้าที่
+                                                  </Button>
+                                                  <Button
+                                                    color="error"
+                                                    disabled={busy}
+                                                    onClick={() => void remove("assignments", assignment)}
+                                                  >
+                                                    ลบหน้าที่
+                                                  </Button>
+                                                </Stack>
+                                              )}
+                                              {canManage && (view === "legacy" || view === "assignments") && (
+                                                <Button
+                                                  size="small"
+                                                  variant="outlined"
+                                                  disabled={busy || Boolean(assignmentsQuery.hasNextPage)}
+                                                  onClick={() => openTransfer(assignment)}
+                                                >
+                                                  ย้ายตำแหน่งหรือหน่วยงาน
+                                                </Button>
+                                              )}
+                                            </Stack>
+                                          </Box>
+                                        </OrganizationSortableRow>
+                                      ))}
+                                      {canManage && assigned.length > 0 && (
+                                        <OrganizationAssignmentTransferTarget
+                                          id={"transfer:" + position.id}
+                                          disabled={busy || Boolean(assignmentsQuery.hasNextPage)}
+                                        />
+                                      )}
+                                    </DragDropProvider>
+                                    {canManage && (view === "legacy" || view === "assignments") && (
+                                      <Button
+                                        variant="outlined"
+                                        disabled={busy || assignmentsQuery.isPending || assignmentsQuery.isError}
+                                        onClick={() => openAssignment(null, position.id)}
+                                      >
+                                        มอบหมายบุคลากร
+                                      </Button>
+                                    )}
+                                  </Stack>
+                                </Box>
+                              </OrganizationSortableRow>
+                            );
+                          })}
+                          {canManage && positionGroups.length > 1 && (
+                            <OrganizationPositionGroupDropTarget
+                              id={"position-group-target:" + groupIndex}
+                              groupLabel={group.label}
+                              disabled={!canSortPositionLayout}
+                            />
+                          )}
+                        </Stack>
+                      </Box>
+                    ))}
                   </DragDropProvider>
                 )}
               </Stack>
@@ -1178,6 +1360,68 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
               </Button>
               <Button variant="contained" disabled={busy} onClick={() => void saveAssignment()}>
                 บันทึกหน้าที่
+              </Button>
+            </DialogActions>
+          </Dialog>
+          <Dialog
+            open={movingPositionId !== null}
+            onClose={() => !busy && setMovingPositionId(null)}
+            maxWidth="sm"
+            fullWidth
+            aria-labelledby="move-position-group-title"
+          >
+            <DialogTitle id="move-position-group-title">ย้ายตำแหน่งข้ามกลุ่ม</DialogTitle>
+            <DialogContent>
+              <Stack spacing={2} sx={{ mt: 1 }}>
+                <Typography>
+                  ตำแหน่ง: {visiblePositions.find((position) => position.id === movingPositionId)?.title ?? ""}
+                </Typography>
+                <Typography variant="body2">
+                  กลุ่มเดิม:{" "}
+                  {visiblePositions.find((position) => position.id === movingPositionId)?.group_label || "ไม่ระบุกลุ่ม"}
+                </Typography>
+                <TextField
+                  select
+                  label="กลุ่มปลายทาง"
+                  value={targetGroupLabel}
+                  disabled={busy}
+                  onChange={(event) => setTargetGroupLabel(event.target.value)}
+                >
+                  {positionGroups
+                    .filter(
+                      (group) =>
+                        group.label !==
+                        visiblePositions.find((position) => position.id === movingPositionId)?.group_label
+                    )
+                    .map((group) => (
+                      <MenuItem key={group.label} value={group.label}>
+                        {group.label || "ไม่ระบุกลุ่ม"}
+                      </MenuItem>
+                    ))}
+                </TextField>
+                <Alert severity="info">
+                  ระบบจะย้ายตำแหน่งและผู้ดำรงตำแหน่งเดิมไปอยู่ภายใต้กลุ่มที่เลือก โดยไม่แก้ข้อมูลบุคลากรหรือการมอบหมาย
+                  เมื่อยืนยันแล้วจะบันทึกลำดับทั้งหน่วยงานพร้อมกัน
+                </Alert>
+              </Stack>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setMovingPositionId(null)} disabled={busy}>
+                ยกเลิก
+              </Button>
+              <Button
+                variant="contained"
+                disabled={
+                  !canSortPositionLayout ||
+                  !positionGroups.some(
+                    (group) =>
+                      group.label === targetGroupLabel &&
+                      !group.positions.some((position) => position.id === movingPositionId)
+                  )
+                }
+                onClick={confirmPositionGroupTransfer}
+              >
+                ยืนยันย้ายตำแหน่ง
               </Button>
             </DialogActions>
           </Dialog>
