@@ -739,37 +739,89 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                 {view !== "charts" && (
                   <DragDropProvider
                     onDragEnd={({ operation, canceled }) => {
-                      if (canceled || !isSortable(operation.source)) return;
+                      if (canceled || !isSortable(operation.source) || !canSortPositionLayout) return;
                       const source = operation.source;
-                      if (source.initialGroup !== source.group || source.initialIndex === source.index) return;
-                      const group = visiblePositions.filter((row) => positionGroupKey(row) === source.initialGroup);
-                      if (source.initialIndex < 0 || source.index < 0 || source.index >= group.length) return;
-                      const first = group[0];
-                      if (first) {
-                        void saveReorder(
-                          "positions",
-                          first.unit_content_id,
-                          arrayMove(group, source.initialIndex, source.index),
-                          first.group_label,
-                          first.group_sort_order
-                        );
+                      const sourceId = String(source.id);
+                      if (sourceId.startsWith("position-layout-group:")) {
+                        if (source.initialGroup !== source.group || source.initialIndex === source.index) return;
+                        if (
+                          source.initialIndex < 0 || source.index < 0 ||
+                          source.initialIndex >= positionGroups.length || source.index >= positionGroups.length
+                        ) return;
+                        void savePositionLayout(arrayMove(positionGroups, source.initialIndex, source.index));
+                        return;
                       }
+                      const targetId = String(operation.target?.id ?? "");
+                      if (targetId.startsWith("position-group-target:")) {
+                        const targetIndex = Number(targetId.slice("position-group-target:".length));
+                        const destination = positionGroups[targetIndex];
+                        if (destination) openPositionGroupTransfer(sourceId, destination.label);
+                        return;
+                      }
+                      if (source.initialGroup !== source.group || source.initialIndex === source.index) return;
+                      const sourceGroup = positionGroups.find((group) =>
+                        group.positions.some((position) => position.id === sourceId)
+                      );
+                      if (
+                        !sourceGroup || source.initialIndex < 0 || source.index < 0 ||
+                        source.index >= sourceGroup.positions.length
+                      ) return;
+                      void savePositionLayout(
+                        positionGroups.map((group) =>
+                          group.label === sourceGroup.label
+                            ? { ...group, positions: arrayMove(group.positions, source.initialIndex, source.index) }
+                            : group
+                        )
+                      );
                     }}
                   >
-                    {visiblePositions.map((position) => {
-                      const assigned = assignmentsByPosition.get(position.id) ?? [];
-                      const siblings = visiblePositions.filter(
-                        (row) => positionGroupKey(row) === positionGroupKey(position)
-                      );
-                      return (
-                        <OrganizationSortableRow
-                          key={position.id}
-                          id={position.id}
-                          index={siblings.findIndex((row) => row.id === position.id)}
-                          group={positionGroupKey(position)}
-                          label={position.title}
-                          disabled={!canManage || busy || Boolean(positionsQuery.hasNextPage) || siblings.length < 2}
-                        >
+                    {positionGroups.map((group, groupIndex) => (
+                      <OrganizationSortableRow
+                        key={group.label}
+                        id={"position-layout-group:" + groupIndex}
+                        index={groupIndex}
+                        group={"position-layout-groups:" + selectedUnitId}
+                        label={"กลุ่ม " + (group.label || "ไม่ระบุกลุ่ม")}
+                        disabled={!canSortPositionLayout || positionGroups.length < 2}
+                      >
+                        <Box sx={{ p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
+                          <Stack spacing={1.5}>
+                            <Stack direction="row" spacing={1} alignItems="center" useFlexGap sx={{ flexWrap: "wrap" }}>
+                              <Typography sx={{ fontWeight: 700 }}>
+                                {group.label || "ตำแหน่งไม่ระบุกลุ่ม"}
+                              </Typography>
+                              <Chip size="small" variant="outlined" label={"กลุ่มลำดับ " + (groupIndex + 1)} />
+                              {canManage && (
+                                <>
+                                  <Button
+                                    size="small"
+                                    disabled={!canSortPositionLayout || groupIndex === 0}
+                                    onClick={() => void savePositionLayout(arrayMove(positionGroups, groupIndex, groupIndex - 1))}
+                                  >
+                                    เลื่อนกลุ่มขึ้น
+                                  </Button>
+                                  <Button
+                                    size="small"
+                                    disabled={!canSortPositionLayout || groupIndex === positionGroups.length - 1}
+                                    onClick={() => void savePositionLayout(arrayMove(positionGroups, groupIndex, groupIndex + 1))}
+                                  >
+                                    เลื่อนกลุ่มลง
+                                  </Button>
+                                </>
+                              )}
+                            </Stack>
+                            {group.positions.map((position) => {
+                              const assigned = assignmentsByPosition.get(position.id) ?? [];
+                              const siblings = group.positions;
+                              return (
+                                <OrganizationSortableRow
+                                  key={position.id}
+                                  id={position.id}
+                                  index={siblings.findIndex((row) => row.id === position.id)}
+                                  group={"position-layout-items:" + group.label}
+                                  label={position.title}
+                                  disabled={!canSortPositionLayout}
+                                >
                           <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2 }}>
                             <Stack spacing={1}>
                               <Stack
@@ -812,6 +864,14 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                                     <Button onClick={() => openPosition(position)} disabled={busy}>
                                       แก้ไขตำแหน่ง
                                     </Button>
+                                    {positionGroups.length > 1 && (
+                                      <Button
+                                        onClick={() => openPositionGroupTransfer(position.id)}
+                                        disabled={!canSortPositionLayout}
+                                      >
+                                        ย้ายตำแหน่งข้ามกลุ่ม
+                                      </Button>
+                                    )}
                                     <Button
                                       color="error"
                                       onClick={() => void remove("positions", position)}
@@ -922,9 +982,20 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                               )}
                             </Stack>
                           </Box>
-                        </OrganizationSortableRow>
-                      );
-                    })}
+                                </OrganizationSortableRow>
+                              );
+                            })}
+                            {canManage && positionGroups.length > 1 && (
+                              <OrganizationPositionGroupDropTarget
+                                id={"position-group-target:" + groupIndex}
+                                groupLabel={group.label}
+                                disabled={!canSortPositionLayout}
+                              />
+                            )}
+                          </Stack>
+                        </Box>
+                      </OrganizationSortableRow>
+                    ))}
                   </DragDropProvider>
                 )}
               </Stack>
