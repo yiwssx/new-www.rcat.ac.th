@@ -94,7 +94,11 @@ export function positionGroupsForUnit(positions: readonly OrganizationPositionRo
     .map((group) => ({
       ...group,
       positions: group.positions.sort(
-        (a, b) => a.sort_order - b.sort_order || a.title.localeCompare(b.title, "th") || a.id.localeCompare(b.id)
+        (a, b) =>
+          a.group_sort_order - b.group_sort_order ||
+          a.sort_order - b.sort_order ||
+          a.title.localeCompare(b.title, "th") ||
+          a.id.localeCompare(b.id)
       )
     }));
 }
