@@ -27,6 +27,7 @@ import {
   getOrganizationCollection,
   invalidateOrganizationQueries,
   reorderOrganizationRecords,
+  saveOrganizationPositionLayout,
   transferOrganizationAssignment,
   updateOrganizationRecord,
   type OrganizationAssignmentRow,
@@ -40,12 +41,15 @@ import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from
 import { OrganizationSortableRow } from "./OrganizationSortableRow";
 import OrganizationAssignmentTransferDialog from "./OrganizationAssignmentTransferDialog";
 import OrganizationAssignmentTransferTarget from "./OrganizationAssignmentTransferTarget";
+import OrganizationPositionGroupDropTarget from "./OrganizationPositionGroupDropTarget";
 import OrganizationChartLayoutEditor from "./OrganizationChartLayoutEditor";
 import OrganizationUnitContextPreview from "./OrganizationUnitContextPreview";
 import {
   enabledDistinctOccupants,
   flattenOrganizationHierarchy,
   nextOrganizationSortOrder,
+  movePositionBetweenGroups,
+  positionGroupsForUnit,
   organizationTreeItems,
   positionsForUnit
 } from "./organizationBuilderModel";
@@ -145,6 +149,8 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
   const [assignmentEditing, setAssignmentEditing] = useState<OrganizationAssignmentRow | null>(null);
   const [assignmentForm, setAssignmentForm] = useState<AssignmentForm | null>(null);
   const [movingAssignment, setMovingAssignment] = useState<OrganizationAssignmentRow | null>(null);
+  const [movingPositionId, setMovingPositionId] = useState<string | null>(null);
+  const [targetGroupLabel, setTargetGroupLabel] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [dialogError, setDialogError] = useState("");
@@ -192,6 +198,13 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
     () => positionsForUnit(positions, selectedUnit?.content_id ?? ""),
     [positions, selectedUnit?.content_id]
   );
+  const positionGroups = useMemo(
+    () => positionGroupsForUnit(positions, selectedUnit?.content_id ?? ""),
+    [positions, selectedUnit?.content_id]
+  );
+  const canSortPositionLayout =
+    canManage && !busy && !positionsQuery.isPending && !positionsQuery.isError &&
+    !positionsQuery.hasNextPage && visiblePositions.length > 0 && visiblePositions.length <= 500;
   const assignmentsByPosition = useMemo(() => {
     const result = new Map<string, OrganizationAssignmentRow[]>();
     for (const assignment of assignments) {
@@ -483,8 +496,59 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
     await showSuccessResult("จัดลำดับสำเร็จ");
   }
 
-  const positionGroupKey = (position: OrganizationPositionRow) =>
-    JSON.stringify([position.unit_content_id, position.group_sort_order, position.group_label]);
+  async function savePositionLayout(groups: readonly { label: string; positions: readonly OrganizationPositionRow[] }[]) {
+    if (!canSortPositionLayout || !selectedUnitId) return;
+    setBusy(true);
+    setError("");
+    setNotice("");
+    showBlockingLoading("กำลังบันทึกผังกลุ่มตำแหน่ง");
+    try {
+      await saveOrganizationPositionLayout(
+        selectedUnitId,
+        groups.map((group) => ({
+          label: group.label,
+          items: group.positions.map((position) => ({ id: position.id, revision: position.revision }))
+        }))
+      );
+    } catch (cause) {
+      await appSwal.close();
+      const message = isAdminStaleRevisionError(cause)
+        ? "ผังกลุ่มหรือตำแหน่งถูกแก้ไขแล้ว กรุณาโหลดข้อมูลล่าสุดก่อนจัดลำดับ"
+        : asMessage(cause);
+      setError(message);
+      await refresh().catch(() => {});
+      setBusy(false);
+      await showErrorResult("จัดผังตำแหน่งไม่สำเร็จ", new Error(message), "ตรวจสอบข้อมูลแล้วลองใหม่");
+      return;
+    }
+    await refresh().catch(() => setError("บันทึกแล้ว แต่โหลดผังล่าสุดไม่สำเร็จ กรุณารีเฟรช"));
+    setBusy(false);
+    setNotice("บันทึกลำดับกลุ่มและตำแหน่งเรียบร้อยแล้ว");
+    await appSwal.close();
+    await showSuccessResult("จัดผังตำแหน่งสำเร็จ");
+  }
+
+  function openPositionGroupTransfer(positionId: string, preferredLabel?: string) {
+    if (!canSortPositionLayout || !visiblePositions.some((position) => position.id === positionId)) return;
+    const source = visiblePositions.find((position) => position.id === positionId);
+    const eligible = positionGroups.filter((group) => group.label !== source?.group_label);
+    if (!eligible.length) return;
+    setMovingPositionId(positionId);
+    setTargetGroupLabel(
+      preferredLabel && eligible.some((group) => group.label === preferredLabel)
+        ? preferredLabel
+        : eligible[0]!.label
+    );
+  }
+
+  function confirmPositionGroupTransfer() {
+    if (!movingPositionId || !canSortPositionLayout) return;
+    const selected = visiblePositions.find((position) => position.id === movingPositionId);
+    if (!selected || selected.group_label === targetGroupLabel) return;
+    const updated = movePositionBetweenGroups(positionGroups, movingPositionId, targetGroupLabel);
+    setMovingPositionId(null);
+    void savePositionLayout(updated);
+  }
 
   const pageControl = (
     label: string,
