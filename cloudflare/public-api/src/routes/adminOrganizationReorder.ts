@@ -2,6 +2,7 @@ import type { AdminIdentity } from "../auth/adminAccess";
 import { requireD1Database } from "../db/documentsRepository";
 import type { Env } from "../env";
 import { json, jsonError } from "../responses";
+import { parsePositionLayout, saveAuditedPositionLayout } from "./adminOrganizationPositionLayout";
 
 export type OrganizationReorderKind = "positions" | "assignments";
 export interface OrganizationOrderEntry {
@@ -149,6 +150,22 @@ export async function handleAdminOrganizationReorder(
     return null;
   }
   const raw: unknown = await request.json().catch(() => null);
+  if (raw && typeof raw === "object" && !Array.isArray(raw) && (raw as Record<string, unknown>).collection === "position-layout") {
+    try {
+      const input = parsePositionLayout(raw);
+      const updated = await saveAuditedPositionLayout(env, input, identity.actor);
+      if (!updated) return jsonError("position layout changed; refresh and retry", 409, { resource: "organization" });
+      return json(
+        { reordered: true, count: input.groups.reduce((count, group) => count + group.items.length, 0) },
+        { headers: { "Cache-Control": "no-store" } }
+      );
+    } catch (error) {
+      if (error instanceof TypeError) {
+        return jsonError(error.message, 400, { resource: "organization" });
+      }
+      throw error;
+    }
+  }
   let input: OrganizationReorderInput;
   try {
     input = parseOrganizationReorder(raw);
