@@ -790,16 +790,18 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                     }}
                   >
                     {positionGroups.map((group, groupIndex) => (
-                      <OrganizationSortableRow
+                      <Box
                         key={group.label}
-                        id={"position-layout-group:" + groupIndex}
-                        index={groupIndex}
-                        group={"position-layout-groups:" + selectedUnitId}
-                        label={"กลุ่ม " + (group.label || "ไม่ระบุกลุ่ม")}
-                        disabled={!canSortPositionLayout || positionGroups.length < 2}
+                        sx={{ p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 2 }}
                       >
-                        <Box sx={{ p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
-                          <Stack spacing={1.5}>
+                        <Stack spacing={1.5}>
+                          <OrganizationSortableRow
+                            id={"position-layout-group:" + groupIndex}
+                            index={groupIndex}
+                            group={"position-layout-groups:" + selectedUnitId}
+                            label={"กลุ่ม " + (group.label || "ไม่ระบุกลุ่ม")}
+                            disabled={!canSortPositionLayout || positionGroups.length < 2}
+                          >
                             <Stack
                               direction="row"
                               spacing={1}
@@ -831,7 +833,8 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                                 </>
                               )}
                             </Stack>
-                            {group.positions.map((position) => {
+                          </OrganizationSortableRow>
+                          {group.positions.map((position) => {
                               const assigned = assignmentsByPosition.get(position.id) ?? [];
                               const siblings = group.positions;
                               return (
@@ -1015,9 +1018,8 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                                 disabled={!canSortPositionLayout}
                               />
                             )}
-                          </Stack>
-                        </Box>
-                      </OrganizationSortableRow>
+                        </Stack>
+                      </Box>
                     ))}
                   </DragDropProvider>
                 )}
