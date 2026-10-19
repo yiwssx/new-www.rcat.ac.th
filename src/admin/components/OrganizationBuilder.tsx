@@ -835,189 +835,189 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                             </Stack>
                           </OrganizationSortableRow>
                           {group.positions.map((position) => {
-                              const assigned = assignmentsByPosition.get(position.id) ?? [];
-                              const siblings = group.positions;
-                              return (
-                                <OrganizationSortableRow
-                                  key={position.id}
-                                  id={position.id}
-                                  index={siblings.findIndex((row) => row.id === position.id)}
-                                  group={"position-layout-items:" + group.label}
-                                  label={position.title}
-                                  disabled={!canSortPositionLayout}
-                                >
-                                  <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2 }}>
-                                    <Stack spacing={1}>
-                                      <Stack
-                                        direction={{ xs: "column", sm: "row" }}
-                                        spacing={1}
-                                        sx={{ justifyContent: "space-between" }}
-                                      >
-                                        <Box sx={{ minWidth: 0 }}>
-                                          <Typography sx={{ fontWeight: 700, overflowWrap: "anywhere" }}>
-                                            {position.title}
-                                          </Typography>
-                                          <Stack direction="row" spacing={0.5} useFlexGap sx={{ flexWrap: "wrap" }}>
-                                            {position.group_label && (
-                                              <Chip size="small" label={position.group_label} variant="outlined" />
-                                            )}
-                                            <Chip
-                                              size="small"
-                                              label={
-                                                "อันดับ " + (siblings.findIndex((row) => row.id === position.id) + 1)
-                                              }
-                                              variant="outlined"
-                                            />
-                                            {position.occupant_limit !== null &&
-                                              !assignmentsQuery.hasNextPage &&
-                                              !assignmentsQuery.isPending &&
-                                              !assignmentsQuery.isError && (
-                                                <Chip
-                                                  size="small"
-                                                  label={
-                                                    "ผู้ดำรงตำแหน่ง " +
-                                                    enabledDistinctOccupants(assignments, position.id) +
-                                                    "/" +
-                                                    position.occupant_limit
-                                                  }
-                                                  variant="outlined"
-                                                />
-                                              )}
-                                          </Stack>
-                                        </Box>
-                                        {canManage && (view === "legacy" || view === "positions") && (
-                                          <Stack direction="row" useFlexGap sx={{ flexWrap: "wrap" }}>
-                                            <Button onClick={() => openPosition(position)} disabled={busy}>
-                                              แก้ไขตำแหน่ง
-                                            </Button>
-                                            {positionGroups.length > 1 && (
-                                              <Button
-                                                onClick={() => openPositionGroupTransfer(position.id)}
-                                                disabled={!canSortPositionLayout}
-                                              >
-                                                ย้ายตำแหน่งข้ามกลุ่ม
-                                              </Button>
-                                            )}
-                                            <Button
-                                              color="error"
-                                              onClick={() => void remove("positions", position)}
-                                              disabled={busy}
-                                            >
-                                              ลบตำแหน่ง
-                                            </Button>
-                                          </Stack>
-                                        )}
-                                      </Stack>
-                                      <DragDropProvider
-                                        onDragEnd={({ operation, canceled }) => {
-                                          if (canceled || !isSortable(operation.source)) return;
-                                          const source = operation.source;
-                                          if (operation.target?.id === "transfer:" + position.id) {
-                                            const assignment = assigned.find((item) => item.id === source.id);
-                                            if (assignment) openTransfer(assignment);
-                                            return;
-                                          }
-                                          if (
-                                            source.initialIndex === source.index ||
-                                            source.index < 0 ||
-                                            source.index >= assigned.length
-                                          )
-                                            return;
-                                          void saveReorder(
-                                            "assignments",
-                                            position.id,
-                                            arrayMove(assigned, source.initialIndex, source.index)
-                                          );
-                                        }}
-                                      >
-                                        {assigned.map((assignment, index) => (
-                                          <OrganizationSortableRow
-                                            key={assignment.id}
-                                            id={assignment.id}
-                                            index={index}
-                                            group={position.id}
-                                            label={byPerson.get(assignment.personnel_id)?.display_name ?? assignment.id}
-                                            disabled={!canManage || busy || Boolean(assignmentsQuery.hasNextPage)}
-                                          >
-                                            <Box sx={{ bgcolor: "action.hover", borderRadius: 1, p: 1 }}>
-                                              <Stack
-                                                direction={{ xs: "column", sm: "row" }}
-                                                spacing={1}
-                                                sx={{ justifyContent: "space-between" }}
-                                              >
-                                                <Box sx={{ minWidth: 0 }}>
-                                                  <Typography sx={{ overflowWrap: "anywhere" }}>
-                                                    {byPerson.get(assignment.personnel_id)?.display_name ??
-                                                      "บุคลากร " + assignment.personnel_id}
-                                                  </Typography>
-                                                  <Typography
-                                                    variant="body2"
-                                                    color="text.secondary"
-                                                    sx={{ overflowWrap: "anywhere" }}
-                                                  >
-                                                    {assignment.duty_detail || "ยังไม่ระบุหน้าที่"} · ลำดับ {index + 1}
-                                                    {assignment.enabled === 0 ? " · ปิดการแสดงผล" : ""}
-                                                  </Typography>
-                                                </Box>
-                                                {canManage && (view === "legacy" || view === "assignments") && (
-                                                  <Stack direction="row" useFlexGap sx={{ flexWrap: "wrap" }}>
-                                                    <Button
-                                                      disabled={busy}
-                                                      onClick={() => openAssignment(assignment, position.id)}
-                                                    >
-                                                      แก้ไขหน้าที่
-                                                    </Button>
-                                                    <Button
-                                                      color="error"
-                                                      disabled={busy}
-                                                      onClick={() => void remove("assignments", assignment)}
-                                                    >
-                                                      ลบหน้าที่
-                                                    </Button>
-                                                  </Stack>
-                                                )}
-                                                {canManage && (view === "legacy" || view === "assignments") && (
-                                                  <Button
-                                                    size="small"
-                                                    variant="outlined"
-                                                    disabled={busy || Boolean(assignmentsQuery.hasNextPage)}
-                                                    onClick={() => openTransfer(assignment)}
-                                                  >
-                                                    ย้ายตำแหน่งหรือหน่วยงาน
-                                                  </Button>
-                                                )}
-                                              </Stack>
-                                            </Box>
-                                          </OrganizationSortableRow>
-                                        ))}
-                                        {canManage && assigned.length > 0 && (
-                                          <OrganizationAssignmentTransferTarget
-                                            id={"transfer:" + position.id}
-                                            disabled={busy || Boolean(assignmentsQuery.hasNextPage)}
+                            const assigned = assignmentsByPosition.get(position.id) ?? [];
+                            const siblings = group.positions;
+                            return (
+                              <OrganizationSortableRow
+                                key={position.id}
+                                id={position.id}
+                                index={siblings.findIndex((row) => row.id === position.id)}
+                                group={"position-layout-items:" + group.label}
+                                label={position.title}
+                                disabled={!canSortPositionLayout}
+                              >
+                                <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2 }}>
+                                  <Stack spacing={1}>
+                                    <Stack
+                                      direction={{ xs: "column", sm: "row" }}
+                                      spacing={1}
+                                      sx={{ justifyContent: "space-between" }}
+                                    >
+                                      <Box sx={{ minWidth: 0 }}>
+                                        <Typography sx={{ fontWeight: 700, overflowWrap: "anywhere" }}>
+                                          {position.title}
+                                        </Typography>
+                                        <Stack direction="row" spacing={0.5} useFlexGap sx={{ flexWrap: "wrap" }}>
+                                          {position.group_label && (
+                                            <Chip size="small" label={position.group_label} variant="outlined" />
+                                          )}
+                                          <Chip
+                                            size="small"
+                                            label={
+                                              "อันดับ " + (siblings.findIndex((row) => row.id === position.id) + 1)
+                                            }
+                                            variant="outlined"
                                           />
-                                        )}
-                                      </DragDropProvider>
-                                      {canManage && (view === "legacy" || view === "assignments") && (
-                                        <Button
-                                          variant="outlined"
-                                          disabled={busy || assignmentsQuery.isPending || assignmentsQuery.isError}
-                                          onClick={() => openAssignment(null, position.id)}
-                                        >
-                                          มอบหมายบุคลากร
-                                        </Button>
+                                          {position.occupant_limit !== null &&
+                                            !assignmentsQuery.hasNextPage &&
+                                            !assignmentsQuery.isPending &&
+                                            !assignmentsQuery.isError && (
+                                              <Chip
+                                                size="small"
+                                                label={
+                                                  "ผู้ดำรงตำแหน่ง " +
+                                                  enabledDistinctOccupants(assignments, position.id) +
+                                                  "/" +
+                                                  position.occupant_limit
+                                                }
+                                                variant="outlined"
+                                              />
+                                            )}
+                                        </Stack>
+                                      </Box>
+                                      {canManage && (view === "legacy" || view === "positions") && (
+                                        <Stack direction="row" useFlexGap sx={{ flexWrap: "wrap" }}>
+                                          <Button onClick={() => openPosition(position)} disabled={busy}>
+                                            แก้ไขตำแหน่ง
+                                          </Button>
+                                          {positionGroups.length > 1 && (
+                                            <Button
+                                              onClick={() => openPositionGroupTransfer(position.id)}
+                                              disabled={!canSortPositionLayout}
+                                            >
+                                              ย้ายตำแหน่งข้ามกลุ่ม
+                                            </Button>
+                                          )}
+                                          <Button
+                                            color="error"
+                                            onClick={() => void remove("positions", position)}
+                                            disabled={busy}
+                                          >
+                                            ลบตำแหน่ง
+                                          </Button>
+                                        </Stack>
                                       )}
                                     </Stack>
-                                  </Box>
-                                </OrganizationSortableRow>
-                              );
-                            })}
-                            {canManage && positionGroups.length > 1 && (
-                              <OrganizationPositionGroupDropTarget
-                                id={"position-group-target:" + groupIndex}
-                                groupLabel={group.label}
-                                disabled={!canSortPositionLayout}
-                              />
-                            )}
+                                    <DragDropProvider
+                                      onDragEnd={({ operation, canceled }) => {
+                                        if (canceled || !isSortable(operation.source)) return;
+                                        const source = operation.source;
+                                        if (operation.target?.id === "transfer:" + position.id) {
+                                          const assignment = assigned.find((item) => item.id === source.id);
+                                          if (assignment) openTransfer(assignment);
+                                          return;
+                                        }
+                                        if (
+                                          source.initialIndex === source.index ||
+                                          source.index < 0 ||
+                                          source.index >= assigned.length
+                                        )
+                                          return;
+                                        void saveReorder(
+                                          "assignments",
+                                          position.id,
+                                          arrayMove(assigned, source.initialIndex, source.index)
+                                        );
+                                      }}
+                                    >
+                                      {assigned.map((assignment, index) => (
+                                        <OrganizationSortableRow
+                                          key={assignment.id}
+                                          id={assignment.id}
+                                          index={index}
+                                          group={position.id}
+                                          label={byPerson.get(assignment.personnel_id)?.display_name ?? assignment.id}
+                                          disabled={!canManage || busy || Boolean(assignmentsQuery.hasNextPage)}
+                                        >
+                                          <Box sx={{ bgcolor: "action.hover", borderRadius: 1, p: 1 }}>
+                                            <Stack
+                                              direction={{ xs: "column", sm: "row" }}
+                                              spacing={1}
+                                              sx={{ justifyContent: "space-between" }}
+                                            >
+                                              <Box sx={{ minWidth: 0 }}>
+                                                <Typography sx={{ overflowWrap: "anywhere" }}>
+                                                  {byPerson.get(assignment.personnel_id)?.display_name ??
+                                                    "บุคลากร " + assignment.personnel_id}
+                                                </Typography>
+                                                <Typography
+                                                  variant="body2"
+                                                  color="text.secondary"
+                                                  sx={{ overflowWrap: "anywhere" }}
+                                                >
+                                                  {assignment.duty_detail || "ยังไม่ระบุหน้าที่"} · ลำดับ {index + 1}
+                                                  {assignment.enabled === 0 ? " · ปิดการแสดงผล" : ""}
+                                                </Typography>
+                                              </Box>
+                                              {canManage && (view === "legacy" || view === "assignments") && (
+                                                <Stack direction="row" useFlexGap sx={{ flexWrap: "wrap" }}>
+                                                  <Button
+                                                    disabled={busy}
+                                                    onClick={() => openAssignment(assignment, position.id)}
+                                                  >
+                                                    แก้ไขหน้าที่
+                                                  </Button>
+                                                  <Button
+                                                    color="error"
+                                                    disabled={busy}
+                                                    onClick={() => void remove("assignments", assignment)}
+                                                  >
+                                                    ลบหน้าที่
+                                                  </Button>
+                                                </Stack>
+                                              )}
+                                              {canManage && (view === "legacy" || view === "assignments") && (
+                                                <Button
+                                                  size="small"
+                                                  variant="outlined"
+                                                  disabled={busy || Boolean(assignmentsQuery.hasNextPage)}
+                                                  onClick={() => openTransfer(assignment)}
+                                                >
+                                                  ย้ายตำแหน่งหรือหน่วยงาน
+                                                </Button>
+                                              )}
+                                            </Stack>
+                                          </Box>
+                                        </OrganizationSortableRow>
+                                      ))}
+                                      {canManage && assigned.length > 0 && (
+                                        <OrganizationAssignmentTransferTarget
+                                          id={"transfer:" + position.id}
+                                          disabled={busy || Boolean(assignmentsQuery.hasNextPage)}
+                                        />
+                                      )}
+                                    </DragDropProvider>
+                                    {canManage && (view === "legacy" || view === "assignments") && (
+                                      <Button
+                                        variant="outlined"
+                                        disabled={busy || assignmentsQuery.isPending || assignmentsQuery.isError}
+                                        onClick={() => openAssignment(null, position.id)}
+                                      >
+                                        มอบหมายบุคลากร
+                                      </Button>
+                                    )}
+                                  </Stack>
+                                </Box>
+                              </OrganizationSortableRow>
+                            );
+                          })}
+                          {canManage && positionGroups.length > 1 && (
+                            <OrganizationPositionGroupDropTarget
+                              id={"position-group-target:" + groupIndex}
+                              groupLabel={group.label}
+                              disabled={!canSortPositionLayout}
+                            />
+                          )}
                         </Stack>
                       </Box>
                     ))}
