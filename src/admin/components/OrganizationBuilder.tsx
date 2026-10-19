@@ -797,7 +797,12 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                       >
                         <Box sx={{ p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
                           <Stack spacing={1.5}>
-                            <Stack direction="row" spacing={1} useFlexGap sx={{ alignItems: "center", flexWrap: "wrap" }}>
+                            <Stack
+                              direction="row"
+                              spacing={1}
+                              useFlexGap
+                              sx={{ alignItems: "center", flexWrap: "wrap" }}
+                            >
                               <Typography sx={{ fontWeight: 700 }}>{group.label || "ตำแหน่งไม่ระบุกลุ่ม"}</Typography>
                               <Chip size="small" variant="outlined" label={"กลุ่มลำดับ " + (groupIndex + 1)} />
                               {canManage && (
