@@ -755,13 +755,15 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                         // @dnd-kit may keep source.index unchanged when a sortable
                         // heading is dropped over another group's independent heading.
                         // Prefer the actual destination ID over the drag source index.
-                        const destination = targetId.startsWith("position-layout-group:")
-                          ? Number(targetId.slice("position-layout-group:".length))
-                          : targetId.startsWith("position-group-target:")
-                            ? Number(targetId.slice("position-group-target:".length))
-                            : positionGroups.findIndex((group) =>
-                                group.positions.some((position) => position.id === targetId)
-                              );
+                        const destination = targetId.startsWith("position-group-order-target:")
+                          ? Number(targetId.slice("position-group-order-target:".length))
+                          : targetId.startsWith("position-layout-group:")
+                            ? Number(targetId.slice("position-layout-group:".length))
+                            : targetId.startsWith("position-group-target:")
+                              ? Number(targetId.slice("position-group-target:".length))
+                              : positionGroups.findIndex((group) =>
+                                  group.positions.some((position) => position.id === targetId)
+                                );
                         const sourceIndex = Number(sourceId.slice("position-layout-group:".length));
                         const targetIndex = destination >= 0 ? destination : source.index;
                         if (
@@ -846,6 +848,14 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                               )}
                             </Stack>
                           </OrganizationSortableRow>
+                          {canManage && positionGroups.length > 1 && (
+                            <OrganizationPositionGroupDropTarget
+                              id={"position-group-order-target:" + groupIndex}
+                              groupLabel={group.label}
+                              groupOrder
+                              disabled={!canSortPositionLayout}
+                            />
+                          )}
                           {group.positions.map((position) => {
                             const assigned = assignmentsByPosition.get(position.id) ?? [];
                             const siblings = group.positions;
