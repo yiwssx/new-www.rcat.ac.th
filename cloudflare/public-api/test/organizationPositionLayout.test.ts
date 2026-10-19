@@ -196,25 +196,22 @@ describe("atomic grouped position layout API", () => {
         body: JSON.stringify(value),
         headers: { "Content-Type": "application/json" }
       });
-      return handleAdminOrganizationReorder(
-        request, env, ["organization", "reorder"], { actor: "editor" } as AdminIdentity
-      );
+      return handleAdminOrganizationReorder(request, env, ["organization", "reorder"], {
+        actor: "editor"
+      } as AdminIdentity);
     };
-    const wrong = await send(layout([
-      { label: "Moved", items: [entry("a")] }
-    ]));
+    const wrong = await send(layout([{ label: "Moved", items: [entry("a")] }]));
     expect(wrong?.status).toBe(409);
     expect(countAudit()).toBe(0);
     const invalid = await send({ collection: "position-layout", scopeId: "unit-1", groups: [] });
     expect(invalid?.status).toBe(400);
-    const accepted = await send(layout([
-      { label: "Group B", items: [entry("b"), entry("a")] }
-    ]));
+    const accepted = await send(layout([{ label: "Group B", items: [entry("b"), entry("a")] }]));
     expect(accepted?.status).toBe(200);
     expect(await accepted?.json()).toMatchObject({ reordered: true, count: 2 });
     expect(countAudit()).toBe(1);
-    expect(current().map((row) => [row.id,row.group_label,row.group_sort_order,row.sort_order])).toEqual([
-      ["a","Group B",0,1],["b","Group B",0,0]
+    expect(current().map((row) => [row.id, row.group_label, row.group_sort_order, row.sort_order])).toEqual([
+      ["a", "Group B", 0, 1],
+      ["b", "Group B", 0, 0]
     ]);
   });
 
