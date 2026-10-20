@@ -37,15 +37,15 @@ function LoginAvailabilityState({ unavailable = false, onRetry }: { unavailable?
     <AuthPageLayout title={getCmsSiteName()} showBrand>
       {unavailable ? (
         <>
-          <Alert severity="warning">ระบบยืนยันตัวตน CMS ไม่พร้อมใช้งานในขณะนี้ กรุณาลองใหม่อีกครั้ง</Alert>
+          <Alert severity="warning">ไม่สามารถเข้าสู่ระบบได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง</Alert>
           <Button variant="contained" onClick={onRetry}>
             ลองใหม่
           </Button>
         </>
       ) : (
         <>
-          <Typography>กำลังตรวจสอบเซสชัน CMS</Typography>
-          <LinearProgress aria-label="กำลังตรวจสอบเซสชัน CMS" />
+          <Typography>กำลังตรวจสอบการเข้าสู่ระบบ</Typography>
+          <LinearProgress aria-label="กำลังตรวจสอบการเข้าสู่ระบบ" />
         </>
       )}
     </AuthPageLayout>
@@ -273,7 +273,7 @@ export default function LoginPage() {
                   เปิดใช้งานบัญชี
                 </Button>
                 <Button component="a" href="/reset-password">
-                  ตั้งรหัสผ่านใหม่ด้วยโทเค็น
+                  ตั้งรหัสผ่านใหม่ด้วยรหัสจากผู้ดูแลระบบ
                 </Button>
               </Stack>
             }
