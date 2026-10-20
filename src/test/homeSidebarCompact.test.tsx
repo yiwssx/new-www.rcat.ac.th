@@ -22,7 +22,7 @@ describe("homepage compact sidebar cards", () => {
   it("keeps the announcement card compact and limits the homepage preview to three items", () => {
     render(<LatestAnnouncementsCard items={[1, 2, 3, 4].map(createAnnouncement)} />);
 
-    expect(screen.getByRole("heading", { name: "ประกาศล่าสุด", level: 3 })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "ประกาศทั่วไปและประกาศสำคัญ", level: 3 })).toBeInTheDocument();
     expect(screen.getByText("ประกาศ 1")).toBeInTheDocument();
     expect(screen.getByText("ประกาศ 2")).toBeInTheDocument();
     expect(screen.getByText("ประกาศ 3")).toBeInTheDocument();

@@ -1085,7 +1085,7 @@ describe("public data-driven pages", () => {
     }
   });
 
-  it("shows an honest empty state when no program content exists", async () => {
+  it("hides the homepage programs section when no published program content exists", async () => {
     currentHomeSnapshot = createHomeSnapshot();
 
     render(<PublicHomePage />);
@@ -1093,7 +1093,9 @@ describe("public data-driven pages", () => {
       await Promise.resolve();
     });
 
-    expect(screen.getByText("ยังไม่มีข้อมูลแผนกวิชาที่เผยแพร่")).toBeInTheDocument();
+    expect(document.querySelector("#departments")).not.toBeInTheDocument();
+    expect(screen.queryByText("สาขาวิชาที่เปิดสอน")).not.toBeInTheDocument();
+    expect(screen.queryByText("ยังไม่มีข้อมูลแผนกวิชาที่เผยแพร่")).not.toBeInTheDocument();
   });
 
   it("renders departments from the public program list snapshot", () => {
@@ -1788,8 +1790,8 @@ describe("public data-driven pages", () => {
     const heroIndex = pageText.indexOf("ยินดีต้อนรับสู่วิทยาลัยตัวอย่าง");
     const directorIndex = pageText.indexOf("สารจากผู้อำนวยการ");
     const newsIndex = pageText.indexOf("ข่าวสารและกิจกรรมล่าสุด");
-    const programsIndex = pageText.indexOf("แผนกวิชาที่เปิดสอน");
-    const announcementsIndex = pageText.indexOf("ประกาศล่าสุด");
+    const programsIndex = pageText.indexOf("สาขาวิชาที่เปิดสอน");
+    const announcementsIndex = pageText.indexOf("ประกาศทั่วไปและประกาศสำคัญ");
     const eventsIndex = pageText.indexOf("กำหนดการ");
     const documentsIndex = pageText.indexOf("เอกสารเผยแพร่");
     const contactIndex = pageText.indexOf("ติดต่อและแผนที่");
@@ -1814,11 +1816,11 @@ describe("public data-driven pages", () => {
     }).forEach(([label, index]) => expect(index, label).toBeGreaterThanOrEqual(0));
     expect(heroIndex).toBeLessThan(directorIndex);
     expect(directorIndex).toBeLessThan(newsIndex);
-    expect(newsIndex).toBeLessThan(procurementIndex);
+    expect(newsIndex).toBeLessThan(announcementsIndex);
+    expect(announcementsIndex).toBeLessThan(procurementIndex);
     expect(procurementIndex).toBeLessThan(programsIndex);
     expect(programsIndex).toBeLessThan(achievementsIndex);
     expect(achievementsIndex).toBeLessThan(externalServicesIndex);
-    expect(announcementsIndex).toBeLessThan(eventsIndex);
     expect(eventsIndex).toBeLessThan(documentsIndex);
     expect(documentsIndex).toBeLessThan(contactIndex);
     expect(contactIndex).toBeLessThan(visitorStatsIndex);
