@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { listHomePublishedContentSummaryRows } from "../src/db/homeContentRepository";
+import {
+  listHomePublishedContentSummaryRows,
+  listHomePublishedGeneralAnnouncementRows
+} from "../src/db/homeContentRepository";
 import { listHomePublishedDocumentRows } from "../src/db/homeDocumentsRepository";
 import { searchPublishedContentPageWithCountRows } from "../src/db/publicSearchRepository";
 import { readVisitorStatsAggregate } from "../src/db/visitorStatsRepository";
@@ -90,6 +93,30 @@ describe("D1 public read optimization", () => {
         /title LIKE \?/i.test(call.query)
     );
     expect(jobOpportunityCall).toBeDefined();
+  });
+
+  it("fetches four latest general announcements independently without limiting the original sidebar feed", async () => {
+    const { env, calls } = createDb(() => []);
+
+    await listHomePublishedGeneralAnnouncementRows(env);
+
+    expect(calls).toHaveLength(1);
+    const [general] = calls;
+    expect(general.query).toMatch(/AND type = \? AND NOT \(/i);
+    expect(general.query).toMatch(/ORDER BY publish_at DESC, updated_at DESC/i);
+    expect(general.query).toMatch(/LIMIT \?/i);
+    expect(general.bindings).toContain("announcement");
+    expect(general.bindings).toContain("%จัดซื้อ%");
+    expect(general.bindings).toContain("%รับสมัครงาน%");
+    expect(general.bindings.at(-1)).toBe(4);
+
+    const sidebar = createDb(() => []);
+    await listHomePublishedContentSummaryRows(sidebar.env);
+    const sidebarCall = sidebar.calls.find(
+      (call) => call.bindings.includes("announcement") && call.bindings.at(-1) === 8
+    );
+    expect(sidebarCall).toBeDefined();
+    expect(sidebarCall?.query).not.toMatch(/AND NOT \(/i);
   });
 
   it("bounds homepage documents to the three cards rendered by the homepage", async () => {

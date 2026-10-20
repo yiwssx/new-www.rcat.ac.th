@@ -1,7 +1,10 @@
 import { createPublicHomeSnapshot } from "../adapters/publicHomeAdapter";
 import { createPublicMetadata } from "../adapters/publicMetadataAdapter";
 import { createPublicVisitorStatsSnapshotFromAggregate } from "../adapters/publicVisitorStatsAdapter";
-import { listHomePublishedContentSummaryRows } from "../db/homeContentRepository";
+import {
+  listHomePublishedContentSummaryRows,
+  listHomePublishedGeneralAnnouncementRows
+} from "../db/homeContentRepository";
 import { listHomePublishedDocumentRows } from "../db/homeDocumentsRepository";
 import { readPublicHomeCoreMetadataRows, readPublicMediaRowsByIds } from "../db/publicMetadataRepository";
 import { countOnlineVisitors, readVisitorStatsAggregate } from "../db/visitorStatsRepository";
@@ -26,6 +29,7 @@ function collectHomeMediaIds(snapshot: ReturnType<typeof createPublicHomeSnapsho
   addMediaReferences([
     ...snapshot.latestNews,
     ...snapshot.latestAnnouncements,
+    ...(snapshot.generalAnnouncementItems ?? []),
     ...snapshot.procurementItems,
     ...snapshot.jobOpportunityItems,
     ...snapshot.programItems,
@@ -56,13 +60,15 @@ export async function publicHome(env: Env) {
 
   try {
     const generatedAt = new Date();
-    const [content, featuredDocuments, homeCoreRows, visitorAggregate, onlineUsers] = await Promise.all([
+    const homeResults = await Promise.all([
       listHomePublishedContentSummaryRows(env),
+      listHomePublishedGeneralAnnouncementRows(env),
       listHomePublishedDocumentRows(env),
       readPublicHomeCoreMetadataRows(env),
       readVisitorStatsAggregate(env, generatedAt),
       countOnlineVisitors(env, generatedAt)
     ]);
+    const [content, generalAnnouncements, featuredDocuments, homeCoreRows, visitorAggregate, onlineUsers] = homeResults;
     const visitorStats = createPublicVisitorStatsSnapshotFromAggregate(visitorAggregate, generatedAt, onlineUsers);
     const metadataRows = {
       siteSettings: null,
@@ -76,6 +82,7 @@ export async function publicHome(env: Env) {
     const provisionalSnapshot = createPublicHomeSnapshot(
       {
         content,
+        generalAnnouncements,
         featuredDocuments,
         metadata: metadataWithoutMedia,
         visitorStats
@@ -89,6 +96,7 @@ export async function publicHome(env: Env) {
       createPublicHomeSnapshot(
         {
           content,
+          generalAnnouncements,
           featuredDocuments,
           metadata,
           visitorStats

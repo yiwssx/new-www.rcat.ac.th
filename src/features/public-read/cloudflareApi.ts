@@ -313,6 +313,9 @@ export async function getPublicHomeSnapshotFromCloudflare(
     "achievementItems",
     "programItems"
   ].forEach((key) => assertPublicSummaryItems(payload[key], "public-home"));
+  if (payload.generalAnnouncementItems !== undefined) {
+    assertPublicSummaryItems(payload.generalAnnouncementItems, "public-home");
+  }
   persistDisplaySettings(payload.displaySettings as DisplaySettings | undefined);
   return payload as unknown as PublicHomeSnapshot;
 }

@@ -39,5 +39,13 @@ export async function getPublicHomeSnapshot(options: PublicReadRequestOptions = 
     }
   }
 
+  // Older API deployments may omit this additional feed during rollout.
+  if (payload.generalAnnouncementItems !== undefined && !Array.isArray(payload.generalAnnouncementItems)) {
+    throw new PublicReadError("Cloudflare public-home response has invalid generalAnnouncementItems", {
+      kind: "invalid-response",
+      resource: "public-home"
+    });
+  }
+
   return payload as unknown as PublicHomeSnapshot;
 }

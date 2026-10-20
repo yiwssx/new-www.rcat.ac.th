@@ -40,7 +40,7 @@ function getBodyDocumentThumbnailUrl(item: PublicContentCardItem) {
   return fileId ? buildGoogleDriveThumbnailUrl(fileId, PROCUREMENT_THUMBNAIL_WIDTH) : "";
 }
 
-export function resolveProcurementPreview(item: PublicContentCardItem, mediaAssets: MediaAsset[]): ProcurementPreview {
+export function resolveAnnouncementPreview(item: PublicContentCardItem, mediaAssets: MediaAsset[]): ProcurementPreview {
   const image = resolveCardThumbnail(item, mediaAssets);
   if (image) {
     return {
@@ -74,3 +74,6 @@ export function resolveProcurementPreview(item: PublicContentCardItem, mediaAsse
     label: item.title
   };
 }
+
+// Retain the established API for procurement cards and their existing tests.
+export const resolveProcurementPreview = resolveAnnouncementPreview;
