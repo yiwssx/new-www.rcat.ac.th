@@ -49,7 +49,7 @@ export function GeneralAnnouncementsSection({
       <HomeSectionHeading
         label="ประกาศ"
         title="ประกาศทั่วไป"
-        description="ประกาศทั่วไปของวิทยาลัย โดยไม่รวมประกาศจัดซื้อจัดจ้างและรับสมัครงาน"
+        description="ประกาศและข้อมูลสำคัญที่ควรทราบจากวิทยาลัย"
         action={
           <Button
             href={normalizeSafeHref(GENERAL_ANNOUNCEMENTS_ARCHIVE_HREF)}
