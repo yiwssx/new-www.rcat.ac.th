@@ -53,7 +53,7 @@ export default function PublicOrganizationDetailPage({ slug }: Props) {
     return (
       <Stack spacing={2} sx={{ py: 6 }}>
         <Typography variant="h1">ไม่พบหน่วยงาน</Typography>
-        <Typography>ข้อมูลนี้อาจยังไม่ได้เผยแพร่หรือไม่สามารถเข้าถึงได้</Typography>
+        <Typography>ไม่พบข้อมูลหน่วยงานที่ต้องการ กรุณาตรวจสอบลิงก์อีกครั้ง</Typography>
         <Link href="/">กลับหน้าหลัก</Link>
       </Stack>
     );
