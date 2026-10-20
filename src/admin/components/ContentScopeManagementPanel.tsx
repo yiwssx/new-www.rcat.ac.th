@@ -80,9 +80,7 @@ export default function ContentScopeManagementPanel() {
             </Typography>
           </Box>
 
-          <Alert severity="info">
-            หากเว้นว่าง ผู้แก้ไขยังสามารถจัดการเนื้อหาตามสิทธิ์เดิมได้
-          </Alert>
+          <Alert severity="info">หากเว้นว่าง ผู้แก้ไขยังสามารถจัดการเนื้อหาตามสิทธิ์เดิมได้</Alert>
           {error && <Alert severity="error">{error}</Alert>}
           {scopesQuery.isError && <Alert severity="error">ไม่สามารถโหลดข้อมูลขอบเขตผู้ใช้ได้</Alert>}
 
