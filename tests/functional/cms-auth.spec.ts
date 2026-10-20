@@ -372,9 +372,9 @@ test.describe("CMS auth intercepted functional flows", () => {
       if (path === "/admin") {
         await expect(page.getByRole("heading", { name: "แดชบอร์ด" })).toBeVisible();
       } else if (path.startsWith("/activate-account")) {
-        await expect(page.getByLabel("โทเค็นเชิญ")).toBeVisible();
+        await expect(page.getByLabel("รหัสเชิญ")).toBeVisible();
       } else if (path.startsWith("/reset-password")) {
-        await expect(page.getByLabel("โทเค็นตั้งรหัสผ่านใหม่")).toBeVisible();
+        await expect(page.getByLabel("รหัสตั้งรหัสผ่านใหม่")).toBeVisible();
       } else {
         await expect(page.getByRole("button", { name: "เข้าสู่ระบบ" })).toBeVisible();
       }
@@ -524,8 +524,8 @@ test.describe("CMS auth intercepted functional flows", () => {
   test("CMS auth activation never adds its token to the browser URL", async ({ page }) => {
     await installCmsApi(page);
     await page.goto("/activate-account");
-    await page.getByLabel("โทเค็นเชิญ").fill("INVITATION-TOKEN-FIXTURE");
-    await page.getByRole("button", { name: "ตรวจสอบโทเค็น" }).click();
+    await page.getByLabel("รหัสเชิญ").fill("INVITATION-TOKEN-FIXTURE");
+    await page.getByRole("button", { name: "ตรวจสอบรหัส" }).click();
     await expect(page.getByText("Invited User")).toBeVisible();
     await expect(page).toHaveURL("http://127.0.0.1:5173/activate-account");
     expect(page.url()).not.toContain("INVITATION-TOKEN-FIXTURE");
@@ -534,8 +534,8 @@ test.describe("CMS auth intercepted functional flows", () => {
   test("CMS auth password reset never adds its token to the browser URL", async ({ page }) => {
     await installCmsApi(page);
     await page.goto("/reset-password");
-    await page.getByLabel("โทเค็นตั้งรหัสผ่านใหม่").fill("RESET-TOKEN-FIXTURE");
-    await page.getByRole("button", { name: "ตรวจสอบโทเค็น" }).click();
+    await page.getByLabel("รหัสตั้งรหัสผ่านใหม่").fill("RESET-TOKEN-FIXTURE");
+    await page.getByRole("button", { name: "ตรวจสอบรหัส" }).click();
     await expect(page.getByText(/f\*\*\*@example\.invalid/)).toBeVisible();
     await expect(page).toHaveURL("http://127.0.0.1:5173/reset-password");
     expect(page.url()).not.toContain("RESET-TOKEN-FIXTURE");
