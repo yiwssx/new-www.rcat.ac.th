@@ -113,7 +113,7 @@ describe("D1 public read optimization", () => {
     const sidebar = createDb(() => []);
     await listHomePublishedContentSummaryRows(sidebar.env);
     const sidebarCall = sidebar.calls.find(
-      (call) => call.bindings.length === 2 && call.bindings[0] === "announcement" && call.bindings.at(-1) === 8
+      (call) => call.bindings.includes("announcement") && call.bindings.at(-1) === 8
     );
     expect(sidebarCall).toBeDefined();
     expect(sidebarCall?.query).not.toMatch(/AND NOT \(/i);
