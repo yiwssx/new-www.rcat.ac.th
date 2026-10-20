@@ -86,9 +86,7 @@ export default function ResetPasswordPage() {
 
   return (
     <AuthPageLayout title="ตั้งรหัสผ่านใหม่">
-      <Alert severity="info">
-        กรุณาขอรหัสตั้งรหัสผ่านใหม่จากผู้ดูแลระบบ แล้วกรอกรหัสด้านล่าง
-      </Alert>
+      <Alert severity="info">กรุณาขอรหัสตั้งรหัสผ่านใหม่จากผู้ดูแลระบบ แล้วกรอกรหัสด้านล่าง</Alert>
       {error && (
         <Alert severity="error" aria-live="assertive">
           {error}
