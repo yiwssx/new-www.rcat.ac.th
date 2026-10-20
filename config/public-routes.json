@@ -111,6 +111,28 @@
       "description": "ที่อยู่ เบอร์โทรศัพท์ และช่องทางติดต่อวิทยาลัย"
     },
     {
+      "id": "privacy-policy",
+      "path": "/privacy-policy",
+      "label": "นโยบายความเป็นส่วนตัว",
+      "kind": "core",
+      "menuSelectable": false,
+      "indexable": true,
+      "sitemap": true,
+      "title": "นโยบายความเป็นส่วนตัว (Privacy Policy)",
+      "description": "การเก็บรวบรวม ใช้ เปิดเผย และคุ้มครองข้อมูลส่วนบุคคลของผู้ใช้เว็บไซต์"
+    },
+    {
+      "id": "cookie-policy",
+      "path": "/cookie-policy",
+      "label": "นโยบายการใช้คุกกี้",
+      "kind": "core",
+      "menuSelectable": false,
+      "indexable": true,
+      "sitemap": true,
+      "title": "นโยบายการใช้คุกกี้ (Cookie Policy)",
+      "description": "ข้อมูลเกี่ยวกับคุกกี้ การจัดเก็บข้อมูลในเบราว์เซอร์ และบริการวิเคราะห์เว็บไซต์"
+    },
+    {
       "id": "complaint",
       "path": "/complaint",
       "label": "แจ้งเรื่องร้องเรียน",
