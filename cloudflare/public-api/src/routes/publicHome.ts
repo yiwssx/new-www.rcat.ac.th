@@ -81,6 +81,7 @@ export async function publicHome(env: Env) {
     const provisionalSnapshot = createPublicHomeSnapshot(
       {
         content,
+        generalAnnouncements,
         featuredDocuments,
         metadata: metadataWithoutMedia,
         visitorStats
