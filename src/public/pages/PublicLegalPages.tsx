@@ -174,7 +174,11 @@ function LegalPolicyPage({ kind }: { kind: "privacy" | "cookies" }) {
                   : "เว็บไซต์วิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ดใช้ทั้งคุกกี้และพื้นที่จัดเก็บในเบราว์เซอร์ รวมถึงเครื่องมือวัดผลจากผู้ให้บริการภายนอก โปรดศึกษารายละเอียดและตัวเลือกในการจัดการข้อมูลด้านล่าง"}
               </Typography>
               <Box sx={{ mt: 2 }}>
-                <Link href={isPrivacy ? "/cookie-policy" : "/privacy-policy"} underline="hover" sx={{ fontWeight: 700 }}>
+                <Link
+                  href={isPrivacy ? "/cookie-policy" : "/privacy-policy"}
+                  underline="hover"
+                  sx={{ fontWeight: 700 }}
+                >
                   {isPrivacy ? "อ่านนโยบายการใช้คุกกี้" : "อ่านนโยบายความเป็นส่วนตัว"}
                 </Link>
                 <Typography component="span" sx={{ mx: 1, color: "text.disabled" }}>
