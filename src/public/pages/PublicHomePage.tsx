@@ -50,6 +50,11 @@ const LazyJobOpportunitiesSection = lazy(() =>
     default: module.JobOpportunitiesSection
   }))
 );
+const LazyGeneralAnnouncementsSection = lazy(() =>
+  import("../components/home/GeneralAnnouncementsSection").then((module) => ({
+    default: module.GeneralAnnouncementsSection
+  }))
+);
 const LazyProcurementNewsSection = lazy(() =>
   import("../components/home/ProcurementNewsSection").then((module) => ({
     default: module.ProcurementNewsSection
@@ -318,6 +323,7 @@ export default function PublicHomePage() {
   const homepageSettings = normalizeHomepageSettings(shellData.homepageSettings);
   const latestNews = data.latestNews ?? [];
   const latestAnnouncements = data.latestAnnouncements ?? [];
+  const generalAnnouncementItems = data.generalAnnouncementItems ?? latestAnnouncements.filter(isGeneralAnnouncement);
   const procurementItems = data.procurementItems ?? [];
   const jobOpportunityItems = data.jobOpportunityItems ?? [];
   const achievementItems = data.achievementItems ?? [];
@@ -363,9 +369,9 @@ export default function PublicHomePage() {
             <Grid size={{ xs: 12, lg: 8 }} sx={{ order: { xs: 1, lg: 1 } }}>
               <LatestNewsSection items={latestNews} mediaAssets={mediaAssets} />
 
-              <Box sx={{ mt: { xs: 2.5, md: 4 } }}>
-                <LatestAnnouncementsCard items={latestAnnouncements.filter(isGeneralAnnouncement)} variant="general" />
-              </Box>
+              <DeferredHomeSection minHeight={{ xs: 180, md: 210 }}>
+                <LazyGeneralAnnouncementsSection items={generalAnnouncementItems} mediaAssets={mediaAssets} />
+              </DeferredHomeSection>
 
               <DeferredHomeSection minHeight={{ xs: 180, md: 210 }}>
                 <LazyProcurementNewsSection items={procurementItems} />
