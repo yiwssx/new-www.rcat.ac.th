@@ -188,7 +188,7 @@ describe("CMS LoginPage", () => {
     authMock.status = "bootstrapping";
     const view = render(<LoginPage />);
 
-    expect(screen.getByText("กำลังตรวจสอบเซสชัน CMS")).toBeInTheDocument();
+    expect(screen.getByText("กำลังตรวจสอบการเข้าสู่ระบบ")).toBeInTheDocument();
     expect(screen.queryByLabelText(/อีเมลหรือชื่อผู้ใช้/)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/รหัสผ่าน/)).not.toBeInTheDocument();
 
@@ -202,7 +202,7 @@ describe("CMS LoginPage", () => {
     authMock.status = "unavailable";
     render(<LoginPage />);
 
-    expect(screen.getByText(/ระบบยืนยันตัวตน CMS ไม่พร้อมใช้งาน/)).toBeInTheDocument();
+    expect(screen.getByText(/ไม่สามารถเข้าสู่ระบบได้ในขณะนี้/)).toBeInTheDocument();
     expect(screen.queryByLabelText(/รหัสผ่าน/)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "ลองใหม่" }));
     await waitFor(() => expect(authMock.refreshSession).toHaveBeenCalledTimes(1));
