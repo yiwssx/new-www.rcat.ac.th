@@ -1,4 +1,4 @@
-name: Dependencies
+name: Dependency Monitor
 
 on:
   schedule:
@@ -23,7 +23,7 @@ concurrency:
 
 jobs:
   monitor:
-    name: Live Registry Monitor
+    name: Registry and Security Audit Monitor
     if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.operation == 'monitor') }}
     runs-on: ubuntu-latest
     steps:
@@ -141,14 +141,13 @@ jobs:
       # Repository policy intentionally keeps `gh pr create` out of automation.
       # validate-required-quality.sh owns the bounded `gh workflow run ci.yml`
       # validation for the repair branch before a maintainer opens the PR.
-      - name: Require maintainer PR for repaired snapshot
+      - name: Report repair branch (maintainer PR required)
         if: steps.repair_commit.outputs.branch != ''
         shell: bash
         run: |
           {
-            echo "## Snapshot repair requires maintainer PR"
+            echo "## Snapshot prepared; manual pull request required"
             echo "Validated branch: automation/dependency-status-sync"
-            echo "Automatic pull-request creation remains disabled by repository policy."
+            echo "No pull request was created or merged. Open a maintainer PR after reviewing the generated snapshot."
           } >> "$GITHUB_STEP_SUMMARY"
-          echo "Validated repair branch published; maintainer pull request is required by repository policy."
-          exit 1
+          echo "Validated repair branch published. Review and open a maintainer pull request."

@@ -145,9 +145,11 @@ No blocking gate may use `continue-on-error`, `|| true`, or another silent failu
 
 The separate Dependency Monitoring workflow runs daily and on manual dispatch. It performs current registry and audit monitoring without modifying repository branches.
 
-Renovate uses the `Asia/Bangkok` timezone and a maintenance window from 00:00 through 06:59. Branch creation, existing-branch updates/rebases, and Renovate-driven automerge are kept inside that window. `rebaseWhen: behind-base-branch` remains necessary because the `main` ruleset uses strict required status checks and requires the final merge candidate to be current with `main`.
+Renovate is the only automated owner of dependency update pull requests. It uses the `Asia/Bangkok` timezone and a maintenance window from 00:00 through 06:59. Branch creation, automatic rebases, and Renovate-controlled automerge respect that window. `platformAutomerge: false` keeps the merge schedule under Renovate's control; `automergeStrategy: squash` is the single merge method for eligible updates. GitHub-native auto-merge should not be enabled separately on these PRs. `rebaseWhen: behind-base-branch` is required because the `main` ruleset demands strict, up-to-date `quality` checks. The ruleset and full CI gate are not weakened.
 
-Normal throughput is bounded to three concurrent Renovate PRs/branches, two new PRs per hour, and four branch commits/rebases per hour. Security alerts retain their dedicated security policy and are not intentionally delayed by ordinary backlog management.
+Normal throughput is configured as three concurrent Renovate PRs and branches, two new PRs per hour, and four automated branch commits/rebases per hour. React/React DOM, Vitest/coverage, and dnd-kit packages are grouped to avoid independent updates to the same package family. Zero-major and major update rules still require manual review; grouping never overrides this protection. Security vulnerability alerts retain their dedicated policy and are not intentionally delayed by ordinary backlog management.
+
+PR formatting is enforced by CI's read-only `pnpm format:check` step. There is no additional workflow that formats the entire repository and pushes back into PR branches. Maintainers format targeted files locally before pushing. This prevents a second workflow from changing Renovate branch heads or restarting CI.
 
 ## 20. Rollback procedure
 
@@ -167,6 +169,6 @@ pnpm deps:status:check
 pnpm deps:docs:audit
 ```
 
-The manual **Dependencies / Snapshot Repair** workflow may prepare `automation/dependency-status-sync` when the committed snapshot hashes are stale. It never listens to Renovate PR synchronization events and never commits into Renovate branches. A maintainer PR is still required for the repair branch.
+The **Dependency Monitor** workflow runs a daily read-only live-registry and audit report. Its manual **Snapshot Repair** operation may prepare `automation/dependency-status-sync` when the committed snapshot hashes are stale. It never listens to Renovate PR synchronization events and never commits into Renovate branches. Publishing a validated repair branch is a successful preparation step, **not** a completed repair: an operator must open and review the PR, pass `quality`, and merge it. No PR is automatically created. The checked-in status document must always be read with its `Generated at` timestamp; it is not a live dashboard.
 
 Use `pnpm deps:latest:check` only for an explicit full-freshness sweep. Technical repository documentation, source comments, generated labels, and commit messages use English; Thai remains appropriate for user-facing website content.

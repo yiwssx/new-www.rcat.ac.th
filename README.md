@@ -165,7 +165,9 @@ pnpm deps:latest:check
 pnpm deps:docs:audit
 ```
 
-The GitHub `quality` status is a protected merge gate for the production branch.
+The GitHub `quality` status is a protected merge gate for the production branch. Renovate is the sole automated creator of dependency-update PRs, subject to a three-PR queue, a two-PR-per-hour creation limit, and a four-commit-per-hour rate limit. Its automated squash merges run only during the Bangkok 00:00–06:59 maintenance window after all required checks pass. Major and unstable zero-major updates require manual review. Formatting is checked in CI without a separate branch-mutating autofix workflow.
+
+The committed [dependency status snapshot](docs/maintenance/dependency-current-status.md) is **historical**, not a live registry report: inspect its `Generated at` timestamp before using it. The scheduled **Dependency Monitor** reports live registry and audit changes without modifying branches. The optional manual Snapshot Repair operation only prepares a validated documentation branch; a maintainer must open the PR and merge it through `quality`. `pnpm deps:update:minor` and `pnpm deps:update:latest` are explicitly manual escape hatches, not parallel scheduled updaters. See [Dependency Governance](docs/maintenance/dependencies.md).
 
 ## Deployment Model
 
