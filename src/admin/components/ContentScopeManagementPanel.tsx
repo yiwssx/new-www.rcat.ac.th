@@ -72,16 +72,16 @@ export default function ContentScopeManagementPanel() {
             <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
               <AdminPanelSettingsOutlinedIcon color="primary" />
               <Typography variant="h2" sx={{ fontSize: "1.35rem" }}>
-                ขอบเขตเนื้อหาของ Editor
+                ขอบเขตเนื้อหาของผู้แก้ไข
               </Typography>
             </Stack>
             <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
-              จำกัดการสร้าง แก้ไข เผยแพร่ ลบ Workflow และกู้คืนเนื้อหาตามค่า owner โดยไม่ต้องสร้าง Role ใหม่จำนวนมาก
+              กำหนดขอบเขตเนื้อหาที่ผู้แก้ไขสามารถจัดการได้ ตามผู้รับผิดชอบเนื้อหา
             </Typography>
           </Box>
 
           <Alert severity="info">
-            เป็นระบบ opt-in: ช่องว่างหมายถึงพฤติกรรมเดิมและไม่จำกัด owner เพื่อไม่กระทบบัญชี Editor ที่ใช้งานอยู่
+            หากเว้นว่าง ผู้แก้ไขยังสามารถจัดการเนื้อหาตามสิทธิ์เดิมได้
           </Alert>
           {error && <Alert severity="error">{error}</Alert>}
           {scopesQuery.isError && <Alert severity="error">ไม่สามารถโหลดข้อมูลขอบเขตผู้ใช้ได้</Alert>}
@@ -109,15 +109,15 @@ export default function ContentScopeManagementPanel() {
                 </Stack>
               </li>
             )}
-            renderInput={(params) => <TextField {...params} label="เลือก Editor" placeholder="ค้นหาชื่อหรืออีเมล" />}
+            renderInput={(params) => <TextField {...params} label="เลือกผู้แก้ไข" placeholder="ค้นหาชื่อหรืออีเมล" />}
           />
 
           <TextField
-            label="Content owner scope"
+            label="ผู้รับผิดชอบเนื้อหาที่อนุญาต"
             value={contentScope}
             onChange={(event) => setContentScope(event.target.value)}
             placeholder="เช่น แผนกวิชาบริหารธุรกิจ"
-            helperText="ต้องตรงกับค่า owner ของเนื้อหา; เว้นว่างเพื่อไม่จำกัดขอบเขต"
+            helperText="ระบุชื่อผู้รับผิดชอบให้ตรงกับข้อมูลในเนื้อหา หรือเว้นว่างเพื่อไม่จำกัดขอบเขต"
             disabled={!selectedId || !canManage || mutation.isPending}
             fullWidth
           />
