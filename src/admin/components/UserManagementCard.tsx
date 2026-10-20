@@ -189,7 +189,7 @@ export default function UserManagementCard() {
         draft.status !== editingUser.status) &&
       !(await confirmAction(
         "ยืนยันการแก้ไขข้อมูลเข้าสู่ระบบและสิทธิ์?",
-        "อีเมล ชื่อผู้ใช้ บทบาท หรือสถานะมีผลต่อการเข้าสู่ระบบและการเข้าถึง CMS"
+        "อีเมล ชื่อผู้ใช้ บทบาท หรือสถานะมีผลต่อสิทธิ์การเข้าใช้งาน"
       ))
     ) {
       return;
@@ -207,7 +207,7 @@ export default function UserManagementCard() {
           role: draft.role ?? "viewer",
           username: draft.username || null
         });
-        setOneTimeSecret({ title: "โทเค็นคำเชิญสำหรับผู้ใช้ใหม่", token: result.invitation });
+        setOneTimeSecret({ title: "รหัสเชิญสำหรับผู้ใช้ใหม่", token: result.invitation });
       } else if (editingUser) {
         await saveAdminUserProfileToCloudflare({
           id: editingUser.id,
@@ -230,7 +230,7 @@ export default function UserManagementCard() {
       }
 
       await showSuccessResult(
-        isCreating ? "สร้างผู้ใช้แล้ว โปรดส่งโทเค็นคำเชิญให้ผู้ใช้ด้วยช่องทางที่ปลอดภัย" : "บันทึกผู้ใช้สำเร็จ"
+        isCreating ? "สร้างผู้ใช้แล้ว โปรดส่งรหัสเชิญให้ผู้ใช้ด้วยช่องทางที่ปลอดภัย" : "บันทึกผู้ใช้สำเร็จ"
       );
     } catch (currentError) {
       await appSwal.close();
@@ -280,14 +280,14 @@ export default function UserManagementCard() {
   async function issueInvitation(profile: AdminUserProfile) {
     await runLifecycleAction("invite", "กำลังออกคำเชิญ", "ออกคำเชิญสำเร็จ", async () => {
       const token = await issueAdminUserInvitationFromCloudflare(profile.id);
-      setOneTimeSecret({ title: `โทเค็นคำเชิญสำหรับ ${profile.name}`, token });
+      setOneTimeSecret({ title: `รหัสเชิญสำหรับ ${profile.name}`, token });
     });
   }
 
   async function issuePasswordReset(profile: AdminUserProfile) {
     await runLifecycleAction("reset", "กำลังออกโทเค็นตั้งรหัสผ่าน", "ออกโทเค็นสำเร็จ", async () => {
       const token = await issueAdminUserPasswordResetFromCloudflare(profile.id);
-      setOneTimeSecret({ title: `โทเค็นตั้งรหัสผ่านใหม่สำหรับ ${profile.name}`, token });
+      setOneTimeSecret({ title: `รหัสตั้งรหัสผ่านใหม่สำหรับ ${profile.name}`, token });
     });
   }
 
@@ -314,7 +314,7 @@ export default function UserManagementCard() {
   }
 
   async function revokeInvitation(profile: AdminUserProfile) {
-    if (!(await confirmAction("เพิกถอนคำเชิญ?", "โทเค็นคำเชิญที่ยังไม่ใช้จะใช้ไม่ได้ทันที"))) return;
+    if (!(await confirmAction("เพิกถอนคำเชิญ?", "รหัสเชิญที่ยังไม่ใช้จะใช้ไม่ได้ทันที"))) return;
     await runLifecycleAction("revoke-invite", "กำลังเพิกถอนคำเชิญ", "เพิกถอนคำเชิญสำเร็จ", async () => {
       await revokeAdminUserInvitationFromCloudflare(profile.id);
     });
@@ -393,7 +393,7 @@ export default function UserManagementCard() {
                     mt: 0.75
                   }}
                 >
-                  จัดการบัญชี คำเชิญ การตั้งรหัสผ่าน เซสชัน และ MFA ผ่านนโยบายของเซิร์ฟเวอร์
+                  จัดการบัญชีผู้ใช้ คำเชิญ รหัสผ่าน และการยืนยันตัวตน
                 </Typography>
               </Box>
             </Stack>
@@ -401,7 +401,7 @@ export default function UserManagementCard() {
           </Stack>
 
           <Alert severity="info" icon={<SecurityOutlinedIcon />}>
-            การควบคุมในหน้านี้แสดงตามความสามารถจากเซิร์ฟเวอร์ การอนุญาตขั้นสุดท้ายยังตรวจสอบที่ Worker ทุกครั้ง
+            แต่ละบัญชีสามารถดำเนินการได้ตามสิทธิ์ที่ได้รับ
           </Alert>
           {!hasMutationCapability && <Alert severity="warning">{ADMIN_READ_ONLY_NOTICE}</Alert>}
           {error && (
@@ -418,7 +418,7 @@ export default function UserManagementCard() {
                     {oneTimeSecret.title} จะแสดงเพียงครั้งเดียว โปรดส่งด้วยช่องทางที่ปลอดภัยและอย่าบันทึกในระบบ
                   </Alert>
                   <TextField
-                    label="โทเค็นสำหรับส่งด้วยตนเอง"
+                    label="รหัสสำหรับส่งให้ผู้ใช้"
                     value={oneTimeSecret.token.token}
                     slotProps={{ input: { readOnly: true } }}
                     fullWidth
@@ -435,7 +435,7 @@ export default function UserManagementCard() {
                       คัดลอก
                     </Button>
                     <Button variant="contained" onClick={() => setOneTimeSecret(null)}>
-                      ฉันได้ส่งหรือจัดเก็บโทเค็นแล้ว
+                      ฉันได้ส่งหรือจัดเก็บรหัสแล้ว
                     </Button>
                   </Stack>
                 </Stack>
@@ -777,7 +777,7 @@ export default function UserManagementCard() {
                         )}
                       </Stack>
                       {rootProtected && (
-                        <Alert severity="info">การดำเนินการที่มีผลต่อ Root ถูกจำกัดตามนโยบายของเซิร์ฟเวอร์</Alert>
+                        <Alert severity="info">การเปลี่ยนแปลงบัญชีผู้ดูแลหลักมีข้อจำกัดเพื่อความปลอดภัย</Alert>
                       )}
                     </Stack>
                   </Box>
