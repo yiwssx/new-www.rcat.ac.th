@@ -59,7 +59,7 @@ interface PublicContentHeadLoaderData {
   featuredMedia?: MediaAsset;
 }
 
-const DEFAULT_PUBLIC_DESCRIPTION = "เว็บไซต์ประชาสัมพันธ์และระบบจัดการเนื้อหาของสถานศึกษา";
+const DEFAULT_PUBLIC_DESCRIPTION = "ข่าวสาร กิจกรรม ประกาศ และข้อมูลสำคัญจากวิทยาลัย";
 const DEFAULT_CONTENT_DESCRIPTION = "เนื้อหาที่เผยแพร่ต่อสาธารณะของสถานศึกษา";
 
 const PUBLIC_ROUTE_CANONICAL_PAGINATION_KEYS: Readonly<Record<string, readonly PublicCanonicalPaginationKey[]>> = {
