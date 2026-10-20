@@ -8,7 +8,8 @@ import {
   getPublicOrganizationRouteHead,
   getPublicLayoutRouteHead,
   getRootRouteHead,
-  getStaticPublicRouteHead
+  getStaticPublicRouteHead,
+  STATIC_PUBLIC_ROUTE_HEADS
 } from "./publicRouteHeadImpl";
 import { serializePublicJsonLd } from "./publicSeo";
 
@@ -104,6 +105,12 @@ const detailLoaderData = {
 };
 
 describe("public route head metadata", () => {
+  it("uses visitor-facing descriptions without internal system terminology", () => {
+    Object.values(STATIC_PUBLIC_ROUTE_HEADS).forEach((route) => {
+      expect(route.description).not.toMatch(/CMS|snapshot|backend|API|ระบบจัดการเนื้อหา|เผยแพร่จาก/i);
+    });
+  });
+
   it("builds canonical organization permalink SEO and published ancestor breadcrumbs", () => {
     const detail = {
       unit: {
@@ -206,7 +213,7 @@ describe("public route head metadata", () => {
 
     expect(getMetaContent(head, "title")).toBe(`ข่าว | ${projectSettings.site.name}`);
     expect(getMetaContent(head, "name", "description")).toBe(
-      "กิจกรรมล่าสุด เรื่องราวในสถานศึกษา และข่าวประชาสัมพันธ์จาก CMS"
+      "ข่าวสาร กิจกรรม และเรื่องราวล่าสุดจากวิทยาลัย"
     );
     expect(getMetaContent(head, "property", "og:title")).toBe(`ข่าว | ${projectSettings.site.name}`);
     expect(getMetaContent(head, "property", "og:type")).toBe("website");
