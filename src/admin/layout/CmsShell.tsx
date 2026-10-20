@@ -187,7 +187,7 @@ export default function CmsShell() {
   async function handleLogout() {
     const result = await appSwal.fire({
       title: "ออกจากระบบ?",
-      text: "ต้องการออกจากระบบ CMS หรือไม่",
+      text: "ต้องการออกจากระบบผู้ดูแลเว็บไซต์หรือไม่",
       icon: "question",
       showCancelButton: true,
       confirmButtonText: "ออกจากระบบ",
@@ -204,7 +204,7 @@ export default function CmsShell() {
       await appSwal.fire({
         icon: "warning",
         title: "ออกจากระบบในอุปกรณ์นี้แล้ว",
-        text: "ไม่สามารถยืนยันผลกับเซิร์ฟเวอร์ได้ กรุณาเข้าสู่ระบบใหม่ก่อนใช้งาน CMS",
+        text: "ไม่สามารถยืนยันการออกจากระบบได้ กรุณาเข้าสู่ระบบใหม่ก่อนใช้งานครั้งถัดไป",
         confirmButtonText: "ตกลง"
       });
     } finally {
