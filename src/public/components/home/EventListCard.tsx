@@ -205,7 +205,7 @@ export function EventListCard({
   limit,
   viewAllHref,
   viewAllLabel = "ดูทั้งหมด",
-  emptyTitle = "ยังไม่มีกิจกรรมที่เผยแพร่",
+  emptyTitle = "ยังไม่มีกำหนดการในขณะนี้",
   initialNowMs,
   compact = false
 }: EventListCardProps) {
