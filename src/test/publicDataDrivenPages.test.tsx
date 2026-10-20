@@ -1828,8 +1828,12 @@ describe("public data-driven pages", () => {
     expect(screen.getByText("ข่าวเปิดบ้านวิทยาลัย")).toBeInTheDocument();
     expect(screen.getByText("แผนกวิชาช่างยนต์")).toBeInTheDocument();
     // A general notice appears in the new section and remains in the original unfiltered sidebar.
-    expect(within(document.querySelector("#general-announcements") as HTMLElement).getByText("ประกาศรับสมัครนักเรียน")).toBeInTheDocument();
-    expect(within(document.querySelector("#announcements") as HTMLElement).getByText("ประกาศรับสมัครนักเรียน")).toBeInTheDocument();
+    expect(
+      within(document.querySelector("#general-announcements") as HTMLElement).getByText("ประกาศรับสมัครนักเรียน")
+    ).toBeInTheDocument();
+    expect(
+      within(document.querySelector("#announcements") as HTMLElement).getByText("ประกาศรับสมัครนักเรียน")
+    ).toBeInTheDocument();
     expect(screen.getByText("ปฐมนิเทศนักศึกษาใหม่")).toBeInTheDocument();
     expect(screen.getByText("เอกสารแผนปฏิบัติการ")).toBeInTheDocument();
     expect(screen.getByText("ข่าวจัดซื้อจัดจ้าง")).toBeInTheDocument();
