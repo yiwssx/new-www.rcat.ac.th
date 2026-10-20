@@ -107,7 +107,7 @@ const detailLoaderData = {
 describe("public route head metadata", () => {
   it("keeps public route descriptions focused on visitors rather than implementation details", () => {
     Object.values(STATIC_PUBLIC_ROUTE_HEADS).forEach((route) => {
-      expect(route.description).not.toMatch(/\\b(CMS|API|backend|snapshot|workflow)\\b/i);
+      expect(route.description).not.toMatch(/\b(CMS|API|backend|snapshot|workflow)\b/i);
     });
   });
 
