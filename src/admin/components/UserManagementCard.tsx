@@ -285,7 +285,7 @@ export default function UserManagementCard() {
   }
 
   async function issuePasswordReset(profile: AdminUserProfile) {
-    await runLifecycleAction("reset", "กำลังออกโทเค็นตั้งรหัสผ่าน", "ออกโทเค็นสำเร็จ", async () => {
+    await runLifecycleAction("reset", "กำลังสร้างรหัสตั้งรหัสผ่านใหม่", "สร้างรหัสสำเร็จ", async () => {
       const token = await issueAdminUserPasswordResetFromCloudflare(profile.id);
       setOneTimeSecret({ title: `รหัสตั้งรหัสผ่านใหม่สำหรับ ${profile.name}`, token });
     });
@@ -321,8 +321,8 @@ export default function UserManagementCard() {
   }
 
   async function revokeSessions(profile: AdminUserProfile) {
-    if (!(await confirmAction("เพิกถอนเซสชันทั้งหมด?", `${profile.name} จะต้องเข้าสู่ระบบใหม่ทุกอุปกรณ์`))) return;
-    await runLifecycleAction("revoke-sessions", "กำลังเพิกถอนเซสชัน", "เพิกถอนเซสชันสำเร็จ", async () => {
+    if (!(await confirmAction("ให้ออกจากระบบทุกอุปกรณ์?", `${profile.name} จะต้องเข้าสู่ระบบใหม่ทุกอุปกรณ์`))) return;
+    await runLifecycleAction("revoke-sessions", "กำลังออกจากระบบทุกอุปกรณ์", "ออกจากระบบทุกอุปกรณ์สำเร็จ", async () => {
       await revokeAdminUserSessionsFromCloudflare(profile.id);
     });
   }
@@ -733,7 +733,7 @@ export default function UserManagementCard() {
                               onClick={() => void issuePasswordReset(profile)}
                               disabled={operationPending}
                             >
-                              ออกโทเค็นตั้งรหัสผ่าน
+                              สร้างรหัสตั้งรหัสผ่านใหม่
                             </Button>
                           )}
                         {canRevokeSessions && (!rootProtected || canRevokeRootSessions) && (
@@ -742,7 +742,7 @@ export default function UserManagementCard() {
                             onClick={() => void revokeSessions(profile)}
                             disabled={operationPending}
                           >
-                            เพิกถอนเซสชัน
+                            ออกจากระบบทุกอุปกรณ์
                           </Button>
                         )}
                         {canRequireMfa && (
