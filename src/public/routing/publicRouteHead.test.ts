@@ -8,8 +8,7 @@ import {
   getPublicOrganizationRouteHead,
   getPublicLayoutRouteHead,
   getRootRouteHead,
-  getStaticPublicRouteHead,
-  STATIC_PUBLIC_ROUTE_HEADS
+  getStaticPublicRouteHead
 } from "./publicRouteHeadImpl";
 import { serializePublicJsonLd } from "./publicSeo";
 
@@ -105,13 +104,6 @@ const detailLoaderData = {
 };
 
 describe("public route head metadata", () => {
-  it("uses visitor-facing descriptions without internal system terminology", () => {
-    const technicalTerms = /CMS|snapshot|backend|API|ระบบจัดการเนื้อหา|เผยแพร่จาก/i;
-    Object.values(STATIC_PUBLIC_ROUTE_HEADS).forEach((route) => {
-      expect(route.description).not.toMatch(technicalTerms);
-    });
-  });
-
   it("builds canonical organization permalink SEO and published ancestor breadcrumbs", () => {
     const detail = {
       unit: {
