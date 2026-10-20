@@ -282,7 +282,7 @@ export default function OrganizationUnitEditorDialog({ open, initial, units, bus
                     error={Boolean(errors.sortOrder)}
                     helperText={
                       errors.sortOrder?.message ??
-                      autoSortOrder ? "ระบบจะจัดลำดับให้อัตโนมัติเมื่อบันทึก" : "กรอก 0 สำหรับรายการแรก"
+                      (autoSortOrder ? "ระบบจะจัดลำดับให้อัตโนมัติเมื่อบันทึก" : "กรอก 0 สำหรับรายการแรก")
                     }
                     slotProps={{ htmlInput: { min: 0, step: 1 } }}
                   />
