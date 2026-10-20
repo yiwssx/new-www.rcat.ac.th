@@ -16,6 +16,20 @@ describe("publicRouteRegistry", () => {
     expect(new Set(PUBLIC_ROUTE_REGISTRY.map((route) => route.path)).size).toBe(PUBLIC_ROUTE_REGISTRY.length);
   });
 
+  it("keeps legal policy pages discoverable without cluttering the main menu", () => {
+    for (const path of ["/privacy-policy", "/cookie-policy"]) {
+      expect(PUBLIC_INDEXABLE_SITEMAP_ROUTES).toContain(path);
+      expect(PUBLIC_MENU_ROUTE_OPTIONS.some((route) => route.path === path)).toBe(false);
+      expect(isReservedPublicRootSlug(path)).toBe(true);
+      expect(getPublicRouteMetadata(path)).toMatchObject({
+        kind: "core",
+        indexable: true,
+        menuSelectable: false,
+        sitemap: true
+      });
+    }
+  });
+
   it("derives sitemap routes only from indexable entries", () => {
     expect(PUBLIC_INDEXABLE_SITEMAP_ROUTES).toContain("/ita2569");
     expect(PUBLIC_INDEXABLE_SITEMAP_ROUTES).not.toContain("/complaint");
