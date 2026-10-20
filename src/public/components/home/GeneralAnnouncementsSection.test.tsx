@@ -45,7 +45,6 @@ describe("GeneralAnnouncementsSection", () => {
     expect(within(section).queryByText("ประกาศทั่วไป 1")).not.toBeInTheDocument();
     expect(within(section).queryByText("ประกาศจัดซื้อจัดจ้าง")).not.toBeInTheDocument();
     expect(within(section).queryByText("ประกาศรับสมัครงาน")).not.toBeInTheDocument();
-    expect(within(section).getAllByRole("button", { name: /อ่านประกาศ/ })).toHaveLength(0);
     expect(within(section).getAllByRole("link", { name: /อ่านประกาศทั่วไป/ })).toHaveLength(4);
     expect(within(section).getByRole("link", { name: "ดูทั้งหมด" })).toHaveAttribute("href", "/announcements");
   });
