@@ -67,7 +67,7 @@ function createTextFilter(terms: readonly string[]) {
   terms.forEach((term) => {
     const pattern = `%${term}%`;
     SEARCHABLE_CONTENT_COLUMNS.forEach((column) => {
-      clauses.push(`${column} LIKE ?`);
+      clauses.push(`COALESCE(${column}, '') LIKE ?`);
       bindings.push(pattern);
     });
   });
