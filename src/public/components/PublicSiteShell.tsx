@@ -1003,7 +1003,13 @@ function PublicSiteShellFrame({
                   )}
                   <Box component="nav" aria-label="นโยบายเว็บไซต์" sx={{ mt: 1.5 }}>
                     <Stack direction="row" useFlexGap spacing={2} sx={{ flexWrap: "wrap" }}>
-                      <Link color="inherit" href="/privacy-policy" underline="hover" variant="body2" sx={focusVisibleSx}>
+                      <Link
+                        color="inherit"
+                        href="/privacy-policy"
+                        underline="hover"
+                        variant="body2"
+                        sx={focusVisibleSx}
+                      >
                         นโยบายความเป็นส่วนตัว
                       </Link>
                       <Link color="inherit" href="/cookie-policy" underline="hover" variant="body2" sx={focusVisibleSx}>
