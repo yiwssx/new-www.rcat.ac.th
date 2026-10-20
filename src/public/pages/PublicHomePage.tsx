@@ -372,7 +372,7 @@ export default function PublicHomePage() {
               <DeferredHomeSection minHeight={{ xs: 180, md: 210 }}>
                 <LazyJobOpportunitiesSection items={jobOpportunityItems} />
               </DeferredHomeSection>
-              {programItems.some((item) => item.title.trim() && item.slug.trim()) && (
+              {programItems.some((item) => item.status === "published" && item.title.trim() && item.slug.trim()) && (
                 <DeferredHomeSection minHeight={{ xs: 360, md: 420 }}>
                   <LazyProgramsSection items={programItems} mediaAssets={mediaAssets} />
                 </DeferredHomeSection>
