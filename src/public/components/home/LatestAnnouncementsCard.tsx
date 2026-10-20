@@ -80,7 +80,7 @@ export function LatestAnnouncementsCard({ items }: { items: PublicContentCardIte
             </Button>
           }
         />
-        <CompactAnnouncementList items={items} emptyTitle="ยังไม่มีประกาศที่เผยแพร่" />
+        <CompactAnnouncementList items={items} emptyTitle="ยังไม่มีประกาศในขณะนี้" />
       </CardContent>
     </Card>
   );
