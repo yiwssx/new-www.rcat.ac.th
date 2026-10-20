@@ -17,13 +17,13 @@
   "pinDigests": false,
   "rebaseWhen": "behind-base-branch",
   "recreateWhen": "auto",
-  "automergeStrategy": "merge-commit",
+  "automergeStrategy": "squash",
   "platformAutomerge": false,
   "ignoreTests": false,
-  "prConcurrentLimit": 20,
-  "branchConcurrentLimit": 20,
-  "prHourlyLimit": 20,
-  "commitHourlyLimit": 24,
+  "prConcurrentLimit": 3,
+  "branchConcurrentLimit": 3,
+  "prHourlyLimit": 2,
+  "commitHourlyLimit": 4,
   "lockFileMaintenance": {
     "enabled": false
   },
@@ -76,6 +76,27 @@
       "matchPackageNames": ["@types/node"],
       "allowedVersions": ">=24.0.0 <25.0.0",
       "rangeStrategy": "bump"
+    },
+    {
+      "description": "Update React and React DOM together to preserve version alignment",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["react", "react-dom"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "react runtime"
+    },
+    {
+      "description": "Update Vitest and coverage tooling together",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["vitest", "@vitest/coverage-v8"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "vitest toolchain"
+    },
+    {
+      "description": "Keep both dnd-kit packages aligned; zero-major manual-review protection still applies",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["@dnd-kit/react", "@dnd-kit/helpers"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "dnd-kit"
     },
     {
       "description": "Group compatible Cloudflare toolchain patch and minor updates",

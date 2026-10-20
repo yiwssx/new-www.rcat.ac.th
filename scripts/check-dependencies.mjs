@@ -15,6 +15,7 @@ const ciRuntimeSource = `${ciWorkflow}\n${ciSetupAction}`;
 const dependencyStatusSyncWorkflow = readFileSync(".github/workflows/dependency-status-sync.yml", "utf8");
 const workspaceConfig = readFileSync("pnpm-workspace.yaml", "utf8");
 const dependencyPolicy = JSON.parse(readFileSync("config/dependency-policy.json", "utf8"));
+const renovateConfig = JSON.parse(readFileSync("renovate.json", "utf8"));
 const localNodeVersion = readFileSync(".node-version", "utf8").trim();
 const manifestErrors = [];
 
@@ -439,17 +440,36 @@ record(
   "shared pnpm/Node/install setup is defined once and reused by CI lanes"
 );
 record(
-  "dependency status drift has an automated PR remediation path",
+  "Renovate bounded throughput and merge ownership",
+  renovateConfig.prConcurrentLimit === 3 &&
+    renovateConfig.branchConcurrentLimit === 3 &&
+    renovateConfig.prHourlyLimit === 2 &&
+    renovateConfig.commitHourlyLimit === 4 &&
+    renovateConfig.rebaseWhen === "behind-base-branch" &&
+    renovateConfig.platformAutomerge === false &&
+    renovateConfig.automergeStrategy === "squash" &&
+    JSON.stringify(renovateConfig.schedule) === JSON.stringify(["* 0-6 * * *"]) &&
+    JSON.stringify(renovateConfig.automergeSchedule) === JSON.stringify(["* 0-6 * * *"]),
+  "3 concurrent PRs/branches; 2 new PRs/hour; 4 commits/hour; Renovate-owned scheduled squash automerge"
+);
+record(
+  "no branch-mutating pull-request formatting workflow",
+  !existsSync(".github/workflows/pr-prettier-autofix.yml") && ciWorkflow.includes("pnpm format:check"),
+  "CI validates formatting, and no second workflow rewrites PR branches"
+);
+record(
+  "dependency snapshot repair requires a maintainer pull request",
   dependencyStatusSyncWorkflow.includes("actions: write") &&
     dependencyStatusSyncWorkflow.includes("contents: write") &&
     dependencyStatusSyncWorkflow.includes("pull-requests: write") &&
     dependencyStatusSyncWorkflow.includes("workflow_dispatch:") &&
     dependencyStatusSyncWorkflow.includes("github.event_name == 'workflow_dispatch'") &&
     dependencyStatusSyncWorkflow.includes("automation/dependency-status-sync") &&
-    dependencyStatusSyncWorkflow.includes("gh pr create") &&
     dependencyStatusSyncWorkflow.includes("gh workflow run ci.yml") &&
+    dependencyStatusSyncWorkflow.includes("No pull request was created or merged") &&
+    !/^\s*gh\s+pr\s+create\b/mu.test(dependencyStatusSyncWorkflow) &&
     !/git push[^\n]*master/u.test(dependencyStatusSyncWorkflow),
-  "drift refreshes a dedicated automation branch and opens or updates a pull request"
+  "snapshot-repair validates a dedicated branch; a maintainer reviews and opens a PR"
 );
 
 const manifestExit = manifestErrors.length ? 1 : 0;

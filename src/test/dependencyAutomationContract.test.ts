@@ -24,12 +24,13 @@ describe("dependency automation contract", () => {
     expect(renovate.schedule).toEqual(["* 0-6 * * *"]);
     expect(renovate.updateNotScheduled).toBe(false);
     expect(renovate.automergeSchedule).toEqual(["* 0-6 * * *"]);
-    expect(renovate.prConcurrentLimit).toBe(20);
-    expect(renovate.branchConcurrentLimit).toBe(20);
-    expect(renovate.prHourlyLimit).toBe(20);
-    expect(renovate.commitHourlyLimit).toBe(24);
+    expect(renovate.prConcurrentLimit).toBe(3);
+    expect(renovate.branchConcurrentLimit).toBe(3);
+    expect(renovate.prHourlyLimit).toBe(2);
+    expect(renovate.commitHourlyLimit).toBe(4);
     expect(renovate.rebaseWhen).toBe("behind-base-branch");
     expect(renovate.platformAutomerge).toBe(false);
+    expect(renovate.automergeStrategy).toBe("squash");
   });
 
   it("aligns Renovate and pnpm on the same three-day release-age policy", () => {
@@ -49,6 +50,18 @@ describe("dependency automation contract", () => {
           matchPackageNames: ["@types/node"],
           rangeStrategy: "bump",
           allowedVersions: ">=24.0.0 <25.0.0"
+        }),
+        expect.objectContaining({
+          matchPackageNames: ["react", "react-dom"],
+          groupName: "react runtime"
+        }),
+        expect.objectContaining({
+          matchPackageNames: ["vitest", "@vitest/coverage-v8"],
+          groupName: "vitest toolchain"
+        }),
+        expect.objectContaining({
+          matchPackageNames: ["@dnd-kit/react", "@dnd-kit/helpers"],
+          groupName: "dnd-kit"
         }),
         expect.objectContaining({
           matchPackageNames: ["wrangler", "@cloudflare/workers-types"],
@@ -107,17 +120,19 @@ describe("dependency automation contract", () => {
   });
 
   it("keeps snapshot mutation out of the normal Renovate PR lifecycle", () => {
-    expect(dependenciesWorkflow).toContain("name: Dependencies");
+    expect(dependenciesWorkflow).toContain("name: Dependency Monitor");
     expect(dependenciesWorkflow).toContain("snapshot-repair:");
     expect(dependenciesWorkflow).toContain("workflow_dispatch:");
     expect(dependenciesWorkflow).not.toContain("  pull_request:");
     expect(dependenciesWorkflow).not.toContain("HEAD:refs/heads/$HEAD_BRANCH");
     expect(dependenciesWorkflow).toContain("automation/dependency-status-sync");
-    expect(dependenciesWorkflow).toContain("Require maintainer PR for repaired snapshot");
+    expect(dependenciesWorkflow).toContain("Report repair branch (maintainer PR required)");
+    expect(dependenciesWorkflow).toContain("No pull request was created or merged");
   });
 
   it("retires the branch-mutating auto-format workflow", () => {
     expect(existsSync(join(repositoryRoot, ".github", "workflows", "format-guard.yml"))).toBe(false);
+    expect(existsSync(join(repositoryRoot, ".github", "workflows", "pr-prettier-autofix.yml"))).toBe(false);
     expect(ciWorkflow).toContain("pnpm format:check");
   });
 
