@@ -61,10 +61,7 @@ export function GeneralAnnouncementsSection({
         }
       />
       {visibleItems.length === 0 ? (
-        <EmptyState
-          title="ยังไม่มีประกาศทั่วไป"
-          description="ติดตามประกาศทั่วไปของวิทยาลัยได้ที่นี่"
-        />
+        <EmptyState title="ยังไม่มีประกาศทั่วไป" description="ติดตามประกาศทั่วไปของวิทยาลัยได้ที่นี่" />
       ) : (
         <Grid container spacing={{ xs: 1.5, md: 1.8 }}>
           {visibleItems.map((item) => {
