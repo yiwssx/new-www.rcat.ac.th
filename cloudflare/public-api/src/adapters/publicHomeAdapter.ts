@@ -11,6 +11,7 @@ import type { DocumentRow } from "../db/schema";
 // Keep dedicated homepage feeds independently bounded so general announcements cannot crowd them out.
 const HOME_PROCUREMENT_LIMIT = 4;
 const HOME_JOB_OPPORTUNITY_LIMIT = 4;
+const HOME_GENERAL_ANNOUNCEMENT_LIMIT = 4;
 const HOME_ACHIEVEMENT_LIMIT = 6;
 const PROCUREMENT_PATTERN = /procurement|tor|จัดซื้อ|จัดจ้าง|ประกวดราคา/i;
 const JOB_OPPORTUNITY_PATTERN =
@@ -57,6 +58,7 @@ function getExternalServiceIconMediaId(iconKey: unknown) {
 export function createPublicHomeSnapshot(
   input: {
     content: PublicContentSummaryReadRow[];
+    generalAnnouncements?: PublicContentSummaryReadRow[];
     featuredDocuments: DocumentRow[];
     metadata: PublicMetadataContract;
     visitorStats: PublicVisitorStatsSnapshotContract;
@@ -66,6 +68,11 @@ export function createPublicHomeSnapshot(
   const content = input.content.map(mapContentCardRowToPublicContentCard);
   const latestNews = content.filter((item) => item.type === "news" || item.type === "blog").slice(0, 6);
   const latestAnnouncements = content.filter((item) => item.type === "announcement").slice(0, 8);
+  const generalAnnouncementItems = (input.generalAnnouncements ?? input.content)
+    .map(mapContentCardRowToPublicContentCard)
+    .filter((item) => item.type === "announcement" && !isProcurementItem(item) && !isJobOpportunityItem(item))
+    .sort(compareContentPublishAtDesc)
+    .slice(0, HOME_GENERAL_ANNOUNCEMENT_LIMIT);
   const procurementItems = content
     .filter(isProcurementItem)
     .sort(compareContentPublishAtDesc)
@@ -83,6 +90,7 @@ export function createPublicHomeSnapshot(
   const homeContent = [
     ...latestNews,
     ...latestAnnouncements,
+    ...generalAnnouncementItems,
     ...procurementItems,
     ...jobOpportunityItems,
     ...programs,
@@ -105,6 +113,7 @@ export function createPublicHomeSnapshot(
     visitorStats: input.visitorStats,
     latestNews,
     latestAnnouncements,
+    generalAnnouncementItems,
     procurementItems,
     jobOpportunityItems,
     achievementItems,
