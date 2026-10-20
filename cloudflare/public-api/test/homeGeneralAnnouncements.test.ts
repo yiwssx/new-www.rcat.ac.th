@@ -23,7 +23,9 @@ function createRow(id: string, category: string, day: number): PublicContentSumm
 
 describe("public home general announcements", () => {
   it("provides the four newest general posts even when all sidebar announcements are specialized", () => {
-    const content = Array.from({ length: 8 }, (_, index) => createRow(`procurement-${index}`, "จัดซื้อจัดจ้าง", 20 - index));
+    const content = Array.from({ length: 8 }, (_, index) =>
+      createRow(`procurement-${index}`, "จัดซื้อจัดจ้าง", 20 - index)
+    );
     const generalAnnouncements = [
       ...Array.from({ length: 7 }, (_, index) => createRow(`general-${index + 1}`, "ทั่วไป", index + 1)),
       createRow("job", "รับสมัครงาน", 21)
