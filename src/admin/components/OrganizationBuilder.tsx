@@ -1177,11 +1177,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                         fullWidth
                         value={positionAutoOrder ? "" : positionForm.sortOrder}
                         disabled={busy || positionAutoOrder}
-                        helperText={
-                          positionAutoOrder
-                            ? "ระบบจะจัดลำดับเมื่อบันทึก"
-                            : "กรอก 0 สำหรับรายการแรก"
-                        }
+                        helperText={positionAutoOrder ? "ระบบจะจัดลำดับเมื่อบันทึก" : "กรอก 0 สำหรับรายการแรก"}
                         onChange={(event) =>
                           setPositionForm({ ...positionForm, sortOrder: Number(event.target.value) })
                         }
@@ -1329,9 +1325,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                       sx={{ mt: 2 }}
                       disabled={busy || assignmentAutoOrder}
                       value={assignmentAutoOrder ? "" : assignmentForm.sortOrder}
-                      helperText={
-                        assignmentAutoOrder ? "ระบบจะจัดลำดับเมื่อบันทึก" : "ระบบแสดงอันดับเริ่มที่ 1"
-                      }
+                      helperText={assignmentAutoOrder ? "ระบบจะจัดลำดับเมื่อบันทึก" : "ระบบแสดงอันดับเริ่มที่ 1"}
                       onChange={(event) =>
                         setAssignmentForm({ ...assignmentForm, sortOrder: Number(event.target.value) })
                       }
