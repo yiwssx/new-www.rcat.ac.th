@@ -6,6 +6,7 @@ import { PUBLIC_PUBLISHED_CONTENT_FILTER_SQL, publicPublishedContentBindings } f
 
 const HOME_NEWS_LIMIT = 6;
 const HOME_ANNOUNCEMENT_LIMIT = 8;
+const HOME_GENERAL_ANNOUNCEMENT_LIMIT = 4;
 const HOME_PROCUREMENT_LIMIT = 4;
 const HOME_JOB_OPPORTUNITY_LIMIT = 4;
 const HOME_PROGRAM_LIMIT = 8;
@@ -76,6 +77,19 @@ function createTextFilter(terms: readonly string[]) {
     sql: `AND (${clauses.join(" OR ")})`,
     bindings
   };
+}
+
+// Read the four latest general announcements independently of the unfiltered sidebar feed.
+// Without a dedicated query, procurement/job posts could crowd general notices out of the latest eight.
+export async function listHomePublishedGeneralAnnouncementRows(env: Env): Promise<PublicContentSummaryReadRow[]> {
+  const specialistFilter = createTextFilter([...PROCUREMENT_TERMS, ...JOB_OPPORTUNITY_TERMS]);
+  return readHomeRows(
+    env,
+    "home:content:general-announcements",
+    `AND type = ? AND NOT ${specialistFilter.sql.slice(4).trim()}`,
+    ["announcement", ...specialistFilter.bindings],
+    HOME_GENERAL_ANNOUNCEMENT_LIMIT
+  );
 }
 
 export async function listHomePublishedContentSummaryRows(env: Env): Promise<PublicContentSummaryReadRow[]> {
