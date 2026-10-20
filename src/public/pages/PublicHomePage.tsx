@@ -362,15 +362,21 @@ export default function PublicHomePage() {
             <Grid size={{ xs: 12, lg: 8 }} sx={{ order: { xs: 1, lg: 1 } }}>
               <LatestNewsSection items={latestNews} mediaAssets={mediaAssets} />
 
+              <Box sx={{ mt: { xs: 2.5, md: 4 } }}>
+                <LatestAnnouncementsCard items={latestAnnouncements} />
+              </Box>
+
               <DeferredHomeSection minHeight={{ xs: 180, md: 210 }}>
                 <LazyProcurementNewsSection items={procurementItems} />
               </DeferredHomeSection>
               <DeferredHomeSection minHeight={{ xs: 180, md: 210 }}>
                 <LazyJobOpportunitiesSection items={jobOpportunityItems} />
               </DeferredHomeSection>
-              <DeferredHomeSection minHeight={{ xs: 360, md: 420 }}>
-                <LazyProgramsSection items={programItems} mediaAssets={mediaAssets} />
-              </DeferredHomeSection>
+              {programItems.some((item) => item.title.trim() && item.slug.trim()) && (
+                <DeferredHomeSection minHeight={{ xs: 360, md: 420 }}>
+                  <LazyProgramsSection items={programItems} mediaAssets={mediaAssets} />
+                </DeferredHomeSection>
+              )}
               <DeferredHomeSection minHeight={{ xs: 220, md: 260 }}>
                 <LazyAchievementHighlightsSection
                   items={achievementItems}
@@ -395,7 +401,6 @@ export default function PublicHomePage() {
 
             <Grid size={{ xs: 12, lg: 4 }} sx={{ order: { xs: 2, lg: 2 } }}>
               <Stack spacing={2}>
-                <LatestAnnouncementsCard items={latestAnnouncements} />
                 <DeferredHomeSection minHeight={180}>
                   <LazyEventListCard
                     compact
