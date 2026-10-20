@@ -205,9 +205,7 @@ describe("public route head metadata", () => {
     const head = getStaticPublicRouteHead("/news");
 
     expect(getMetaContent(head, "title")).toBe(`ข่าว | ${projectSettings.site.name}`);
-    expect(getMetaContent(head, "name", "description")).toBe(
-      "ข่าวสาร กิจกรรม และเรื่องราวล่าสุดจากวิทยาลัย"
-    );
+    expect(getMetaContent(head, "name", "description")).toBe("ข่าวสาร กิจกรรม และเรื่องราวล่าสุดจากวิทยาลัย");
     expect(getMetaContent(head, "property", "og:title")).toBe(`ข่าว | ${projectSettings.site.name}`);
     expect(getMetaContent(head, "property", "og:type")).toBe("website");
     expect(getMetaContent(head, "name", "twitter:title")).toBe(`ข่าว | ${projectSettings.site.name}`);
