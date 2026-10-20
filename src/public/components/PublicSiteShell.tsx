@@ -166,7 +166,7 @@ function getPublicRouteShellDefaults(pathname: string): PublicRouteShellDefaults
     },
     "/calendar": {
       title: "กำหนดการ",
-      description: "กำหนดการและกิจกรรมที่เผยแพร่ของสถานศึกษา"
+      description: "กำหนดการและกิจกรรมของวิทยาลัย"
     },
     "/contact": {
       title: "ติดต่อ",
@@ -894,7 +894,7 @@ function PublicSiteShellFrame({
           )}
 
           <Box sx={{ height: 3 }} data-cls-region="shell-progress">
-            {isShellFetching && <LinearProgress aria-label="กำลังโหลดข้อมูลโครงเว็บไซต์" sx={{ height: "100%" }} />}
+            {isShellFetching && <LinearProgress aria-label="กำลังโหลดหน้าเว็บ" sx={{ height: "100%" }} />}
           </Box>
 
           {showPageHeader && (
