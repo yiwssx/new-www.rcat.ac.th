@@ -14,6 +14,7 @@ export interface PublicHomeSnapshotContract {
   visitorStats: PublicVisitorStatsSnapshotContract;
   latestNews: PublicContentCardContract[];
   latestAnnouncements: PublicContentCardContract[];
+  generalAnnouncementItems?: PublicContentCardContract[];
   procurementItems: PublicContentCardContract[];
   jobOpportunityItems: PublicContentCardContract[];
   achievementItems: PublicContentCardContract[];
