@@ -226,7 +226,7 @@ describe("shared design-system primitives", () => {
       "published"
     );
     expect(screen.getByRole("region", { name: "ยังไม่มีข้อมูล" })).toBeInTheDocument();
-    expect(screen.getByRole("status", { name: "Preparing page" })).toBeInTheDocument();
+    expect(screen.getByRole("status", { name: "กำลังเตรียมหน้าเว็บ" })).toBeInTheDocument();
     expect(screen.getByRole("alert")).toHaveTextContent("ไม่สามารถโหลดข้อมูลได้");
     expect(document.querySelector('[data-cls-region="public-loading"] [tabindex]')).not.toBeInTheDocument();
   });
