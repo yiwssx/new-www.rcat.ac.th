@@ -10,6 +10,7 @@ import PublicErrorState from "../components/PublicErrorState";
 import PublicLoadingState, { PublicBackgroundProgress } from "../components/PublicLoadingState";
 import PublicSiteShell from "../components/PublicSiteShell";
 import { LatestAnnouncementsCard } from "../components/home/LatestAnnouncementsCard";
+import { isGeneralAnnouncement } from "../utils/homeGeneralAnnouncement";
 import { HomeHeroSection } from "../components/home/HomeHeroSection";
 import { HomeIntroVideoSection } from "../components/home/HomeIntroVideoSection";
 import { LatestNewsSection } from "../components/home/LatestNewsSection";
@@ -363,7 +364,7 @@ export default function PublicHomePage() {
               <LatestNewsSection items={latestNews} mediaAssets={mediaAssets} />
 
               <Box sx={{ mt: { xs: 2.5, md: 4 } }}>
-                <LatestAnnouncementsCard items={latestAnnouncements} />
+                <LatestAnnouncementsCard items={latestAnnouncements.filter(isGeneralAnnouncement)} variant="general" />
               </Box>
 
               <DeferredHomeSection minHeight={{ xs: 180, md: 210 }}>
@@ -401,6 +402,7 @@ export default function PublicHomePage() {
 
             <Grid size={{ xs: 12, lg: 4 }} sx={{ order: { xs: 2, lg: 2 } }}>
               <Stack spacing={2}>
+                <LatestAnnouncementsCard items={latestAnnouncements} />
                 <DeferredHomeSection minHeight={180}>
                   <LazyEventListCard
                     compact

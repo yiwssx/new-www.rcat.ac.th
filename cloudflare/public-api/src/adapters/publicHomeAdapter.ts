@@ -65,10 +65,7 @@ export function createPublicHomeSnapshot(
 ): PublicHomeSnapshotContract {
   const content = input.content.map(mapContentCardRowToPublicContentCard);
   const latestNews = content.filter((item) => item.type === "news" || item.type === "blog").slice(0, 6);
-  const latestAnnouncements = content
-    .filter((item) => item.type === "announcement" && !isProcurementItem(item) && !isJobOpportunityItem(item))
-    .sort(compareContentPublishAtDesc)
-    .slice(0, 8);
+  const latestAnnouncements = content.filter((item) => item.type === "announcement").slice(0, 8);
   const procurementItems = content
     .filter(isProcurementItem)
     .sort(compareContentPublishAtDesc)
