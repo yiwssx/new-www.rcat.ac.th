@@ -66,7 +66,13 @@ function CompactAnnouncementList({ items, emptyTitle }: { items: PublicContentCa
   );
 }
 
-export function LatestAnnouncementsCard({ items, variant = "latest" }: { items: PublicContentCardItem[]; variant?: "latest" | "general" }) {
+export function LatestAnnouncementsCard({
+  items,
+  variant = "latest"
+}: {
+  items: PublicContentCardItem[];
+  variant?: "latest" | "general";
+}) {
   return (
     <Card id={variant === "latest" ? "announcements" : "general-announcements"} className="rcat-card h-full">
       <CardContent sx={{ p: 2 }}>
@@ -80,7 +86,10 @@ export function LatestAnnouncementsCard({ items, variant = "latest" }: { items: 
             </Button>
           }
         />
-        <CompactAnnouncementList items={items} emptyTitle={variant === "latest" ? "ยังไม่มีประกาศที่เผยแพร่" : "ยังไม่มีประกาศทั่วไปที่เผยแพร่"} />
+        <CompactAnnouncementList
+          items={items}
+          emptyTitle={variant === "latest" ? "ยังไม่มีประกาศที่เผยแพร่" : "ยังไม่มีประกาศทั่วไปที่เผยแพร่"}
+        />
       </CardContent>
     </Card>
   );
