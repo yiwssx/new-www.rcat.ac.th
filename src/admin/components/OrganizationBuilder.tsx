@@ -1181,7 +1181,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                         helperText={
                           positionAutoOrder
                             ? "ระบบจะจัดลำดับเมื่อบันทึก"
-                            : "กำหนดลำดับด้วยตัวเลขได้ตามต้องการ"
+                            : "กรอก 0 สำหรับรายการแรก"
                         }
                         onChange={(event) =>
                           setPositionForm({ ...positionForm, sortOrder: Number(event.target.value) })
