@@ -49,7 +49,7 @@ export default function ActivateAccountPage() {
       setInspection(await inspectCmsInvitation(token));
     } catch (currentError) {
       setInspection(null);
-      setError(getCmsAuthErrorMessage(currentError, "ไม่สามารถตรวจสอบโทเค็นเชิญได้"));
+      setError(getCmsAuthErrorMessage(currentError, "ไม่สามารถตรวจสอบรหัสเชิญได้"));
       if (currentError instanceof CmsAuthError) {
         startRetryCountdown(currentError.retryAfterSeconds);
       }
@@ -93,9 +93,9 @@ export default function ActivateAccountPage() {
   }
 
   return (
-    <AuthPageLayout title="เปิดใช้งานบัญชี CMS">
+    <AuthPageLayout title="เปิดใช้งานบัญชีเจ้าหน้าที่">
       <Alert severity="info">
-        วางโทเค็นเชิญที่ได้รับจากผู้ดูแลระบบ โทเค็นจะไม่ถูกใส่ใน URL หรือบันทึกในเบราว์เซอร์
+        กรอกรหัสเชิญที่ได้รับจากผู้ดูแลระบบเพื่อเปิดใช้งานบัญชี
       </Alert>
       {error && (
         <Alert severity="error" aria-live="assertive">
@@ -117,7 +117,7 @@ export default function ActivateAccountPage() {
       ) : !inspection ? (
         <Stack component="form" spacing={2} onSubmit={inspectToken}>
           <TextField
-            label="โทเค็นเชิญ"
+            label="รหัสเชิญ"
             value={token}
             onChange={(event) => setToken(event.target.value)}
             multiline
@@ -130,7 +130,7 @@ export default function ActivateAccountPage() {
           <FormActions
             primary={
               <Button type="submit" variant="contained" disabled={submitting || retryAfterSeconds > 0}>
-                ตรวจสอบโทเค็น
+                ตรวจสอบรหัส
               </Button>
             }
             secondary={
@@ -142,7 +142,7 @@ export default function ActivateAccountPage() {
         </Stack>
       ) : (
         <Stack component="form" spacing={2} onSubmit={acceptInvitation}>
-          <Alert severity="success">โทเค็นถูกต้อง</Alert>
+          <Alert severity="success">รหัสเชิญถูกต้อง</Alert>
           <Typography>ชื่อ: {inspection.user.name}</Typography>
           <Typography>อีเมล: {inspection.user.email}</Typography>
           <Typography>บทบาท: {inspection.user.role}</Typography>
