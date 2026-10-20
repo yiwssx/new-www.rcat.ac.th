@@ -31,6 +31,7 @@ export async function getPublicCmsSnapshotForProvider(options: PublicReadRequest
   [
     ...home.latestNews,
     ...home.latestAnnouncements,
+    ...(home.generalAnnouncementItems ?? []),
     ...home.procurementItems,
     ...home.jobOpportunityItems,
     ...home.achievementItems,
