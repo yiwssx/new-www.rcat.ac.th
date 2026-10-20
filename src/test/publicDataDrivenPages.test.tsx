@@ -1085,7 +1085,7 @@ describe("public data-driven pages", () => {
     }
   });
 
-  it("shows an honest empty state when no program content exists", async () => {
+  it("hides the homepage programs section when no published program content exists", async () => {
     currentHomeSnapshot = createHomeSnapshot();
 
     render(<PublicHomePage />);
@@ -1093,7 +1093,9 @@ describe("public data-driven pages", () => {
       await Promise.resolve();
     });
 
-    expect(screen.getByText("ยังไม่มีข้อมูลแผนกวิชาที่เผยแพร่")).toBeInTheDocument();
+    expect(document.querySelector("#departments")).not.toBeInTheDocument();
+    expect(screen.queryByText("สาขาวิชาที่เปิดสอน")).not.toBeInTheDocument();
+    expect(screen.queryByText("ยังไม่มีข้อมูลแผนกวิชาที่เผยแพร่")).not.toBeInTheDocument();
   });
 
   it("renders departments from the public program list snapshot", () => {
