@@ -66,30 +66,21 @@ function CompactAnnouncementList({ items, emptyTitle }: { items: PublicContentCa
   );
 }
 
-export function LatestAnnouncementsCard({
-  items,
-  variant = "latest"
-}: {
-  items: PublicContentCardItem[];
-  variant?: "latest" | "general";
-}) {
+export function LatestAnnouncementsCard({ items }: { items: PublicContentCardItem[] }) {
   return (
-    <Card id={variant === "latest" ? "announcements" : "general-announcements"} className="rcat-card h-full">
+    <Card id="announcements" className="rcat-card h-full">
       <CardContent sx={{ p: 2 }}>
         <HomeSectionHeading
           compact
           label="ประกาศ"
-          title={variant === "latest" ? "ประกาศล่าสุด" : "ประกาศทั่วไป"}
+          title="ประกาศล่าสุด"
           action={
             <Button size="small" href={normalizeSafeHref("/announcements")} endIcon={<ArrowForwardOutlinedIcon />}>
               ทั้งหมด
             </Button>
           }
         />
-        <CompactAnnouncementList
-          items={items}
-          emptyTitle={variant === "latest" ? "ยังไม่มีประกาศที่เผยแพร่" : "ยังไม่มีประกาศทั่วไปที่เผยแพร่"}
-        />
+        <CompactAnnouncementList items={items} emptyTitle="ยังไม่มีประกาศที่เผยแพร่" />
       </CardContent>
     </Card>
   );
