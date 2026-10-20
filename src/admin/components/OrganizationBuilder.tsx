@@ -1092,9 +1092,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
             </Button>
           </Stack>
           {(positionsQuery.hasNextPage || assignmentsQuery.hasNextPage || personnelQuery.hasNextPage) && (
-            <Alert severity="info">
-              ข้อมูลยังไม่ครบ เพิ่มรายการได้ โปรดโหลดให้ครบก่อนตรวจผัง
-            </Alert>
+            <Alert severity="info">ข้อมูลยังไม่ครบ เพิ่มรายการได้ โปรดโหลดให้ครบก่อนตรวจผัง</Alert>
           )}
           <Dialog open={positionForm !== null} onClose={() => !busy && setPositionForm(null)} fullWidth maxWidth="sm">
             <DialogTitle>{positionEditing ? "แก้ไขตำแหน่ง" : "เพิ่มตำแหน่ง"}</DialogTitle>
