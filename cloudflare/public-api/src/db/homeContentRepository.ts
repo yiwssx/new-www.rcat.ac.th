@@ -82,9 +82,16 @@ export async function listHomePublishedContentSummaryRows(env: Env): Promise<Pub
   const procurementFilter = createTextFilter(PROCUREMENT_TERMS);
   const jobOpportunityFilter = createTextFilter(JOB_OPPORTUNITY_TERMS);
   const achievementFilter = createTextFilter(ACHIEVEMENT_TERMS);
+  const specialistAnnouncementFilter = createTextFilter([...PROCUREMENT_TERMS, ...JOB_OPPORTUNITY_TERMS]);
   const [news, announcements, procurement, jobOpportunities, programs, achievements] = await Promise.all([
     readHomeRows(env, "home:content:news", "AND type IN (?, ?)", ["news", "blog"], HOME_NEWS_LIMIT),
-    readHomeRows(env, "home:content:announcements", "AND type = ?", ["announcement"], HOME_ANNOUNCEMENT_LIMIT),
+    readHomeRows(
+      env,
+      "home:content:announcements",
+      `AND type = ? AND NOT ${specialistAnnouncementFilter.sql.slice(4)}`,
+      ["announcement", ...specialistAnnouncementFilter.bindings],
+      HOME_ANNOUNCEMENT_LIMIT
+    ),
     readHomeRows(
       env,
       "home:content:procurement",
