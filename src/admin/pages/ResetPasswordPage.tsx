@@ -47,7 +47,7 @@ export default function ResetPasswordPage() {
       setInspection(await inspectCmsPasswordReset(token));
     } catch (currentError) {
       setInspection(null);
-      setError(getCmsAuthErrorMessage(currentError, "ไม่สามารถตรวจสอบโทเค็นตั้งรหัสผ่านใหม่ได้"));
+      setError(getCmsAuthErrorMessage(currentError, "ไม่สามารถตรวจสอบรหัสตั้งรหัสผ่านใหม่ได้"));
       if (currentError instanceof CmsAuthError) {
         startRetryCountdown(currentError.retryAfterSeconds);
       }
@@ -86,10 +86,7 @@ export default function ResetPasswordPage() {
 
   return (
     <AuthPageLayout title="ตั้งรหัสผ่านใหม่">
-      <Alert severity="info">
-        ต้องได้รับโทเค็นตั้งรหัสผ่านใหม่จากผู้ดูแลระบบที่ได้รับอนุญาต ระบบยังไม่มีบริการส่งอีเมลอัตโนมัติ
-        และจะไม่ใส่โทเค็นใน URL
-      </Alert>
+      <Alert severity="info">กรุณาขอรหัสตั้งรหัสผ่านใหม่จากผู้ดูแลระบบ แล้วกรอกรหัสด้านล่าง</Alert>
       {error && (
         <Alert severity="error" aria-live="assertive">
           {error}
@@ -110,7 +107,7 @@ export default function ResetPasswordPage() {
       ) : !inspection ? (
         <Stack component="form" spacing={2} onSubmit={inspectToken}>
           <TextField
-            label="โทเค็นตั้งรหัสผ่านใหม่"
+            label="รหัสตั้งรหัสผ่านใหม่"
             value={token}
             onChange={(event) => setToken(event.target.value)}
             multiline
@@ -123,7 +120,7 @@ export default function ResetPasswordPage() {
           <FormActions
             primary={
               <Button type="submit" variant="contained" disabled={submitting || retryAfterSeconds > 0}>
-                ตรวจสอบโทเค็น
+                ตรวจสอบรหัส
               </Button>
             }
             secondary={
@@ -135,7 +132,7 @@ export default function ResetPasswordPage() {
         </Stack>
       ) : (
         <Stack component="form" spacing={2} onSubmit={completeReset}>
-          <Alert severity="success">โทเค็นถูกต้องสำหรับบัญชี {inspection.user.emailHint}</Alert>
+          <Alert severity="success">รหัสถูกต้องสำหรับบัญชี {inspection.user.emailHint}</Alert>
           <TextField
             label="รหัสผ่านใหม่"
             type="password"

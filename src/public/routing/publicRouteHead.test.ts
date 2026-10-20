@@ -8,7 +8,8 @@ import {
   getPublicOrganizationRouteHead,
   getPublicLayoutRouteHead,
   getRootRouteHead,
-  getStaticPublicRouteHead
+  getStaticPublicRouteHead,
+  STATIC_PUBLIC_ROUTE_HEADS
 } from "./publicRouteHeadImpl";
 import { serializePublicJsonLd } from "./publicSeo";
 
@@ -104,6 +105,12 @@ const detailLoaderData = {
 };
 
 describe("public route head metadata", () => {
+  it("keeps public route descriptions focused on visitors rather than implementation details", () => {
+    Object.values(STATIC_PUBLIC_ROUTE_HEADS).forEach((route) => {
+      expect(route.description).not.toMatch(/\b(CMS|API|backend|snapshot|workflow)\b/i);
+    });
+  });
+
   it("builds canonical organization permalink SEO and published ancestor breadcrumbs", () => {
     const detail = {
       unit: {
@@ -205,9 +212,7 @@ describe("public route head metadata", () => {
     const head = getStaticPublicRouteHead("/news");
 
     expect(getMetaContent(head, "title")).toBe(`ข่าว | ${projectSettings.site.name}`);
-    expect(getMetaContent(head, "name", "description")).toBe(
-      "กิจกรรมล่าสุด เรื่องราวในสถานศึกษา และข่าวประชาสัมพันธ์จาก CMS"
-    );
+    expect(getMetaContent(head, "name", "description")).toBe("ข่าวสาร กิจกรรม และเรื่องราวล่าสุดจากวิทยาลัย");
     expect(getMetaContent(head, "property", "og:title")).toBe(`ข่าว | ${projectSettings.site.name}`);
     expect(getMetaContent(head, "property", "og:type")).toBe("website");
     expect(getMetaContent(head, "name", "twitter:title")).toBe(`ข่าว | ${projectSettings.site.name}`);

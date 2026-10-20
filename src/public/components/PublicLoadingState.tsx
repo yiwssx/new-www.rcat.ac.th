@@ -62,9 +62,9 @@ function LoadingCard({ height }: { height: number | { xs: number; md: number } }
 
 const listingLoadingCopy = {
   title: "หัวข้อข่าวตัวอย่าง",
-  summary: "Loading content reserves the full summary area until the latest page data is ready.",
-  tags: "#fixture #layout",
-  owner: "Layout placeholder",
+  summary: "กำลังเตรียมเนื้อหาสำหรับแสดงผล",
+  tags: "#ข่าวสาร #กิจกรรม",
+  owner: "ข่าวประชาสัมพันธ์",
   date: "31 กรกฎาคม 2569"
 } as const;
 
@@ -127,7 +127,7 @@ function ListingLoadingCard({ featured = false }: { featured?: boolean }) {
             <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap", mb: 1 }}>
               <ListingLoadingChip label="ข่าว" />
               <ListingLoadingChip label="เผยแพร่แล้ว" variant="outlined" />
-              <ListingLoadingChip label="Layout" variant="outlined" />
+              <ListingLoadingChip label="ข่าวสาร" variant="outlined" />
             </Stack>
             <Typography
               variant="h3"
@@ -288,7 +288,7 @@ export default function PublicLoadingState({ variant = "listing" }: PublicLoadin
     <Box
       role="status"
       aria-live="polite"
-      aria-label="Preparing page"
+      aria-label="กำลังเตรียมหน้าเว็บ"
       data-cls-region="public-loading"
       data-public-loading-variant={variant}
       sx={{

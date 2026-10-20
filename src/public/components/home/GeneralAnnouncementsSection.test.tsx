@@ -34,6 +34,7 @@ describe("GeneralAnnouncementsSection", () => {
     );
 
     const section = document.querySelector("#general-announcements") as HTMLElement;
+    expect(within(section).getByText("ประกาศและข้อมูลสำคัญที่ควรทราบจากวิทยาลัย")).toBeInTheDocument();
     const cards = within(section).getAllByRole("article");
     expect(cards).toHaveLength(4);
     expect(cards.map((card) => within(card).getByRole("heading", { level: 3 }).textContent)).toEqual([

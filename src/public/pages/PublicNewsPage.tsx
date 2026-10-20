@@ -104,7 +104,7 @@ export default function PublicNewsPage() {
   return (
     <PublicSiteShell
       title="ข่าว"
-      description="กิจกรรมล่าสุด เรื่องราวในสถานศึกษา และข่าวประชาสัมพันธ์จาก CMS"
+      description="ข่าวสาร กิจกรรม และเรื่องราวล่าสุดจากวิทยาลัย"
       preloadedSiteSettings={data.siteSettings}
       preloadedHomepageSettings={data.homepageSettings}
       preloadedDisplaySettings={data.displaySettings}
@@ -170,7 +170,7 @@ export default function PublicNewsPage() {
       )}
       {!filteredNewsItems.length && (
         <EmptyState
-          title={hasActiveFilter ? "ไม่พบข่าวตามตัวกรองที่เลือก" : "ยังไม่มีข่าวที่เผยแพร่"}
+          title={hasActiveFilter ? "ไม่พบข่าวตามตัวกรองที่เลือก" : "ยังไม่มีข่าวในขณะนี้"}
           icon={<ArticleOutlinedIcon />}
         />
       )}

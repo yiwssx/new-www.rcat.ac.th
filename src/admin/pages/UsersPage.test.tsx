@@ -241,14 +241,14 @@ describe("UsersPage CMS lifecycle", () => {
     );
     expect(await screen.findByDisplayValue("one-time-invitation-token")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: /จัดเก็บโทเค็นแล้ว/ }));
+    fireEvent.click(screen.getByRole("button", { name: /จัดเก็บรหัสแล้ว/ }));
     expect(screen.queryByDisplayValue("one-time-invitation-token")).not.toBeInTheDocument();
   }, 15_000);
 
   it("requires confirmation before revoking all user sessions", async () => {
     renderPage();
 
-    fireEvent.click(screen.getAllByRole("button", { name: "เพิกถอนเซสชัน" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: "ออกจากระบบทุกอุปกรณ์" })[0]);
 
     await waitFor(() => expect(apiMock.revokeSessions).toHaveBeenCalledWith("managed-user"));
     expect(swalMock.fire).toHaveBeenCalledWith(expect.objectContaining({ icon: "warning", showCancelButton: true }));

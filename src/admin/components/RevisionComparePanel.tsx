@@ -100,7 +100,7 @@ export default function RevisionComparePanel() {
               </Typography>
             </Stack>
             <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
-              เลือกเนื้อหาและสองเวอร์ชันเพื่อดู metadata ที่เปลี่ยน พร้อมตัวอย่างเนื้อหาก่อนและหลังแบบวางเทียบกัน
+              เลือกสองเวอร์ชันเพื่อเปรียบเทียบข้อมูลและเนื้อหาที่เปลี่ยนแปลง
             </Typography>
           </Box>
 
@@ -167,8 +167,8 @@ export default function RevisionComparePanel() {
               {before && after && beforeRevision !== afterRevision && (
                 <Stack spacing={2}>
                   <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
-                    <Chip label={`เปลี่ยน metadata ${fieldChanges.length} จุด`} />
-                    <Chip label={`เปลี่ยน body ${changedBodyLines.length} บรรทัด`} variant="outlined" />
+                    <Chip label={`เปลี่ยนข้อมูล ${fieldChanges.length} จุด`} />
+                    <Chip label={`เปลี่ยนเนื้อหา ${changedBodyLines.length} บรรทัด`} variant="outlined" />
                   </Stack>
 
                   {!fieldChanges.length && !bodyChanges.length && (

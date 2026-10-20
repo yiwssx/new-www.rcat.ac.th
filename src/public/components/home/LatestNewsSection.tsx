@@ -41,7 +41,7 @@ export function LatestNewsSection({
           ))}
         </Grid>
       ) : (
-        <EmptyState title="ยังไม่มีข่าวที่เผยแพร่" icon={<ArticleOutlinedIcon />} />
+        <EmptyState title="ยังไม่มีข่าวในขณะนี้" icon={<ArticleOutlinedIcon />} />
       )}
     </>
   );

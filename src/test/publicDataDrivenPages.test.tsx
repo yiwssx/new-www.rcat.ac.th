@@ -1625,7 +1625,7 @@ describe("public data-driven pages", () => {
     currentEventListSnapshot = createEventListSnapshot({ items: [] });
     const { rerender } = render(<PublicCalendarPage />);
 
-    expect(screen.getByText("ยังไม่มีกำหนดการเผยแพร่")).toBeInTheDocument();
+    expect(screen.getByText("ยังไม่มีกำหนดการในขณะนี้")).toBeInTheDocument();
 
     currentEventListSnapshot = undefined;
     currentEventListQueryState = {

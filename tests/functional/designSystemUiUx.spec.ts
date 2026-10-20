@@ -516,7 +516,7 @@ for (const viewport of [
     await page.setViewportSize(viewport);
     await installAuthenticatedDesignSystemCmsFixture(page);
     await page.goto("/admin/content");
-    await page.getByRole("heading", { name: "เนื้อหา" }).waitFor();
+    await page.getByRole("heading", { name: "เนื้อหา", exact: true }).waitFor();
 
     const table = page.getByRole("table", { name: "ตารางเนื้อหา" });
     await expect(table).toBeVisible({ timeout: 10_000 });
@@ -568,7 +568,7 @@ test("mobile Admin content table scrolls inside its container without page overf
   await page.setViewportSize({ width: 390, height: 844 });
   await installAuthenticatedDesignSystemCmsFixture(page);
   await page.goto("/admin/content");
-  await page.getByRole("heading", { name: "เนื้อหา" }).waitFor();
+  await page.getByRole("heading", { name: "เนื้อหา", exact: true }).waitFor();
 
   const table = page.getByRole("table", { name: "ตารางเนื้อหา" });
   await expect(table).toBeVisible({ timeout: 10_000 });
@@ -587,7 +587,7 @@ test("Admin content dialog retains an accessible title, actions, and destructive
   await page.setViewportSize({ width: 1280, height: 720 });
   await installAuthenticatedDesignSystemCmsFixture(page);
   await page.goto("/admin/content");
-  await page.getByRole("heading", { name: "เนื้อหา" }).waitFor();
+  await page.getByRole("heading", { name: "เนื้อหา", exact: true }).waitFor();
   await page.getByRole("button", { name: "เพิ่มเนื้อหา" }).click();
 
   const dialog = page.getByRole("dialog");

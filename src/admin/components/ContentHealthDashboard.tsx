@@ -39,10 +39,10 @@ export default function ContentHealthDashboard() {
         <Stack spacing={2}>
           <Box>
             <Typography variant="h2" sx={{ fontSize: "1.35rem" }}>
-              Content Health Dashboard
+              ตรวจสอบความพร้อมของเนื้อหา
             </Typography>
             <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
-              ตรวจความพร้อมของเนื้อหา สื่อ SEO การเข้าถึง และฉบับร่างที่ค้างนานจากข้อมูล CMS ปัจจุบัน
+              ตรวจสอบความครบถ้วนของเนื้อหา รูปภาพ การค้นหา สิทธิ์การเข้าถึง และฉบับร่างที่ค้างนาน
             </Typography>
           </Box>
 

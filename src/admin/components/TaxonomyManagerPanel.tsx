@@ -65,7 +65,7 @@ export default function TaxonomyManagerPanel() {
     }
     const removing = !to.trim();
     const confirmation = await appSwal.fire({
-      title: removing ? "ลบ taxonomy นี้ออกจากเนื้อหาทั้งหมด?" : "ยืนยันการเปลี่ยน taxonomy?",
+      title: removing ? "นำรายการนี้ออกจากเนื้อหาทั้งหมด?" : "ยืนยันการเปลี่ยนชื่อหรือรวมรายการนี้?",
       text: removing
         ? `ระบบจะนำ “${from}” ออกจากเนื้อหาที่เกี่ยวข้อง แต่จะไม่ลบเนื้อหา`
         : `“${from}” จะถูกรวม/เปลี่ยนชื่อเป็น “${to.trim()}” ในทุกเนื้อหาที่อยู่ในขอบเขตสิทธิ์`,
@@ -83,12 +83,12 @@ export default function TaxonomyManagerPanel() {
       setTo("");
       await appSwal.fire({
         icon: "success",
-        title: "อัปเดต taxonomy สำเร็จ",
+        title: "ปรับปรุงหมวดหมู่หรือแท็กสำเร็จ",
         text: `ปรับปรุง ${result.affected} เนื้อหา`,
         confirmButtonText: "ตกลง"
       });
     } catch (currentError) {
-      setError(currentError instanceof Error ? currentError.message : "ไม่สามารถอัปเดต taxonomy ได้");
+      setError(currentError instanceof Error ? currentError.message : "ไม่สามารถปรับปรุงหมวดหมู่หรือแท็กได้");
     }
   }
 
@@ -104,14 +104,14 @@ export default function TaxonomyManagerPanel() {
               </Typography>
             </Stack>
             <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
-              ดูจำนวนการใช้งาน เปลี่ยนชื่อ รวมคำซ้ำ หรือนำ taxonomy ที่เลิกใช้แล้วออกจากเนื้อหาแบบรวมศูนย์
+              ดูจำนวนการใช้งาน เปลี่ยนชื่อ รวมคำซ้ำ หรือนำหมวดหมู่และแท็กที่ไม่ใช้แล้วออกจากเนื้อหา
             </Typography>
           </Box>
 
           {taxonomyQuery.data?.scope && (
             <Alert severity="info">บัญชีนี้ถูกจำกัดขอบเขตเนื้อหา: {taxonomyQuery.data.scope}</Alert>
           )}
-          {taxonomyQuery.isError && <Alert severity="error">ไม่สามารถโหลด taxonomy ได้</Alert>}
+          {taxonomyQuery.isError && <Alert severity="error">ไม่สามารถโหลดหมวดหมู่และแท็กได้</Alert>}
           {error && <Alert severity="error">{error}</Alert>}
 
           <Grid container spacing={2}>
@@ -161,7 +161,7 @@ export default function TaxonomyManagerPanel() {
               disabled={!canUpdate || !from || mutation.isPending}
               onClick={() => void submitChange()}
             >
-              {mutation.isPending ? "กำลังปรับปรุง" : "เปลี่ยนชื่อ / รวม taxonomy"}
+              {mutation.isPending ? "กำลังปรับปรุง" : "เปลี่ยนชื่อ / รวมรายการ"}
             </Button>
           </Box>
 

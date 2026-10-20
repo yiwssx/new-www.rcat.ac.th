@@ -31,8 +31,8 @@ describe("ResetPasswordPage", () => {
   it("keeps the reset token out of the URL and never implements email lookup", async () => {
     render(<ResetPasswordPage />);
     const token = "RESET-TOKEN-NEVER-IN-URL";
-    fireEvent.change(screen.getByLabelText(/โทเค็นตั้งรหัสผ่านใหม่/), { target: { value: token } });
-    fireEvent.click(screen.getByRole("button", { name: "ตรวจสอบโทเค็น" }));
+    fireEvent.change(screen.getByLabelText(/รหัสตั้งรหัสผ่านใหม่/), { target: { value: token } });
+    fireEvent.click(screen.getByRole("button", { name: "ตรวจสอบรหัส" }));
 
     expect(await screen.findByText(/u\*\*\*@example\.test/)).toBeInTheDocument();
     expect(window.location.href).not.toContain(token);

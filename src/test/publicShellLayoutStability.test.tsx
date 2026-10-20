@@ -77,7 +77,7 @@ describe("Public route loading geometry", () => {
     it(`renders the ${variant} structured loading variant`, () => {
       render(<PublicLoadingState variant={variant} />);
 
-      const loading = screen.getByRole("status", { name: "Preparing page" });
+      const loading = screen.getByRole("status", { name: "กำลังเตรียมหน้าเว็บ" });
       expect(loading).toHaveAttribute("data-cls-region", "public-loading");
       expect(loading).toHaveAttribute("data-public-loading-variant", variant);
       expect(loading.querySelectorAll('[aria-hidden="true"]').length).toBeGreaterThan(0);

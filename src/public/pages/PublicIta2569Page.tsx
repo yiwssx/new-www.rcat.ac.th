@@ -572,13 +572,13 @@ export default function PublicIta2569Page() {
           <div className="mt-8 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm leading-6 text-emerald-950">
             <strong>หมายเหตุ:</strong>{" "}
             ข้อมูลในหน้านี้จัดทำเพื่อการเปิดเผยข้อมูลสาธารณะของวิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด ประจำปีงบประมาณ พ.ศ.
-            2569 โดยลิงก์เอกสารแต่ละรายการสามารถเผยแพร่จากเว็บไซต์หรือแหล่งข้อมูลภายนอกได้
+            2569 เลือกหัวข้อที่ต้องการเพื่อดูข้อมูลหรือเปิดเอกสารประกอบ
           </div>
 
           <div className="mt-10 flex items-center gap-4">
             <div className="h-px flex-1 bg-emerald-200" />
             <div className="text-center">
-              <p className="text-xs font-extrabold uppercase tracking-wider text-emerald-700">Indicator 9</p>
+              <p className="text-xs font-extrabold uppercase tracking-wider text-emerald-700">หัวข้อที่ 9</p>
               <h2 className="mt-1 text-xl font-black text-slate-900 md:text-2xl">ตัวชี้วัดที่ 9 การเปิดเผยข้อมูล</h2>
             </div>
             <div className="h-px flex-1 bg-emerald-200" />
@@ -593,7 +593,7 @@ export default function PublicIta2569Page() {
           <div className="mt-12 flex items-center gap-4">
             <div className="h-px flex-1 bg-amber-200" />
             <div className="text-center">
-              <p className="text-xs font-extrabold uppercase tracking-wider text-amber-700">Indicator 10</p>
+              <p className="text-xs font-extrabold uppercase tracking-wider text-amber-700">หัวข้อที่ 10</p>
               <h2 className="mt-1 text-xl font-black text-slate-900 md:text-2xl">
                 ตัวชี้วัดที่ 10 การป้องกันการทุจริต
               </h2>

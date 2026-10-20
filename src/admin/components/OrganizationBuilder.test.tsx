@@ -338,7 +338,7 @@ describe("Phase 6 accessible Organization builder", () => {
       target: { value: "ผู้บริหาร" }
     });
     fireEvent.click(screen.getByText("ตั้งค่าลำดับด้วยตัวเลข (ขั้นสูง)"));
-    expect(screen.getByRole("checkbox", { name: "เพิ่มต่อท้ายอัตโนมัติจากข้อมูลบนเซิร์ฟเวอร์" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "เพิ่มต่อท้ายอัตโนมัติ" })).toBeChecked();
     expect(screen.getByRole("spinbutton", { name: "ลำดับตำแหน่ง" })).toBeDisabled();
     fireEvent.change(screen.getByRole("textbox", { name: "ชื่อตำแหน่ง" }), {
       target: { value: "รองหัวหน้างาน" }
@@ -435,7 +435,7 @@ describe("Phase 6 accessible Organization builder", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: "มอบหมายบุคลากร" })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: "มอบหมายบุคลากร" }));
     fireEvent.click(screen.getByText("ตั้งค่าลำดับด้วยตัวเลข (ขั้นสูง)"));
-    expect(screen.getByRole("checkbox", { name: "เพิ่มต่อท้ายอัตโนมัติจากข้อมูลบนเซิร์ฟเวอร์" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "เพิ่มต่อท้ายอัตโนมัติ" })).toBeChecked();
     expect(screen.getByRole("spinbutton", { name: "ลำดับการแสดง" })).toBeDisabled();
   });
 

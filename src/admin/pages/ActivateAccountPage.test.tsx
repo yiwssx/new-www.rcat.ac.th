@@ -36,8 +36,8 @@ describe("ActivateAccountPage", () => {
   it("keeps the invitation token out of the URL and clears it after acceptance", async () => {
     render(<ActivateAccountPage />);
     const token = "INVITATION-TOKEN-NEVER-IN-URL";
-    fireEvent.change(screen.getByLabelText(/โทเค็นเชิญ/), { target: { value: token } });
-    fireEvent.click(screen.getByRole("button", { name: "ตรวจสอบโทเค็น" }));
+    fireEvent.change(screen.getByLabelText(/รหัสเชิญ/), { target: { value: token } });
+    fireEvent.click(screen.getByRole("button", { name: "ตรวจสอบรหัส" }));
 
     expect(await screen.findByText("อีเมล: invited@example.test")).toBeInTheDocument();
     expect(window.location.href).not.toContain(token);

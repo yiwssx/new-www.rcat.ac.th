@@ -194,7 +194,7 @@ export default function OrganizationUnitEditorDialog({ open, initial, units, bus
               disabled={busy}
               value={parentSearch}
               onChange={(event) => setParentSearch(event.target.value)}
-              helperText="ค้นหาหน่วยงานในระบบทั้งหมด ไม่จำกัดเฉพาะหน้าที่โหลดอยู่"
+              helperText="ค้นหาหน่วยงานทั้งหมด"
               slotProps={{ htmlInput: { maxLength: 160 } }}
             />
             {parentSearch && parentSearch !== parentSearchDebounced && (
@@ -260,7 +260,7 @@ export default function OrganizationUnitEditorDialog({ open, initial, units, bus
                     onChange={(_, checked) => setAutoSortOrder(checked)}
                   />
                 }
-                label="จัดลำดับต่อท้ายอัตโนมัติจากเซิร์ฟเวอร์"
+                label="เพิ่มต่อท้ายอัตโนมัติ"
               />
             )}
             <Box component="details" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, p: 1.5 }}>
@@ -282,7 +282,7 @@ export default function OrganizationUnitEditorDialog({ open, initial, units, bus
                     error={Boolean(errors.sortOrder)}
                     helperText={
                       errors.sortOrder?.message ??
-                      "ระบบเติมลำดับถัดไปให้อัตโนมัติ (เริ่มบันทึกที่ 0 แต่แสดงอันดับเริ่มที่ 1)"
+                      (autoSortOrder ? "ระบบจะจัดลำดับให้อัตโนมัติเมื่อบันทึก" : "กรอก 0 สำหรับรายการแรก")
                     }
                     slotProps={{ htmlInput: { min: 0, step: 1 } }}
                   />
@@ -312,7 +312,7 @@ export default function OrganizationUnitEditorDialog({ open, initial, units, bus
             />
             {(status === "scheduled" || status === "published") && (
               <Typography variant="body2" color="text.secondary">
-                การเผยแพร่สู่หน้า Public และระบบประมวลผลรายการกำหนดเวลา จะเชื่อมครบใน Phase 7–8
+                การแสดงข้อมูลตามวันที่กำหนดยังไม่พร้อมใช้งาน กรุณาตรวจสอบสถานะก่อนเผยแพร่
               </Typography>
             )}
             <Controller

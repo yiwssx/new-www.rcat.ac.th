@@ -633,7 +633,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                     value={unitSearch}
                     onChange={(event) => setUnitSearch(event.target.value)}
                     slotProps={{ htmlInput: { maxLength: 160 } }}
-                    helperText="ค้นหาจากเซิร์ฟเวอร์ โดยไม่ต้องโหลดทุกหน่วยงาน"
+                    helperText="ค้นหาหน่วยงานได้จากรายการทั้งหมด"
                   />
                   {searchedUnits.isFetching && unitSearchDebounced && (
                     <Typography variant="caption">กำลังค้นหาหน่วยงาน…</Typography>
@@ -1092,10 +1092,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
             </Button>
           </Stack>
           {(positionsQuery.hasNextPage || assignmentsQuery.hasNextPage || personnelQuery.hasNextPage) && (
-            <Alert severity="info">
-              ข้อมูลบางประเภทยังโหลดไม่ครบ สามารถเพิ่มรายการใหม่ต่อท้ายโดยให้เซิร์ฟเวอร์กำหนดลำดับได้
-              แต่ควรโหลดข้อมูลที่เหลือก่อนตรวจสอบผู้ดำรงตำแหน่งหรือดูตัวอย่างผังให้ครบถ้วน
-            </Alert>
+            <Alert severity="info">ข้อมูลยังไม่ครบ เพิ่มรายการได้ โปรดโหลดให้ครบก่อนตรวจผัง</Alert>
           )}
           <Dialog open={positionForm !== null} onClose={() => !busy && setPositionForm(null)} fullWidth maxWidth="sm">
             <DialogTitle>{positionEditing ? "แก้ไขตำแหน่ง" : "เพิ่มตำแหน่ง"}</DialogTitle>
@@ -1170,7 +1167,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                             onChange={(_, checked) => setPositionAutoOrder(checked)}
                           />
                         }
-                        label="เพิ่มต่อท้ายอัตโนมัติจากข้อมูลบนเซิร์ฟเวอร์"
+                        label="เพิ่มต่อท้ายอัตโนมัติ"
                       />
                       <TextField
                         label="ลำดับตำแหน่ง"
@@ -1178,11 +1175,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                         fullWidth
                         value={positionAutoOrder ? "" : positionForm.sortOrder}
                         disabled={busy || positionAutoOrder}
-                        helperText={
-                          positionAutoOrder
-                            ? "เซิร์ฟเวอร์กำหนดลำดับจริงเมื่อบันทึก"
-                            : "ค่าในระบบเริ่มที่ 0 แต่รายการแสดงอันดับเริ่มที่ 1"
-                        }
+                        helperText={positionAutoOrder ? "ระบบจะจัดลำดับเมื่อบันทึก" : "กรอก 0 สำหรับรายการแรก"}
                         onChange={(event) =>
                           setPositionForm({ ...positionForm, sortOrder: Number(event.target.value) })
                         }
@@ -1243,7 +1236,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                     size="small"
                     fullWidth
                     slotProps={{ htmlInput: { maxLength: 160 } }}
-                    helperText="ค้นหาผ่านเซิร์ฟเวอร์โดยไม่ต้องโหลดบุคลากรทั้งหมด"
+                    helperText="ค้นหาบุคลากรได้จากรายการทั้งหมด"
                   />
                   <TextField
                     label="บุคลากรจากทะเบียนกลาง"
@@ -1321,7 +1314,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                           onChange={(_, checked) => setAssignmentAutoOrder(checked)}
                         />
                       }
-                      label="เพิ่มต่อท้ายอัตโนมัติจากข้อมูลบนเซิร์ฟเวอร์"
+                      label="เพิ่มต่อท้ายอัตโนมัติ"
                     />
                     <TextField
                       label="ลำดับการแสดง"
@@ -1330,9 +1323,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                       sx={{ mt: 2 }}
                       disabled={busy || assignmentAutoOrder}
                       value={assignmentAutoOrder ? "" : assignmentForm.sortOrder}
-                      helperText={
-                        assignmentAutoOrder ? "เซิร์ฟเวอร์กำหนดลำดับจริงเมื่อบันทึก" : "ระบบแสดงอันดับเริ่มที่ 1"
-                      }
+                      helperText={assignmentAutoOrder ? "ระบบจะจัดลำดับเมื่อบันทึก" : "ระบบแสดงอันดับเริ่มที่ 1"}
                       onChange={(event) =>
                         setAssignmentForm({ ...assignmentForm, sortOrder: Number(event.target.value) })
                       }

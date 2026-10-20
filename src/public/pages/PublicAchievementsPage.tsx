@@ -118,7 +118,7 @@ export default function PublicAchievementsPage() {
           />
         </>
       ) : (
-        <EmptyState title="ยังไม่มีผลงานที่เผยแพร่" icon={<EmojiEventsOutlinedIcon />} />
+        <EmptyState title="ยังไม่มีผลงานในขณะนี้" icon={<EmojiEventsOutlinedIcon />} />
       )}
     </PublicSiteShell>
   );

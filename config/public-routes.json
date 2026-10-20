@@ -20,7 +20,7 @@
       "menuSelectable": true,
       "indexable": true,
       "sitemap": true,
-      "description": "เว็บไซต์ประชาสัมพันธ์และระบบจัดการเนื้อหาของสถานศึกษา"
+      "description": "ข่าวสาร กิจกรรม ประกาศ และข้อมูลสำคัญจากวิทยาลัย"
     },
     {
       "id": "news",
@@ -31,7 +31,7 @@
       "indexable": true,
       "sitemap": true,
       "title": "ข่าว",
-      "description": "กิจกรรมล่าสุด เรื่องราวในสถานศึกษา และข่าวประชาสัมพันธ์จาก CMS"
+      "description": "ข่าวสาร กิจกรรม และเรื่องราวล่าสุดจากวิทยาลัย"
     },
     {
       "id": "announcements",
@@ -64,7 +64,7 @@
       "indexable": true,
       "sitemap": true,
       "title": "แผนกวิชา",
-      "description": "ข้อมูลแผนกวิชาที่เผยแพร่จาก CMS"
+      "description": "ข้อมูลแผนกวิชาและสาขาวิชาที่เปิดสอน"
     },
     {
       "id": "blog",
@@ -75,7 +75,7 @@
       "indexable": true,
       "sitemap": true,
       "title": "บทความ",
-      "description": "บทความและเนื้อหาระยะยาวที่เผยแพร่จาก CMS"
+      "description": "บทความ ความรู้ และเรื่องราวจากวิทยาลัย"
     },
     {
       "id": "documents",
@@ -108,7 +108,7 @@
       "indexable": true,
       "sitemap": true,
       "title": "ติดต่อ",
-      "description": "ข้อมูลติดต่อที่เผยแพร่จาก CMS"
+      "description": "ที่อยู่ เบอร์โทรศัพท์ และช่องทางติดต่อวิทยาลัย"
     },
     {
       "id": "complaint",

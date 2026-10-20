@@ -53,11 +53,11 @@ export default function RevisionHistoryViewer() {
             <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
               <HistoryOutlinedIcon color="primary" />
               <Typography variant="h2" sx={{ fontSize: "1.35rem" }}>
-                ประวัติ Revision
+                ประวัติการแก้ไข
               </Typography>
             </Stack>
             <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
-              ตรวจสอบเวอร์ชัน การดำเนินการ เวลา ผู้ดำเนินการ และ snapshot แบบอ่านอย่างเดียว
+              ดูการเปลี่ยนแปลง ผู้แก้ไข และรายละเอียดในแต่ละเวอร์ชัน
             </Typography>
           </Box>
 
@@ -77,7 +77,7 @@ export default function RevisionHistoryViewer() {
           {selectedId && revisionsQuery.isLoading && <Typography>กำลังโหลดประวัติ…</Typography>}
           {revisionsQuery.isError && <Alert severity="error">ไม่สามารถโหลดประวัติการแก้ไขได้</Alert>}
           {revisionsQuery.data && !revisionsQuery.data.items.length && (
-            <Alert severity="info">ยังไม่มี revision history สำหรับเนื้อหานี้</Alert>
+            <Alert severity="info">ยังไม่มีประวัติการแก้ไขสำหรับเนื้อหานี้</Alert>
           )}
 
           {revisionsQuery.data?.items.length ? (
@@ -95,14 +95,14 @@ export default function RevisionHistoryViewer() {
                 >
                   <Box>
                     <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap", alignItems: "center" }}>
-                      <Typography sx={{ fontWeight: 800 }}>Revision {revision.revision}</Typography>
+                      <Typography sx={{ fontWeight: 800 }}>เวอร์ชัน {revision.revision}</Typography>
                       <Chip label={revisionActionLabel(revision.reason)} size="small" variant="outlined" />
                     </Stack>
                     <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
                       {formatDisplayDate(revision.createdAt)} · {revision.actor || "ระบบ"}
                     </Typography>
                     <Typography variant="body2" sx={{ mt: 0.5 }}>
-                      {revision.snapshot?.title || "Snapshot ไม่พร้อมใช้งาน"}
+                      {revision.snapshot?.title || "ไม่สามารถแสดงรายละเอียดเวอร์ชันนี้ได้"}
                     </Typography>
                   </Box>
                   <Button
@@ -112,7 +112,7 @@ export default function RevisionHistoryViewer() {
                     disabled={!revision.snapshot}
                     onClick={() => setSelectedRevision(revision)}
                   >
-                    ตรวจ Snapshot
+                    ดูรายละเอียด
                   </Button>
                 </Stack>
               ))}
@@ -122,7 +122,7 @@ export default function RevisionHistoryViewer() {
       </CardContent>
 
       <Dialog open={Boolean(selectedRevision)} onClose={() => setSelectedRevision(null)} fullWidth maxWidth="md">
-        <DialogTitle>Snapshot {selectedRevision ? `Revision ${selectedRevision.revision}` : ""}</DialogTitle>
+        <DialogTitle>รายละเอียด{selectedRevision ? `เวอร์ชัน ${selectedRevision.revision}` : ""}</DialogTitle>
         <DialogContent dividers>
           {selectedRevision && (
             <Stack spacing={2}>

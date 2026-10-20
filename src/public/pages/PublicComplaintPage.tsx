@@ -257,7 +257,7 @@ export default function PublicComplaintPage() {
   return (
     <PublicSiteShell
       title="แบบฟอร์มแจ้งเรื่องร้องเรียน"
-      description="กรอกข้อมูลให้ครบถ้วน ระบบจะส่งเรื่องให้ผู้ดูแลทันที"
+      description="กรอกข้อมูลเพื่อแจ้งเรื่องให้เจ้าหน้าที่รับทราบและดำเนินการ"
       canonicalPath="/complaint"
     >
       <div className="relative isolate w-full overflow-hidden rounded-3xl bg-slate-100 px-4 py-10 text-slate-800 [font-family:'Sarabun',sans-serif]">
@@ -281,7 +281,7 @@ export default function PublicComplaintPage() {
               <p className="text-m font-medium text-slate-500">วิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด</p>
               <p className="text-sm font-medium text-slate-500">Roi-et College of Agriculture and Technology</p>
               <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">แบบฟอร์มแจ้งเรื่องร้องเรียน</h2>
-              <p className="mt-1 text-sm text-slate-500">กรอกข้อมูลให้ครบถ้วน ระบบจะส่งเรื่องให้ผู้ดูแลทันที</p>
+              <p className="mt-1 text-sm text-slate-500">กรอกข้อมูลเพื่อแจ้งเรื่องให้เจ้าหน้าที่รับทราบและดำเนินการ</p>
             </div>
 
             <form className="space-y-4" onSubmit={onSubmit}>

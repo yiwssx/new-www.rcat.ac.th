@@ -5,7 +5,7 @@ async function openContentAdmin(page: Page, viewport: { width: number; height: n
   await page.setViewportSize(viewport);
   await installAuthenticatedDesignSystemCmsFixture(page);
   await page.goto("/admin/content");
-  await page.getByRole("heading", { name: "เนื้อหา" }).waitFor();
+  await page.getByRole("heading", { name: "เนื้อหา", exact: true }).waitFor();
   await expect(page.getByRole("table", { name: "ตารางเนื้อหา" })).toBeVisible({ timeout: 10_000 });
 }
 
