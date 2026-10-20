@@ -6,7 +6,7 @@ import PublicContentCard from "../PublicContentCard";
 import { HomeSectionHeading } from "./HomeSectionHeading";
 
 export function ProgramsSection({ items, mediaAssets }: { items: PublicContentCardItem[]; mediaAssets: MediaAsset[] }) {
-  const visibleItems = items.filter((item) => item.title.trim() && item.slug.trim());
+  const visibleItems = items.filter((item) => item.status === "published" && item.title.trim() && item.slug.trim());
   if (visibleItems.length === 0) {
     return null;
   }
