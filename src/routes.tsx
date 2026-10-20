@@ -25,6 +25,8 @@ import {
   PublicCalendarPage,
   PublicComplaintPage,
   PublicContactPage,
+  PublicCookiePolicyPage,
+  PublicPrivacyPolicyPage,
   PublicContentDetailRoute,
   PublicOrganizationDetailRoute,
   PublicDepartmentsPage,
@@ -179,6 +181,20 @@ const publicContactRoute = createRoute({
   loader: ({ context }) => loadPublicCmsSnapshotData(context),
   head: () => getStaticPublicRouteHead("/contact"),
   component: PublicContactPage
+});
+
+const publicPrivacyPolicyRoute = createRoute({
+  getParentRoute: () => publicLayoutRoute,
+  path: "privacy-policy",
+  head: () => getStaticPublicRouteHead("/privacy-policy"),
+  component: PublicPrivacyPolicyPage
+});
+
+const publicCookiePolicyRoute = createRoute({
+  getParentRoute: () => publicLayoutRoute,
+  path: "cookie-policy",
+  head: () => getStaticPublicRouteHead("/cookie-policy"),
+  component: PublicCookiePolicyPage
 });
 
 const publicComplaintRoute = createRoute({
@@ -448,6 +464,8 @@ const routeTree = rootRoute.addChildren([
     publicDocumentsRoute,
     publicCalendarRoute,
     publicContactRoute,
+    publicPrivacyPolicyRoute,
+    publicCookiePolicyRoute,
     publicComplaintRoute,
     publicIta2569Route,
     publicSearchRoute,
