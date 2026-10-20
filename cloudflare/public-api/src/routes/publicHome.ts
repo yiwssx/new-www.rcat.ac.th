@@ -60,7 +60,7 @@ export async function publicHome(env: Env) {
 
   try {
     const generatedAt = new Date();
-    const [content, generalAnnouncements, featuredDocuments, homeCoreRows, visitorAggregate, onlineUsers] = await Promise.all([
+    const homeResults = await Promise.all([
       listHomePublishedContentSummaryRows(env),
       listHomePublishedGeneralAnnouncementRows(env),
       listHomePublishedDocumentRows(env),
@@ -68,6 +68,7 @@ export async function publicHome(env: Env) {
       readVisitorStatsAggregate(env, generatedAt),
       countOnlineVisitors(env, generatedAt)
     ]);
+    const [content, generalAnnouncements, featuredDocuments, homeCoreRows, visitorAggregate, onlineUsers] = homeResults;
     const visitorStats = createPublicVisitorStatsSnapshotFromAggregate(visitorAggregate, generatedAt, onlineUsers);
     const metadataRows = {
       siteSettings: null,
