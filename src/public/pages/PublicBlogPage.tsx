@@ -139,7 +139,7 @@ export default function PublicBlogPage() {
       )}
       {!filteredBlogItems.length && (
         <EmptyState
-          title={hasActiveFilter ? "ไม่พบบทความตามตัวกรองที่เลือก" : "ยังไม่มีบทความที่เผยแพร่"}
+          title={hasActiveFilter ? "ไม่พบบทความตามตัวกรองที่เลือก" : "ยังไม่มีบทความในขณะนี้"}
           icon={<EditNoteOutlinedIcon />}
         />
       )}
