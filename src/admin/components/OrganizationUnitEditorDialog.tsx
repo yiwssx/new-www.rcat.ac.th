@@ -312,7 +312,7 @@ export default function OrganizationUnitEditorDialog({ open, initial, units, bus
             />
             {(status === "scheduled" || status === "published") && (
               <Typography variant="body2" color="text.secondary">
-                กำหนดวันที่เริ่มและสิ้นสุดการแสดงข้อมูลหน่วยงานได้ตามต้องการ
+                การแสดงข้อมูลตามวันที่กำหนดยังไม่พร้อมใช้งาน กรุณาตรวจสอบสถานะก่อนเผยแพร่
               </Typography>
             )}
             <Controller
