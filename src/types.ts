@@ -107,6 +107,7 @@ export interface PublicHomeSnapshot {
   visitorStats: VisitorStatsSettings;
   latestNews: PublicContentCardItem[];
   latestAnnouncements: PublicContentCardItem[];
+  generalAnnouncementItems?: PublicContentCardItem[];
   procurementItems: PublicContentCardItem[];
   jobOpportunityItems: PublicContentCardItem[];
   achievementItems: PublicContentCardItem[];
