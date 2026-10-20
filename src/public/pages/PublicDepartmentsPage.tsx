@@ -70,7 +70,7 @@ export default function PublicDepartmentsPage() {
       >
         <SchoolOutlinedIcon color="primary" />
         <Typography variant="h2" sx={{ fontSize: "1.65rem" }}>
-          ข้อมูลแผนกวิชาที่เผยแพร่
+          แผนกวิชาและสาขาวิชา
         </Typography>
       </Stack>
       {programItems.length ? (
@@ -95,7 +95,7 @@ export default function PublicDepartmentsPage() {
           />
         </>
       ) : (
-        <EmptyState title="ยังไม่มีข้อมูลแผนกวิชาที่เผยแพร่" icon={<SchoolOutlinedIcon />} />
+        <EmptyState title="ยังไม่มีข้อมูลแผนกวิชาและสาขาวิชา" icon={<SchoolOutlinedIcon />} />
       )}
     </PublicSiteShell>
   );
