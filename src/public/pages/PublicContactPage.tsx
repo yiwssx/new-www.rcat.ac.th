@@ -255,7 +255,7 @@ export default function PublicContactPage() {
                   </Stack>
                 ) : (
                   <Box sx={{ mt: 2 }}>
-                    <EmptyState title="ยังไม่มีช่องทางติดตามที่เผยแพร่" />
+                    <EmptyState title="ยังไม่มีช่องทางติดตามในขณะนี้" />
                   </Box>
                 )}
               </CardContent>
