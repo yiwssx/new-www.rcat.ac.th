@@ -101,7 +101,7 @@ export default function PublicCalendarPage() {
       <EventListCard
         items={eventsPagination.paginatedItems}
         mediaAssets={data.media}
-        emptyTitle="ยังไม่มีกำหนดการเผยแพร่"
+        emptyTitle="ยังไม่มีกำหนดการในขณะนี้"
         initialNowMs={snapshotReferenceTimeMs}
       />
       {events.length > 0 && (
