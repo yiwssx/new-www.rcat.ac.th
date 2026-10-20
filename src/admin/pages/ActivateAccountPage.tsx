@@ -94,9 +94,7 @@ export default function ActivateAccountPage() {
 
   return (
     <AuthPageLayout title="เปิดใช้งานบัญชีเจ้าหน้าที่">
-      <Alert severity="info">
-        กรอกรหัสเชิญที่ได้รับจากผู้ดูแลระบบเพื่อเปิดใช้งานบัญชี
-      </Alert>
+      <Alert severity="info">กรอกรหัสเชิญที่ได้รับจากผู้ดูแลระบบเพื่อเปิดใช้งานบัญชี</Alert>
       {error && (
         <Alert severity="error" aria-live="assertive">
           {error}
