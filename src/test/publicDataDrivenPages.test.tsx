@@ -1819,7 +1819,7 @@ describe("public data-driven pages", () => {
     expect(procurementIndex).toBeLessThan(programsIndex);
     expect(programsIndex).toBeLessThan(achievementsIndex);
     expect(achievementsIndex).toBeLessThan(externalServicesIndex);
-     expect(eventsIndex).toBeLessThan(documentsIndex);
+    expect(eventsIndex).toBeLessThan(documentsIndex);
     expect(documentsIndex).toBeLessThan(contactIndex);
     expect(contactIndex).toBeLessThan(visitorStatsIndex);
 
