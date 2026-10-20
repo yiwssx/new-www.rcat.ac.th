@@ -73,14 +73,14 @@ export function LatestAnnouncementsCard({ items }: { items: PublicContentCardIte
         <HomeSectionHeading
           compact
           label="ประกาศ"
-          title="ประกาศล่าสุด"
+          title="ประกาศทั่วไปและประกาศสำคัญ"
           action={
             <Button size="small" href={normalizeSafeHref("/announcements")} endIcon={<ArrowForwardOutlinedIcon />}>
               ทั้งหมด
             </Button>
           }
         />
-        <CompactAnnouncementList items={items} emptyTitle="ยังไม่มีประกาศที่เผยแพร่" />
+        <CompactAnnouncementList items={items} emptyTitle="ยังไม่มีประกาศทั่วไปที่เผยแพร่" />
       </CardContent>
     </Card>
   );
