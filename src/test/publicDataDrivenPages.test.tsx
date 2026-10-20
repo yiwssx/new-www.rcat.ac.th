@@ -1788,8 +1788,8 @@ describe("public data-driven pages", () => {
     const heroIndex = pageText.indexOf("ยินดีต้อนรับสู่วิทยาลัยตัวอย่าง");
     const directorIndex = pageText.indexOf("สารจากผู้อำนวยการ");
     const newsIndex = pageText.indexOf("ข่าวสารและกิจกรรมล่าสุด");
-    const programsIndex = pageText.indexOf("แผนกวิชาที่เปิดสอน");
-    const announcementsIndex = pageText.indexOf("ประกาศล่าสุด");
+    const programsIndex = pageText.indexOf("สาขาวิชาที่เปิดสอน");
+    const announcementsIndex = pageText.indexOf("ประกาศทั่วไปและประกาศสำคัญ");
     const eventsIndex = pageText.indexOf("กำหนดการ");
     const documentsIndex = pageText.indexOf("เอกสารเผยแพร่");
     const contactIndex = pageText.indexOf("ติดต่อและแผนที่");
@@ -1814,12 +1814,12 @@ describe("public data-driven pages", () => {
     }).forEach(([label, index]) => expect(index, label).toBeGreaterThanOrEqual(0));
     expect(heroIndex).toBeLessThan(directorIndex);
     expect(directorIndex).toBeLessThan(newsIndex);
-    expect(newsIndex).toBeLessThan(procurementIndex);
+    expect(newsIndex).toBeLessThan(announcementsIndex);
+    expect(announcementsIndex).toBeLessThan(procurementIndex);
     expect(procurementIndex).toBeLessThan(programsIndex);
     expect(programsIndex).toBeLessThan(achievementsIndex);
     expect(achievementsIndex).toBeLessThan(externalServicesIndex);
-    expect(announcementsIndex).toBeLessThan(eventsIndex);
-    expect(eventsIndex).toBeLessThan(documentsIndex);
+     expect(eventsIndex).toBeLessThan(documentsIndex);
     expect(documentsIndex).toBeLessThan(contactIndex);
     expect(contactIndex).toBeLessThan(visitorStatsIndex);
 
