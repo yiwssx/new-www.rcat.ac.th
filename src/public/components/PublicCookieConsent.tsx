@@ -57,7 +57,7 @@ export default function PublicCookieConsent({ consent, onChoose }: PublicCookieC
             bottom: 0,
             left: 0,
             right: 0,
-            zIndex: (theme) => theme.zIndex.snackbar,
+            zIndex: (theme) => theme.zIndex.tooltip + 1,
             p: { xs: 1, sm: 2 },
             pointerEvents: "none"
           }}
@@ -106,6 +106,7 @@ export default function PublicCookieConsent({ consent, onChoose }: PublicCookieC
         aria-labelledby="rcat-cookie-settings-title"
         maxWidth="sm"
         fullWidth
+        sx={{ zIndex: (theme) => theme.zIndex.tooltip + 2 }}
       >
         <DialogTitle id="rcat-cookie-settings-title">ตั้งค่าความเป็นส่วนตัวและคุกกี้</DialogTitle>
         <DialogContent dividers>
