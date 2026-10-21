@@ -198,6 +198,32 @@ describe("Vercel Public SSR production cutover", () => {
     );
   });
 
+  it("serves both legal pages as 200 SEO-indexable SSR documents, not legacy content permalinks", async () => {
+    for (const [path, heading] of [
+      ["/privacy-policy", "นโยบายความเป็นส่วนตัว (Privacy Policy)"],
+      ["/cookie-policy", "นโยบายการใช้คุกกี้ (Cookie Policy)"]
+    ] as const) {
+      const request = new Request(`https://www.rcat.ac.th/api/ssr?_rcatPath=${path}`);
+      expect(reconstructPublicSsrRequest(request)?.url).toBe(`https://www.rcat.ac.th${path}`);
+
+      const response = await renderVercelPublicSsrRequest(request);
+      const html = await response.text();
+
+      expect(response.status, `SSR response for ${path}`).toBe(200);
+      expect(html).toContain(heading);
+      expect(html).toContain("<!DOCTYPE html>");
+      expect(html).toContain(`https://www.rcat.ac.th${path}`);
+      expect(response.headers.get("X-Robots-Tag")).not.toBe("noindex, nofollow");
+      expect(response.headers.get("Cache-Control")).toBe(PUBLIC_SSR_BROWSER_CACHE_CONTROL);
+    }
+
+    const requestedPaths = vi
+      .mocked(globalThis.fetch)
+      .mock.calls.map(([input]) => new URL(input instanceof Request ? input.url : String(input)).pathname);
+    expect(requestedPaths).not.toContain("/api/public/content/privacy-policy");
+    expect(requestedPaths).not.toContain("/api/public/content/cookie-policy");
+  });
+
   it("reconstructs an organization permalink without admitting unrelated nested paths", () => {
     const request = new Request("https://www.rcat.ac.th/api/ssr?_rcatPath=/organization/rcat-2569-business");
     expect(reconstructPublicSsrRequest(request)?.url).toBe("https://www.rcat.ac.th/organization/rcat-2569-business");
