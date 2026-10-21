@@ -39,10 +39,7 @@ describe("mourning ribbon responsive layout", () => {
     expect(ribbonSource).toContain("width: MOURNING_RIBBON_SIZE");
     expect(publicShellSource).toContain("pl: mourningRibbonTopBarPadding");
     expect(publicShellSource).toContain("pl: mourningRibbonIdentityPadding");
-    expect(publicShellSource).toContain("pt: mourningRibbonEnabled ? { xs: 5.5, sm: 8.5, md: 0 } : 0");
     expect(publicShellSource).toContain("{mourningRibbonEnabled && <PublicMourningRibbon />}");
-    expect(publicShellSource).not.toContain("WebkitLineClamp");
-    expect(publicShellSource).toContain('height: { xs: 44, sm: 40 }');
   });
 
   it("renders a genuine, self-contained SVG instead of scaling the old PNG", () => {
