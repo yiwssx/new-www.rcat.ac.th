@@ -352,7 +352,7 @@ function TopBarSocialIcons({ links, showLabel }: { links: TopBarSocialLink[]; sh
   return (
     <Stack
       direction="row"
-      spacing={{ xs: 0.35, sm: 0.45, md: 0.75 }}
+      spacing={{ xs: 0, sm: 0.45, md: 0.75 }}
       sx={{
         alignItems: "center",
         justifyContent: "flex-end",
@@ -389,7 +389,24 @@ function MobileTopBar({ phone, socialLinks }: { phone?: string; socialLinks: Top
       {phone && (
         <TopBarInfoItem icon={<LocalPhoneOutlinedIcon />} text={phone} href={getTelephoneHref(phone)} compact />
       )}
-      <TopBarSocialIcons links={socialLinks} showLabel={false} />
+      <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
+        <Link
+          href={normalizeSafeHref("/contact")}
+          aria-label="ข้อมูลติดต่อและที่ตั้งวิทยาลัย"
+          sx={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 44,
+            height: 44,
+            color: "inherit",
+            ...focusVisibleSx
+          }}
+        >
+          <LocationOnOutlinedIcon fontSize="small" />
+        </Link>
+        <TopBarSocialIcons links={socialLinks} showLabel={false} />
+      </Stack>
     </Box>
   );
 }
