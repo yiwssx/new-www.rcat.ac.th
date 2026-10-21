@@ -200,7 +200,7 @@ describe("Vercel Public SSR production cutover", () => {
 
   it("serves both legal pages as 200 SEO-indexable SSR documents, not legacy content permalinks", async () => {
     for (const [path, heading] of [
-      ["/privacy-policy", "นโยบายความเป็นส่วนตัว (Privacy Policy)"],
+      ["/privacy-policy", "ประกาศเกี่ยวกับความเป็นส่วนตัวในการใช้เว็บไซต์"],
       ["/cookie-policy", "นโยบายการใช้คุกกี้ (Cookie Policy)"]
     ] as const) {
       const request = new Request(`https://www.rcat.ac.th/api/ssr?_rcatPath=${path}`);
