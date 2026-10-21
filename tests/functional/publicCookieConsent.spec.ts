@@ -106,14 +106,10 @@ test.describe("Public cookie consent", () => {
         };
       });
 
-      expect(geometry.documentWidth, `document overflows at ${width}px`).toBeLessThanOrEqual(geometry.viewport + 1);
-      expect(geometry.noticeRight, `cookie notice overflows at ${width}px`).toBeLessThanOrEqual(
-        geometry.viewport + 1
-      );
-      expect(geometry.paperLeft, `cookie panel begins offscreen at ${width}px`).toBeGreaterThanOrEqual(-1);
-      expect(geometry.paperRight, `cookie panel overflows at ${width}px`).toBeLessThanOrEqual(
-        geometry.viewport + 1
-      );
+      expect(geometry.documentWidth).toBeLessThanOrEqual(geometry.viewport + 1);
+      expect(geometry.noticeRight).toBeLessThanOrEqual(geometry.viewport + 1);
+      expect(geometry.paperLeft).toBeGreaterThanOrEqual(-1);
+      expect(geometry.paperRight).toBeLessThanOrEqual(geometry.viewport + 1);
     }
   });
 
