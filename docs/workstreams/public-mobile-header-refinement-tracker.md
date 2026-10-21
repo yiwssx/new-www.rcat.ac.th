@@ -2,7 +2,7 @@
 
 - **Status:** ACTIVE
 - **Branch:** `fix/public-mobile-header-compact-royal-award`
-- **PR:** Pending
+- **PR:** [#676](https://github.com/yiwssx/new-www.rcat.ac.th/pull/676)
 - **Scope:** Public mobile top bar, college identity, mourning-ribbon clearance, primary actions/search, compact menu and urgent ticker; responsive regression checks.
 - **Out of scope:** CMS content/settings, royal-award wording/year changes, Worker/D1, authentication, deployment and protected production operations.
 
