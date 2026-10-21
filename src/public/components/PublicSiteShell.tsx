@@ -1027,6 +1027,9 @@ function PublicSiteShellFrame({
                           ...focusVisibleSx,
                           border: 0,
                           p: 0,
+                          minHeight: 44,
+                          display: "inline-flex",
+                          alignItems: "center",
                           bgcolor: "transparent",
                           cursor: "pointer",
                           font: "inherit"
