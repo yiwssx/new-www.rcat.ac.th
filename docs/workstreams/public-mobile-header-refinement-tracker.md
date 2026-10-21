@@ -19,11 +19,14 @@
 - [x] Read current `main`, project agent instructions, related components and ribbon tests.
 - [x] Implement public shell, responsive ribbon clearance, menu and urgent ticker on task branch.
 - [x] Add regression assertions for royal-award ordering, untruncated identity and compact touch controls.
-- [ ] Review exact branch diff and Prettier/lint/SSR/functional CI results.
+- [x] Review branch diff; first CI completed all relevant gates except Prettier on the new ribbon test. Simplified the test formatting without changing application behavior.
+- [ ] Verify exact-final-head CI (Prettier/lint/SSR/functional and aggregate quality).
 - [ ] Merge only after required checks pass and record final SHA.
 - [ ] Verify responsive rendering at 320/360/375/390/430px and desktop in a running browser; mark field QA separately.
 
 ## Evidence and next action
 
-- Current implementation is committed on the task branch; no production mutation has been made.
+- Implementation and tests are committed on the task branch; no production mutation has been made.
+- CI #4514 (`39546935095`) passed Dependency Preflight, Dependencies, Build, Governance, Integration, Unit, Functional E2E and Worker; Static Quality failed solely at `pnpm format:check` for `src/test/mourningRibbonLayout.test.ts`.
+- The test formatting was amended in commit `617e82548c069e5800b1472d3ab71edf28aea496`; the follow-up CI run #4515 (`39547806134`) was still pending at the latest read. The tracker documentation update itself creates a newer head that also requires exact-head CI.
 - Open a PR, inspect exact-head CI, correct any failures and wait for required gates. If field QA is unavailable, explicitly record it as unverified.
