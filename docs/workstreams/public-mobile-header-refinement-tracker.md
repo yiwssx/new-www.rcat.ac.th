@@ -12,15 +12,17 @@
 - Preserve the complete Thai and English institution names; no mobile ellipsis.
 - On mobile, display the two primary buttons side by side and the search field beneath them, each with a 44px touch height.
 - Preserve the ribbon size and avoid horizontal indentation on the narrow identity row by clearing the ribbon vertically.
-- Keep official RCAT color## Production field QA regression — 2026-10-21
+- Keep official RCAT color and existing public navigation routes and actions.
+
+## Production field QA regression — 2026-10-21
 
 - **Header delivery:** PR [#676](https://github.com/yiwssx/new-www.rcat.ac.th/pull/676) merged to `main@0f069849c617cd6c63ff0f90b740128ba1f3db94`. PR CI #4518 passed 10/10 gates. Vercel production deployment `dpl_yVosUXeRkcoxejZ7UpURPLkXP86G` is **READY**, serving `www.rcat.ac.th` and `rcat.ac.th`.
 - **Field QA blocker:** [Production Verification #39550481365](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/39550481365) failed at Read-only Browser Field QA. Mobile Chromium 412px reports `documentOverflow=24`; the cookie consent `aside[aria-label="แจ้งการใช้คุกกี้"]` measured 436px and its Paper panel 420px. The run passed desktop/other mobile tests; the mobile root horizontal-overflow check failed twice.
 - **Fix branch:** `fix/public-cookie-banner-mobile-overflow-677`. Constrain fixed cookie notice and Paper widths/box sizing and allow mobile action labels to wrap. Keep consent semantics, links, touch targets and privacy controls unchanged.
 - **Regression:** Functional Playwright suite checks banner and document bounds at 320, 360, 412 and 430px while consent is unset.
-- **Verification pending:** Open fix PR, confirm exact-head CI including Static Quality, Functional E2E and aggregate quality, then merge and verify a new exact-SHA production Deployment and read-only Production Verification. **Do not claim the original field-QA failure is resolved before evidence.**
+- **PR:** [#678](https://github.com/yiwssx/new-www.rcat.ac.th/pull/678) fixes the cookie notice. CI #4521 (`39551507588`) passed Build, Unit, Integration, Functional E2E, Governance, Worker, Dependencies but failed Static Quality only on this tracker Markdown file. The malformed heading and orphaned paragraph are corrected here.
+- **Verification pending:** Confirm exact-head CI including Static Quality, Functional E2E and aggregate quality, then merge and verify a new exact-SHA production Deployment and read-only Production Verification. **Do not claim the original field-QA failure is resolved before evidence.**
 
- and existing public navigation routes and actions.
 
 ## Checkpoints
 
