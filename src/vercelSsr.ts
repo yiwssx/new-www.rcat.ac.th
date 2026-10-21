@@ -1,4 +1,5 @@
 import { renderSsrResponse } from "./entry-server";
+import { PUBLIC_ROUTE_REGISTRY } from "./public/routing/publicRouteRegistry";
 import { finalizeSlug } from "./utils/slug";
 
 export const SSR_REWRITE_PATH_PARAM = "_rcatPath";
@@ -8,20 +9,8 @@ export const PUBLIC_SSR_CDN_CACHE_CONTROL = "public, max-age=600, stale-while-re
 export const PUBLIC_REDIRECT_CDN_CACHE_CONTROL = "public, max-age=86400, stale-while-revalidate=604800";
 export const PUBLIC_NOT_FOUND_CDN_CACHE_CONTROL = "public, max-age=60, stale-while-revalidate=300";
 
-const STATIC_PUBLIC_SSR_PATHS = new Set([
-  "/",
-  "/news",
-  "/announcements",
-  "/achievements",
-  "/blog",
-  "/departments",
-  "/documents",
-  "/calendar",
-  "/contact",
-  "/complaint",
-  "/ita2569",
-  "/search"
-]);
+// The public registry is authoritative for static SSR routes and reserved slugs.
+const STATIC_PUBLIC_SSR_PATHS = new Set(PUBLIC_ROUTE_REGISTRY.map(({ path }) => path));
 
 const RESERVED_SINGLE_SEGMENT_PATHS = new Set([
   "/admin",
