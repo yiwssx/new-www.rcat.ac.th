@@ -41,11 +41,34 @@ describe("dependency automation contract", () => {
     expect(pnpmWorkspace).not.toContain("minimumReleaseAgeExclude:");
   });
 
-  it("keeps selective grouping and manual review boundaries", () => {
+  it("keeps coherent functional grouping and manual review boundaries", () => {
     const packageRules = renovate.packageRules as Array<Record<string, unknown>>;
     expect(packageRules).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ matchUpdateTypes: ["major"], automerge: false }),
+        expect.objectContaining({
+          matchManagers: ["npm"],
+          matchDepTypes: ["dependencies"],
+          matchCurrentVersion: "!/^0/",
+          matchUpdateTypes: ["patch", "minor"],
+          groupName: "other runtime dependencies"
+        }),
+        expect.objectContaining({
+          matchManagers: ["npm"],
+          matchDepTypes: ["devDependencies"],
+          matchDepNames: ["!typescript", "!@typescript/native", "!@types/node", "!jsdom"],
+          matchCurrentVersion: "!/^0/",
+          matchUpdateTypes: ["patch", "minor"],
+          groupName: "other development dependencies"
+        }),
+        expect.objectContaining({
+          matchPackageNames: ["react-hook-form", "@hookform/resolvers", "zod"],
+          groupName: "form validation"
+        }),
+        expect.objectContaining({
+          matchPackageNames: ["@playwright/test", "@axe-core/playwright"],
+          groupName: "browser testing"
+        }),
         expect.objectContaining({
           matchPackageNames: ["@types/node"],
           rangeStrategy: "bump",
@@ -68,7 +91,7 @@ describe("dependency automation contract", () => {
           groupName: "cloudflare toolchain"
         }),
         expect.objectContaining({
-          matchPackageNames: ["@tanstack/react-query", "@tanstack/react-router"],
+          matchPackageNames: ["@tanstack/react-query", "@tanstack/react-router", "@tanstack/react-table"],
           groupName: "tanstack runtime"
         }),
         expect.objectContaining({
