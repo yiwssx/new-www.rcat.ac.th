@@ -78,4 +78,36 @@ test.describe("Public cookie consent", () => {
       await expect(page.getByRole("region", { name: "แจ้งการใช้คุกกี้" })).toBeVisible();
     }
   });
+
+  test("renders formal legal notices as one readable document on mobile", async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 800 });
+    await installPublicAuthIsolationFixture(page, { consent: "rejected" });
+
+    for (const [path, title] of [
+      ["/privacy-policy", "ประกาศเกี่ยวกับความเป็นส่วนตัวในการใช้เว็บไซต์"],
+      ["/cookie-policy", "นโยบายการใช้คุกกี้"]
+    ] as const) {
+      await page.goto(path);
+
+      const article = page.locator('article[aria-labelledby="legal-notice-title"]');
+      await expect(article).toBeVisible();
+      await expect(article.getByRole("heading", { level: 1, name: title, exact: true })).toHaveCount(1);
+      await expect(article.getByRole("navigation", { name: "สารบัญประกาศ" })).toBeVisible();
+      await expect(article.getByRole("heading", { level: 2 })).toHaveCount(5);
+      await expect(article.locator(".MuiCard-root")).toHaveCount(0);
+
+      await article.getByRole("link", { name: /การติดต่อและการเปลี่ยนแปลงนโยบาย|สิทธิของเจ้าของข้อมูลและช่องทางติดต่อ/ }).click();
+      await expect(article.getByRole("heading", { level: 2 }).last()).toBeInViewport();
+
+      const noDocumentOverflow = await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth + 1
+      );
+      expect(noDocumentOverflow, "policy document must fit mobile viewport").toBe(true);
+    }
+
+    await expect(page.getByRole("table", { name: "ประเภทคุกกี้และการให้ความยินยอม" })).toBeVisible();
+    await expect(page.getByRole("row")).toHaveCount(3);
+    await expect(page.getByRole("link", { name: "ติดต่อวิทยาลัย" })).toHaveAttribute("href", "/contact");
+  });
+
 });
