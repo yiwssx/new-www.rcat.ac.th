@@ -96,7 +96,9 @@ test.describe("Public cookie consent", () => {
       await expect(article.getByRole("heading", { level: 2 })).toHaveCount(5);
       await expect(article.locator(".MuiCard-root")).toHaveCount(0);
 
-      await article.getByRole("link", { name: /การติดต่อและการเปลี่ยนแปลงนโยบาย|สิทธิของเจ้าของข้อมูลและช่องทางติดต่อ/ }).click();
+      await article
+        .getByRole("link", { name: /การติดต่อและการเปลี่ยนแปลงนโยบาย|สิทธิของเจ้าของข้อมูลและช่องทางติดต่อ/ })
+        .click();
       await expect(article.getByRole("heading", { level: 2 }).last()).toBeInViewport();
 
       const noDocumentOverflow = await page.evaluate(
@@ -109,5 +111,4 @@ test.describe("Public cookie consent", () => {
     await expect(page.getByRole("row")).toHaveCount(3);
     await expect(page.getByRole("link", { name: "ติดต่อวิทยาลัย" })).toHaveAttribute("href", "/contact");
   });
-
 });
