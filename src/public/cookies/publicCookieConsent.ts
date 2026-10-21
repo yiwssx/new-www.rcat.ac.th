@@ -1,5 +1,6 @@
 export const PUBLIC_COOKIE_CONSENT_STORAGE_KEY = "rcat.cookie.consent.v1";
 export const PUBLIC_COOKIE_CONSENT_OPEN_EVENT = "rcat:cookie-preferences:open";
+export const PUBLIC_COOKIE_CONSENT_CHANGE_EVENT = "rcat:cookie-preferences:changed";
 
 const COOKIE_CONSENT_VERSION = 1;
 const CONSENT_VALIDITY_MS = 180 * 24 * 60 * 60 * 1000;
@@ -35,6 +36,40 @@ export function parsePublicCookieConsent(value: string | null, now = Date.now())
   }
 }
 
+/** Stable external-store primitives avoid setting React state synchronously in an effect. */
+export function getPublicCookieConsentSnapshot(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage.getItem(PUBLIC_COOKIE_CONSENT_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function getServerPublicCookieConsentSnapshot(): undefined {
+  return undefined;
+}
+
+export function subscribePublicCookieConsent(onChange: () => void) {
+  const onStorage = (event: StorageEvent) => {
+    if (event.key !== PUBLIC_COOKIE_CONSENT_STORAGE_KEY && event.key !== null) return;
+    const previous = parsePublicCookieConsent(event.oldValue);
+    const next = readPublicCookieConsent();
+
+    if (previous?.analytics && !next?.analytics) {
+      window.location.reload();
+      return;
+    }
+    onChange();
+  };
+  window.addEventListener("storage", onStorage);
+  window.addEventListener(PUBLIC_COOKIE_CONSENT_CHANGE_EVENT, onChange);
+  return () => {
+    window.removeEventListener("storage", onStorage);
+    window.removeEventListener(PUBLIC_COOKIE_CONSENT_CHANGE_EVENT, onChange);
+  };
+}
+
 export function readPublicCookieConsent(): PublicCookieConsentChoice | null {
   if (typeof window === "undefined") return null;
   try {
@@ -59,6 +94,7 @@ export function savePublicCookieConsent(analytics: boolean): PublicCookieConsent
       // Storage might be unavailable; consent remains valid only for this browser session.
     }
     if (!analytics) clearOptionalAnalyticsStorage();
+    window.dispatchEvent(new Event(PUBLIC_COOKIE_CONSENT_CHANGE_EVENT));
   }
 
   return choice;
