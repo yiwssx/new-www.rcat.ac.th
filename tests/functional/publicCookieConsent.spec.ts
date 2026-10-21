@@ -79,6 +79,40 @@ test.describe("Public cookie consent", () => {
     }
   });
 
+  test("keeps the cookie notice and its controls inside narrow mobile viewports", async ({ page }) => {
+    await installPublicAuthIsolationFixture(page, { consent: "unset" });
+    await page.goto("/news");
+
+    const notice = page.getByRole("region", { name: "แจ้งการใช้คุกกี้" });
+
+    for (const width of [320, 360, 412, 430]) {
+      await page.setViewportSize({ width, height: 800 });
+      await expect(notice).toBeVisible();
+
+      const geometry = await notice.evaluate((element) => {
+        const paper = element.querySelector(".MuiPaper-root");
+        if (!paper) throw new Error("Cookie notice panel is missing");
+
+        const viewport = document.documentElement.clientWidth;
+        const noticeRect = element.getBoundingClientRect();
+        const paperRect = paper.getBoundingClientRect();
+
+        return {
+          viewport,
+          documentWidth: document.documentElement.scrollWidth,
+          noticeRight: noticeRect.right,
+          paperLeft: paperRect.left,
+          paperRight: paperRect.right
+        };
+      });
+
+      expect(geometry.documentWidth).toBeLessThanOrEqual(geometry.viewport + 1);
+      expect(geometry.noticeRight).toBeLessThanOrEqual(geometry.viewport + 1);
+      expect(geometry.paperLeft).toBeGreaterThanOrEqual(-1);
+      expect(geometry.paperRight).toBeLessThanOrEqual(geometry.viewport + 1);
+    }
+  });
+
   test("renders formal legal notices as one readable document on mobile", async ({ page }) => {
     await page.setViewportSize({ width: 360, height: 800 });
     await installPublicAuthIsolationFixture(page, { consent: "rejected" });
