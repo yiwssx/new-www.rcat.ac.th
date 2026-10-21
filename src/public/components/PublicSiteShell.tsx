@@ -53,6 +53,7 @@ import { normalizeSafeHref } from "../../utils/safeUrl";
 import { focusVisibleSx } from "../../design-system/componentStyles";
 import type { SocialPlatform } from "../../design-system/icons/SocialBrandIcon";
 import { useDocumentMetadata } from "../../utils/seo";
+import { openPublicCookiePreferences } from "../cookies/publicCookieConsent";
 
 export interface PublicSiteShellProps {
   title?: string;
@@ -979,7 +980,7 @@ function PublicSiteShellFrame({
                 sx={{
                   gap: 2,
                   justifyContent: "space-between",
-                  alignItems: { xs: "stretch", md: "center" }
+                  alignItems: { xs: "stretch", md: "flex-end" }
                 }}
               >
                 <Box data-footer-branding="true" sx={{ order: { xs: 2, md: 1 } }}>
@@ -1014,6 +1015,27 @@ function PublicSiteShellFrame({
                       </Link>
                       <Link color="inherit" href="/cookie-policy" underline="hover" variant="body2" sx={focusVisibleSx}>
                         นโยบายการใช้คุกกี้
+                      </Link>
+                      <Link
+                        component="button"
+                        type="button"
+                        color="inherit"
+                        onClick={openPublicCookiePreferences}
+                        underline="hover"
+                        variant="body2"
+                        sx={{
+                          ...focusVisibleSx,
+                          border: 0,
+                          p: 0,
+                          minHeight: 44,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          bgcolor: "transparent",
+                          cursor: "pointer",
+                          font: "inherit"
+                        }}
+                      >
+                        ตั้งค่าคุกกี้
                       </Link>
                     </Stack>
                   </Box>

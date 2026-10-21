@@ -145,6 +145,10 @@ export async function installPublicHomeFixture(page: Page, options: PublicHomeFi
   await page.addInitScript(() => {
     window.localStorage.clear();
     window.sessionStorage.clear();
+    window.localStorage.setItem(
+      "rcat.cookie.consent.v1",
+      JSON.stringify({ version: 1, analytics: false, decidedAt: new Date().toISOString() })
+    );
   });
 
   await page.route("**/__carousel_fixture__/*.svg", async (route) => {

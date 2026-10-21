@@ -90,18 +90,33 @@ function createLiveVisitorStats() {
   };
 }
 
-export async function installPublicAuthIsolationFixture(page: Page): Promise<PublicAuthIsolationFixture> {
+export async function installPublicAuthIsolationFixture(
+  page: Page,
+  options: { consent?: "accepted" | "rejected" | "unset" } = {}
+): Promise<PublicAuthIsolationFixture> {
   const requests: PublicFixtureRequest[] = [];
 
-  await page.addInitScript(() => {
-    const resetMarker = "rcat.functional.public-fixture.storage-reset";
+  await page.addInitScript(
+    ({ consent }) => {
+      const resetMarker = "rcat.functional.public-fixture.storage-reset";
 
-    if (window.sessionStorage.getItem(resetMarker) !== "1") {
-      window.localStorage.clear();
-      window.sessionStorage.clear();
-      window.sessionStorage.setItem(resetMarker, "1");
-    }
-  });
+      if (window.sessionStorage.getItem(resetMarker) !== "1") {
+        window.localStorage.clear();
+        window.sessionStorage.clear();
+        window.sessionStorage.setItem(resetMarker, "1");
+
+        // Existing non-consent browser tests dismiss the banner explicitly
+        // through their deterministic fixture; the dedicated consent suite does not.
+        if (consent !== "unset") {
+          window.localStorage.setItem(
+            "rcat.cookie.consent.v1",
+            JSON.stringify({ version: 1, analytics: consent === "accepted", decidedAt: new Date().toISOString() })
+          );
+        }
+      }
+    },
+    { consent: options.consent ?? "rejected" }
+  );
 
   await page.route("**/api/public/**", async (route) => {
     const request = route.request();

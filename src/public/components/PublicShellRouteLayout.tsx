@@ -2,6 +2,8 @@ import { lazy, Suspense } from "react";
 import { Outlet, useRouterState } from "@tanstack/react-router";
 import { SilentTelemetryBoundary } from "../../shared/telemetry/SilentTelemetryBoundary";
 import PublicSiteShell from "./PublicSiteShell";
+import PublicCookieConsent from "./PublicCookieConsent";
+import { usePublicCookieConsent } from "../cookies/usePublicCookieConsent";
 
 declare global {
   interface Window {
@@ -23,17 +25,21 @@ const PublicTelemetry = lazy(loadPublicTelemetry);
 
 export default function PublicShellRouteLayout() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const { consent, chooseConsent } = usePublicCookieConsent();
 
   return (
     <>
       <PublicSiteShell routeLayout routePathname={pathname}>
         <Outlet />
       </PublicSiteShell>
-      <SilentTelemetryBoundary>
-        <Suspense fallback={null}>
-          <PublicTelemetry />
-        </Suspense>
-      </SilentTelemetryBoundary>
+      <PublicCookieConsent consent={consent} onChoose={chooseConsent} />
+      {consent?.analytics === true && (
+        <SilentTelemetryBoundary>
+          <Suspense fallback={null}>
+            <PublicTelemetry />
+          </Suspense>
+        </SilentTelemetryBoundary>
+      )}
     </>
   );
 }

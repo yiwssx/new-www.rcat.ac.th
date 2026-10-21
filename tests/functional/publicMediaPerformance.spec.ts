@@ -313,6 +313,10 @@ async function installFixture(page: Page, introEnabled: boolean): Promise<Ledger
   await page.addInitScript(() => {
     window.localStorage.clear();
     window.sessionStorage.clear();
+    window.localStorage.setItem(
+      "rcat.cookie.consent.v1",
+      JSON.stringify({ version: 1, analytics: false, decidedAt: new Date().toISOString() })
+    );
   });
 
   page.on("request", (request) => {

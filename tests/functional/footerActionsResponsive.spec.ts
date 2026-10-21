@@ -45,6 +45,12 @@ for (const width of [320, 360, 390, 430, 768, 1280]) {
 
     await expect(staff).toHaveAttribute("href", "/login");
     await expect(backToTop).toBeVisible();
+    await expect(footer.getByRole("link", { name: "นโยบายความเป็นส่วนตัว" })).toHaveAttribute(
+      "href",
+      "/privacy-policy"
+    );
+    await expect(footer.getByRole("link", { name: "นโยบายการใช้คุกกี้" })).toHaveAttribute("href", "/cookie-policy");
+    await expect(footer.getByRole("button", { name: "ตั้งค่าคุกกี้" })).toBeVisible();
     await expect(page.locator('[data-public-floating-messenger="true"]')).toBeVisible();
 
     await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
