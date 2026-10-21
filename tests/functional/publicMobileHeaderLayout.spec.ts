@@ -42,7 +42,7 @@ test.describe("Public mobile institutional header layout", () => {
       if (await ribbon.isVisible()) {
         const ribbonRect = await ribbon.boundingBox();
         expect(ribbonRect).not.toBeNull();
-        expect(identityRect!.y).toBeGreaterThanOrEqual(ribbonRect!.bottom - 1);
+        expect(identityRect!.y).toBeGreaterThanOrEqual(ribbonRect!.y + ribbonRect!.height - 1);
       }
     }
   });
