@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
@@ -13,41 +13,29 @@ import Switch from "@mui/material/Switch";
 import Typography from "@mui/material/Typography";
 import {
   PUBLIC_COOKIE_CONSENT_OPEN_EVENT,
-  PUBLIC_COOKIE_CONSENT_STORAGE_KEY,
+  getPublicCookieConsentSnapshot,
+  getServerPublicCookieConsentSnapshot,
   openPublicCookiePreferences,
-  readPublicCookieConsent,
+  parsePublicCookieConsent,
   savePublicCookieConsent,
+  subscribePublicCookieConsent,
   type PublicCookieConsentChoice
 } from "../cookies/publicCookieConsent";
 
 export function usePublicCookieConsent() {
-  // undefined during SSR and initial client render: no optional tracking can mount.
-  const [consent, setConsent] = useState<PublicCookieConsentChoice | null | undefined>(undefined);
-
-  useEffect(() => {
-    setConsent(readPublicCookieConsent());
-    const onStorage = (event: StorageEvent) => {
-      if (event.key !== PUBLIC_COOKIE_CONSENT_STORAGE_KEY && event.key !== null) return;
-      const next = readPublicCookieConsent();
-      setConsent((current) => {
-        if (current?.analytics && !next?.analytics) {
-          // Already-loaded third-party SDKs must not survive withdrawal in another tab.
-          window.location.reload();
-        }
-        return next;
-      });
-    };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, []);
+  const snapshot = useSyncExternalStore(
+    subscribePublicCookieConsent,
+    getPublicCookieConsentSnapshot,
+    getServerPublicCookieConsentSnapshot
+  );
+  const consent = snapshot === undefined ? undefined : parsePublicCookieConsent(snapshot);
 
   const chooseConsent = (analytics: boolean) => {
     const hadAnalytics = consent?.analytics === true;
-    const next = savePublicCookieConsent(analytics);
-    setConsent(next);
+    savePublicCookieConsent(analytics);
 
     if (hadAnalytics && !analytics) {
-      // A reload tears down already-mounted Google/Vercel tags; future visits are blocked.
+      // The page reload removes already-mounted Google/Vercel scripts after withdrawal.
       window.location.reload();
     }
   };
