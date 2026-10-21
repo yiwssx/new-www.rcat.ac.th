@@ -56,7 +56,10 @@ export default function PublicCookieConsent({ consent, onChoose }: PublicCookieC
             position: "fixed",
             bottom: 0,
             left: 0,
-            right: 0,
+            width: "100%",
+            maxWidth: "100dvw",
+            boxSizing: "border-box",
+            minWidth: 0,
             zIndex: (theme) => theme.zIndex.tooltip + 1,
             p: { xs: 1, sm: 2 },
             pointerEvents: "none"
@@ -65,7 +68,11 @@ export default function PublicCookieConsent({ consent, onChoose }: PublicCookieC
           <Paper
             elevation={10}
             sx={{
+              width: "100%",
               maxWidth: 1120,
+              minWidth: 0,
+              boxSizing: "border-box",
+              overflowWrap: "anywhere",
               mx: "auto",
               border: "1px solid",
               borderColor: "divider",
@@ -84,7 +91,20 @@ export default function PublicCookieConsent({ consent, onChoose }: PublicCookieC
                   อ่านนโยบายการใช้คุกกี้
                 </Link>
               </Typography>
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ justifyContent: "flex-end" }}>
+              <Stack
+                direction={{ xs: "column", sm: "row" }}
+                spacing={1}
+                sx={{
+                  justifyContent: "flex-end",
+                  minWidth: 0,
+                  "& .MuiButton-root": {
+                    minWidth: 0,
+                    minHeight: 44,
+                    whiteSpace: "normal",
+                    overflowWrap: "anywhere"
+                  }
+                }}
+              >
                 <Button variant="outlined" color="inherit" onClick={() => selectConsent(false)}>
                   ปฏิเสธคุกกี้ที่ไม่จำเป็น
                 </Button>
