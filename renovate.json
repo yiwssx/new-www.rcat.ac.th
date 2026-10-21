@@ -201,11 +201,7 @@
       "description": "Group Testing Library utilities without coupling them to browser testing",
       "matchManagers": ["npm"],
       "matchDepTypes": ["devDependencies"],
-      "matchPackageNames": [
-        "@testing-library/jest-dom",
-        "@testing-library/react",
-        "@testing-library/user-event"
-      ],
+      "matchPackageNames": ["@testing-library/jest-dom", "@testing-library/react", "@testing-library/user-event"],
       "matchUpdateTypes": ["patch", "minor"],
       "groupName": "testing library"
     },
