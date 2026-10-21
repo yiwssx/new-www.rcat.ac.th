@@ -47,6 +47,29 @@ describe("Vercel SSR cutover routing", () => {
     expect(rewrites.at(-1)?.source).toBe("/:slug");
   });
 
+  it("keeps every registered public page reachable through a matching production SSR rewrite", async () => {
+    const config = await readVercelConfig();
+    const routeRegistry = JSON.parse(await readFile(new URL("../../config/public-routes.json", import.meta.url), "utf8"));
+    const publicRewrites = config.rewrites.filter(({ destination }) => destination.startsWith("/api/ssr?_rcatPath="));
+    const catchAllIndex = publicRewrites.findIndex(({ source }) => source === "/:slug");
+
+    expect(catchAllIndex).toBe(publicRewrites.length - 1);
+
+    for (const route of routeRegistry.routes) {
+      const expectedDestination = `/api/ssr?_rcatPath=${route.path}`;
+      const matches = publicRewrites.filter(({ source }) => source === route.path);
+      expect(matches, `missing or duplicate production rewrite: ${route.path}`).toEqual([
+        { source: route.path, destination: expectedDestination }
+      ]);
+
+      const explicitIndex = publicRewrites.findIndex(({ source }) => source === route.path);
+      expect(explicitIndex, `catch-all shadows registered page: ${route.path}`).toBeLessThan(catchAllIndex);
+    }
+
+    expect(publicRewrites.filter(({ source }) => source === "/privacy-policy")).toHaveLength(1);
+    expect(publicRewrites.filter(({ source }) => source === "/cookie-policy")).toHaveLength(1);
+  });
+
   it("canonicalizes common legacy entry paths before they can reach SSR", async () => {
     const config = await readVercelConfig();
     const redirects = config.redirects || [];
