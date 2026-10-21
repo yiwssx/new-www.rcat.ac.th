@@ -30,8 +30,13 @@ describe("mourning ribbon responsive layout", () => {
       const identityPadding = Number.parseInt(MOURNING_RIBBON_IDENTITY_PADDING[breakpoint], 10);
 
       expect(topBarPadding).toBe(size);
-      expect(identityPadding).toBeGreaterThanOrEqual(size * 0.75);
-      expect(identityPadding).toBeLessThan(size);
+      if (breakpoint === "xs" || breakpoint === "sm") {
+        expect(identityPadding).toBeGreaterThanOrEqual(16);
+        expect(identityPadding).toBeLessThan(size * 0.25);
+      } else {
+        expect(identityPadding).toBeGreaterThanOrEqual(size * 0.75);
+        expect(identityPadding).toBeLessThan(size);
+      }
     }
   });
 
@@ -39,7 +44,20 @@ describe("mourning ribbon responsive layout", () => {
     expect(ribbonSource).toContain("width: MOURNING_RIBBON_SIZE");
     expect(publicShellSource).toContain("pl: mourningRibbonTopBarPadding");
     expect(publicShellSource).toContain("pl: mourningRibbonIdentityPadding");
+    expect(publicShellSource).toContain("pt: mourningRibbonEnabled ? { xs: 5.5, sm: 8.5, md: 0 } : 0");
     expect(publicShellSource).toContain("{mourningRibbonEnabled && <PublicMourningRibbon />}");
+  });
+
+  it("keeps the royal award above the complete college identity and uses compact mobile actions", () => {
+    const awardIndex = publicShellSource.indexOf("<FlagEmojiText text={siteSettings.intro} />");
+    const nameIndex = publicShellSource.indexOf("<FlagEmojiText text={siteName} />");
+
+    expect(awardIndex).toBeGreaterThan(-1);
+    expect(nameIndex).toBeGreaterThan(awardIndex);
+    expect(publicShellSource).not.toContain("WebkitLineClamp");
+    expect(publicShellSource).toContain('overflowWrap: "break-word"');
+    expect(publicShellSource).toContain('height: { xs: 44, sm: 40 }');
+    expect(publicShellSource).toContain('flex: { xs: "1 1 0", sm: "0 0 auto" }');
   });
 
   it("renders a genuine, self-contained SVG instead of scaling the old PNG", () => {
