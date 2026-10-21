@@ -167,7 +167,12 @@ function CookieCategoryTable() {
 
 function NoticeSectionBlock({ section, isCookie }: { section: NoticeSection; isCookie: boolean }) {
   return (
-    <Box component="section" id={section.id} aria-labelledby={"notice-heading-" + section.id} sx={{ scrollMarginTop: 100 }}>
+    <Box
+      component="section"
+      id={section.id}
+      aria-labelledby={"notice-heading-" + section.id}
+      sx={{ scrollMarginTop: 100 }}
+    >
       <Typography
         component="h2"
         id={"notice-heading-" + section.id}
@@ -269,8 +274,7 @@ function LegalNoticePage({ kind }: { kind: "privacy" | "cookies" }) {
 
             <Box component="footer" sx={{ color: "text.secondary" }}>
               <Typography variant="body2" sx={{ lineHeight: 1.85 }}>
-                ประกาศฉบับนี้จัดทำสำหรับการให้บริการเว็บไซต์ของวิทยาลัย โดยอ้างอิงหลักการตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. ๒๕๖๒
-                และแนวทางการแจ้งข้อมูลของหน่วยงานภาครัฐ
+                ประกาศฉบับนี้จัดทำสำหรับการให้บริการเว็บไซต์ของวิทยาลัย โดยอ้างอิงหลักการตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. ๒๕๖๒ และแนวทางการแจ้งข้อมูลของหน่วยงานภาครัฐ
               </Typography>
               <Stack direction="row" useFlexGap spacing={2} sx={{ flexWrap: "wrap", mt: 1.5 }}>
                 <Link href={isPrivacy ? "/cookie-policy" : "/privacy-policy"} underline="hover" variant="body2">
@@ -279,7 +283,13 @@ function LegalNoticePage({ kind }: { kind: "privacy" | "cookies" }) {
                 <Link href="/contact" underline="hover" variant="body2">
                   ติดต่อวิทยาลัย
                 </Link>
-                <Link href="https://gppc.pdpc.or.th/" target="_blank" rel="noopener noreferrer" underline="hover" variant="body2">
+                <Link
+                  href="https://gppc.pdpc.or.th/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  underline="hover"
+                  variant="body2"
+                >
                   ข้อมูลเกี่ยวกับกฎหมายคุ้มครองข้อมูลส่วนบุคคล
                 </Link>
               </Stack>
