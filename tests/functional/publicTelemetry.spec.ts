@@ -31,6 +31,14 @@ function countPublicRequests(fixture: PublicAuthIsolationFixture, pathname: stri
 }
 
 async function installTelemetryNetworkMocks(page: Page) {
+  // These regression tests intentionally opt in; fresh visitors are covered by publicCookieConsent.spec.ts.
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      "rcat.cookie.consent.v1",
+      JSON.stringify({ version: 1, analytics: true, decidedAt: new Date().toISOString() })
+    );
+  });
+
   const ledger: TelemetryNetworkLedger = {
     googleTagManager: [],
     googleGtag: [],
