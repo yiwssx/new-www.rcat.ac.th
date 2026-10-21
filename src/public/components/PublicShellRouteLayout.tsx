@@ -2,7 +2,8 @@ import { lazy, Suspense } from "react";
 import { Outlet, useRouterState } from "@tanstack/react-router";
 import { SilentTelemetryBoundary } from "../../shared/telemetry/SilentTelemetryBoundary";
 import PublicSiteShell from "./PublicSiteShell";
-import PublicCookieConsent, { usePublicCookieConsent } from "./PublicCookieConsent";
+import PublicCookieConsent from "./PublicCookieConsent";
+import { usePublicCookieConsent } from "../cookies/usePublicCookieConsent";
 
 declare global {
   interface Window {
