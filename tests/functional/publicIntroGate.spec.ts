@@ -52,6 +52,10 @@ async function installIntroFixture(page: Page, mourningModeEnabled = false) {
       window.localStorage.clear();
       window.sessionStorage.clear();
       window.sessionStorage.setItem(initializationKey, "true");
+      window.localStorage.setItem(
+        "rcat.cookie.consent.v1",
+        JSON.stringify({ version: 1, analytics: false, decidedAt: new Date().toISOString() })
+      );
     }
   });
 
