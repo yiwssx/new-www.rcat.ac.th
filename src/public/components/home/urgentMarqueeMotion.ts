@@ -54,10 +54,13 @@ export function getMarqueeMotion(viewportWidth: number, trackWidth: number, pixe
     return getFallbackMarqueeMotion(pixelsPerSecond);
   }
 
-  const totalDistancePx = viewportWidth + trackWidth;
+  // On narrow screens, start with the notice visible instead of leaving
+  // the small ticker empty while the text travels in from off-screen.
+  const startDistancePx = viewportWidth < 600 ? 0 : viewportWidth;
+  const totalDistancePx = startDistancePx + trackWidth;
 
   return {
-    startX: `${roundMotionValue(viewportWidth)}px`,
+    startX: `${roundMotionValue(startDistancePx)}px`,
     endX: `-${roundMotionValue(trackWidth)}px`,
     durationSeconds: roundMotionValue(totalDistancePx / pixelsPerSecond),
     reducedMotionDurationSeconds: roundMotionValue(totalDistancePx / getReducedMotionPixelsPerSecond(pixelsPerSecond))
