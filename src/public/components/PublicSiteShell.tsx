@@ -175,12 +175,12 @@ function getPublicRouteShellDefaults(pathname: string): PublicRouteShellDefaults
       description: "ที่อยู่ เบอร์โทรศัพท์ และช่องทางติดต่อวิทยาลัย"
     },
     "/privacy-policy": {
-      title: "นโยบายความเป็นส่วนตัว (Privacy Policy)",
-      description: "การคุ้มครองข้อมูลส่วนบุคคลของผู้ใช้งานเว็บไซต์"
+      title: "ประกาศเกี่ยวกับความเป็นส่วนตัวในการใช้เว็บไซต์",
+      hidePageHeader: true
     },
     "/cookie-policy": {
-      title: "นโยบายการใช้คุกกี้ (Cookie Policy)",
-      description: "การใช้คุกกี้และข้อมูลที่จัดเก็บในเบราว์เซอร์"
+      title: "นโยบายการใช้คุกกี้",
+      hidePageHeader: true
     },
     "/search": {
       title: "ค้นหา",
