@@ -22,6 +22,11 @@ import {
   type PublicCookieConsentChoice
 } from "../cookies/publicCookieConsent";
 
+const COOKIE_NOTICE_TEXT =
+  "คุกกี้ที่จำเป็นช่วยให้เว็บไซต์ทำงานและเข้าสู่ระบบได้อย่างปลอดภัย ส่วนสถิติผู้เข้าชมและเครื่องมือวิเคราะห์จาก Google และ Vercel จะทำงานเมื่อท่านยินยอมเท่านั้น ท่านเลือกปฏิเสธได้โดยไม่เสียสิทธิในการเข้าชมเว็บไซต์";
+const COOKIE_ANALYTICS_TEXT =
+  "ครอบคลุมระบบนับผู้เข้าชมของ RCAT, Google Tag Manager / Analytics และ Vercel Analytics / Speed Insights ปิดไว้เป็นค่าเริ่มต้นจนกว่าจะยินยอม";
+
 export function usePublicCookieConsent() {
   const snapshot = useSyncExternalStore(
     subscribePublicCookieConsent,
@@ -100,10 +105,7 @@ export default function PublicCookieConsent({ consent, onChoose }: PublicCookieC
                 เว็บไซต์นี้ใช้คุกกี้และข้อมูลการใช้งาน
               </Typography>
               <Typography variant="body2" sx={{ lineHeight: 1.8 }}>
-                คุกกี้ที่จำเป็นช่วยให้เว็บไซต์ทำงานและเข้าสู่ระบบได้อย่างปลอดภัย
-                ส่วนสถิติผู้เข้าชมและเครื่องมือวิเคราะห์จาก Google และ Vercel
-                จะทำงานเมื่อท่านยินยอมเท่านั้น ท่านเลือกปฏิเสธได้โดยไม่เสียสิทธิในการเข้าชมเว็บไซต์
-                {" "}
+                {COOKIE_NOTICE_TEXT}{" "}
                 <Link href="/cookie-policy" underline="hover">
                   อ่านนโยบายการใช้คุกกี้
                 </Link>
@@ -152,8 +154,7 @@ export default function PublicCookieConsent({ consent, onChoose }: PublicCookieC
                 label="สถิติและการวิเคราะห์การใช้งาน"
               />
               <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.8 }}>
-                ครอบคลุมระบบนับผู้เข้าชมของ RCAT, Google Tag Manager / Analytics และ Vercel Analytics /
-                Speed Insights ปิดไว้เป็นค่าเริ่มต้นจนกว่าจะยินยอม
+                {COOKIE_ANALYTICS_TEXT}
               </Typography>
             </Box>
             <Typography variant="body2">
