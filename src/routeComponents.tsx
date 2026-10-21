@@ -31,6 +31,12 @@ export const PublicBlogPage = lazy(() => import("./public/pages/PublicBlogPage")
 export const PublicCalendarPage = lazy(() => import("./public/pages/PublicCalendarPage"));
 export const PublicComplaintPage = lazy(() => import("./public/pages/PublicComplaintPage"));
 export const PublicContactPage = lazy(() => import("./public/pages/PublicContactPage"));
+export const PublicPrivacyPolicyPage = lazy(() =>
+  import("./public/pages/PublicLegalPages").then((module) => ({ default: module.PublicPrivacyPolicyPage }))
+);
+export const PublicCookiePolicyPage = lazy(() =>
+  import("./public/pages/PublicLegalPages").then((module) => ({ default: module.PublicCookiePolicyPage }))
+);
 export const PublicContentDetailPage = lazy(() => import("./public/pages/PublicContentDetailPage"));
 export const PublicDepartmentsPage = lazy(() => import("./public/pages/PublicDepartmentsPage"));
 export const PublicDocumentsPage = lazy(() => import("./public/pages/PublicDocumentsPage"));

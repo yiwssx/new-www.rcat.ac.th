@@ -219,6 +219,20 @@ describe("public route head metadata", () => {
     expect(head.links).toEqual([{ rel: "canonical", href: `${projectSettings.site.publicSiteUrl}/news` }]);
   });
 
+  it("provides canonical and descriptive head metadata for both legal policy pages", () => {
+    for (const [path, keyword] of [
+      ["/privacy-policy", "ความเป็นส่วนตัว"],
+      ["/cookie-policy", "คุกกี้"]
+    ] as const) {
+      const head = getStaticPublicRouteHead(path);
+
+      expect(getMetaContent(head, "title")).toContain(keyword);
+      expect(getMetaContent(head, "name", "description")).toBeTruthy();
+      expect(head.links).toEqual([{ rel: "canonical", href: `${projectSettings.site.publicSiteUrl}${path}` }]);
+      expect(getMetaContent(head, "name", "robots")).toBeUndefined();
+    }
+  });
+
   it("keeps normalized pagination in self-referencing canonicals without copying filters or tracking params", () => {
     const pageTwo = getStaticPublicRouteHead("/news", {
       page: "2",

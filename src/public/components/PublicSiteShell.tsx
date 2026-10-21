@@ -14,6 +14,7 @@ import Button from "@mui/material/Button";
 import Container from "@mui/material/Container";
 import InputAdornment from "@mui/material/InputAdornment";
 import LinearProgress from "@mui/material/LinearProgress";
+import Link from "@mui/material/Link";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
@@ -171,6 +172,14 @@ function getPublicRouteShellDefaults(pathname: string): PublicRouteShellDefaults
     "/contact": {
       title: "ติดต่อ",
       description: "ที่อยู่ เบอร์โทรศัพท์ และช่องทางติดต่อวิทยาลัย"
+    },
+    "/privacy-policy": {
+      title: "นโยบายความเป็นส่วนตัว (Privacy Policy)",
+      description: "การคุ้มครองข้อมูลส่วนบุคคลของผู้ใช้งานเว็บไซต์"
+    },
+    "/cookie-policy": {
+      title: "นโยบายการใช้คุกกี้ (Cookie Policy)",
+      description: "การใช้คุกกี้และข้อมูลที่จัดเก็บในเบราว์เซอร์"
     },
     "/search": {
       title: "ค้นหา",
@@ -992,6 +1001,22 @@ function PublicSiteShellFrame({
                       <FlagEmojiText text={siteSettings.footerDescription} />
                     </Typography>
                   )}
+                  <Box component="nav" aria-label="นโยบายเว็บไซต์" sx={{ mt: 1.5 }}>
+                    <Stack direction="row" useFlexGap spacing={2} sx={{ flexWrap: "wrap" }}>
+                      <Link
+                        color="inherit"
+                        href="/privacy-policy"
+                        underline="hover"
+                        variant="body2"
+                        sx={focusVisibleSx}
+                      >
+                        นโยบายความเป็นส่วนตัว
+                      </Link>
+                      <Link color="inherit" href="/cookie-policy" underline="hover" variant="body2" sx={focusVisibleSx}>
+                        นโยบายการใช้คุกกี้
+                      </Link>
+                    </Stack>
+                  </Box>
                 </Box>
                 <Stack
                   data-footer-actions="true"
