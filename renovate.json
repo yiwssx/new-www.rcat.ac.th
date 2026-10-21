@@ -63,6 +63,23 @@
       "automergeType": "pr"
     },
     {
+      "description": "Group otherwise-unclassified stable runtime patch and minor updates",
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["dependencies"],
+      "matchCurrentVersion": "!/^0/",
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "other runtime dependencies"
+    },
+    {
+      "description": "Group otherwise-unclassified stable development patch and minor updates",
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["devDependencies"],
+      "matchDepNames": ["!typescript", "!@typescript/native", "!@types/node", "!jsdom"],
+      "matchCurrentVersion": "!/^0/",
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "other development dependencies"
+    },
+    {
       "description": "Keep TypeScript within the installed typescript-eslint peer range",
       "matchManagers": ["npm"],
       "matchDepTypes": ["dependencies", "devDependencies"],
@@ -110,7 +127,7 @@
       "description": "Group compatible TanStack runtime patch and minor updates",
       "matchManagers": ["npm"],
       "matchDepTypes": ["dependencies", "devDependencies"],
-      "matchPackageNames": ["@tanstack/react-query", "@tanstack/react-router"],
+      "matchPackageNames": ["@tanstack/react-query", "@tanstack/react-router", "@tanstack/react-table"],
       "matchUpdateTypes": ["patch", "minor"],
       "groupName": "tanstack runtime"
     },
@@ -129,6 +146,99 @@
       "matchPackageNames": ["prettier", "eslint-config-prettier", "lint-staged"],
       "matchUpdateTypes": ["patch", "minor"],
       "groupName": "formatting tooling"
+    },
+    {
+      "description": "Keep React type declarations aligned within the React major",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["@types/react", "@types/react-dom"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "react type declarations"
+    },
+    {
+      "description": "Update form state, validation, and resolver integrations together",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["react-hook-form", "@hookform/resolvers", "zod"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "form validation"
+    },
+    {
+      "description": "Update MUI component libraries as a compatible group",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["@mui/material", "@mui/icons-material", "@mui/x-tree-view"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "mui components"
+    },
+    {
+      "description": "Update Emotion styling packages together",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["@emotion/cache", "@emotion/react", "@emotion/server", "@emotion/styled"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "emotion styling"
+    },
+    {
+      "description": "Keep editor packages in one coherent Tiptap update",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["/^@tiptap\\//"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "tiptap editor"
+    },
+    {
+      "description": "Group Vercel runtime and observability integrations",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["@vercel/analytics", "@vercel/functions", "@vercel/speed-insights"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "vercel runtime"
+    },
+    {
+      "description": "Group Playwright and accessibility browser test dependencies",
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["devDependencies"],
+      "matchPackageNames": ["@playwright/test", "@axe-core/playwright"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "browser testing"
+    },
+    {
+      "description": "Group Testing Library utilities without coupling them to browser testing",
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["devDependencies"],
+      "matchPackageNames": [
+        "@testing-library/jest-dom",
+        "@testing-library/react",
+        "@testing-library/user-event"
+      ],
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "testing library"
+    },
+    {
+      "description": "Keep Tailwind CSS and its PostCSS integration together",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["tailwindcss", "@tailwindcss/postcss", "postcss"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "css styling"
+    },
+    {
+      "description": "Group stable ESLint ecosystem maintenance",
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["devDependencies"],
+      "matchPackageNames": [
+        "eslint",
+        "@eslint/js",
+        "typescript-eslint",
+        "eslint-plugin-react-hooks",
+        "eslint-plugin-react-refresh",
+        "globals"
+      ],
+      "matchCurrentVersion": "!/^0/",
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "eslint tooling"
+    },
+    {
+      "description": "Keep commitlint CLI and its conventional rule set aligned",
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["devDependencies"],
+      "matchPackageNames": ["@commitlint/cli", "@commitlint/config-conventional"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "commitlint tooling"
     },
     {
       "description": "Keep workflow pnpm setup pinned for deliberate package-manager upgrades",
