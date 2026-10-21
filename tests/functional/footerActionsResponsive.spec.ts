@@ -49,10 +49,7 @@ for (const width of [320, 360, 390, 430, 768, 1280]) {
       "href",
       "/privacy-policy"
     );
-    await expect(footer.getByRole("link", { name: "นโยบายการใช้คุกกี้" })).toHaveAttribute(
-      "href",
-      "/cookie-policy"
-    );
+    await expect(footer.getByRole("link", { name: "นโยบายการใช้คุกกี้" })).toHaveAttribute("href", "/cookie-policy");
     await expect(footer.getByRole("button", { name: "ตั้งค่าคุกกี้" })).toBeVisible();
     await expect(page.locator('[data-public-floating-messenger="true"]')).toBeVisible();
 
