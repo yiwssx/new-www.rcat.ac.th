@@ -1,34 +1,40 @@
-# RCAT website legal notices — editorial basis and verification
+# RCAT website legal notices
 
-Revision scope: 21 October 2026. These are concise visitor-facing **information notices**, not click-through agreements, formal legal certifications, or institutionally signed proclamations.
+Scope: visitor-facing Privacy Notice and Cookie Policy.
 
-## Government guidance consulted
+These documents are informational notices, not click-through agreements.
+They are not signed government orders or approved legal certifications.
 
-- Personal Data Protection Act B.E. 2562 (Thai PDPA), particularly transparency/notice duties, lawful processing, consent and data subject rights.
-- Digital Government Development Agency (DGA), *Privacy Notice for enquiries and complaints*: https://www.dga.or.th/document-sharing/pdpa/124276/
-- DGA, *Privacy Notice for Business Portal*: https://www.dga.or.th/document-sharing/pdpa/124352/
-- Personal Data Protection Committee (PDPC), *Government Platform for PDPA Compliance*: https://gppc.pdpc.or.th/
+## Official references
 
-These sources inform **document structure, formal Thai diction and general legal principles**. No DGA/PDPC agency text is copied into the RCAT notices, and no agency endorsement or legal approval is claimed.
+- Personal Data Protection Act B.E. 2562: notice, consent, rights and lawful processing.
+- [DGA: enquiries and complaints](https://www.dga.or.th/document-sharing/pdpa/124276/)
+- [DGA: Business Portal](https://www.dga.or.th/document-sharing/pdpa/124352/)
+- [PDPC Government Platform](https://gppc.pdpc.or.th/)
 
-## Actual RCAT implementation basis
+These sources guide structure, Thai official diction and legal principles.
+RCAT-specific terms are not copied from another agency.
 
-- `src/public/pages/PublicComplaintPage.tsx`: optional contact/complaint form includes name, telephone, email, message and possible attachments.
-- `src/public/components/PublicShellRouteLayout.tsx`: no public analytics SDK mounts until optional analytics consent is affirmative.
-- `src/public/cookies/publicCookieConsent.ts`: local versioned consent record persists for at most 180 days, permits rejection and withdrawal.
-- `src/shared/telemetry/PublicTelemetry.tsx`: Google, Vercel and first-party site-visit analytics behind the public consent boundary.
-- Staff-authentication cookies and operational security/access logs are distinct from optional public analytics.
-- Privacy/cookie pages remain public, and users may navigate to contacts without analytics consent.
+## Verified website behavior
 
-## Editorial exclusions and pending institutional checks
+- Public news and notices do not require visitor registration.
+- The complaint form may receive name, telephone, email, details and attachments.
+- Essential staff login and site security are separate from optional analytics.
+- Analytics and visitor-count tracking require an affirmative cookie choice.
+- Cookie preference state is stored locally for no more than 180 days.
+- Visitors may reject or withdraw optional analytics through the footer.
 
-- **Do not assert** that RCAT collects health, biometric, financial or other special-category personal data solely on the basis of these website features.
-- Do not invent a Data Protection Officer's name, telephone, email, office order, official effective date, signed approval, or fixed retention schedule.
-- The publicly displayed notice describes retention proportionately without asserting a specific duration beyond the verified 180-day browser consent preference. Review the actual retention of complaints, access/security logs and staff records before an official institutional notice is approved.
-- Confirm actual processors and international transfers, individual GTM tags and embedded third-party services before any legally certified version.
-- Preserve the direct links and SEO routes `/privacy-policy` and `/cookie-policy`, the existing CMS-controlled footer directory, and the consent management functionality.
-- A Privacy Notice explains processing; it is **not** a blanket consent agreement. Cookie analytics choice remains separate and user-controlled.
+## Institutional review still required
 
-## Layout standard
+- Confirm the controller's official PDPA contact point.
+- Verify complaint, staff and security-log retention schedules.
+- Review the actual analytics tags, processors and international transfers.
+- Do not invent named officers, signatures, effective dates or approvals.
+- Do not imply collection of sensitive data not supported by site features.
+- Preserve both public URLs, the CMS footer links and consent controls.
 
-One continuous, semantically structured document per route, numbered clauses, readable mobile typography, an anchored contents list, and a horizontally scrollable cookie-category table. Avoid promotional cards and multiple competing page headers.
+## Editorial layout
+
+Each page uses one readable notice, five numbered clauses and a contents list.
+The Cookie Policy adds a mobile-scrollable category table.
+The public pages avoid technical storage keys and software implementation jargon.
