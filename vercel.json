@@ -316,6 +316,14 @@
       "destination": "/api/ssr?_rcatPath=/contact"
     },
     {
+      "source": "/privacy-policy",
+      "destination": "/api/ssr?_rcatPath=/privacy-policy"
+    },
+    {
+      "source": "/cookie-policy",
+      "destination": "/api/ssr?_rcatPath=/cookie-policy"
+    },
+    {
       "source": "/complaint",
       "destination": "/api/ssr?_rcatPath=/complaint"
     },
