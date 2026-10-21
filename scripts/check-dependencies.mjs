@@ -452,6 +452,37 @@ record(
     JSON.stringify(renovateConfig.automergeSchedule) === JSON.stringify(["* 0-6 * * *"]),
   "3 concurrent PRs/branches; 2 new PRs/hour; 4 commits/hour; Renovate-owned scheduled squash automerge"
 );
+
+function hasStableRenovateGroup(groupName, depType) {
+  return renovateConfig.packageRules.some(
+    (rule) =>
+      rule.groupName === groupName &&
+      rule.matchManagers?.includes("npm") &&
+      rule.matchDepTypes?.includes(depType) &&
+      rule.matchCurrentVersion === "!/^0/" &&
+      rule.matchUpdateTypes?.includes("patch") &&
+      rule.matchUpdateTypes?.includes("minor")
+  );
+}
+
+const expectedRenovateGroups = ["form validation", "browser testing", "mui components", "eslint tooling"];
+const majorUpdatesRequireReview = renovateConfig.packageRules.some(
+  (rule) => rule.matchUpdateTypes?.includes("major") && rule.automerge === false
+);
+const zeroMajorUpdatesRequireReview = renovateConfig.packageRules.some(
+  (rule) => rule.matchCurrentVersion === "/^0\\./" && rule.automerge === false
+);
+
+record(
+  "Renovate groups compatible stable npm updates without weakening manual review",
+  hasStableRenovateGroup("other runtime dependencies", "dependencies") &&
+    hasStableRenovateGroup("other development dependencies", "devDependencies") &&
+    expectedRenovateGroups.every((name) => renovateConfig.packageRules.some((rule) => rule.groupName === name)) &&
+    majorUpdatesRequireReview &&
+    zeroMajorUpdatesRequireReview,
+  "group stable runtime and development patch/minor updates, retain targeted groups and major/0.x review"
+);
+
 record(
   "no branch-mutating pull-request formatting workflow",
   !existsSync(".github/workflows/pr-prettier-autofix.yml") && ciWorkflow.includes("pnpm format:check"),
