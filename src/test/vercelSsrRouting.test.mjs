@@ -49,7 +49,9 @@ describe("Vercel SSR cutover routing", () => {
 
   it("keeps every registered public page reachable through a matching production SSR rewrite", async () => {
     const config = await readVercelConfig();
-    const routeRegistry = JSON.parse(await readFile(new URL("../../config/public-routes.json", import.meta.url), "utf8"));
+    const routeRegistry = JSON.parse(
+      await readFile(new URL("../../config/public-routes.json", import.meta.url), "utf8")
+    );
     const publicRewrites = config.rewrites.filter(({ destination }) => destination.startsWith("/api/ssr?_rcatPath="));
     const catchAllIndex = publicRewrites.findIndex(({ source }) => source === "/:slug");
 
