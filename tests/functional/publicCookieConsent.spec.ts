@@ -1,0 +1,81 @@
+import { expect, test } from "@playwright/test";
+import { installPublicAuthIsolationFixture } from "./fixtures/publicAuthIsolationFixture";
+
+test.describe("Public cookie consent", () => {
+  test("blocks all optional telemetry by default and after rejection, then respects acceptance and withdrawal", async ({
+    page
+  }) => {
+    const seenThirdPartyRequests: string[] = [];
+    page.on("request", (request) => {
+      if (/googletagmanager\.com|vercel-scripts\.com|\/_vercel\//.test(request.url())) {
+        seenThirdPartyRequests.push(request.url());
+      }
+    });
+
+    await page.route("https://www.googletagmanager.com/**", (route) =>
+      route.fulfill({ status: 200, contentType: "application/javascript", body: "" })
+    );
+    await page.route("https://va.vercel-scripts.com/**", (route) =>
+      route.fulfill({ status: 200, contentType: "application/javascript", body: "" })
+    );
+    await page.route("**/_vercel/**", (route) => route.fulfill({ status: 204, body: "" }));
+
+    const fixture = await installPublicAuthIsolationFixture(page);
+    const countTelemetry = () =>
+      fixture.requests.filter(
+        (request) =>
+          request.method === "POST" &&
+          (request.pathname === "/api/public/site-view" || request.pathname === "/api/public/presence")
+      ).length;
+
+    await page.goto("/news");
+    await expect(page.getByRole("region", { name: "แจ้งการใช้คุกกี้" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "ข่าว", exact: true })).toBeVisible();
+    expect(countTelemetry()).toBe(0);
+    expect(seenThirdPartyRequests).toHaveLength(0);
+    expect(await page.evaluate(() => window.localStorage.getItem("rcat.site.visitor.id"))).toBeNull();
+
+    await page.getByRole("button", { name: "ปฏิเสธคุกกี้ที่ไม่จำเป็น" }).click();
+    await expect(page.getByRole("region", { name: "แจ้งการใช้คุกกี้" })).toHaveCount(0);
+    await page.reload();
+    await expect(page.getByRole("heading", { name: "ข่าว", exact: true })).toBeVisible();
+    expect(countTelemetry()).toBe(0);
+    expect(seenThirdPartyRequests).toHaveLength(0);
+
+    await page.getByRole("button", { name: "ตั้งค่าคุกกี้" }).click();
+    const dialog = page.getByRole("dialog", { name: "ตั้งค่าความเป็นส่วนตัวและคุกกี้" });
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole("button", { name: "ยอมรับทั้งหมด" }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect.poll(countTelemetry).toBeGreaterThan(0);
+    await expect.poll(() => seenThirdPartyRequests.length).toBeGreaterThan(0);
+
+    await page.getByRole("button", { name: "ตั้งค่าคุกกี้" }).click();
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole("button", { name: "ปฏิเสธ", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "ข่าว", exact: true })).toBeVisible();
+
+    const stored = await page.evaluate(() => JSON.parse(window.localStorage.getItem("rcat.cookie.consent.v1") || "{}"));
+    expect(stored).toMatchObject({ version: 1, analytics: false });
+    expect(await page.evaluate(() => window.localStorage.getItem("rcat.site.visitor.id"))).toBeNull();
+
+    const previousCount = countTelemetry();
+    const previousExternalCount = seenThirdPartyRequests.length;
+    await page.goto("/announcements");
+    await expect(page.getByRole("heading", { name: "ประกาศ", exact: true })).toBeVisible();
+    expect(countTelemetry()).toBe(previousCount);
+    expect(seenThirdPartyRequests).toHaveLength(previousExternalCount);
+  });
+
+  test("keeps cookie-policy and privacy-policy pages accessible without consenting", async ({ page }) => {
+    await installPublicAuthIsolationFixture(page);
+    for (const [path, heading] of [
+      ["/privacy-policy", /นโยบายความเป็นส่วนตัว/],
+      ["/cookie-policy", /นโยบายการใช้คุกกี้/]
+    ] as const) {
+      await page.goto(path);
+      await expect(page.getByRole("heading", { name: heading }).first()).toBeVisible();
+      await expect(page.getByRole("region", { name: "แจ้งการใช้คุกกี้" })).toBeVisible();
+    }
+  });
+});
