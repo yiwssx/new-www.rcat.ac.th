@@ -173,7 +173,7 @@ export default function PublicMainMenu({ preloadedMenu }: { preloadedMenu?: Publ
         boxShadow: designTokens.elevation.low
       }}
     >
-      <Container maxWidth="xl" sx={{ position: "relative", minWidth: 0, minHeight: 48, py: 0 }}>
+      <Container maxWidth="xl" sx={{ position: "relative", minWidth: 0, minHeight: { xs: 44, lg: 48 }, py: 0 }}>
         <Box
           data-testid="public-main-menu-desktop"
           sx={{
@@ -194,7 +194,7 @@ export default function PublicMainMenu({ preloadedMenu }: { preloadedMenu?: Publ
             width: "100%",
             alignItems: "center",
             justifyContent: "flex-start",
-            minHeight: 48,
+            minHeight: 44,
             gap: 1
           }}
         >
@@ -204,14 +204,17 @@ export default function PublicMainMenu({ preloadedMenu }: { preloadedMenu?: Publ
             sx={(theme) => ({
               border: "1px solid",
               borderColor: alpha(theme.palette.common.white, 0.36),
-              color: "inherit"
+              color: "inherit",
+              width: 44,
+              height: 44
             })}
           >
             {mobileMenuOpen ? <CloseOutlinedIcon /> : <MenuOutlinedIcon />}
           </IconButton>
           <Typography
             sx={{
-              fontWeight: 900
+              fontSize: { xs: "0.95rem", sm: "1rem" },
+              fontWeight: 800
             }}
           >
             เมนูหลัก
