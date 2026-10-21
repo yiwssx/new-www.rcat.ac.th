@@ -1023,7 +1023,14 @@ function PublicSiteShellFrame({
                         onClick={openPublicCookiePreferences}
                         underline="hover"
                         variant="body2"
-                        sx={{ ...focusVisibleSx, border: 0, p: 0, bgcolor: "transparent", cursor: "pointer", font: "inherit" }}
+                        sx={{
+                          ...focusVisibleSx,
+                          border: 0,
+                          p: 0,
+                          bgcolor: "transparent",
+                          cursor: "pointer",
+                          font: "inherit"
+                        }}
                       >
                         ตั้งค่าคุกกี้
                       </Link>
