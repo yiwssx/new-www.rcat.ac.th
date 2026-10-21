@@ -7,6 +7,19 @@ This replaces manual visitor statistic entry for the `Website Visitors / สถ�
 
 Project-state note: site-view tracking is part of the post-P5H production baseline and is owned by Cloudflare Worker and D1. Current project status is defined by `docs/architecture/post-p5h-current-project-state.md`; M20/M21 are historical migration/stabilization records and are not active phases.
 
+## Consent precondition (2026-10-21)
+
+Public site-view and presence writes occur only after the visitor actively
+accepts the analytics category in the cookie-consent interface. If consent is
+missing, rejected, expired or withdrawn, the tracker does not mount and does
+not store a visitor identifier. The aggregate visitor statistics may still be
+displayed from existing stored counts without identifying the reader.
+Consequently, totals are metrics for consenting browsers rather than a
+complete census of all website visitors.
+
+Consent versioning, revocation and external Google/Vercel analytics boundaries
+are documented in `docs/features/public-cookie-consent.md`.
+
 ## What Is Counted
 
 - `totalViews`: accepted public page views.
