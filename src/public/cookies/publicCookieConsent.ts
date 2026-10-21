@@ -37,7 +37,7 @@ export function parsePublicCookieConsent(value: string | null, now = Date.now())
 }
 
 /** Stable external-store primitives avoid setting React state synchronously in an effect. */
-export function getPublicCookieConsentSnapshot(): string | null {
+export function getPublicCookieConsentSnapshot(): string | null | undefined {
   if (typeof window === "undefined") return null;
   try {
     return window.localStorage.getItem(PUBLIC_COOKIE_CONSENT_STORAGE_KEY);
