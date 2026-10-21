@@ -26,6 +26,15 @@ remain valid and reproducible.
 | First-party Presence    | Approximate online visitor state                        | Genuine Public routes only            | Initial visible route, new Public route, heartbeat, or return to visible | At most one POST for the same path per 60-second heartbeat window; a new Public path may send immediately | In-memory coordinator and Cloudflare Worker/D1 data        |
 | Visitor-stats GET       | Aggregate counter display                               | Public home counter only when enabled | Stale visible interval, stale focus, or stale reconnect                  | No GET for a fresh snapshot; at most one GET per 60 seconds while visible; five-minute failure backoff    | Shared React Query cache retains the latest valid snapshot |
 
+All five telemetry collectors above are now behind the optional
+`PublicCookieConsent` acceptance gate. No visitor-view/presence POST and no
+Google or Vercel analytics SDK loads until the visitor explicitly opts in.
+Refusing or withdrawing consent leaves the Public pages available; the latter
+reloads the document to terminate loaded SDKs. See
+`docs/features/public-cookie-consent.md` for state validity and limitations.
+The first-party visitor count consequently measures **consenting browsers**,
+not every browser that loaded the site.
+
 These systems are not interchangeable. Vercel Speed Insights owns field Web
 Vitals evidence; the local static-entry checker does not infer LCP, INP, CLS,
 network latency, CDN transfer size, or a Speed Insights score.
