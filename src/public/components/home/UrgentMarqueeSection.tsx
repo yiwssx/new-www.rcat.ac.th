@@ -102,11 +102,11 @@ export function UrgentMarqueeSection({ settings }: { settings?: HomepageMarqueeS
   }
 
   return (
-    <Box component="section" aria-label="ประกาศด่วน" sx={{ py: { xs: 1, md: 1.2 }, bgcolor: "background.default" }}>
+    <Box component="section" aria-label="ประกาศด่วน" sx={{ py: { xs: 0.65, md: 1.2 }, bgcolor: "background.default" }}>
       <Container maxWidth="xl">
         <Stack
           direction="row"
-          spacing={{ xs: 0.75, sm: 1.4 }}
+          spacing={{ xs: 0.6, sm: 1.4 }}
           sx={[
             {
               alignItems: "center"
@@ -118,8 +118,8 @@ export function UrgentMarqueeSection({ settings }: { settings?: HomepageMarqueeS
               borderColor: "secondary.main",
               bgcolor: alpha(theme.palette.secondary.light, 0.36),
               boxShadow: designTokens.elevation.low,
-              px: { xs: 1.2, sm: 1.5, md: 2 },
-              py: { xs: 0.85, md: 0.95 },
+              px: { xs: 1, sm: 1.5, md: 2 },
+              py: { xs: 0.6, md: 0.95 },
               "&:hover .rcat-marquee-track": {
                 animationPlayState: "paused"
               },
@@ -135,14 +135,24 @@ export function UrgentMarqueeSection({ settings }: { settings?: HomepageMarqueeS
           <Chip
             icon={<CampaignOutlinedIcon />}
             label={settings.label}
+            title={settings.label}
             color="secondary"
             sx={{
               alignSelf: "center",
               flexShrink: 0,
+              maxWidth: { xs: 110, sm: "none" },
+              height: { xs: 32, md: 36 },
+              fontSize: { xs: "0.76rem", md: "0.875rem" },
               color: "secondary.contrastText",
-              fontWeight: 900,
+              fontWeight: 800,
               "& .MuiChip-icon": {
-                color: "secondary.contrastText"
+                color: "secondary.contrastText",
+                fontSize: { xs: 18, md: 20 }
+              },
+              "& .MuiChip-label": {
+                px: { xs: 0.75, sm: 1.2 },
+                overflow: "hidden",
+                textOverflow: "ellipsis"
               }
             }}
           />

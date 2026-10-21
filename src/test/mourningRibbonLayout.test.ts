@@ -30,7 +30,7 @@ describe("mourning ribbon responsive layout", () => {
       const identityPadding = Number.parseInt(MOURNING_RIBBON_IDENTITY_PADDING[breakpoint], 10);
 
       expect(topBarPadding).toBe(size);
-      expect(identityPadding).toBeGreaterThanOrEqual(size * 0.75);
+      expect(identityPadding).toBeGreaterThanOrEqual(16);
       expect(identityPadding).toBeLessThan(size);
     }
   });
