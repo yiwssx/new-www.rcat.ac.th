@@ -1,7 +1,7 @@
 /**
  * Ribbon uses its full square canvas at the top of the page.
- * Keep the top bar clear of the canvas; the identity section starts farther
- * down the page and can safely reserve less horizontal space.
+ * The mobile contact bar remains beside the ribbon while the identity content
+ * clears it vertically, preserving usable width for the full college name.
  */
 export const MOURNING_RIBBON_SIZE = {
   xs: 120,
@@ -18,8 +18,8 @@ export const MOURNING_RIBBON_TOP_BAR_PADDING = {
 } as const;
 
 export const MOURNING_RIBBON_IDENTITY_PADDING = {
-  xs: "96px",
-  sm: "112px",
+  xs: "16px",
+  sm: "24px",
   md: "136px",
   lg: "160px"
 } as const;
