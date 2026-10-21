@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
@@ -13,12 +13,7 @@ import Switch from "@mui/material/Switch";
 import Typography from "@mui/material/Typography";
 import {
   PUBLIC_COOKIE_CONSENT_OPEN_EVENT,
-  getPublicCookieConsentSnapshot,
-  getServerPublicCookieConsentSnapshot,
   openPublicCookiePreferences,
-  parsePublicCookieConsent,
-  savePublicCookieConsent,
-  subscribePublicCookieConsent,
   type PublicCookieConsentChoice
 } from "../cookies/publicCookieConsent";
 
@@ -26,27 +21,6 @@ const COOKIE_NOTICE_TEXT =
   "คุกกี้ที่จำเป็นช่วยให้เว็บไซต์ทำงานและเข้าสู่ระบบได้อย่างปลอดภัย ส่วนสถิติผู้เข้าชมและเครื่องมือวิเคราะห์จาก Google และ Vercel จะทำงานเมื่อท่านยินยอมเท่านั้น ท่านเลือกปฏิเสธได้โดยไม่เสียสิทธิในการเข้าชมเว็บไซต์";
 const COOKIE_ANALYTICS_TEXT =
   "ครอบคลุมระบบนับผู้เข้าชมของ RCAT, Google Tag Manager / Analytics และ Vercel Analytics / Speed Insights ปิดไว้เป็นค่าเริ่มต้นจนกว่าจะยินยอม";
-
-export function usePublicCookieConsent() {
-  const snapshot = useSyncExternalStore(
-    subscribePublicCookieConsent,
-    getPublicCookieConsentSnapshot,
-    getServerPublicCookieConsentSnapshot
-  );
-  const consent = snapshot === undefined ? undefined : parsePublicCookieConsent(snapshot);
-
-  const chooseConsent = (analytics: boolean) => {
-    const hadAnalytics = consent?.analytics === true;
-    savePublicCookieConsent(analytics);
-
-    if (hadAnalytics && !analytics) {
-      // The page reload removes already-mounted Google/Vercel scripts after withdrawal.
-      window.location.reload();
-    }
-  };
-
-  return { consent, chooseConsent };
-}
 
 interface PublicCookieConsentProps {
   consent: PublicCookieConsentChoice | null | undefined;
