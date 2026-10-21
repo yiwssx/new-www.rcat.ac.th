@@ -980,7 +980,7 @@ function PublicSiteShellFrame({
                 sx={{
                   gap: 2,
                   justifyContent: "space-between",
-                  alignItems: { xs: "stretch", md: "center" }
+                  alignItems: { xs: "stretch", md: "flex-end" }
                 }}
               >
                 <Box data-footer-branding="true" sx={{ order: { xs: 2, md: 1 } }}>
