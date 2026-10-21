@@ -58,6 +58,7 @@ describe("mourning ribbon responsive layout", () => {
     expect(publicShellSource).toContain('overflowWrap: "break-word"');
     expect(publicShellSource).toContain('height: { xs: 44, sm: 40 }');
     expect(publicShellSource).toContain('flex: { xs: "1 1 0", sm: "0 0 auto" }');
+    expect(publicShellSource).toContain('aria-label="ข้อมูลติดต่อและที่ตั้งวิทยาลัย"');
   });
 
   it("renders a genuine, self-contained SVG instead of scaling the old PNG", () => {
