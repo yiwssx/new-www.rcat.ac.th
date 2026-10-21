@@ -11,6 +11,23 @@ for (const width of [320, 360, 390, 430, 768, 1280]) {
       ...snapshot.siteSettings,
       footerTitle: "วิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด",
       footerDescription: "© 2026 งานศูนย์ดิจิทัลและสื่อสารองค์กร",
+      footerDirectoryGroups: [
+        {
+          title: "นโยบายการให้บริการ",
+          links: [
+            {
+              label: "นโยบายความเป็นส่วนตัวของข้อมูล (Privacy Policy)",
+              href: "/privacy-policy",
+              enabled: true
+            },
+            {
+              label: "นโยบายการใช้คุกกี้ (Cookies Policy)",
+              href: "/cookie-policy",
+              enabled: true
+            }
+          ]
+        }
+      ],
       messengerEnabled: true,
       messengerUrl: "https://m.me/rcat",
       messengerLabel: "แชทกับเจ้าหน้าที่"
@@ -45,11 +62,17 @@ for (const width of [320, 360, 390, 430, 768, 1280]) {
 
     await expect(staff).toHaveAttribute("href", "/login");
     await expect(backToTop).toBeVisible();
-    await expect(footer.getByRole("link", { name: "นโยบายความเป็นส่วนตัว" })).toHaveAttribute(
-      "href",
-      "/privacy-policy"
-    );
-    await expect(footer.getByRole("link", { name: "นโยบายการใช้คุกกี้" })).toHaveAttribute("href", "/cookie-policy");
+    const legalDirectory = page.locator('[data-cls-region="footer-directory"]');
+    await expect(
+      legalDirectory.getByRole("link", { name: "เปิดลิงก์ นโยบายความเป็นส่วนตัวของข้อมูล (Privacy Policy)" })
+    ).toHaveAttribute("href", "/privacy-policy");
+    await expect(
+      legalDirectory.getByRole("link", { name: "เปิดลิงก์ นโยบายการใช้คุกกี้ (Cookies Policy)" })
+    ).toHaveAttribute("href", "/cookie-policy");
+
+    // Policy links belong to the CMS-controlled directory, not a duplicate hard-coded footer.
+    await expect(footer.locator('a[href="/privacy-policy"]')).toHaveCount(0);
+    await expect(footer.locator('a[href="/cookie-policy"]')).toHaveCount(0);
     await expect(footer.getByRole("button", { name: "ตั้งค่าคุกกี้" })).toBeVisible();
     await expect(page.locator('[data-public-floating-messenger="true"]')).toBeVisible();
 

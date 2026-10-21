@@ -1002,42 +1002,28 @@ function PublicSiteShellFrame({
                       <FlagEmojiText text={siteSettings.footerDescription} />
                     </Typography>
                   )}
-                  <Box component="nav" aria-label="นโยบายเว็บไซต์" sx={{ mt: 1.5 }}>
-                    <Stack direction="row" useFlexGap spacing={2} sx={{ flexWrap: "wrap" }}>
-                      <Link
-                        color="inherit"
-                        href="/privacy-policy"
-                        underline="hover"
-                        variant="body2"
-                        sx={focusVisibleSx}
-                      >
-                        นโยบายความเป็นส่วนตัว
-                      </Link>
-                      <Link color="inherit" href="/cookie-policy" underline="hover" variant="body2" sx={focusVisibleSx}>
-                        นโยบายการใช้คุกกี้
-                      </Link>
-                      <Link
-                        component="button"
-                        type="button"
-                        color="inherit"
-                        onClick={openPublicCookiePreferences}
-                        underline="hover"
-                        variant="body2"
-                        sx={{
-                          ...focusVisibleSx,
-                          border: 0,
-                          p: 0,
-                          minHeight: 44,
-                          display: "inline-flex",
-                          alignItems: "center",
-                          bgcolor: "transparent",
-                          cursor: "pointer",
-                          font: "inherit"
-                        }}
-                      >
-                        ตั้งค่าคุกกี้
-                      </Link>
-                    </Stack>
+                  <Box component="nav" aria-label="การตั้งค่าความเป็นส่วนตัว" sx={{ mt: 1.5 }}>
+                    <Link
+                      component="button"
+                      type="button"
+                      color="inherit"
+                      onClick={openPublicCookiePreferences}
+                      underline="hover"
+                      variant="body2"
+                      sx={{
+                        ...focusVisibleSx,
+                        border: 0,
+                        p: 0,
+                        minHeight: 44,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        bgcolor: "transparent",
+                        cursor: "pointer",
+                        font: "inherit"
+                      }}
+                    >
+                      ตั้งค่าคุกกี้
+                    </Link>
                   </Box>
                 </Box>
                 <Stack
