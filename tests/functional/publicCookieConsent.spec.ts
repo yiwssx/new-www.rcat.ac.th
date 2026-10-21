@@ -70,7 +70,7 @@ test.describe("Public cookie consent", () => {
   test("keeps cookie-policy and privacy-policy pages accessible without consenting", async ({ page }) => {
     await installPublicAuthIsolationFixture(page, { consent: "unset" });
     for (const [path, heading] of [
-      ["/privacy-policy", /นโยบายความเป็นส่วนตัว/],
+      ["/privacy-policy", /ประกาศเกี่ยวกับความเป็นส่วนตัว/],
       ["/cookie-policy", /นโยบายการใช้คุกกี้/]
     ] as const) {
       await page.goto(path);
