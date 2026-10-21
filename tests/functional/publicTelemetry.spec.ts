@@ -31,14 +31,6 @@ function countPublicRequests(fixture: PublicAuthIsolationFixture, pathname: stri
 }
 
 async function installTelemetryNetworkMocks(page: Page) {
-  // These regression tests intentionally opt in; fresh visitors are covered by publicCookieConsent.spec.ts.
-  await page.addInitScript(() => {
-    window.localStorage.setItem(
-      "rcat.cookie.consent.v1",
-      JSON.stringify({ version: 1, analytics: true, decidedAt: new Date().toISOString() })
-    );
-  });
-
   const ledger: TelemetryNetworkLedger = {
     googleTagManager: [],
     googleGtag: [],
@@ -182,7 +174,7 @@ test.describe("Public telemetry request governance", () => {
     });
     await installDeterministicVisibility(page);
     const network = await installTelemetryNetworkMocks(page);
-    const publicFixture = await installPublicAuthIsolationFixture(page);
+    const publicFixture = await installPublicAuthIsolationFixture(page, { consent: "accepted" });
 
     await page.goto("/?token=SYNTHETIC-PRIVATE#private-fragment");
     await expectHomePage(page);
@@ -268,7 +260,7 @@ test.describe("Public telemetry request governance", () => {
     });
     await installDeterministicVisibility(page);
     await installTelemetryNetworkMocks(page);
-    const publicFixture = await installPublicAuthIsolationFixture(page);
+    const publicFixture = await installPublicAuthIsolationFixture(page, { consent: "accepted" });
 
     await page.goto("/news");
     await expect(page.getByRole("heading", { name: "ข่าว", exact: true })).toBeVisible();
@@ -334,7 +326,7 @@ test.describe("Public telemetry request governance", () => {
     await page.addInitScript(() => {
       window.__RCAT_FUNCTIONAL_FAIL_PUBLIC_TELEMETRY_IMPORT__ = true;
     });
-    await installPublicAuthIsolationFixture(page);
+    await installPublicAuthIsolationFixture(page, { consent: "accepted" });
 
     await page.goto("/");
     await expectHomePage(page);
