@@ -288,7 +288,7 @@ function TopBarInfoItem({ icon, text, href, compact = false, allowShrink = false
         variant="body2"
         sx={{
           minWidth: allowShrink ? 0 : undefined,
-          fontSize: compact ? { xs: "0.66rem", sm: "0.78rem", md: "0.875rem" } : { md: "0.875rem" },
+          fontSize: compact ? { xs: "0.75rem", sm: "0.8rem", md: "0.875rem" } : { md: "0.875rem" },
           lineHeight: 1.18,
           overflow: allowShrink ? "hidden" : "visible",
           textOverflow: allowShrink ? "ellipsis" : "clip",
@@ -372,53 +372,24 @@ function TopBarSocialIcons({ links, showLabel }: { links: TopBarSocialLink[]; sh
   );
 }
 
-function MobileTopBar({
-  campus,
-  phone,
-  email,
-  socialLinks
-}: {
-  campus: string;
-  phone?: string;
-  email?: string;
-  socialLinks: TopBarSocialLink[];
-}) {
+function MobileTopBar({ phone, socialLinks }: { phone?: string; socialLinks: TopBarSocialLink[] }) {
   return (
     <Box
       sx={{
-        display: { xs: "grid", md: "none" },
-        gridTemplateColumns: "minmax(0, 1fr) auto",
-        gridTemplateRows: "auto auto",
-        columnGap: { xs: 0.75, sm: 1.1 },
-        rowGap: { xs: 0.35, sm: 0.45 },
-        alignItems: "center",
-        py: { xs: 0.45, sm: 0.55 },
-        minHeight: { xs: 50, sm: 54 },
+        display: { xs: "flex", md: "none" },
+        flexDirection: "column",
+        alignItems: "flex-end",
+        justifyContent: "center",
+        gap: 0.25,
+        minHeight: 76,
         minWidth: 0,
-        overflow: "hidden"
+        py: 0.25
       }}
     >
-      <Box sx={{ gridColumn: phone ? "1 / 2" : "1 / 3", gridRow: "1 / 2", minWidth: 0 }}>
-        <TopBarInfoItem icon={<LocationOnOutlinedIcon />} text={campus} compact allowShrink />
-      </Box>
-
       {phone && (
-        <Box sx={{ gridColumn: "2 / 3", gridRow: "1 / 2", justifySelf: "end", minWidth: "max-content" }}>
-          <TopBarInfoItem icon={<LocalPhoneOutlinedIcon />} text={phone} href={getTelephoneHref(phone)} compact />
-        </Box>
+        <TopBarInfoItem icon={<LocalPhoneOutlinedIcon />} text={phone} href={getTelephoneHref(phone)} compact />
       )}
-
-      {email && (
-        <Box sx={{ gridColumn: "1 / 2", gridRow: "2 / 3", minWidth: 0 }}>
-          <TopBarInfoItem icon={<MailOutlineOutlinedIcon />} text={email} compact allowShrink />
-        </Box>
-      )}
-
-      {!!socialLinks.length && (
-        <Box sx={{ gridColumn: "2 / 3", gridRow: "2 / 3", justifySelf: "end", minWidth: "max-content" }}>
-          <TopBarSocialIcons links={socialLinks} showLabel={false} />
-        </Box>
-      )}
+      <TopBarSocialIcons links={socialLinks} showLabel={false} />
     </Box>
   );
 }
@@ -702,12 +673,7 @@ function PublicSiteShellFrame({
             }}
           >
             <Container maxWidth="xl" sx={{ pl: mourningRibbonTopBarPadding }}>
-              <MobileTopBar
-                campus={siteSettings.campus || siteName}
-                phone={siteSettings.phone}
-                email={siteSettings.email}
-                socialLinks={socialLinks}
-              />
+              <MobileTopBar phone={siteSettings.phone} socialLinks={socialLinks} />
               <DesktopTopBar
                 campus={siteSettings.campus}
                 siteName={siteName}
@@ -719,19 +685,25 @@ function PublicSiteShellFrame({
           </Box>
 
           <Box sx={{ bgcolor: "white", borderBottom: "1px solid", borderColor: "divider" }}>
-            <Container maxWidth="xl" sx={{ pl: mourningRibbonIdentityPadding }}>
+            <Container
+              maxWidth="xl"
+              sx={{
+                pl: mourningRibbonIdentityPadding,
+                pt: mourningRibbonEnabled ? { xs: 5.5, sm: 8.5, md: 0 } : 0
+              }}
+            >
               <Stack
                 direction={{ xs: "column", lg: "row" }}
-                spacing={{ xs: 1.2, md: 2 }}
+                spacing={{ xs: 1, md: 2 }}
                 sx={{
                   justifyContent: "space-between",
                   alignItems: { xs: "flex-start", lg: "center" },
-                  py: { xs: 1.2, md: 2.4 }
+                  py: { xs: 0.9, md: 2.4 }
                 }}
               >
                 <Stack
                   direction="row"
-                  spacing={{ xs: 1.1, md: 2 }}
+                  spacing={{ xs: 1, md: 2 }}
                   sx={{
                     alignItems: "center",
                     width: "100%",
@@ -747,30 +719,33 @@ function PublicSiteShellFrame({
                     height={128}
                     fill
                     sx={{
-                      width: { xs: 64, sm: 72, md: 88 },
-                      height: { xs: 64, sm: 72, md: 88 },
+                      width: { xs: 60, sm: 64, md: 88 },
+                      height: { xs: 60, sm: 64, md: 88 },
                       flexShrink: 0
                     }}
                     imageSx={{ objectFit: "contain" }}
                   />
-                  <Box sx={{ minWidth: 0 }}>
+                  <Box sx={{ minWidth: 0, flex: "1 1 0" }}>
                     {siteSettings.intro && (
                       <Stack
                         direction="row"
                         spacing={0.8}
                         sx={{
-                          alignItems: "center",
-                          mb: { xs: 0.2, md: 0.4 }
+                          alignItems: "flex-start",
+                          mb: { xs: 0.35, md: 0.4 }
                         }}
                       >
-                        <EmojiEventsOutlinedIcon sx={{ color: "secondary.dark", fontSize: { xs: 17, md: 24 } }} />
+                        <EmojiEventsOutlinedIcon
+                          sx={{ color: "secondary.dark", fontSize: { xs: 18, md: 24 }, flexShrink: 0, mt: 0.1 }}
+                        />
                         <Typography
                           sx={{
                             color: "secondary.dark",
-                            fontSize: { xs: "0.74rem", md: "0.82rem" },
+                            fontSize: { xs: "0.78rem", md: "0.82rem" },
                             fontWeight: 700,
                             letterSpacing: "0.02em",
-                            lineHeight: 1.25
+                            lineHeight: 1.3,
+                            overflowWrap: "break-word"
                           }}
                         >
                           <FlagEmojiText text={siteSettings.intro} />
@@ -780,7 +755,11 @@ function PublicSiteShellFrame({
                     <Typography
                       component="h2"
                       variant="h2"
-                      sx={{ fontSize: { xs: "1.34rem", sm: "1.5rem", md: "2.4rem" }, lineHeight: 1.08 }}
+                      sx={{
+                        fontSize: { xs: "1.2rem", sm: "1.5rem", md: "2.4rem" },
+                        lineHeight: { xs: 1.17, md: 1.08 },
+                        overflowWrap: "break-word"
+                      }}
                     >
                       <FlagEmojiText text={siteName} />
                     </Typography>
@@ -795,10 +774,7 @@ function PublicSiteShellFrame({
                           lineHeight: 1.25,
                           textTransform: "uppercase",
                           mt: { xs: 0.35, md: 0.6 },
-                          overflow: { xs: "hidden", md: "visible" },
-                          display: { xs: "-webkit-box", md: "block" },
-                          WebkitBoxOrient: "vertical",
-                          WebkitLineClamp: { xs: 1, md: "unset" }
+                          overflowWrap: "break-word"
                         }}
                       >
                         <FlagEmojiText text={siteSettings.eyebrow} />
@@ -813,7 +789,14 @@ function PublicSiteShellFrame({
                   sx={{
                     alignItems: "center",
                     flexWrap: "wrap",
-                    width: { xs: "100%", lg: "auto" }
+                    width: { xs: "100%", lg: "auto" },
+                    rowGap: 1,
+                    "& .MuiButton-root": {
+                      minHeight: { xs: 44, md: 40 },
+                      fontSize: { xs: "0.875rem", md: "0.9rem" },
+                      borderRadius: 1.25,
+                      px: { xs: 1, sm: 2 }
+                    }
                   }}
                 >
                   {siteSettings.admissionUrl && (
@@ -822,7 +805,7 @@ function PublicSiteShellFrame({
                       color="error"
                       href={normalizeSafeHref(siteSettings.admissionUrl)}
                       startIcon={<AssignmentOutlinedIcon />}
-                      sx={{ flex: { xs: "1 1 132px", sm: "0 0 auto" } }}
+                      sx={{ flex: { xs: "1 1 0", sm: "0 0 auto" }, minWidth: { xs: 0, sm: "auto" } }}
                     >
                       สมัครเรียน
                     </Button>
@@ -832,7 +815,7 @@ function PublicSiteShellFrame({
                     color="primary"
                     href={normalizeSafeHref("/announcements")}
                     endIcon={<ArrowForwardOutlinedIcon />}
-                    sx={{ flex: { xs: "1 1 132px", sm: "0 0 auto" } }}
+                    sx={{ flex: { xs: "1 1 0", sm: "0 0 auto" }, minWidth: { xs: 0, sm: "auto" } }}
                   >
                     {ANNOUNCEMENTS_LABEL}
                   </Button>
@@ -873,7 +856,9 @@ function PublicSiteShellFrame({
                       }}
                       sx={{
                         "& .MuiInputBase-root": {
-                          bgcolor: "white"
+                          bgcolor: "white",
+                          height: { xs: 44, sm: 40 },
+                          borderRadius: 1.25
                         },
                         "& .MuiInputBase-input": {
                           py: { xs: 0.65, md: 0.75 },
