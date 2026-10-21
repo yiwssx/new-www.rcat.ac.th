@@ -740,9 +740,7 @@ function PublicSiteShellFrame({
                         minWidth: 0
                       }}
                     >
-                      <EmojiEventsOutlinedIcon
-                        sx={{ color: "secondary.dark", fontSize: 18, flexShrink: 0, mt: 0.1 }}
-                      />
+                      <EmojiEventsOutlinedIcon sx={{ color: "secondary.dark", fontSize: 18, flexShrink: 0, mt: 0.1 }} />
                       <Typography
                         sx={{
                           color: "secondary.dark",
