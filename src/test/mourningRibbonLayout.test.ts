@@ -17,7 +17,7 @@ describe("mourning ribbon responsive layout", () => {
   it("keeps the ribbon prominent on mobile and increases its size on larger screens", () => {
     const sizes = breakpoints.map((breakpoint) => MOURNING_RIBBON_SIZE[breakpoint]);
 
-    expect(sizes[0]).toBeGreaterThanOrEqual(120);
+    expect(sizes[0]).toBeGreaterThanOrEqual(96);
     for (let index = 1; index < sizes.length; index += 1) {
       expect(sizes[index]).toBeGreaterThan(sizes[index - 1]);
     }
@@ -39,6 +39,9 @@ describe("mourning ribbon responsive layout", () => {
     expect(ribbonSource).toContain("width: MOURNING_RIBBON_SIZE");
     expect(publicShellSource).toContain("pl: mourningRibbonTopBarPadding");
     expect(publicShellSource).toContain("pl: mourningRibbonIdentityPadding");
+    expect(publicShellSource).toContain("pt: mourningRibbonEnabled ? { xs: 2.5, sm: 4.5, md: 0 } : 0");
+    expect(publicShellSource).toContain('data-testid="public-mobile-award"');
+    expect(publicShellSource).toContain('data-testid="public-college-identity"');
     expect(publicShellSource).toContain("{mourningRibbonEnabled && <PublicMourningRibbon />}");
   });
 

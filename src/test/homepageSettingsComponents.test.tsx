@@ -242,8 +242,10 @@ describe("homepage settings public sections", () => {
     const desktop = getMarqueeMotion(1440, 680, 80);
 
     expect(mobile.durationSeconds).not.toBe(desktop.durationSeconds);
-    expectMotionSpeed(mobile, 1000, 80);
+    expectMotionSpeed(mobile, 680, 80);
     expectMotionSpeed(desktop, 2120, 80);
+    expect(mobile.startX).toBe("0px");
+    expect(desktop.startX).toBe("1440px");
   });
 
   it("increases marquee duration when measured distance increases", () => {
@@ -251,7 +253,7 @@ describe("homepage settings public sections", () => {
     const longDistance = getMarqueeMotion(1280, 920, 80);
 
     expect(longDistance.durationSeconds).toBeGreaterThan(shortDistance.durationSeconds);
-    expectMotionSpeed(shortDistance, 800, 80);
+    expectMotionSpeed(shortDistance, 480, 80);
     expectMotionSpeed(longDistance, 2200, 80);
   });
 
@@ -259,7 +261,7 @@ describe("homepage settings public sections", () => {
     const first = getMarqueeMotion(480, 720, 120);
     const second = getMarqueeMotion(960, 1080, 120);
 
-    expectMotionSpeed(first, 1200, 120);
+    expectMotionSpeed(first, 720, 120);
     expectMotionSpeed(second, 2040, 120);
   });
 
@@ -267,10 +269,10 @@ describe("homepage settings public sections", () => {
     const motion = getMarqueeMotion(400, 600, 80);
 
     expect(motion.reducedMotionDurationSeconds).toBeGreaterThan(motion.durationSeconds);
-    expect(1000 / motion.reducedMotionDurationSeconds).toBeLessThan(80);
+    expect(600 / motion.reducedMotionDurationSeconds).toBeLessThan(80);
   });
 
-  it("renders UrgentMarqueeSection as a right-to-left ticker that starts offscreen", () => {
+  it("renders a right-to-left ticker with visible text on narrow viewports", () => {
     const restoreMeasurements = mockMarqueeMeasurements({ viewportWidth: 360, trackWidth: 640 });
 
     render(
@@ -294,10 +296,10 @@ describe("homepage settings public sections", () => {
     expect(screen.getByTestId("urgent-marquee-group")).toHaveTextContent("Campus announcement");
     expect(marqueeTrack).toBeInTheDocument();
     expect(document.querySelector(".rcat-marquee-viewport")).toBeInTheDocument();
-    expect(marqueeTrack.style.getPropertyValue("--rcat-marquee-start-x")).toBe("360px");
+    expect(marqueeTrack.style.getPropertyValue("--rcat-marquee-start-x")).toBe("0px");
     expect(marqueeTrack.style.getPropertyValue("--rcat-marquee-end-x")).toBe("-640px");
-    expect(marqueeTrack.style.getPropertyValue("--rcat-marquee-duration")).toBe("12.5s");
-    expect(marqueeTrack.style.getPropertyValue("--rcat-marquee-reduced-motion-duration")).toBe("25s");
+    expect(marqueeTrack.style.getPropertyValue("--rcat-marquee-duration")).toBe("8s");
+    expect(marqueeTrack.style.getPropertyValue("--rcat-marquee-reduced-motion-duration")).toBe("16s");
     expect(injectedStyles).toContain("translateX(var(--rcat-marquee-start-x))");
     expect(injectedStyles).toContain("translateX(var(--rcat-marquee-end-x))");
     expect(injectedStyles).toContain("animation-duration:var(--rcat-marquee-duration)");

@@ -1,6 +1,6 @@
 # Public mobile header refinement
 
-- **Status:** ACTIVE — production verification follow-up after #676 merge
+- **Status:** ACTIVE — mobile visual acceptance correction after successful production verification
 - **Branch:** `fix/public-mobile-header-compact-royal-award`
 - **PR:** [#676](https://github.com/yiwssx/new-www.rcat.ac.th/pull/676)
 - **Scope:** Public mobile top bar, college identity, mourning-ribbon clearance, primary actions/search, compact menu and urgent ticker; responsive regression checks.
@@ -41,3 +41,18 @@
 - CI #4515 (`39547806134`) and #4516 (`39547962217`) also reported Prettier formatting failures in the same test file. Replaced it with the formatter-clean baseline from `main` and a single updated padding expectation in commit `ba1ef3b6c184cb858b0b4158180eecfa2dc5a73b`.
 - Await exact-head CI after this checkpoint commit, then inspect required jobs and merge only if all pass.
 - Open a PR, inspect exact-head CI, correct any failures and wait for required gates. If field QA is unavailable, explicitly record it as unverified.
+
+## Mobile visual acceptance — 2026-10-21
+
+- **Feedback:** The latest mobile screenshot still has a large blank band below the mourning ribbon, an award caption stranded beside the logo, oversized full-width action blocks, and an empty-looking urgent ticker.
+- **Implementation branch:** `fix/public-mobile-identity-visual-balance` based on production-verified `main@2caffa60`.
+- **Design:** Keep the original royal-award caption in full above the mobile logo/name group; preserve its desktop placement, reduce only the mobile ribbon footprint and matching clearance, center compact 44px action targets, and constrain search width.
+- **Urgent notices:** Keep the full CMS text, show an accessible icon-only category on phones, and begin the mobile ticker with text visible instead of waiting for it to enter from the far edge.
+- **Regression coverage:** Ribbon size/clearance unit test, ticker timing tests, and Playwright geometry at 320/360/390/412/430px.
+- **Acceptance gate:** Await exact-head CI, visual phone review, deployment and browser field QA. Previous CI and production success do not establish visual acceptance for this iteration.
+
+## CI recovery — PR #679
+
+- CI [#4529](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/39567838010) completed with Build, Unit, Integration, Functional E2E, Governance and Worker passing; Static Quality failed exclusively at `pnpm format:check` for `src/public/components/PublicSiteShell.tsx`. The aggregate `quality` job failed as a consequence.
+- Mobile award icon JSX was normalized to the repository's 120-column Prettier configuration in commit `8152ca7bea2722991bc2e5c61dd9a85284ccf498`.
+- Follow-up CI #4530 was started on that SHA, but this tracker checkpoint creates a newer head requiring exact-head CI again. No merge or production changes until the final-head quality gate is green; visual acceptance on an actual phone remains separate.

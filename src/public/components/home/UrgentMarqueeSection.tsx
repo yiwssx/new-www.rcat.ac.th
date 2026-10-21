@@ -102,7 +102,7 @@ export function UrgentMarqueeSection({ settings }: { settings?: HomepageMarqueeS
   }
 
   return (
-    <Box component="section" aria-label="ประกาศด่วน" sx={{ py: { xs: 0.65, md: 1.2 }, bgcolor: "background.default" }}>
+    <Box component="section" aria-label="ประกาศด่วน" sx={{ py: { xs: 0.45, md: 1.2 }, bgcolor: "background.default" }}>
       <Container maxWidth="xl">
         <Stack
           direction="row"
@@ -119,7 +119,7 @@ export function UrgentMarqueeSection({ settings }: { settings?: HomepageMarqueeS
               bgcolor: alpha(theme.palette.secondary.light, 0.36),
               boxShadow: designTokens.elevation.low,
               px: { xs: 1, sm: 1.5, md: 2 },
-              py: { xs: 0.6, md: 0.95 },
+              py: { xs: 0.45, md: 0.95 },
               "&:hover .rcat-marquee-track": {
                 animationPlayState: "paused"
               },
@@ -136,23 +136,27 @@ export function UrgentMarqueeSection({ settings }: { settings?: HomepageMarqueeS
             icon={<CampaignOutlinedIcon />}
             label={settings.label}
             title={settings.label}
+            aria-label={settings.label}
             color="secondary"
             sx={{
               alignSelf: "center",
               flexShrink: 0,
-              maxWidth: { xs: 110, sm: "none" },
+              width: { xs: 36, sm: "auto" },
+              maxWidth: { xs: 36, sm: "none" },
               height: { xs: 32, md: 36 },
+              justifyContent: "center",
               fontSize: { xs: "0.76rem", md: "0.875rem" },
               color: "secondary.contrastText",
               fontWeight: 800,
               "& .MuiChip-icon": {
                 color: "secondary.contrastText",
-                fontSize: { xs: 18, md: 20 }
+                fontSize: { xs: 18, md: 20 },
+                ml: { xs: 0, sm: 0.5 },
+                mr: { xs: 0, sm: -0.5 }
               },
               "& .MuiChip-label": {
-                px: { xs: 0.75, sm: 1.2 },
-                overflow: "hidden",
-                textOverflow: "ellipsis"
+                display: { xs: "none", sm: "block" },
+                px: { xs: 0, sm: 1.2 }
               }
             }}
           />

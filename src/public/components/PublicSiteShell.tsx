@@ -706,7 +706,7 @@ function PublicSiteShellFrame({
               maxWidth="xl"
               sx={{
                 pl: mourningRibbonIdentityPadding,
-                pt: mourningRibbonEnabled ? { xs: 5.5, sm: 8.5, md: 0 } : 0
+                pt: mourningRibbonEnabled ? { xs: 2.5, sm: 4.5, md: 0 } : 0
               }}
             >
               <Stack
@@ -719,92 +719,133 @@ function PublicSiteShellFrame({
                 }}
               >
                 <Stack
-                  direction="row"
+                  direction={{ xs: "column", md: "row" }}
                   spacing={{ xs: 1, md: 2 }}
                   sx={{
-                    alignItems: "center",
+                    alignItems: { xs: "stretch", md: "center" },
                     width: "100%",
                     minWidth: 0
                   }}
                 >
-                  <PublicResponsiveImage
-                    source={projectSettings.site.logoPath}
-                    intent="logo"
-                    alt={siteName}
-                    loadMode="eager"
-                    width={128}
-                    height={128}
-                    fill
-                    sx={{
-                      width: { xs: 60, sm: 64, md: 88 },
-                      height: { xs: 60, sm: 64, md: 88 },
-                      flexShrink: 0
-                    }}
-                    imageSx={{ objectFit: "contain" }}
-                  />
-                  <Box sx={{ minWidth: 0, flex: "1 1 0" }}>
-                    {siteSettings.intro && (
-                      <Stack
-                        direction="row"
-                        spacing={0.8}
-                        sx={{
-                          alignItems: "flex-start",
-                          mb: { xs: 0.35, md: 0.4 }
-                        }}
-                      >
-                        <EmojiEventsOutlinedIcon
-                          sx={{ color: "secondary.dark", fontSize: { xs: 18, md: 24 }, flexShrink: 0, mt: 0.1 }}
-                        />
-                        <Typography
-                          sx={{
-                            color: "secondary.dark",
-                            fontSize: { xs: "0.78rem", md: "0.82rem" },
-                            fontWeight: 700,
-                            letterSpacing: "0.02em",
-                            lineHeight: 1.3,
-                            overflowWrap: "break-word"
-                          }}
-                        >
-                          <FlagEmojiText text={siteSettings.intro} />
-                        </Typography>
-                      </Stack>
-                    )}
-                    <Typography
-                      component="h2"
-                      variant="h2"
+                  {siteSettings.intro && (
+                    <Stack
+                      data-testid="public-mobile-award"
+                      direction="row"
+                      spacing={0.75}
                       sx={{
-                        fontSize: { xs: "1.2rem", sm: "1.5rem", md: "2.4rem" },
-                        lineHeight: { xs: 1.17, md: 1.08 },
-                        overflowWrap: "break-word"
+                        display: { xs: "flex", md: "none" },
+                        alignItems: "flex-start",
+                        justifyContent: "center",
+                        maxWidth: "100%",
+                        minWidth: 0
                       }}
                     >
-                      <FlagEmojiText text={siteName} />
-                    </Typography>
-                    {siteSettings.eyebrow && (
+                      <EmojiEventsOutlinedIcon sx={{ color: "secondary.dark", fontSize: 18, flexShrink: 0, mt: 0.1 }} />
                       <Typography
                         sx={{
-                          color: "text.secondary",
-                          maxWidth: 860,
-                          fontSize: { xs: "0.78rem", md: "1rem" },
+                          color: "secondary.dark",
+                          fontSize: "0.78rem",
                           fontWeight: 700,
-                          letterSpacing: "0.02em",
-                          lineHeight: 1.25,
-                          textTransform: "uppercase",
-                          mt: { xs: 0.35, md: 0.6 },
+                          lineHeight: 1.35,
                           overflowWrap: "break-word"
                         }}
                       >
-                        <FlagEmojiText text={siteSettings.eyebrow} />
+                        <FlagEmojiText text={siteSettings.intro} />
                       </Typography>
-                    )}
-                  </Box>
+                    </Stack>
+                  )}
+                  <Stack
+                    data-testid="public-college-identity"
+                    direction="row"
+                    spacing={{ xs: 1.25, md: 2 }}
+                    sx={{
+                      alignItems: "center",
+                      width: "100%",
+                      minWidth: 0
+                    }}
+                  >
+                    <PublicResponsiveImage
+                      source={projectSettings.site.logoPath}
+                      intent="logo"
+                      alt={siteName}
+                      loadMode="eager"
+                      width={128}
+                      height={128}
+                      fill
+                      sx={{
+                        width: { xs: 56, sm: 64, md: 88 },
+                        height: { xs: 56, sm: 64, md: 88 },
+                        flexShrink: 0
+                      }}
+                      imageSx={{ objectFit: "contain" }}
+                    />
+                    <Box sx={{ minWidth: 0, flex: "1 1 0" }}>
+                      {siteSettings.intro && (
+                        <Stack
+                          direction="row"
+                          spacing={0.8}
+                          sx={{
+                            display: { xs: "none", md: "flex" },
+                            alignItems: "flex-start",
+                            mb: 0.4
+                          }}
+                        >
+                          <EmojiEventsOutlinedIcon
+                            sx={{ color: "secondary.dark", fontSize: 24, flexShrink: 0, mt: 0.1 }}
+                          />
+                          <Typography
+                            sx={{
+                              color: "secondary.dark",
+                              fontSize: "0.82rem",
+                              fontWeight: 700,
+                              letterSpacing: "0.02em",
+                              lineHeight: 1.3,
+                              overflowWrap: "break-word"
+                            }}
+                          >
+                            <FlagEmojiText text={siteSettings.intro} />
+                          </Typography>
+                        </Stack>
+                      )}
+                      <Typography
+                        component="h2"
+                        variant="h2"
+                        sx={{
+                          fontSize: { xs: "1.18rem", sm: "1.5rem", md: "2.4rem" },
+                          lineHeight: { xs: 1.2, md: 1.08 },
+                          overflowWrap: "break-word"
+                        }}
+                      >
+                        <FlagEmojiText text={siteName} />
+                      </Typography>
+                      {siteSettings.eyebrow && (
+                        <Typography
+                          sx={{
+                            color: "text.secondary",
+                            maxWidth: 860,
+                            fontSize: { xs: "0.74rem", md: "1rem" },
+                            fontWeight: 700,
+                            letterSpacing: "0.02em",
+                            lineHeight: 1.25,
+                            textTransform: "uppercase",
+                            mt: { xs: 0.3, md: 0.6 },
+                            overflowWrap: "break-word"
+                          }}
+                        >
+                          <FlagEmojiText text={siteSettings.eyebrow} />
+                        </Typography>
+                      )}
+                    </Box>
+                  </Stack>
                 </Stack>
                 <Stack
                   direction="row"
                   spacing={1}
                   useFlexGap
+                  data-testid="public-header-actions"
                   sx={{
                     alignItems: "center",
+                    justifyContent: { xs: "center", lg: "flex-end" },
                     flexWrap: "wrap",
                     width: { xs: "100%", lg: "auto" },
                     rowGap: 1,
@@ -812,7 +853,10 @@ function PublicSiteShellFrame({
                       minHeight: { xs: 44, md: 40 },
                       fontSize: { xs: "0.875rem", md: "0.9rem" },
                       borderRadius: 1.25,
-                      px: { xs: 1, sm: 2 }
+                      px: { xs: 1.5, sm: 2 },
+                      "& .MuiButton-startIcon svg, & .MuiButton-endIcon svg": {
+                        fontSize: { xs: 18, md: 20 }
+                      }
                     }
                   }}
                 >
@@ -822,7 +866,7 @@ function PublicSiteShellFrame({
                       color="error"
                       href={normalizeSafeHref(siteSettings.admissionUrl)}
                       startIcon={<AssignmentOutlinedIcon />}
-                      sx={{ flex: { xs: "1 1 0", sm: "0 0 auto" }, minWidth: { xs: 0, sm: "auto" } }}
+                      sx={{ flex: "0 0 auto", minWidth: 0 }}
                     >
                       สมัครเรียน
                     </Button>
@@ -832,7 +876,7 @@ function PublicSiteShellFrame({
                     color="primary"
                     href={normalizeSafeHref("/announcements")}
                     endIcon={<ArrowForwardOutlinedIcon />}
-                    sx={{ flex: { xs: "1 1 0", sm: "0 0 auto" }, minWidth: { xs: 0, sm: "auto" } }}
+                    sx={{ flex: "0 0 auto", minWidth: 0 }}
                   >
                     {ANNOUNCEMENTS_LABEL}
                   </Button>
@@ -850,7 +894,8 @@ function PublicSiteShellFrame({
                     }}
                     sx={{
                       width: { xs: "100%", sm: 210, md: 230, lg: 240 },
-                      maxWidth: { xs: "100%", sm: 240 },
+                      maxWidth: { xs: 340, sm: 240 },
+                      mx: { xs: "auto", sm: 0 },
                       flex: { xs: "1 1 100%", sm: "0 1 230px", lg: "0 0 240px" }
                     }}
                   >
