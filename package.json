@@ -133,8 +133,8 @@
   "devDependencies": {
     "@axe-core/playwright": "4.14.0",
     "@cloudflare/workers-types": "^5.20261004.1",
-    "@commitlint/cli": "21.2.3",
-    "@commitlint/config-conventional": "21.2.3",
+    "@commitlint/cli": "21.2.4",
+    "@commitlint/config-conventional": "21.2.4",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4.3.3",
