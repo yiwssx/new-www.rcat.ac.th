@@ -23,7 +23,6 @@
 - **PR:** [#678](https://github.com/yiwssx/new-www.rcat.ac.th/pull/678) fixes the cookie notice. CI #4521 (`39551507588`) passed Build, Unit, Integration, Functional E2E, Governance, Worker, Dependencies but failed Static Quality only on this tracker Markdown file. The malformed heading and orphaned paragraph are corrected here.
 - **Verification pending:** Confirm exact-head CI including Static Quality, Functional E2E and aggregate quality, then merge and verify a new exact-SHA production Deployment and read-only Production Verification. **Do not claim the original field-QA failure is resolved before evidence.**
 
-
 ## Checkpoints
 
 - [x] Read current `main`, project agent instructions, related components and ribbon tests.
