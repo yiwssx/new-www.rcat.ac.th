@@ -50,3 +50,9 @@
 - **Urgent notices:** Keep the full CMS text, show an accessible icon-only category on phones, and begin the mobile ticker with text visible instead of waiting for it to enter from the far edge.
 - **Regression coverage:** Ribbon size/clearance unit test, ticker timing tests, and Playwright geometry at 320/360/390/412/430px.
 - **Acceptance gate:** Await exact-head CI, visual phone review, deployment and browser field QA. Previous CI and production success do not establish visual acceptance for this iteration.
+
+## CI recovery — PR #679
+
+- CI [#4529](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/39567838010) completed with Build, Unit, Integration, Functional E2E, Governance and Worker passing; Static Quality failed exclusively at `pnpm format:check` for `src/public/components/PublicSiteShell.tsx`. The aggregate `quality` job failed as a consequence.
+- Mobile award icon JSX was normalized to the repository's 120-column Prettier configuration in commit `8152ca7bea2722991bc2e5c61dd9a85284ccf498`.
+- Follow-up CI #4530 was started on that SHA, but this tracker checkpoint creates a newer head requiring exact-head CI again. No merge or production changes until the final-head quality gate is green; visual acceptance on an actual phone remains separate.
