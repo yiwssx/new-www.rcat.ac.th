@@ -20,7 +20,7 @@ test.describe("Public cookie consent", () => {
     );
     await page.route("**/_vercel/**", (route) => route.fulfill({ status: 204, body: "" }));
 
-    const fixture = await installPublicAuthIsolationFixture(page);
+    const fixture = await installPublicAuthIsolationFixture(page, { consent: "unset" });
     const countTelemetry = () =>
       fixture.requests.filter(
         (request) =>
@@ -68,7 +68,7 @@ test.describe("Public cookie consent", () => {
   });
 
   test("keeps cookie-policy and privacy-policy pages accessible without consenting", async ({ page }) => {
-    await installPublicAuthIsolationFixture(page);
+    await installPublicAuthIsolationFixture(page, { consent: "unset" });
     for (const [path, heading] of [
       ["/privacy-policy", /นโยบายความเป็นส่วนตัว/],
       ["/cookie-policy", /นโยบายการใช้คุกกี้/]
