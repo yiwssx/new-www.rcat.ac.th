@@ -49,7 +49,6 @@ test.describe("Public mobile institutional header layout", () => {
   });
 
   test("preserves mobile contact parity and ribbon clearance", async ({ page }) => {
-    await installPublicAuthIsolationFixture(page, { consent: "rejected" });
     const snapshot = createPublicHomeSnapshot();
     const siteSettings = {
       ...snapshot.siteSettings,
@@ -63,18 +62,9 @@ test.describe("Public mobile institutional header layout", () => {
       mourningRibbonEnabled: true
     };
 
-    await page.route("**/api/public/shell", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          siteSettings,
-          homepageSettings: snapshot.homepageSettings,
-          displaySettings: snapshot.displaySettings,
-          menu: snapshot.menu,
-          generatedAt: "2026-07-27T00:00:00.000Z"
-        })
-      });
+    await installPublicAuthIsolationFixture(page, {
+      consent: "rejected",
+      siteSettings
     });
 
     await page.goto("/news");
