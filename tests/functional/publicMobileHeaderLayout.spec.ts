@@ -48,7 +48,7 @@ test.describe("Public mobile institutional header layout", () => {
     }
   });
 
-  test("keeps the mourning ribbon fixed during mobile and desktop scrolling", async ({ page }) => {
+  test("lets the original mourning sash scroll out of view on mobile and desktop", async ({ page }) => {
     const snapshot = createPublicHomeSnapshot();
     await installPublicAuthIsolationFixture(page, {
       consent: "rejected",
@@ -63,17 +63,21 @@ test.describe("Public mobile institutional header layout", () => {
       await page.setViewportSize({ width, height: 700 });
       await page.evaluate(() => {
         document.body.style.minHeight = "260vh";
-        window.scrollTo(0, 450);
+        window.scrollTo(0, 0);
       });
 
+      await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+      expect(await ribbon.evaluate((element) => getComputedStyle(element).position)).toBe("absolute");
+      const originalTop = await ribbon.evaluate((element) => element.getBoundingClientRect().top);
+      expect(Math.abs(originalTop)).toBeLessThanOrEqual(1);
+
+      await page.evaluate(() => window.scrollTo(0, 450));
       await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
-      expect(await ribbon.evaluate((element) => getComputedStyle(element).position)).toBe("fixed");
 
-      const ribbonRect = await ribbon.boundingBox();
-      expect(ribbonRect).not.toBeNull();
-      expect(Math.abs(ribbonRect!.y)).toBeLessThanOrEqual(1);
-
-      await page.evaluate(() => window.scrollTo(0, 0));
+      const positionAfterScroll = await ribbon.evaluate((element) => element.getBoundingClientRect().top);
+      const scrollY = await page.evaluate(() => window.scrollY);
+      expect(Math.abs(positionAfterScroll - (originalTop - scrollY))).toBeLessThanOrEqual(2);
+      expect(positionAfterScroll).toBeLessThan(0);
     }
   });
 
