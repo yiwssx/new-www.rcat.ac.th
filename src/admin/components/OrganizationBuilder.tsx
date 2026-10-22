@@ -38,7 +38,7 @@ import {
   type OrganizationUnitListRow
 } from "../../features/organization-admin";
 import { appSwal, showBlockingLoading, showErrorResult, showSuccessResult } from "../../utils/swal";
-import { OrganizationSortableRow } from "./OrganizationSortableRow";
+import { OrganizationDraggableGroupHeading, OrganizationSortableRow } from "./OrganizationSortableRow";
 import OrganizationAssignmentTransferDialog from "./OrganizationAssignmentTransferDialog";
 import OrganizationAssignmentTransferTarget from "./OrganizationAssignmentTransferTarget";
 import OrganizationPositionGroupDropTarget from "./OrganizationPositionGroupDropTarget";
@@ -747,7 +747,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                 {view !== "charts" && (
                   <DragDropProvider
                     onDragEnd={({ operation, canceled }) => {
-                      if (canceled || !isSortable(operation.source) || !canSortPositionLayout) return;
+                      if (canceled || !operation.source || !canSortPositionLayout) return;
                       const source = operation.source;
                       const sourceId = String(source.id);
                       const targetId = String(operation.target?.id ?? "");
@@ -765,7 +765,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                                   group.positions.some((position) => position.id === targetId)
                                 );
                         const sourceIndex = Number(sourceId.slice("position-layout-group:".length));
-                        const targetIndex = destination >= 0 ? destination : source.index;
+                        const targetIndex = destination;
                         if (
                           sourceIndex < 0 ||
                           targetIndex < 0 ||
@@ -777,6 +777,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                         void savePositionLayout(arrayMove(positionGroups, sourceIndex, targetIndex));
                         return;
                       }
+                      if (!isSortable(source)) return;
                       if (targetId.startsWith("position-group-target:")) {
                         const targetIndex = Number(targetId.slice("position-group-target:".length));
                         const destination = positionGroups[targetIndex];
@@ -809,10 +810,8 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                         sx={{ p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 2 }}
                       >
                         <Stack spacing={1.5}>
-                          <OrganizationSortableRow
+                          <OrganizationDraggableGroupHeading
                             id={"position-layout-group:" + groupIndex}
-                            index={groupIndex}
-                            group={"position-layout-groups:" + selectedUnitId}
                             label={"กลุ่ม " + (group.label || "ไม่ระบุกลุ่ม")}
                             disabled={!canSortPositionLayout || positionGroups.length < 2}
                           >
@@ -847,7 +846,7 @@ export default function OrganizationBuilder({ units, allUnitsLoaded, canManage, 
                                 </>
                               )}
                             </Stack>
-                          </OrganizationSortableRow>
+                          </OrganizationDraggableGroupHeading>
                           {canManage && positionGroups.length > 1 && (
                             <OrganizationPositionGroupDropTarget
                               id={"position-group-order-target:" + groupIndex}
