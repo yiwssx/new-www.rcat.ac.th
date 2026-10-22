@@ -105,3 +105,13 @@
 - **Protected constraints:** Preserve full Thai college/campus name, phone, email, social links, royal-award banner, existing actions, CMS settings, and desktop layout/clearance.
 - **Tests:** Update unit assertions for dimensions/vector/fixed positioning; add functional fixed-position scroll checks at 320/390/1280px. Existing 320–430px content parity and overflow assertions remain.
 - **Pending:** Confirm PR head, run required CI including Prettier/Functional E2E/quality, review mobile visual QA and desktop, and merge only with all applicable gates green. No production deployment performed here.
+
+## Original ribbon artwork restoration — 2026-10-22
+
+- **Status:** IMPLEMENTED — pending exact-head CI and visual field QA.
+- **Branch:** `fix/restore-original-mourning-ribbon-no-sash-20261022`, based on `main@82a06d39e7dc6e5fb44dccae55c9b5dc4280f396`.
+- **User correction:** Keep the **original** white-ring medallion and crossed mourning ribbon exactly as previously drawn; remove only the two dark triangular background/sash paths. The centered replacement art from #686/#687 is not accepted.
+- **Implementation:** Restore the unchanged original circle and ribbon paths from pre-#686 `public/mourning-ribbon.svg@3a598577` in `public/mourning-ribbon-v3.svg`; exclude the two diagonal background paths. Point the active image and preload to v3 so cached v2 artwork cannot be reused.
+- **Preserved behavior:** Mobile/desktop fixed ribbon on scroll, compact mobile header, contact and social links, royal-award information and existing desktop styling.
+- **Coverage:** Vitest asserts the original circle geometry and both ribbon strokes, rejects triangular background and centered replacement art, and checks active asset/preload versions; existing Playwright mobile overflow and scroll checks remain.
+- **Next:** Confirm PR-head CI, merge only after gates pass, verify deployment readiness and `www.rcat.ac.th` alias mapping to the merged SHA. Explicit browser visual acceptance remains a separate check.
