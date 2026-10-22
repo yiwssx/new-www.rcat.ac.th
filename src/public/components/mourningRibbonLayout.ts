@@ -1,8 +1,7 @@
 /**
  * Ribbon uses its full square canvas at the top of the page.
- * The mobile contact bar remains beside the ribbon while the identity content
- * clears it vertically with only the required overlap clearance.
- * A compact mobile ribbon remains prominent without leaving a large blank band.
+ * Mobile reserves the ribbon width in the contact bar grid, without padding
+ * offsets in the identity section. Desktop retains the fixed ribbon clearance.
  */
 export const MOURNING_RIBBON_SIZE = {
   xs: 96,
@@ -12,8 +11,6 @@ export const MOURNING_RIBBON_SIZE = {
 } as const;
 
 export const MOURNING_RIBBON_TOP_BAR_PADDING = {
-  xs: "96px",
-  sm: "112px",
   md: "168px",
   lg: "192px"
 } as const;
