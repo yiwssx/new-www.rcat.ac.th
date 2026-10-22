@@ -13,10 +13,7 @@ function cache(id, key, ageHours, size = gib, ref = "refs/heads/main") {
 
 test("keeps the newest three CodeQL and two pnpm entries on main", () => {
   const caches = [
-    ...Array.from(
-      { length: 7 },
-      (_, i) => cache(i + 1, `codeql-overlay-base-database-1-x-javascript-key-${i}`, i + 1)
-    ),
+    ...Array.from({ length: 7 }, (_, i) => cache(i + 1, `codeql-overlay-base-database-1-x-javascript-key-${i}`, i + 1)),
     ...Array.from({ length: 4 }, (_, i) => cache(i + 11, `node-cache-Linux-x64-pnpm-${i}`, i + 1))
   ];
   const plan = planCacheCleanup(caches, { now });
@@ -27,10 +24,7 @@ test("keeps the newest three CodeQL and two pnpm entries on main", () => {
 test("does not remove unknown keys or recently used entries", () => {
   const caches = [
     cache(1, "unknown-important-cache", 100, 9 * gib),
-    ...Array.from(
-      { length: 5 },
-      (_, i) => cache(i + 2, `codeql-overlay-base-database-1-x-javascript-${i}`, i * 0.2)
-    )
+    ...Array.from({ length: 5 }, (_, i) => cache(i + 2, `codeql-overlay-base-database-1-x-javascript-${i}`, i * 0.2))
   ];
   assert.deepEqual(planCacheCleanup(caches, { now }).selected, []);
 });
