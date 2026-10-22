@@ -71,3 +71,26 @@
   The remaining desktop assertion matched both hidden mobile and visible desktop location text.
   Added an explicit desktop bar test identifier and scoped the assertion to it.
 - **State:** PR #683 open; final-head CI and field visual QA pending before merge.
+
+## Mobile top bar final verification — 2026-10-22
+
+- **Status: COMPLETE (PR #683 scope).** PR #683 merged into `main` at
+  `0510fa0b22ae41e480a4a1987ad6156ae7948018` (squash).
+- **CI:** PR head `286927c68c0ebb901d5a9bcb30be0d6fc2a3e6bf`,
+  Actions #4547, rerun success: all required jobs including Functional E2E
+  and aggregate Quality passed.
+- **Deployment:** Vercel Production deployment
+  `dpl_AawKs35zzPVoVKBz4saTMuCopAQf` is READY for the exact merged SHA.
+  Public `/rcat-release.json` reports the same SHA.
+- **Production verification:** Workflow run #378
+  (`39706759606`) completed successfully against the merged main SHA.
+- **Read-only field QA:** After client hydration, the public mobile top bar
+  displays college name, phone, email and three configured social links.
+  At 320/360/390/412/430px the ribbon occupies its own 96px column;
+  contact begins at x=102px and the utility bar fits the viewport.
+  The desktop utility bar remains visible at desktop width.
+- **Excluded follow-up:** An independent manual check found horizontal
+  document overflow on the homepage from another content region.
+  The mobile utility bar itself remains within viewport bounds.
+  Investigate homepage overflow separately; it is not a failure of this
+  compact utility bar change.
