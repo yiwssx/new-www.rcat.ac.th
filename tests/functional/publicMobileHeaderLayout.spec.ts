@@ -48,7 +48,7 @@ test.describe("Public mobile institutional header layout", () => {
     }
   });
 
-  test("shows all desktop contact and social content in the compact mobile bar without ribbon overlap", async ({ page }) => {
+  test("preserves mobile contact parity and ribbon clearance", async ({ page }) => {
     await installPublicAuthIsolationFixture(page, { consent: "rejected" });
     const snapshot = createPublicHomeSnapshot();
     const siteSettings = {
