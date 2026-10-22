@@ -422,20 +422,20 @@ function MobileTopBar({
         sx={{
           display: "grid",
           gridTemplateColumns: ribbonColumns,
-          columnGap: { xs: 0.75, sm: 1 },
+          columnGap: { xs: 0.5, sm: 0.75 },
           minHeight: mourningRibbonEnabled ? { xs: MOURNING_RIBBON_SIZE.xs, sm: MOURNING_RIBBON_SIZE.sm } : 0
         }}
       >
         <Stack
           data-testid="public-mobile-topbar-contact"
-          spacing={0.75}
+          spacing={0.5}
           sx={{
             gridColumn: mourningRibbonEnabled ? 2 : 1,
             minWidth: 0,
             justifyContent: "center",
-            py: 1,
-            pl: { xs: 1.25, sm: 2 },
-            pr: { xs: 1.25, sm: 2 }
+            py: 0.5,
+            pl: { xs: 0.75, sm: 1 },
+            pr: { xs: 1, sm: 1.5 }
           }}
         >
           <TopBarInfoItem icon={<LocationOnOutlinedIcon />} text={siteName} compact multiline prominent />
@@ -474,7 +474,7 @@ function MobileTopBar({
             minHeight: 48,
             borderTop: "1px solid",
             borderColor: (theme) => alpha(theme.palette.common.white, 0.16),
-            px: { xs: 1.5, sm: 2 }
+            px: { xs: 1, sm: 1.5 }
           }}
         >
           <Typography sx={{ fontSize: "0.6875rem", fontWeight: 600, whiteSpace: "nowrap" }}>{FOLLOW_LABEL}</Typography>
