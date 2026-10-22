@@ -500,6 +500,7 @@ function DesktopTopBar({
 }) {
   return (
     <Stack
+      data-testid="public-desktop-topbar"
       direction="row"
       spacing={2}
       sx={{
