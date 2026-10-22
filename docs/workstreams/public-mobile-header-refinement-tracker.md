@@ -115,3 +115,13 @@
 - **Preserved behavior:** Mobile/desktop fixed ribbon on scroll, compact mobile header, contact and social links, royal-award information and existing desktop styling.
 - **Coverage:** Vitest asserts the original circle geometry and both ribbon strokes, rejects triangular background and centered replacement art, and checks active asset/preload versions; existing Playwright mobile overflow and scroll checks remain.
 - **Next:** Confirm PR-head CI, merge only after gates pass, verify deployment readiness and `www.rcat.ac.th` alias mapping to the merged SHA. Explicit browser visual acceptance remains a separate check.
+
+## Approved original sash and document-scroll behavior — 2026-10-22
+
+- **State:** Implemented on `fix/original-mourning-sash-document-scroll-20261022`; exact-head CI, production field QA, and visual acceptance pending.
+- **User reference:** The original diagonal two-tone dark corner sash, white double-ring medallion and crossed gray ribbon are required together. Do not replace it with a standalone round badge.
+- **Artwork:** Restore the complete original pre-#686 SVG verbatim at `/mourning-ribbon-v4.svg` and change both image source and HTML preload to that versioned URL to avoid a stale cached badge.
+- **Positioning:** Anchor the image `position: absolute; top: 0; left: 0` to the already-relative top contact bar. It must **scroll out of the viewport with the document** on both mobile and desktop. It must never be `fixed` or `sticky`.
+- **Boundaries:** Preserve accepted mobile contact/header spacing, all desktop spacing, ribbon display sizes, royal-award identity, social links, actions, CMS toggles, and other production settings.
+- **Regression:** Check SVG diagonal paths, original medallion paths, matched versioned preload, and Playwright scroll displacement at 320, 390, 1280px; retain existing mobile overflow/content tests.
+- **Closure:** Verify exact PR SHA CI and CodeQL before merge, then matching Vercel production READY, domain alias, and read-only browser checks. CI success alone does not prove visual equivalence with the user image.

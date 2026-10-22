@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- Two-tone diagonal sash preserves the original top-left ribbon silhouette. -->
+  <path fill="#505050" d="M0 0h119L0 119Z" />
+  <path fill="#171717" d="M0 0h77L0 77Z" />
+  <!-- Double-ring white medallion. -->
+  <circle cx="47" cy="47" r="33" fill="#fff" stroke="#242424" stroke-width="1.6" />
+  <circle cx="47" cy="47" r="29.8" fill="none" stroke="#393939" stroke-width="1.35" />
+  <!-- Rounded, crossed awareness ribbon in vector paths. -->
+  <path
+    d="M46.5 28.5C40 28.5 38 35 40.8 42C44.1 50.1 52.3 60.5 58.1 68.5"
+    fill="none"
+    stroke="#505050"
+    stroke-width="7.1"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M46.5 28.5C53.4 28.5 56.9 35.1 53.7 43.1C50.7 50.2 43.3 60.3 38.3 68"
+    fill="none"
+    stroke="#313131"
+    stroke-width="6.6"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>
