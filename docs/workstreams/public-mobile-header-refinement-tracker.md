@@ -94,3 +94,13 @@
   The mobile utility bar itself remains within viewport bounds.
   Investigate homepage overflow separately; it is not a failure of this
   compact utility bar change.
+
+## Mobile floating ribbon and narrower contact header — 2026-10-22
+
+- **Status:** IMPLEMENTED — PR/CI and field verification pending.
+- **Branch:** `fix/public-mobile-ribbon-fixed-compact-20261022` (based on `main@3a598577d97ad33446b23d054dfbc234b96fa436`).
+- **Request:** Reduce the crowded mobile top utility/header footprint; make the ribbon stay fixed on mobile as on desktop; remove the black triangular corner backdrop.
+- **Implementation:** Reduce mobile ribbon from 96/112px to 64/72px without changing desktop sizing, tighten mobile contact spacing/padding, use `position: fixed` on every viewport, and replace the corner sash with a transparent-canvas round mourning-ribbon badge.
+- **Protected constraints:** Preserve full Thai college/campus name, phone, email, social links, royal-award banner, existing actions, CMS settings, and desktop layout/clearance.
+- **Tests:** Update unit assertions for dimensions/vector/fixed positioning; add functional fixed-position scroll checks at 320/390/1280px. Existing 320–430px content parity and overflow assertions remain.
+- **Pending:** Confirm PR head, run required CI including Prettier/Functional E2E/quality, review mobile visual QA and desktop, and merge only with all applicable gates green. No production deployment performed here.
