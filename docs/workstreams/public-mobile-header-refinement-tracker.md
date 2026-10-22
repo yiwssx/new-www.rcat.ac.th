@@ -64,4 +64,7 @@
 - **Changed:** Mobile ribbon grid, full institution/contact/social details, theme-aware divider.
 - **Unchanged:** White identity, royal award, desktop header, CMS/backend, dependencies.
 - **Coverage:** Unit ribbon rules and Playwright mobile 320–430px plus desktop checks.
-- **State:** PR open; exact-head CI, visual review, merge and production field QA pending.
+- **Recovery:** CI #4542 passed all lanes except Functional E2E (143/144). News page supplies
+  preloaded site settings from the content endpoint, not only the shell endpoint.
+  The Playwright fixture now injects the same settings into both endpoints.
+- **State:** PR #683 open; exact-head CI, visual review, merge and production field QA pending.
