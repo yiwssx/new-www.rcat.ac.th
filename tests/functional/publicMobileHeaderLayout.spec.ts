@@ -48,6 +48,35 @@ test.describe("Public mobile institutional header layout", () => {
     }
   });
 
+  test("keeps the mourning ribbon fixed during mobile and desktop scrolling", async ({ page }) => {
+    const snapshot = createPublicHomeSnapshot();
+    await installPublicAuthIsolationFixture(page, {
+      consent: "rejected",
+      siteSettings: { ...snapshot.siteSettings, mourningRibbonEnabled: true }
+    });
+    await page.goto("/news");
+
+    const ribbon = page.locator('[data-mourning-ribbon="true"]');
+    await expect(ribbon).toBeVisible();
+
+    for (const width of [320, 390, 1280]) {
+      await page.setViewportSize({ width, height: 700 });
+      await page.evaluate(() => {
+        document.body.style.minHeight = "260vh";
+        window.scrollTo(0, 450);
+      });
+
+      await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+      expect(await ribbon.evaluate((element) => getComputedStyle(element).position)).toBe("fixed");
+
+      const ribbonRect = await ribbon.boundingBox();
+      expect(ribbonRect).not.toBeNull();
+      expect(Math.abs(ribbonRect!.y)).toBeLessThanOrEqual(1);
+
+      await page.evaluate(() => window.scrollTo(0, 0));
+    }
+  });
+
   test("preserves mobile contact parity and ribbon clearance", async ({ page }) => {
     const snapshot = createPublicHomeSnapshot();
     const siteSettings = {
