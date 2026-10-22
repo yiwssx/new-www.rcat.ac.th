@@ -14,10 +14,11 @@ const ribbonVectorSource = readFileSync(join(process.cwd(), "public/mourning-rib
 const indexHtmlSource = readFileSync(join(process.cwd(), "index.html"), "utf8");
 
 describe("mourning ribbon responsive layout", () => {
-  it("keeps the ribbon prominent on mobile and increases its size on larger screens", () => {
+  it("keeps the ribbon compact on mobile and prominent on larger screens", () => {
     const sizes = breakpoints.map((breakpoint) => MOURNING_RIBBON_SIZE[breakpoint]);
 
-    expect(sizes[0]).toBeGreaterThanOrEqual(96);
+    expect(sizes[0]).toBe(64);
+    expect(sizes[1]).toBe(72);
     for (let index = 1; index < sizes.length; index += 1) {
       expect(sizes[index]).toBeGreaterThan(sizes[index - 1]);
     }
@@ -43,7 +44,7 @@ describe("mourning ribbon responsive layout", () => {
     expect(publicShellSource).not.toContain("pt: mourningRibbonEnabled ? { xs: 2.5, sm: 4.5, md: 0 } : 0");
     expect(publicShellSource).toContain('data-testid="public-mobile-topbar-primary"');
     expect(publicShellSource).toContain('data-testid="public-mobile-topbar-social"');
-    expect(ribbonSource).toContain('position: { xs: "absolute", md: "fixed" }');
+    expect(ribbonSource).toContain('position: "fixed"');
     expect(publicShellSource).toContain('data-testid="public-mobile-award"');
     expect(publicShellSource).toContain('data-testid="public-college-identity"');
     expect(publicShellSource).toContain("{mourningRibbonEnabled && <PublicMourningRibbon />}");
@@ -53,6 +54,8 @@ describe("mourning ribbon responsive layout", () => {
     expect(ribbonVectorSource).toContain('viewBox="0 0 128 128"');
     expect(ribbonVectorSource).toMatch(/<circle\b/g);
     expect(ribbonVectorSource).toMatch(/<path\b/g);
+    expect(ribbonVectorSource).not.toContain('d="M0 0');
+    expect(ribbonVectorSource).not.toContain('fill="#171717"');
     expect(ribbonVectorSource).not.toMatch(/<(?:image|script|foreignObject|use|style)\b/i);
     expect(ribbonVectorSource).not.toMatch(/(?:data:image\/|href=|url\()/i);
     expect(ribbonSource).toContain('const MOURNING_RIBBON_ASSET = "/mourning-ribbon.svg"');

@@ -17,7 +17,7 @@ export default function PublicMourningRibbon() {
       loading="eager"
       decoding="sync"
       sx={{
-        position: { xs: "absolute", md: "fixed" },
+        position: "fixed",
         top: 0,
         left: 0,
         display: "block",

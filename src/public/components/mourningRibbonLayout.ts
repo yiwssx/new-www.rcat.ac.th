@@ -1,11 +1,11 @@
 /**
- * Ribbon uses its full square canvas at the top of the page.
- * Mobile reserves the ribbon width in the contact bar grid, without padding
- * offsets in the identity section. Desktop retains the fixed ribbon clearance.
+ * The ribbon stays fixed while scrolling at every viewport size.
+ * The smaller mobile footprint leaves more width for complete contact details;
+ * desktop clearance and identity spacing remain unchanged.
  */
 export const MOURNING_RIBBON_SIZE = {
-  xs: 96,
-  sm: 112,
+  xs: 64,
+  sm: 72,
   md: 168,
   lg: 192
 } as const;
