@@ -67,4 +67,7 @@
 - **Recovery:** CI #4542 passed all lanes except Functional E2E (143/144). News page supplies
   preloaded site settings from the content endpoint, not only the shell endpoint.
   The Playwright fixture now injects the same settings into both endpoints.
-- **State:** PR #683 open; exact-head CI, visual review, merge and production field QA pending.
+- **Recovery 2:** CI #4545 passed all lanes except Functional E2E (143/144).
+  The remaining desktop assertion matched both hidden mobile and visible desktop location text.
+  Added an explicit desktop bar test identifier and scoped the assertion to it.
+- **State:** PR #683 open; final-head CI and field visual QA pending before merge.
