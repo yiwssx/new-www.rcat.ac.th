@@ -125,3 +125,12 @@
 - **Boundaries:** Preserve accepted mobile contact/header spacing, all desktop spacing, ribbon display sizes, royal-award identity, social links, actions, CMS toggles, and other production settings.
 - **Regression:** Check SVG diagonal paths, original medallion paths, matched versioned preload, and Playwright scroll displacement at 320, 390, 1280px; retain existing mobile overflow/content tests.
 - **Closure:** Verify exact PR SHA CI and CodeQL before merge, then matching Vercel production READY, domain alias, and read-only browser checks. CI success alone does not prove visual equivalence with the user image.
+
+## Supplied SVG as sole live mourning ribbon — 2026-10-22
+
+- **Status:** Implemented on task branch; exact-head CI and visual acceptance pending.
+- **User decision:** Cancel V5 redesign. Use the supplied `mourning-ribbon.svg` **byte-for-byte** as the sole active SVG; no reinterpretation or visual edits. Its Git blob SHA is `4e0add4cc734e487eb1ed9d44c65a6cb589ccf73`.
+- **Asset retirement:** Delete `public/mourning-ribbon-v2.svg`, `-v3.svg`, `-v4.svg`, and unused `public/mourning-ribbon.png`; replace the old `public/mourning-ribbon.svg` contents with the supplied file.
+- **Cache:** Both component source and HTML preload use `/mourning-ribbon.svg?rev=4e0add4` to invalidate the previously cached legacy artwork at this pathname.
+- **Unchanged:** Current responsive layout and the existing scrolling behavior remain intact for an isolated artwork review; no V5 or scroll-behavior redesign in this change.
+- **Gate:** All required exact-head checks and production deployment verification before closing the release. Only a user-reviewed screenshot can establish visual approval.
