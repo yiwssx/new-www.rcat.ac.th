@@ -26,10 +26,11 @@ describe("mourning ribbon responsive layout", () => {
   it("reserves enough space in the top bar without squeezing the identity section as much", () => {
     for (const breakpoint of breakpoints) {
       const size = MOURNING_RIBBON_SIZE[breakpoint];
-      const topBarPadding = Number.parseInt(MOURNING_RIBBON_TOP_BAR_PADDING[breakpoint], 10);
       const identityPadding = Number.parseInt(MOURNING_RIBBON_IDENTITY_PADDING[breakpoint], 10);
 
-      expect(topBarPadding).toBe(size);
+      if (breakpoint === "md" || breakpoint === "lg") {
+        expect(Number.parseInt(MOURNING_RIBBON_TOP_BAR_PADDING[breakpoint], 10)).toBe(size);
+      }
       expect(identityPadding).toBeGreaterThanOrEqual(16);
       expect(identityPadding).toBeLessThan(size);
     }
@@ -39,7 +40,10 @@ describe("mourning ribbon responsive layout", () => {
     expect(ribbonSource).toContain("width: MOURNING_RIBBON_SIZE");
     expect(publicShellSource).toContain("pl: mourningRibbonTopBarPadding");
     expect(publicShellSource).toContain("pl: mourningRibbonIdentityPadding");
-    expect(publicShellSource).toContain("pt: mourningRibbonEnabled ? { xs: 2.5, sm: 4.5, md: 0 } : 0");
+    expect(publicShellSource).not.toContain("pt: mourningRibbonEnabled ? { xs: 2.5, sm: 4.5, md: 0 } : 0");
+    expect(publicShellSource).toContain('data-testid="public-mobile-topbar-primary"');
+    expect(publicShellSource).toContain('data-testid="public-mobile-topbar-social"');
+    expect(ribbonSource).toContain('position: { xs: "absolute", md: "fixed" }');
     expect(publicShellSource).toContain('data-testid="public-mobile-award"');
     expect(publicShellSource).toContain('data-testid="public-college-identity"');
     expect(publicShellSource).toContain("{mourningRibbonEnabled && <PublicMourningRibbon />}");
