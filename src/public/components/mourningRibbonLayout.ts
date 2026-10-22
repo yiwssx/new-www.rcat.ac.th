@@ -1,5 +1,5 @@
 /**
- * The ribbon is anchored to the top bar in document flow and scrolls away with the page.
+ * The ribbon follows viewport scrolling through a zero-height sticky anchor in the full public page shell.
  * The smaller mobile footprint leaves more width for complete contact details;
  * desktop clearance and identity spacing remain unchanged.
  */

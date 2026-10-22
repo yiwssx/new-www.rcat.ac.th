@@ -44,9 +44,14 @@ describe("mourning ribbon responsive layout", () => {
     expect(publicShellSource).not.toContain("pt: mourningRibbonEnabled ? { xs: 2.5, sm: 4.5, md: 0 } : 0");
     expect(publicShellSource).toContain('data-testid="public-mobile-topbar-primary"');
     expect(publicShellSource).toContain('data-testid="public-mobile-topbar-social"');
+    expect(ribbonSource).toContain('position: "sticky"');
     expect(ribbonSource).toContain('position: "absolute"');
+    expect(ribbonSource).toContain('data-mourning-ribbon-anchor="true"');
+    expect(ribbonSource).toContain("height: 0");
     expect(ribbonSource).not.toContain('position: "fixed"');
-    expect(ribbonSource).not.toContain('position: "sticky"');
+    expect(publicShellSource.indexOf("{mourningRibbonEnabled && <PublicMourningRibbon />}")).toBeLessThan(
+      publicShellSource.indexOf("<PublicIntroGate")
+    );
     expect(publicShellSource).toContain('data-testid="public-mobile-award"');
     expect(publicShellSource).toContain('data-testid="public-college-identity"');
     expect(publicShellSource).toContain("{mourningRibbonEnabled && <PublicMourningRibbon />}");
