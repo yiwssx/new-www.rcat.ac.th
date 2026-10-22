@@ -37,7 +37,11 @@ import PublicFooterDirectory from "./PublicFooterDirectory";
 import FloatingMessengerButton from "./FloatingMessengerButton";
 import PublicIntroGate from "./PublicIntroGate";
 import PublicMourningRibbon from "./PublicMourningRibbon";
-import { MOURNING_RIBBON_IDENTITY_PADDING, MOURNING_RIBBON_TOP_BAR_PADDING } from "./mourningRibbonLayout";
+import {
+  MOURNING_RIBBON_IDENTITY_PADDING,
+  MOURNING_RIBBON_SIZE,
+  MOURNING_RIBBON_TOP_BAR_PADDING
+} from "./mourningRibbonLayout";
 import { getInitialPublicIntroGateVisibility, getPublicIntroGateStorageKey } from "./publicIntroGateState";
 import { UrgentMarqueeSection } from "./home/UrgentMarqueeSection";
 import SocialIconLink from "./SocialIconLink";
@@ -266,9 +270,19 @@ interface TopBarInfoItemProps {
   href?: string;
   compact?: boolean;
   allowShrink?: boolean;
+  multiline?: boolean;
+  prominent?: boolean;
 }
 
-function TopBarInfoItem({ icon, text, href, compact = false, allowShrink = false }: TopBarInfoItemProps) {
+function TopBarInfoItem({
+  icon,
+  text,
+  href,
+  compact = false,
+  allowShrink = false,
+  multiline = false,
+  prominent = false
+}: TopBarInfoItemProps) {
   const content = (
     <>
       <Box
@@ -287,12 +301,18 @@ function TopBarInfoItem({ icon, text, href, compact = false, allowShrink = false
       <Typography
         variant="body2"
         sx={{
-          minWidth: allowShrink ? 0 : undefined,
-          fontSize: compact ? { xs: "0.75rem", sm: "0.8rem", md: "0.875rem" } : { md: "0.875rem" },
-          lineHeight: 1.18,
-          overflow: allowShrink ? "hidden" : "visible",
-          textOverflow: allowShrink ? "ellipsis" : "clip",
-          whiteSpace: "nowrap"
+          minWidth: allowShrink || multiline ? 0 : undefined,
+          fontSize: prominent
+            ? "0.75rem"
+            : compact
+              ? { xs: "0.71875rem", sm: "0.75rem", md: "0.875rem" }
+              : { md: "0.875rem" },
+          fontWeight: prominent ? 700 : undefined,
+          lineHeight: multiline ? 1.35 : 1.18,
+          overflow: allowShrink && !multiline ? "hidden" : "visible",
+          overflowWrap: multiline ? "anywhere" : undefined,
+          textOverflow: allowShrink && !multiline ? "ellipsis" : "clip",
+          whiteSpace: multiline ? "normal" : "nowrap"
         }}
       >
         {text}
@@ -303,9 +323,9 @@ function TopBarInfoItem({ icon, text, href, compact = false, allowShrink = false
   const sx = {
     color: "inherit",
     textDecoration: "none",
-    minWidth: allowShrink ? 0 : "max-content",
+    minWidth: allowShrink || multiline ? 0 : "max-content",
     maxWidth: "100%",
-    flex: allowShrink ? "1 1 auto" : "0 0 auto",
+    flex: allowShrink || multiline ? "1 1 auto" : "0 0 auto",
     ...focusVisibleSx
   };
 
@@ -372,41 +392,90 @@ function TopBarSocialIcons({ links, showLabel }: { links: TopBarSocialLink[]; sh
   );
 }
 
-function MobileTopBar({ phone, socialLinks }: { phone?: string; socialLinks: TopBarSocialLink[] }) {
+function MobileTopBar({
+  campus,
+  siteName,
+  phone,
+  email,
+  socialLinks,
+  mourningRibbonEnabled
+}: {
+  campus?: string;
+  siteName: string;
+  phone?: string;
+  email?: string;
+  socialLinks: TopBarSocialLink[];
+  mourningRibbonEnabled: boolean;
+}) {
+  const ribbonColumns = mourningRibbonEnabled
+    ? {
+        xs: `${MOURNING_RIBBON_SIZE.xs}px minmax(0, 1fr)`,
+        sm: `${MOURNING_RIBBON_SIZE.sm}px minmax(0, 1fr)`
+      }
+    : "minmax(0, 1fr)";
+  const showSeparateCampus = Boolean(campus?.trim() && campus.trim() !== siteName.trim());
+
   return (
-    <Box
-      sx={{
-        display: { xs: "flex", md: "none" },
-        flexDirection: "column",
-        alignItems: "flex-end",
-        justifyContent: "center",
-        gap: 0.25,
-        minHeight: 76,
-        minWidth: 0,
-        py: 0.25
-      }}
-    >
-      {phone && (
-        <TopBarInfoItem icon={<LocalPhoneOutlinedIcon />} text={phone} href={getTelephoneHref(phone)} compact />
-      )}
-      <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
-        <Link
-          href={normalizeSafeHref("/contact")}
-          aria-label="ข้อมูลติดต่อและที่ตั้งวิทยาลัย"
+    <Box sx={{ display: { xs: "block", md: "none" }, minWidth: 0 }}>
+      <Box
+        data-testid="public-mobile-topbar-primary"
+        sx={{
+          display: "grid",
+          gridTemplateColumns: ribbonColumns,
+          columnGap: { xs: 0.75, sm: 1 },
+          minHeight: mourningRibbonEnabled ? { xs: MOURNING_RIBBON_SIZE.xs, sm: MOURNING_RIBBON_SIZE.sm } : 0
+        }}
+      >
+        <Stack
+          spacing={0.75}
           sx={{
-            display: "inline-flex",
-            alignItems: "center",
+            gridColumn: mourningRibbonEnabled ? 2 : 1,
+            minWidth: 0,
             justifyContent: "center",
-            width: 44,
-            height: 44,
-            color: "inherit",
-            ...focusVisibleSx
+            py: 1,
+            pl: { xs: 1.25, sm: 2 },
+            pr: { xs: 1.25, sm: 2 }
           }}
         >
-          <LocationOnOutlinedIcon fontSize="small" />
-        </Link>
-        <TopBarSocialIcons links={socialLinks} showLabel={false} />
-      </Stack>
+          <TopBarInfoItem
+            icon={<LocationOnOutlinedIcon />}
+            text={siteName}
+            compact
+            multiline
+            prominent
+          />
+          {showSeparateCampus && (
+            <TopBarInfoItem icon={<LocationOnOutlinedIcon />} text={campus!} compact multiline />
+          )}
+          {phone && (
+            <TopBarInfoItem icon={<LocalPhoneOutlinedIcon />} text={phone} href={getTelephoneHref(phone)} compact multiline />
+          )}
+          {email && (
+            <TopBarInfoItem icon={<MailOutlineOutlinedIcon />} text={email} href={`mailto:${email}`} compact multiline />
+          )}
+        </Stack>
+      </Box>
+      {socialLinks.length > 0 && (
+        <Stack
+          direction="row"
+          data-testid="public-mobile-topbar-social"
+          sx={{
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 1,
+            minWidth: 0,
+            minHeight: 48,
+            borderTop: "1px solid",
+            borderColor: "rgba(255, 255, 255, 0.16)",
+            px: { xs: 1.5, sm: 2 }
+          }}
+        >
+          <Typography sx={{ fontSize: "0.6875rem", fontWeight: 600, whiteSpace: "nowrap" }}>
+            {FOLLOW_LABEL}
+          </Typography>
+          <TopBarSocialIcons links={socialLinks} showLabel={false} />
+        </Stack>
+      )}
     </Box>
   );
 }
@@ -680,17 +749,25 @@ function PublicSiteShellFrame({
               setDismissedIntroGateKeys((current) => new Set(current).add(introGateStorageKey));
             }}
           />
-          {mourningRibbonEnabled && <PublicMourningRibbon />}
           <Box
             sx={{
               bgcolor: "primary.dark",
               color: "white",
               borderBottom: "3px solid",
-              borderColor: "secondary.main"
+              borderColor: "secondary.main",
+              position: "relative"
             }}
           >
-            <Container maxWidth="xl" sx={{ pl: mourningRibbonTopBarPadding }}>
-              <MobileTopBar phone={siteSettings.phone} socialLinks={socialLinks} />
+            {mourningRibbonEnabled && <PublicMourningRibbon />}
+            <Container maxWidth="xl" sx={{ px: { xs: 0, md: 3 }, pl: mourningRibbonTopBarPadding }}>
+              <MobileTopBar
+                campus={siteSettings.campus}
+                siteName={siteName}
+                phone={siteSettings.phone}
+                email={siteSettings.email}
+                socialLinks={socialLinks}
+                mourningRibbonEnabled={mourningRibbonEnabled}
+              />
               <DesktopTopBar
                 campus={siteSettings.campus}
                 siteName={siteName}
@@ -705,8 +782,7 @@ function PublicSiteShellFrame({
             <Container
               maxWidth="xl"
               sx={{
-                pl: mourningRibbonIdentityPadding,
-                pt: mourningRibbonEnabled ? { xs: 2.5, sm: 4.5, md: 0 } : 0
+                pl: mourningRibbonIdentityPadding
               }}
             >
               <Stack
