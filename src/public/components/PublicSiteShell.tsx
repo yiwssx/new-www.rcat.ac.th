@@ -473,7 +473,7 @@ function MobileTopBar({
             minWidth: 0,
             minHeight: 48,
             borderTop: "1px solid",
-            borderColor: "rgba(255, 255, 255, 0.16)",
+            borderColor: (theme) => alpha(theme.palette.common.white, 0.16),
             px: { xs: 1.5, sm: 2 }
           }}
         >
