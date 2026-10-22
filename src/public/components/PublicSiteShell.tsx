@@ -427,6 +427,7 @@ function MobileTopBar({
         }}
       >
         <Stack
+          data-testid="public-mobile-topbar-contact"
           spacing={0.75}
           sx={{
             gridColumn: mourningRibbonEnabled ? 2 : 1,
@@ -437,21 +438,27 @@ function MobileTopBar({
             pr: { xs: 1.25, sm: 2 }
           }}
         >
-          <TopBarInfoItem
-            icon={<LocationOnOutlinedIcon />}
-            text={siteName}
-            compact
-            multiline
-            prominent
-          />
+          <TopBarInfoItem icon={<LocationOnOutlinedIcon />} text={siteName} compact multiline prominent />
           {showSeparateCampus && (
-            <TopBarInfoItem icon={<LocationOnOutlinedIcon />} text={campus!} compact multiline />
+            <TopBarInfoItem icon={<LocationOnOutlinedIcon />} text={campus ?? ""} compact multiline />
           )}
           {phone && (
-            <TopBarInfoItem icon={<LocalPhoneOutlinedIcon />} text={phone} href={getTelephoneHref(phone)} compact multiline />
+            <TopBarInfoItem
+              icon={<LocalPhoneOutlinedIcon />}
+              text={phone}
+              href={getTelephoneHref(phone)}
+              compact
+              multiline
+            />
           )}
           {email && (
-            <TopBarInfoItem icon={<MailOutlineOutlinedIcon />} text={email} href={`mailto:${email}`} compact multiline />
+            <TopBarInfoItem
+              icon={<MailOutlineOutlinedIcon />}
+              text={email}
+              href={`mailto:${email}`}
+              compact
+              multiline
+            />
           )}
         </Stack>
       </Box>
