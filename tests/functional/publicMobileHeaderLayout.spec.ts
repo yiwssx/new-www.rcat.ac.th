@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { installPublicAuthIsolationFixture } from "./fixtures/publicAuthIsolationFixture";
+import { createPublicHomeSnapshot } from "./fixtures/publicHomeCarouselFixture";
 
 test.describe("Public mobile institutional header layout", () => {
   test("keeps the award, identity, actions and search aligned without horizontal overflow", async ({ page }) => {
@@ -45,5 +46,71 @@ test.describe("Public mobile institutional header layout", () => {
         expect(identityRect!.y).toBeGreaterThanOrEqual(ribbonRect!.y + ribbonRect!.height - 1);
       }
     }
+  });
+
+  test("shows all desktop contact and social content in the compact mobile bar without ribbon overlap", async ({ page }) => {
+    await installPublicAuthIsolationFixture(page, { consent: "rejected" });
+    const snapshot = createPublicHomeSnapshot();
+    const siteSettings = {
+      ...snapshot.siteSettings,
+      siteName: "วิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด",
+      campus: "ธวัชบุรี จังหวัดร้อยเอ็ด",
+      phone: "0 4356 9117",
+      email: "contact@rcat.example",
+      facebookUrl: "https://facebook.com/rcat-fixture",
+      youtubeUrl: "https://youtube.com/@rcat-fixture",
+      tiktokUrl: "https://tiktok.com/@rcat-fixture",
+      mourningRibbonEnabled: true
+    };
+
+    await page.route("**/api/public/shell", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          siteSettings,
+          homepageSettings: snapshot.homepageSettings,
+          displaySettings: snapshot.displaySettings,
+          menu: snapshot.menu,
+          generatedAt: "2026-07-27T00:00:00.000Z"
+        })
+      });
+    });
+
+    await page.goto("/news");
+
+    const primary = page.getByTestId("public-mobile-topbar-primary");
+    const contact = page.getByTestId("public-mobile-topbar-contact");
+    const social = page.getByTestId("public-mobile-topbar-social");
+    const ribbon = page.locator('[data-mourning-ribbon="true"]');
+
+    for (const width of [320, 360, 390, 412, 430]) {
+      await page.setViewportSize({ width, height: 820 });
+      await expect(primary).toBeVisible();
+      await expect(primary.getByText(siteSettings.siteName, { exact: true })).toBeVisible();
+      await expect(primary.getByText(siteSettings.campus, { exact: true })).toBeVisible();
+      await expect(primary.getByRole("link", { name: siteSettings.phone })).toBeVisible();
+      await expect(primary.getByRole("link", { name: siteSettings.email })).toBeVisible();
+      await expect(social.getByText("ช่องทางติดตาม")).toBeVisible();
+
+      for (const platform of ["facebook", "youtube", "tiktok"]) {
+        await expect(social.locator(`[data-social-icon-link="${platform}"]`)).toBeVisible();
+      }
+
+      const ribbonRect = await ribbon.boundingBox();
+      const contactRect = await contact.boundingBox();
+      const primaryRect = await primary.boundingBox();
+      expect(ribbonRect).not.toBeNull();
+      expect(contactRect).not.toBeNull();
+      expect(primaryRect).not.toBeNull();
+      expect(contactRect!.x).toBeGreaterThanOrEqual(ribbonRect!.x + ribbonRect!.width - 1);
+      expect(primaryRect!.height).toBeGreaterThanOrEqual(ribbonRect!.height);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1);
+    }
+
+    await page.setViewportSize({ width: 1280, height: 820 });
+    await expect(primary).toBeHidden();
+    await expect(page.getByText(siteSettings.campus, { exact: true })).toBeVisible();
+    await expect(page.getByText(siteSettings.email, { exact: true })).toBeVisible();
   });
 });
