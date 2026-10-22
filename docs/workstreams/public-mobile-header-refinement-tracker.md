@@ -134,3 +134,11 @@
 - **Cache:** Both component source and HTML preload use `/mourning-ribbon.svg?rev=4e0add4` to invalidate the previously cached legacy artwork at this pathname.
 - **Unchanged:** Current responsive layout and the existing scrolling behavior remain intact for an isolated artwork review; no V5 or scroll-behavior redesign in this change.
 - **Gate:** All required exact-head checks and production deployment verification before closing the release. Only a user-reviewed screenshot can establish visual approval.
+
+## Accepted uploaded SVG with viewport-following scroll — 2026-10-22
+
+- **User acceptance:** The supplied `public/mourning-ribbon.svg` is approved; preserve the exact file/blob `4e0add4cc734e487eb1ed9d44c65a6cb589ccf73` and the existing mobile/desktop image sizes.
+- **Corrected behavior:** The user wants the ribbon to remain visible and follow page scrolling, not disappear when the top bar scrolls away. Replace the top-bar-scoped absolute anchor with a zero-height `position: sticky; top: 0` overlay **directly within the full `.rcat-page` shell**; keep the image absolute within this zero-height anchor so it adds no header height and does not cover the layout flow. No `position: fixed`, timers or scroll handlers.
+- **Preserved:** The validated single SVG asset, URL/cache key, retired old assets, top-bar, contact information, royal award, menu, CMS toggle, and Messenger behavior.
+- **Regression:** Playwright checks the same ribbon image remains visible near the viewport's top while scrolling at 0, 450 and 900px on widths 320/390/1280, and checks no horizontal overflow. Unit checks the sticky anchor is rendered outside the short top-bar container.
+- **Pending:** Exact-head CI, review, merge, production deployment/alias and field verification. Visual user acceptance remains separate.
