@@ -49,7 +49,7 @@ describe("mourning ribbon responsive layout", () => {
     expect(ribbonSource).toContain('data-mourning-ribbon-anchor="true"');
     expect(ribbonSource).toContain("height: 0");
     expect(ribbonSource).not.toContain('position: "fixed"');
-    expect(publicShellSource.indexOf("{mourningRibbonEnabled && <PublicMourningRibbon />}"')).toBeLessThan(
+    expect(publicShellSource.indexOf("{mourningRibbonEnabled && <PublicMourningRibbon />}")).toBeLessThan(
       publicShellSource.indexOf("<PublicIntroGate")
     );
     expect(publicShellSource).toContain('data-testid="public-mobile-award"');

@@ -142,3 +142,8 @@
 - **Preserved:** The validated single SVG asset, URL/cache key, retired old assets, top-bar, contact information, royal award, menu, CMS toggle, and Messenger behavior.
 - **Regression:** Playwright checks the same ribbon image remains visible near the viewport's top while scrolling at 0, 450 and 900px on widths 320/390/1280, and checks no horizontal overflow. Unit checks the sticky anchor is rendered outside the short top-bar container.
 - **Pending:** Exact-head CI, review, merge, production deployment/alias and field verification. Visual user acceptance remains separate.
+
+## PR #691 CI recovery — 2026-10-22
+
+- Initial CI run [39759292837](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/39759292837) reported Build and Static Quality failures from one malformed quote in `src/test/mourningRibbonLayout.test.ts:52` (TS1002 unterminated string / Prettier parse error). No change to the approved SVG, UI component or scroll behavior is needed for this failure.
+- Fix the quote in the source-text assertion on the PR branch, then require fresh exact-head CI including Functional E2E, Unit, Build, Static Quality, CodeQL and aggregate Quality before merge. Do not rely on the prior broken-SHA check results.
