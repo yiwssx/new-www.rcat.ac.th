@@ -53,14 +53,17 @@ const contentItem = {
   publishAt: generatedAt
 };
 
-function createHomeSnapshot() {
+type FixtureSiteSettings = Partial<ReturnType<typeof createPublicHomeSnapshot>["siteSettings"]>;
+
+function createHomeSnapshot(siteSettingsOverrides: FixtureSiteSettings = {}) {
   const snapshot = createPublicHomeSnapshot();
 
   return {
     ...snapshot,
     siteSettings: {
       ...snapshot.siteSettings,
-      siteName: PUBLIC_AUTH_FIXTURE_SITE_NAME
+      siteName: PUBLIC_AUTH_FIXTURE_SITE_NAME,
+      ...siteSettingsOverrides
     },
     carouselSlides: [],
     latestNews: [newsItem],
@@ -92,7 +95,7 @@ function createLiveVisitorStats() {
 
 export async function installPublicAuthIsolationFixture(
   page: Page,
-  options: { consent?: "accepted" | "rejected" | "unset" } = {}
+  options: { consent?: "accepted" | "rejected" | "unset"; siteSettings?: FixtureSiteSettings } = {}
 ): Promise<PublicAuthIsolationFixture> {
   const requests: PublicFixtureRequest[] = [];
 
@@ -121,7 +124,7 @@ export async function installPublicAuthIsolationFixture(
   await page.route("**/api/public/**", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
-    const homeSnapshot = createHomeSnapshot();
+    const homeSnapshot = createHomeSnapshot(options.siteSettings);
     const recordAfterResponse = url.pathname === "/api/public/visitor-stats";
     let payload: unknown;
     let body: unknown;

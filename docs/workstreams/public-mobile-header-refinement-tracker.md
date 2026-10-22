@@ -56,3 +56,18 @@
 - CI [#4529](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/39567838010) completed with Build, Unit, Integration, Functional E2E, Governance and Worker passing; Static Quality failed exclusively at `pnpm format:check` for `src/public/components/PublicSiteShell.tsx`. The aggregate `quality` job failed as a consequence.
 - Mobile award icon JSX was normalized to the repository's 120-column Prettier configuration in commit `8152ca7bea2722991bc2e5c61dd9a85284ccf498`.
 - Follow-up CI #4530 was started on that SHA, but this tracker checkpoint creates a newer head requiring exact-head CI again. No merge or production changes until the final-head quality gate is green; visual acceptance on an actual phone remains separate.
+
+## Mobile top bar compact layout — 2026-10-22
+
+- **Branch:** `fix/public-mobile-topbar-content-parity-compact`; PR #683.
+- **Approved:** Keep desktop utility content fully visible on mobile; smaller contact typography.
+- **Changed:** Mobile ribbon grid, full institution/contact/social details, theme-aware divider.
+- **Unchanged:** White identity, royal award, desktop header, CMS/backend, dependencies.
+- **Coverage:** Unit ribbon rules and Playwright mobile 320–430px plus desktop checks.
+- **Recovery:** CI #4542 passed all lanes except Functional E2E (143/144). News page supplies
+  preloaded site settings from the content endpoint, not only the shell endpoint.
+  The Playwright fixture now injects the same settings into both endpoints.
+- **Recovery 2:** CI #4545 passed all lanes except Functional E2E (143/144).
+  The remaining desktop assertion matched both hidden mobile and visible desktop location text.
+  Added an explicit desktop bar test identifier and scoped the assertion to it.
+- **State:** PR #683 open; final-head CI and field visual QA pending before merge.
