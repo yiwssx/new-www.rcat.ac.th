@@ -302,6 +302,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # A trusted main push with no Vercel runtime changes is intentionally
+          # skipped by Ignored Build Step; do not treat the resulting canceled
+          # deployment as a failed CSP release. Runtime changes remain gated.
+          if [[ "$EXPECTED_IGNORED" == "true" ]]; then
+            echo "No Vercel runtime change in $TARGET_SHA; skip CSP browser release smoke."
+            echo "skip_smoke=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           for attempt in $(seq 1 30); do
             payload="$(curl --fail-with-body --silent --show-error -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${GITHUB_REPOSITORY}/commits/${TARGET_SHA}/status")"
             status_json="$(printf '%s' "$payload" | node -e '
