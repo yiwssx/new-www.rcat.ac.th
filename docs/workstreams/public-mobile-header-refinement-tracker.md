@@ -134,3 +134,23 @@
 - **Cache:** Both component source and HTML preload use `/mourning-ribbon.svg?rev=4e0add4` to invalidate the previously cached legacy artwork at this pathname.
 - **Unchanged:** Current responsive layout and the existing scrolling behavior remain intact for an isolated artwork review; no V5 or scroll-behavior redesign in this change.
 - **Gate:** All required exact-head checks and production deployment verification before closing the release. Only a user-reviewed screenshot can establish visual approval.
+
+## Accepted uploaded SVG with viewport-following scroll — 2026-10-22
+
+- **User acceptance:** The supplied `public/mourning-ribbon.svg` is approved; preserve the exact file/blob `4e0add4cc734e487eb1ed9d44c65a6cb589ccf73` and the existing mobile/desktop image sizes.
+- **Corrected behavior:** The user wants the ribbon to remain visible and follow page scrolling, not disappear when the top bar scrolls away. Replace the top-bar-scoped absolute anchor with a zero-height `position: sticky; top: 0` overlay **directly within the full `.rcat-page` shell**; keep the image absolute within this zero-height anchor so it adds no header height and does not cover the layout flow. No `position: fixed`, timers or scroll handlers.
+- **Preserved:** The validated single SVG asset, URL/cache key, retired old assets, top-bar, contact information, royal award, menu, CMS toggle, and Messenger behavior.
+- **Regression:** Playwright checks the same ribbon image remains visible near the viewport's top while scrolling at 0, 450 and 900px on widths 320/390/1280, and checks no horizontal overflow. Unit checks the sticky anchor is rendered outside the short top-bar container.
+- **Pending:** Exact-head CI, review, merge, production deployment/alias and field verification. Visual user acceptance remains separate.
+
+## PR #691 CI recovery — 2026-10-22
+
+- Initial CI run [39759292837](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/39759292837) reported Build and Static Quality failures from one malformed quote in `src/test/mourningRibbonLayout.test.ts:52` (TS1002 unterminated string / Prettier parse error). No change to the approved SVG, UI component or scroll behavior is needed for this failure.
+- Fix the quote in the source-text assertion on the PR branch, then require fresh exact-head CI including Functional E2E, Unit, Build, Static Quality, CodeQL and aggregate Quality before merge. Do not rely on the prior broken-SHA check results.
+
+## PR #691 repeated Functional E2E failure and targeted repair — 2026-10-22
+
+- **Evidence:** CI #39759738123 attempts 1 and 2 both failed the same functional drag test: `organizationPositionGroupDnd.spec.ts:185`, dragging group heading `หัวหน้า` onto explicit group-order target `เจ้าหน้าที่` did not POST (`writes.length: 0`). All 144 other functional tests passed on attempt 2; CI Build/Unit/Static/CodeQL passed.
+- **Root issue under repair:** Group headings were built with `useSortable` which makes the heading itself a competing drop target, despite a separately registered `position-group-order-target`. This can prevent an explicit group-target collision from being selected. Use `useDraggable` for group headings while retaining `useSortable` for position rows and assignments. Group heading drops must resolve a real, distinct destination ID; never synthesize a move based only on a stale sortable index.
+- **Boundary:** No changes to the approved `public/mourning-ribbon.svg` or the SiteShell sticky-follow-scroll implementation. Do not weaken the group drag test or bypass CI.
+- **Next:** Verify new commit exact-head CodeQL, Functional E2E, Build, Static Quality, Unit and Quality aggregate. Merge only after success; verify exact-SHA production deployment and field browser QA.

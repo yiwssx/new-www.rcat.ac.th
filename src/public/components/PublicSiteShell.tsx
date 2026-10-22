@@ -748,6 +748,7 @@ function PublicSiteShellFrame({
           data-mourning-ribbon-mode={mourningRibbonEnabled ? "true" : "false"}
           data-cls-region="public-shell"
         >
+          {mourningRibbonEnabled && <PublicMourningRibbon />}
           <PublicIntroGate
             settings={homepageSettings.introGate}
             visible={introGateVisible}
@@ -764,7 +765,6 @@ function PublicSiteShellFrame({
               position: "relative"
             }}
           >
-            {mourningRibbonEnabled && <PublicMourningRibbon />}
             <Container maxWidth="xl" sx={{ px: { xs: 0, md: 3 }, pl: mourningRibbonTopBarPadding }}>
               <MobileTopBar
                 campus={siteSettings.campus}

@@ -48,7 +48,7 @@ test.describe("Public mobile institutional header layout", () => {
     }
   });
 
-  test("lets the original mourning sash scroll out of view on mobile and desktop", async ({ page }) => {
+  test("keeps the supplied mourning ribbon following page scroll on mobile and desktop", async ({ page }) => {
     const snapshot = createPublicHomeSnapshot();
     await installPublicAuthIsolationFixture(page, {
       consent: "rejected",
@@ -57,7 +57,11 @@ test.describe("Public mobile institutional header layout", () => {
     await page.goto("/news");
 
     const ribbon = page.locator('[data-mourning-ribbon="true"]');
+    const anchor = page.locator('[data-mourning-ribbon-anchor="true"]');
     await expect(ribbon).toBeVisible();
+    await expect(ribbon).toHaveAttribute("src", "/mourning-ribbon.svg?rev=4e0add4");
+    expect(await anchor.evaluate((element) => getComputedStyle(element).position)).toBe("sticky");
+    expect(await ribbon.evaluate((element) => getComputedStyle(element).position)).toBe("absolute");
 
     for (const width of [320, 390, 1280]) {
       await page.setViewportSize({ width, height: 700 });
@@ -65,19 +69,17 @@ test.describe("Public mobile institutional header layout", () => {
         document.body.style.minHeight = "260vh";
         window.scrollTo(0, 0);
       });
-
       await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
-      expect(await ribbon.evaluate((element) => getComputedStyle(element).position)).toBe("absolute");
-      const originalTop = await ribbon.evaluate((element) => element.getBoundingClientRect().top);
-      expect(Math.abs(originalTop)).toBeLessThanOrEqual(1);
 
-      await page.evaluate(() => window.scrollTo(0, 450));
-      await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+      for (const offset of [0, 450, 900]) {
+        await page.evaluate((y) => window.scrollTo(0, y), offset);
+        await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThanOrEqual(offset);
 
-      const positionAfterScroll = await ribbon.evaluate((element) => element.getBoundingClientRect().top);
-      const scrollY = await page.evaluate(() => window.scrollY);
-      expect(Math.abs(positionAfterScroll - (originalTop - scrollY))).toBeLessThanOrEqual(2);
-      expect(positionAfterScroll).toBeLessThan(0);
+        const ribbonTop = await ribbon.evaluate((element) => element.getBoundingClientRect().top);
+        expect(Math.abs(ribbonTop)).toBeLessThanOrEqual(2);
+        await expect(ribbon).toBeInViewport();
+        expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1);
+      }
     }
   });
 
