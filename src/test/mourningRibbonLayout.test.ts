@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import ribbonSource from "../public/components/PublicMourningRibbon.tsx?raw";
@@ -10,7 +10,7 @@ import {
 } from "../public/components/mourningRibbonLayout";
 
 const breakpoints = ["xs", "sm", "md", "lg"] as const;
-const ribbonVectorSource = readFileSync(join(process.cwd(), "public/mourning-ribbon-v4.svg"), "utf8");
+const ribbonVectorSource = readFileSync(join(process.cwd(), "public/mourning-ribbon.svg"), "utf8");
 const indexHtmlSource = readFileSync(join(process.cwd(), "index.html"), "utf8");
 
 describe("mourning ribbon responsive layout", () => {
@@ -52,34 +52,31 @@ describe("mourning ribbon responsive layout", () => {
     expect(publicShellSource).toContain("{mourningRibbonEnabled && <PublicMourningRibbon />}");
   });
 
-  it("renders the exact original diagonal mourning sash and medallion vector", () => {
+  it("uses the supplied standalone SVG artwork without embedded external resources", () => {
     expect(ribbonVectorSource).toContain('viewBox="0 0 128 128"');
-    expect(ribbonVectorSource).toMatch(/<circle\b/g);
-    expect(ribbonVectorSource).toMatch(/<path\b/g);
-    expect(ribbonVectorSource).toContain('<path fill="#505050" d="M0 0h119L0 119Z" />');
-    expect(ribbonVectorSource).toContain('<path fill="#171717" d="M0 0h77L0 77Z" />');
-    expect(ribbonVectorSource).toContain('cx="47" cy="47" r="33" fill="#fff"');
-    expect(ribbonVectorSource).toContain('r="29.8" fill="none" stroke="#393939"');
-    expect(ribbonVectorSource).toContain("M46.5 28.5C40 28.5 38 35");
-    expect(ribbonVectorSource).toContain("M46.5 28.5C53.4 28.5 56.9 35.1");
-    expect(ribbonVectorSource).toContain('stroke="#505050"');
-    expect(ribbonVectorSource).toContain('stroke="#313131"');
-    expect(ribbonVectorSource).not.toContain('cx="64" cy="64"');
-    expect(ribbonVectorSource).not.toContain("M63 36C49");
+    expect(ribbonVectorSource).toContain('<path d="M72 0H119L0 119V72Z" fill="#464646"/>');
+    expect(ribbonVectorSource).toContain('cx="47.4" cy="47.3" r="33.1" fill="#fff"');
+    expect(ribbonVectorSource).toContain('cx="47.4" cy="47.3" r="29.8"');
+    expect(ribbonVectorSource).toContain('fill-rule="evenodd"');
+    expect(ribbonVectorSource).not.toContain('fill="#171717"');
     expect(ribbonVectorSource).not.toMatch(/<(?:image|script|foreignObject|use|style)\b/i);
     expect(ribbonVectorSource).not.toMatch(/(?:data:image\/|href=|url\()/i);
-    expect(ribbonSource).toContain('const MOURNING_RIBBON_ASSET = "/mourning-ribbon-v4.svg"');
+    expect(ribbonSource).toContain('const MOURNING_RIBBON_ASSET = "/mourning-ribbon.svg?rev=4e0add4"');
     expect(ribbonSource).toContain('aria-hidden="true"');
     expect(ribbonSource).toContain('pointerEvents: "none"');
     expect(ribbonSource).not.toContain("/mourning-ribbon.png");
-    expect(ribbonSource).not.toContain('const MOURNING_RIBBON_ASSET = "/mourning-ribbon.svg"');
-    expect(ribbonSource).not.toContain('const MOURNING_RIBBON_ASSET = "/mourning-ribbon-v2.svg"');
-    expect(ribbonSource).not.toContain('const MOURNING_RIBBON_ASSET = "/mourning-ribbon-v3.svg"');
   });
 
-  it("preloads the same vector asset with the SVG content type", () => {
-    expect(indexHtmlSource).toContain('href="/mourning-ribbon-v4.svg" type="image/svg+xml"');
-    expect(indexHtmlSource).not.toContain("/mourning-ribbon.png");
-    expect(indexHtmlSource).not.toContain('href="/mourning-ribbon.svg"');
+  it("uses one cache-busted SVG URL and removes all retired image assets", () => {
+    expect(indexHtmlSource).toContain('href="/mourning-ribbon.svg?rev=4e0add4" type="image/svg+xml"');
+    for (const oldAsset of [
+      "mourning-ribbon-v2.svg",
+      "mourning-ribbon-v3.svg",
+      "mourning-ribbon-v4.svg",
+      "mourning-ribbon.png"
+    ]) {
+      expect(existsSync(join(process.cwd(), "public", oldAsset))).toBe(false);
+    }
+    expect(ribbonSource).not.toContain("/mourning-ribbon-v4.svg");
   });
 });
