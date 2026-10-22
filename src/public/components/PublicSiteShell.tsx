@@ -477,9 +477,7 @@ function MobileTopBar({
             px: { xs: 1.5, sm: 2 }
           }}
         >
-          <Typography sx={{ fontSize: "0.6875rem", fontWeight: 600, whiteSpace: "nowrap" }}>
-            {FOLLOW_LABEL}
-          </Typography>
+          <Typography sx={{ fontSize: "0.6875rem", fontWeight: 600, whiteSpace: "nowrap" }}>{FOLLOW_LABEL}</Typography>
           <TopBarSocialIcons links={socialLinks} showLabel={false} />
         </Stack>
       )}
