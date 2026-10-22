@@ -10,7 +10,7 @@ import {
 } from "../public/components/mourningRibbonLayout";
 
 const breakpoints = ["xs", "sm", "md", "lg"] as const;
-const ribbonVectorSource = readFileSync(join(process.cwd(), "public/mourning-ribbon.svg"), "utf8");
+const ribbonVectorSource = readFileSync(join(process.cwd(), "public/mourning-ribbon-v2.svg"), "utf8");
 const indexHtmlSource = readFileSync(join(process.cwd(), "index.html"), "utf8");
 
 describe("mourning ribbon responsive layout", () => {
@@ -58,14 +58,16 @@ describe("mourning ribbon responsive layout", () => {
     expect(ribbonVectorSource).not.toContain('fill="#171717"');
     expect(ribbonVectorSource).not.toMatch(/<(?:image|script|foreignObject|use|style)\b/i);
     expect(ribbonVectorSource).not.toMatch(/(?:data:image\/|href=|url\()/i);
-    expect(ribbonSource).toContain('const MOURNING_RIBBON_ASSET = "/mourning-ribbon.svg"');
+    expect(ribbonSource).toContain('const MOURNING_RIBBON_ASSET = "/mourning-ribbon-v2.svg"');
     expect(ribbonSource).toContain('aria-hidden="true"');
     expect(ribbonSource).toContain('pointerEvents: "none"');
     expect(ribbonSource).not.toContain("/mourning-ribbon.png");
+    expect(ribbonSource).not.toContain('const MOURNING_RIBBON_ASSET = "/mourning-ribbon.svg"');
   });
 
   it("preloads the same vector asset with the SVG content type", () => {
-    expect(indexHtmlSource).toContain('href="/mourning-ribbon.svg" type="image/svg+xml"');
+    expect(indexHtmlSource).toContain('href="/mourning-ribbon-v2.svg" type="image/svg+xml"');
     expect(indexHtmlSource).not.toContain("/mourning-ribbon.png");
+    expect(indexHtmlSource).not.toContain('href="/mourning-ribbon.svg"');
   });
 });
