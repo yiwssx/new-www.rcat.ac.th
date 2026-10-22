@@ -100,7 +100,9 @@ test.describe("Public mobile institutional header layout", () => {
 
     await page.setViewportSize({ width: 1280, height: 820 });
     await expect(primary).toBeHidden();
-    await expect(page.getByText(siteSettings.campus, { exact: true })).toBeVisible();
-    await expect(page.getByText(siteSettings.email, { exact: true })).toBeVisible();
+    const desktopTopBar = page.getByTestId("public-desktop-topbar");
+    await expect(desktopTopBar).toBeVisible();
+    await expect(desktopTopBar.getByText(siteSettings.campus, { exact: true })).toBeVisible();
+    await expect(desktopTopBar.getByText(siteSettings.email, { exact: true })).toBeVisible();
   });
 });
