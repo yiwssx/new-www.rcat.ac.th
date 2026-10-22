@@ -97,8 +97,9 @@
 
 ## Mobile floating ribbon and narrower contact header — 2026-10-22
 
-- **Status:** IMPLEMENTED — PR/CI and field verification pending.
+- **Status:** PR #686 OPEN — final-head CI and field verification pending.
 - **Branch:** `fix/public-mobile-ribbon-fixed-compact-20261022` (based on `main@3a598577d97ad33446b23d054dfbc234b96fa436`).
+- **PR:** [#686](https://github.com/yiwssx/new-www.rcat.ac.th/pull/686). Initial CI #4561: Static Quality, Build, Integration, Dependencies, Governance and Worker green; Functional E2E and Unit still running at checkpoint. This tracker commit moves the head, so exact-new-head CI must be checked.
 - **Request:** Reduce the crowded mobile top utility/header footprint; make the ribbon stay fixed on mobile as on desktop; remove the black triangular corner backdrop.
 - **Implementation:** Reduce mobile ribbon from 96/112px to 64/72px without changing desktop sizing, tighten mobile contact spacing/padding, use `position: fixed` on every viewport, and replace the corner sash with a transparent-canvas round mourning-ribbon badge.
 - **Protected constraints:** Preserve full Thai college/campus name, phone, email, social links, royal-award banner, existing actions, CMS settings, and desktop layout/clearance.
