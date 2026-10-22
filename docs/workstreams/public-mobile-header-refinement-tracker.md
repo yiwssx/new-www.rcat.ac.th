@@ -56,3 +56,12 @@
 - CI [#4529](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/39567838010) completed with Build, Unit, Integration, Functional E2E, Governance and Worker passing; Static Quality failed exclusively at `pnpm format:check` for `src/public/components/PublicSiteShell.tsx`. The aggregate `quality` job failed as a consequence.
 - Mobile award icon JSX was normalized to the repository's 120-column Prettier configuration in commit `8152ca7bea2722991bc2e5c61dd9a85284ccf498`.
 - Follow-up CI #4530 was started on that SHA, but this tracker checkpoint creates a newer head requiring exact-head CI again. No merge or production changes until the final-head quality gate is green; visual acceptance on an actual phone remains separate.
+
+## Mobile Top Bar content parity and compact typography — 2026-10-22
+
+- **Decision:** User approved a mobile-only top bar mockup, then requested smaller text and fewer wraps. Keep all desktop utility information visible on mobile: institution name, any distinct campus/location text, phone, email, social channel label and each configured social link. Preserve existing white institutional identity, royal award caption, desktop menu/actions, and all CMS data values.
+- **Branch:** `fix/public-mobile-topbar-content-parity-compact`.
+- **Implementation:** Use a ribbon-reserved mobile grid; keep the ribbon absolute in the mobile top bar and fixed on desktop; remove obsolete white-header vertical ribbon compensation. Render contact text in a compact wrapped column (name 12px; contact details 11.5px on narrow phones) and social links in a dedicated row. No content truncation, hiding, data change, or new dependency.
+- **Tests:** Update ribbon layout assertions and add Playwright mobile 320/360/390/412/430px content-parity and no-overlap geometry checks, with a desktop regression assertion and deterministic mock CMS contact/social data.
+- **Acceptance pending:** Exact-head Prettier/design/lint/build/unit/integration/functional/quality CI; live responsive visual review and production verification after an authorized merge. Do not mark complete only on code/PR creation.
+
