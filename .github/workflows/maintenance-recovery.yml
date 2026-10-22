@@ -8,6 +8,10 @@ on:
       - ".github/workflows/maintenance-recovery.yml"
       - ".github/scripts/cleanup-deployment-history.mjs"
       - ".github/scripts/cleanup-unsuccessful-workflow-runs.mjs"
+      - ".github/scripts/cleanup-actions-caches.mjs"
+      - ".github/scripts/cleanup-actions-caches.node-test.mjs"
+  schedule:
+    - cron: "37 2 * * *"
   workflow_dispatch:
     inputs:
       operation:
@@ -17,9 +21,10 @@ on:
         default: history-cleanup
         options:
           - history-cleanup
+          - cache-cleanup
           - d1-recovery-drill
       dry_run:
-        description: "History cleanup only: inspect without deleting records"
+        description: "Maintenance cleanup only: inspect without deleting records"
         required: false
         default: false
         type: boolean
@@ -38,7 +43,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: maintenance-recovery-${{ github.event_name == 'push' && 'history-cleanup' || inputs.operation }}
+  group: maintenance-recovery-${{ github.event_name == 'push' && 'history-cleanup' || github.event_name == 'schedule' && 'cache-cleanup' || inputs.operation }}
   cancel-in-progress: false
 
 jobs:
@@ -65,6 +70,32 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
         run: node .github/scripts/cleanup-unsuccessful-workflow-runs.mjs
+
+  cache-cleanup:
+    name: Maintain GitHub Actions Caches
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' ||
+       github.event_name == 'schedule' ||
+       (github.event_name == 'workflow_dispatch' && inputs.operation == 'cache-cleanup'))
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .node-version
+      - name: Verify cache retention policy
+        run: node --test .github/scripts/cleanup-actions-caches.node-test.mjs
+      - name: Audit and prune superseded Actions caches
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
+        run: node .github/scripts/cleanup-actions-caches.mjs
 
   d1-recovery-drill:
     name: Production Time Travel Readiness
