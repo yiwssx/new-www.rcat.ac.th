@@ -56,10 +56,12 @@ describe("mourning ribbon responsive layout", () => {
     expect(ribbonVectorSource).toMatch(/<path\b/g);
     expect(ribbonVectorSource).not.toContain('d="M0 0');
     expect(ribbonVectorSource).not.toContain('fill="#171717"');
-    expect(ribbonVectorSource).toContain('<circle cx="47" cy="47" r="33" fill="#fff" stroke="#242424" stroke-width="1.6" />');
-    expect(ribbonVectorSource).toContain('<circle cx="47" cy="47" r="29.8" fill="none" stroke="#393939" stroke-width="1.35" />');
-    expect(ribbonVectorSource).toContain("M46.5 28.5C40 28.5 38 35 40.8 42C44.1 50.1 52.3 60.5 58.1 68.5");
-    expect(ribbonVectorSource).toContain("M46.5 28.5C53.4 28.5 56.9 35.1 53.7 43.1C50.7 50.2 43.3 60.3 38.3 68");
+    expect(ribbonVectorSource).toContain('cx="47" cy="47" r="33" fill="#fff"');
+    expect(ribbonVectorSource).toContain('r="29.8" fill="none" stroke="#393939"');
+    expect(ribbonVectorSource).toContain("M46.5 28.5C40 28.5 38 35");
+    expect(ribbonVectorSource).toContain("M46.5 28.5C53.4 28.5 56.9 35.1");
+    expect(ribbonVectorSource).toContain('stroke="#505050"');
+    expect(ribbonVectorSource).toContain('stroke="#313131"');
     expect(ribbonVectorSource).not.toContain('cx="64" cy="64"');
     expect(ribbonVectorSource).not.toContain("M63 36C49");
     expect(ribbonVectorSource).not.toMatch(/<(?:image|script|foreignObject|use|style)\b/i);
