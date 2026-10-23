@@ -102,4 +102,3 @@ Target branch: `main`
 - PR #702 merged with all 10 jobs successful: `0831e647e511e347e5fcf75e4d2045b5706651cc`.
 - Playwright includes compact/mobile/tablet/desktop editor checks and focused publishing, taxonomy, SEO and media tabs.
 - Vercel production READY confirmed for `0831e647e511e347e5fcf75e4d2045b5706651cc`; CI and deployment readiness are distinct from a manually authenticated acceptance test.
-
