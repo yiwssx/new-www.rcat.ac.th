@@ -796,810 +796,810 @@ export default function ContentEditorDialog({
 
   const editorForm = (
     <form onSubmit={handleSubmit}>
-        <DialogTitle>
-          <Typography component="span" variant="h2" sx={{ display: "block", fontSize: "1.45rem" }}>
-            {discarding ? "ละทิ้งฉบับร่างที่ยังไม่บันทึก?" : confirming ? confirmTitle : title}
+      <DialogTitle>
+        <Typography component="span" variant="h2" sx={{ display: "block", fontSize: "1.45rem" }}>
+          {discarding ? "ละทิ้งฉบับร่างที่ยังไม่บันทึก?" : confirming ? confirmTitle : title}
+        </Typography>
+        {!confirming && !discarding && (
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary"
+            }}
+          >
+            แก้ไขเนื้อหา แนบสื่อ และตั้งค่าการเผยแพร่ในพื้นที่ทำงานเดียว
           </Typography>
-          {!confirming && !discarding && (
+        )}
+      </DialogTitle>
+      <DialogContent dividers>
+        {discarding ? (
+          <Stack spacing={1.5} sx={{ pt: 1 }}>
+            <Alert severity="warning">
+              การละทิ้งจะลบฉบับร่างกู้คืนของเนื้อหานี้ออกจากแท็บนี้ การแก้ไขที่ยังไม่บันทึกจะไม่สามารถกู้คืนได้
+            </Alert>
+          </Stack>
+        ) : confirming && pendingDraft ? (
+          <Stack spacing={1.5} sx={{ pt: 1 }}>
+            {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
             <Typography
-              variant="body2"
               sx={{
                 color: "text.secondary"
               }}
             >
-              แก้ไขเนื้อหา แนบสื่อ และตั้งค่าการเผยแพร่ในพื้นที่ทำงานเดียว
+              ตรวจสอบรายการนี้ก่อนบันทึก
             </Typography>
-          )}
-        </DialogTitle>
-        <DialogContent dividers>
-          {discarding ? (
-            <Stack spacing={1.5} sx={{ pt: 1 }}>
-              <Alert severity="warning">
-                การละทิ้งจะลบฉบับร่างกู้คืนของเนื้อหานี้ออกจากแท็บนี้ การแก้ไขที่ยังไม่บันทึกจะไม่สามารถกู้คืนได้
-              </Alert>
-            </Stack>
-          ) : confirming && pendingDraft ? (
-            <Stack spacing={1.5} sx={{ pt: 1 }}>
-              {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
+            <Typography
+              sx={{
+                fontWeight: 900
+              }}
+            >
+              {pendingDraft.title}
+            </Typography>
+            <Typography
+              sx={{
+                color: "text.secondary"
+              }}
+            >
+              {contentTypeLabels[pendingDraft.type]} / {contentStatusLabels[pendingDraft.status]} /{" "}
+              {pendingDraft.owner}
+            </Typography>
+            <Chip
+              label={CONTENT_TEMPLATE_LABELS[pendingDraftTemplate]}
+              color={isPendingDraftFacebookEmbed ? "primary" : "default"}
+              variant="outlined"
+              sx={{ alignSelf: "start" }}
+            />
+            {isPendingDraftFacebookEmbed && (
+              <Stack spacing={1}>
+                <Alert severity="info">รายการนี้จะแสดงเป็นโพสต์ Facebook แบบฝังในหน้าเว็บไซต์สาธารณะ</Alert>
+                {pendingDraft.canonicalUrl ? (
+                  <Typography
+                    sx={{
+                      color: "text.secondary"
+                    }}
+                  >
+                    {pendingDraft.canonicalUrl}
+                  </Typography>
+                ) : (
+                  <Alert severity="warning">ยังไม่มี URL หลักสำหรับฝังโพสต์ Facebook</Alert>
+                )}
+              </Stack>
+            )}
+            {!!pendingDraft.category && (
               <Typography
                 sx={{
                   color: "text.secondary"
                 }}
               >
-                ตรวจสอบรายการนี้ก่อนบันทึก
+                หมวดหมู่: {pendingDraft.category}
               </Typography>
+            )}
+            {!!categoryToSlugList(pendingDraft.category).length && (
+              <Typography
+                sx={{
+                  color: "text.secondary"
+                }}
+              >
+                ลิงก์หมวดหมู่: {categoryToSlugList(pendingDraft.category).join(", ")}
+              </Typography>
+            )}
+            {!!normalizeTags(pendingDraft.tags).length && (
+              <Typography
+                sx={{
+                  color: "text.secondary"
+                }}
+              >
+                แท็ก: {normalizeTags(pendingDraft.tags).join(", ")}
+              </Typography>
+            )}
+            <Typography
+              sx={{
+                color: "text.secondary"
+              }}
+            >
+              แนบสื่อแล้ว {normalizeMediaIds(pendingDraft.mediaIds).length} รายการ
+            </Typography>
+          </Stack>
+        ) : (
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", lg: "minmax(0, 1fr) 330px" },
+              gap: 2.5,
+              pt: 1
+            }}
+          >
+            <Stack spacing={2.2}>
+              {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
+              {recovered && (
+                <Alert severity="info">
+                  กู้คืนฉบับร่างจากก่อนเข้าสู่ระบบอีกครั้งแล้ว กรุณาตรวจสอบข้อมูลก่อนบันทึก
+                </Alert>
+              )}
+              <TextField
+                label="ชื่อเรื่อง"
+                value={draft.title}
+                onChange={(event) => handleTitleChange(event.target.value)}
+                required
+                fullWidth
+              />
+              <TextField
+                label="ลิงก์ถาวรของเนื้อหา"
+                value={draft.slug}
+                onChange={(event) => handleSlugChange(event.target.value)}
+                helperText="ใช้คำคั่นด้วยขีดกลาง เช่น student-life-updates หรือข้อความภาษาไทย"
+                required
+                fullWidth
+              />
+              {isDraftFacebookEmbed ? (
+                <Stack spacing={1}>
+                  <Alert severity="info">รายการนี้จะแสดงเป็นโพสต์ Facebook แบบฝังในหน้าเว็บไซต์สาธารณะ</Alert>
+                  {!draft.canonicalUrl?.trim() && (
+                    <Alert severity="warning">ยังไม่มี URL หลักสำหรับฝังโพสต์ Facebook</Alert>
+                  )}
+                </Stack>
+              ) : (
+                <ContentBlockBuilder
+                  blocks={bodyBlocks}
+                  mediaAssets={availableMedia}
+                  onChange={handleBodyBlocksChange}
+                />
+              )}
+              <TextField
+                label="สรุปย่อ"
+                value={draft.summary}
+                onChange={(event) => updateDraft("summary", event.target.value)}
+                minRows={3}
+                multiline
+                fullWidth
+              />
+            </Stack>
+            <Stack
+              spacing={2}
+              sx={{
+                ...staticSurfaceSx,
+                p: 2,
+                bgcolor: "background.default",
+                alignSelf: "start"
+              }}
+            >
               <Typography
                 sx={{
                   fontWeight: 900
                 }}
               >
-                {pendingDraft.title}
+                การเผยแพร่
               </Typography>
-              <Typography
-                sx={{
-                  color: "text.secondary"
-                }}
-              >
-                {contentTypeLabels[pendingDraft.type]} / {contentStatusLabels[pendingDraft.status]} /{" "}
-                {pendingDraft.owner}
-              </Typography>
-              <Chip
-                label={CONTENT_TEMPLATE_LABELS[pendingDraftTemplate]}
-                color={isPendingDraftFacebookEmbed ? "primary" : "default"}
-                variant="outlined"
-                sx={{ alignSelf: "start" }}
+              <FormControl fullWidth size="small">
+                <InputLabel id="content-type-label">ประเภท</InputLabel>
+                <Select
+                  labelId="content-type-label"
+                  label="ประเภท"
+                  value={draft.type}
+                  onChange={(event) => updateDraft("type", event.target.value as ContentType)}
+                >
+                  {contentTypes.map((type) => (
+                    <MenuItem key={type} value={type}>
+                      {contentTypeLabels[type]}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl fullWidth size="small">
+                <InputLabel id="content-status-label">สถานะ</InputLabel>
+                <Select
+                  labelId="content-status-label"
+                  label="สถานะ"
+                  value={draft.status}
+                  onChange={(event) => updateDraft("status", event.target.value as ContentStatus)}
+                >
+                  {contentStatuses.map((status) => (
+                    <MenuItem key={status} value={status}>
+                      {contentStatusLabels[status]}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <TextField
+                label="ผู้รับผิดชอบ"
+                value={draft.owner}
+                onChange={(event) => updateDraft("owner", event.target.value)}
+                required
+                size="small"
+                fullWidth
               />
-              {isPendingDraftFacebookEmbed && (
-                <Stack spacing={1}>
-                  <Alert severity="info">รายการนี้จะแสดงเป็นโพสต์ Facebook แบบฝังในหน้าเว็บไซต์สาธารณะ</Alert>
-                  {pendingDraft.canonicalUrl ? (
-                    <Typography
-                      sx={{
-                        color: "text.secondary"
-                      }}
-                    >
-                      {pendingDraft.canonicalUrl}
-                    </Typography>
-                  ) : (
-                    <Alert severity="warning">ยังไม่มี URL หลักสำหรับฝังโพสต์ Facebook</Alert>
-                  )}
-                </Stack>
-              )}
-              {!!pendingDraft.category && (
-                <Typography
-                  sx={{
-                    color: "text.secondary"
-                  }}
-                >
-                  หมวดหมู่: {pendingDraft.category}
-                </Typography>
-              )}
-              {!!categoryToSlugList(pendingDraft.category).length && (
-                <Typography
-                  sx={{
-                    color: "text.secondary"
-                  }}
-                >
-                  ลิงก์หมวดหมู่: {categoryToSlugList(pendingDraft.category).join(", ")}
-                </Typography>
-              )}
-              {!!normalizeTags(pendingDraft.tags).length && (
-                <Typography
-                  sx={{
-                    color: "text.secondary"
-                  }}
-                >
-                  แท็ก: {normalizeTags(pendingDraft.tags).join(", ")}
-                </Typography>
-              )}
+              <AdminDateTimeField
+                label="วันที่เผยแพร่"
+                value={toLocalDateTimeInputValue(draft.publishAt)}
+                onChange={(value) =>
+                  updateDraft("publishAt", fromLocalDateTimeInputValue(value) || new Date().toISOString())
+                }
+              />
+              <Divider />
               <Typography
                 sx={{
-                  color: "text.secondary"
+                  fontWeight: 900
                 }}
               >
-                แนบสื่อแล้ว {normalizeMediaIds(pendingDraft.mediaIds).length} รายการ
+                หมวดหมู่และแท็ก
               </Typography>
-            </Stack>
-          ) : (
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: { xs: "1fr", lg: "minmax(0, 1fr) 330px" },
-                gap: 2.5,
-                pt: 1
-              }}
-            >
-              <Stack spacing={2.2}>
-                {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
-                {recovered && (
-                  <Alert severity="info">
-                    กู้คืนฉบับร่างจากก่อนเข้าสู่ระบบอีกครั้งแล้ว กรุณาตรวจสอบข้อมูลก่อนบันทึก
-                  </Alert>
-                )}
-                <TextField
-                  label="ชื่อเรื่อง"
-                  value={draft.title}
-                  onChange={(event) => handleTitleChange(event.target.value)}
-                  required
-                  fullWidth
-                />
-                <TextField
-                  label="ลิงก์ถาวรของเนื้อหา"
-                  value={draft.slug}
-                  onChange={(event) => handleSlugChange(event.target.value)}
-                  helperText="ใช้คำคั่นด้วยขีดกลาง เช่น student-life-updates หรือข้อความภาษาไทย"
-                  required
-                  fullWidth
-                />
-                {isDraftFacebookEmbed ? (
-                  <Stack spacing={1}>
-                    <Alert severity="info">รายการนี้จะแสดงเป็นโพสต์ Facebook แบบฝังในหน้าเว็บไซต์สาธารณะ</Alert>
-                    {!draft.canonicalUrl?.trim() && (
-                      <Alert severity="warning">ยังไม่มี URL หลักสำหรับฝังโพสต์ Facebook</Alert>
-                    )}
-                  </Stack>
-                ) : (
-                  <ContentBlockBuilder
-                    blocks={bodyBlocks}
-                    mediaAssets={availableMedia}
-                    onChange={handleBodyBlocksChange}
-                  />
-                )}
-                <TextField
-                  label="สรุปย่อ"
-                  value={draft.summary}
-                  onChange={(event) => updateDraft("summary", event.target.value)}
-                  minRows={3}
-                  multiline
-                  fullWidth
-                />
-              </Stack>
-              <Stack
-                spacing={2}
-                sx={{
-                  ...staticSurfaceSx,
-                  p: 2,
-                  bgcolor: "background.default",
-                  alignSelf: "start"
-                }}
-              >
-                <Typography
-                  sx={{
-                    fontWeight: 900
-                  }}
-                >
-                  การเผยแพร่
-                </Typography>
-                <FormControl fullWidth size="small">
-                  <InputLabel id="content-type-label">ประเภท</InputLabel>
-                  <Select
-                    labelId="content-type-label"
-                    label="ประเภท"
-                    value={draft.type}
-                    onChange={(event) => updateDraft("type", event.target.value as ContentType)}
-                  >
-                    {contentTypes.map((type) => (
-                      <MenuItem key={type} value={type}>
-                        {contentTypeLabels[type]}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-                <FormControl fullWidth size="small">
-                  <InputLabel id="content-status-label">สถานะ</InputLabel>
-                  <Select
-                    labelId="content-status-label"
-                    label="สถานะ"
-                    value={draft.status}
-                    onChange={(event) => updateDraft("status", event.target.value as ContentStatus)}
-                  >
-                    {contentStatuses.map((status) => (
-                      <MenuItem key={status} value={status}>
-                        {contentStatusLabels[status]}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-                <TextField
-                  label="ผู้รับผิดชอบ"
-                  value={draft.owner}
-                  onChange={(event) => updateDraft("owner", event.target.value)}
-                  required
-                  size="small"
-                  fullWidth
-                />
-                <AdminDateTimeField
-                  label="วันที่เผยแพร่"
-                  value={toLocalDateTimeInputValue(draft.publishAt)}
-                  onChange={(value) =>
-                    updateDraft("publishAt", fromLocalDateTimeInputValue(value) || new Date().toISOString())
-                  }
-                />
-                <Divider />
-                <Typography
-                  sx={{
-                    fontWeight: 900
-                  }}
-                >
-                  หมวดหมู่และแท็ก
-                </Typography>
-                {!!metadataPresetGroups.length && (
-                  <Box
-                    sx={{
-                      ...staticSurfaceSx,
-                      p: 1.25,
-                      bgcolor: "background.default"
-                    }}
-                  >
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        fontWeight: 900
-                      }}
-                    >
-                      ชุดหมวดหมู่และแท็กสำหรับการแสดงผลหน้าแรก
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: "text.secondary"
-                      }}
-                    >
-                      เลือกชุดข้อมูลเพื่อช่วยให้เนื้อหาถูกจัดเข้า section หน้าแรกและค้นหาเจอได้ถูกต้อง
-                    </Typography>
-                    {metadataPresetGroups.map((group) => (
-                      <Box key={group.name} sx={{ mt: 1 }}>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            fontWeight: 900,
-                            color: "text.secondary"
-                          }}
-                        >
-                          {group.name}
-                        </Typography>
-                        <Stack
-                          direction="row"
-                          spacing={0.75}
-                          useFlexGap
-                          sx={{
-                            flexWrap: "wrap",
-                            mt: 0.75
-                          }}
-                        >
-                          {group.presets.map((preset) => (
-                            <Chip
-                              key={preset.label}
-                              label={preset.label}
-                              variant="outlined"
-                              color="primary"
-                              onClick={() => applyMetadataPreset(preset)}
-                            />
-                          ))}
-                        </Stack>
-                      </Box>
-                    ))}
-                  </Box>
-                )}
-                <TextField
-                  label="หมวดหมู่"
-                  value={draft.category ?? ""}
-                  onChange={(event) => updateDraft("category", event.target.value)}
-                  placeholder="เช่น รับสมัคร, วิจัย, ชีวิตผู้เรียน"
-                  helperText="ใช้จุลภาคเพื่อสร้างหลายหมวดหมู่ เช่น จัดซื้อจัดจ้าง, สมัครงาน, ผลงาน, เอกสาร"
-                  size="small"
-                  fullWidth
-                />
-                <TextField
-                  label="ลิงก์หมวดหมู่"
-                  value={categorySlugs.join(", ")}
-                  helperText="สร้างอัตโนมัติจากชื่อหมวดหมู่"
-                  size="small"
-                  fullWidth
-                  slotProps={{ input: { readOnly: true } }}
-                />
-                <Autocomplete
-                  multiple
-                  freeSolo
-                  options={[]}
-                  value={normalizeTags(draft.tags)}
-                  inputValue={tagInputValue}
-                  onChange={(_, nextValue) => {
-                    setDraftTags(nextValue);
-                  }}
-                  onInputChange={(_, nextValue, reason) => {
-                    if (reason === "reset") {
-                      setTagInputValue("");
-                      return;
-                    }
-
-                    if (nextValue.includes(",")) {
-                      const segments = nextValue.split(",");
-                      const completedTags = segments.slice(0, -1).join(",");
-                      const pendingValue = segments[segments.length - 1] || "";
-
-                      if (completedTags.trim()) {
-                        commitTagInput(completedTags);
-                      }
-
-                      setTagInputValue(pendingValue.trimStart());
-                      return;
-                    }
-
-                    markDirty();
-                    setTagInputValue(nextValue);
-                  }}
-                  renderValue={(value, getItemProps) =>
-                    value.map((option, index) => (
-                      <Chip {...getItemProps({ index })} key={`${option}-${index}`} label={option} size="small" />
-                    ))
-                  }
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="แท็ก"
-                      placeholder="พิมพ์แท็กแล้วกด Enter หรือจุลภาค"
-                      helperText="จุลภาค Enter หรือ Tab จะเพิ่มแท็ก เช่น procurement, job, achievement, document"
-                      size="small"
-                      fullWidth
-                      onKeyDown={(event) => {
-                        if (event.key === "," || event.key === "Enter" || event.key === "Tab") {
-                          if (commitTagInput(tagInputValue)) {
-                            event.preventDefault();
-                          }
-                        }
-                      }}
-                      onBlur={() => {
-                        commitTagInput(tagInputValue);
-                      }}
-                    />
-                  )}
-                />
-                <FormControl fullWidth size="small">
-                  <InputLabel id="content-template-label">เทมเพลต</InputLabel>
-                  <Select
-                    labelId="content-template-label"
-                    label="เทมเพลต"
-                    value={draftTemplate}
-                    onChange={(event) => updateDraft("template", event.target.value)}
-                  >
-                    {CONTENT_TEMPLATES.map((template) => (
-                      <MenuItem key={template} value={template}>
-                        {CONTENT_TEMPLATE_LABELS[template]}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-                <TextField
-                  label="เวลาอ่าน (นาที)"
-                  type="number"
-                  value={Math.max(1, Number(draft.readingMinutes) || 1)}
-                  onChange={(event) => updateDraft("readingMinutes", Math.max(1, Number(event.target.value) || 1))}
-                  size="small"
-                  fullWidth
-                  slotProps={{ htmlInput: { min: 1, step: 1 } }}
-                />
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={Boolean(draft.featured)}
-                      onChange={(event) => updateDraft("featured", event.target.checked)}
-                      size="small"
-                    />
-                  }
-                  label="เรื่องแนะนำ"
-                />
-                <Divider />
-                <Typography
-                  sx={{
-                    fontWeight: 900
-                  }}
-                >
-                  SEO
-                </Typography>
-                <TextField
-                  label="ชื่อเรื่องสำหรับผลการค้นหา"
-                  value={draft.seoTitle ?? ""}
-                  onChange={(event) => updateDraft("seoTitle", event.target.value)}
-                  size="small"
-                  fullWidth
-                />
-                <TextField
-                  label="คำอธิบายสำหรับผลการค้นหา"
-                  value={draft.seoDescription ?? ""}
-                  onChange={(event) => updateDraft("seoDescription", event.target.value)}
-                  size="small"
-                  minRows={2}
-                  multiline
-                  fullWidth
-                />
-                <TextField
-                  label="URL หลัก"
-                  value={draft.canonicalUrl ?? ""}
-                  onChange={(event) => updateDraft("canonicalUrl", event.target.value)}
-                  placeholder="https://example.edu/blog/post"
-                  size="small"
-                  fullWidth
-                />
-                <Divider />
-                <Typography
-                  sx={{
-                    fontWeight: 900
-                  }}
-                >
-                  สื่อแนะนำ
-                </Typography>
+              {!!metadataPresetGroups.length && (
                 <Box
                   sx={{
                     ...staticSurfaceSx,
-                    minHeight: 120,
-                    borderStyle: "dashed",
-                    display: "grid",
-                    placeItems: "center",
-                    overflow: "hidden",
-                    bgcolor: "white"
+                    p: 1.25,
+                    bgcolor: "background.default"
                   }}
                 >
-                  {featuredMedia?.type === "image" && (featuredMedia.thumbnailUrl || featuredMedia.previewUrl) ? (
-                    <Box
-                      component="img"
-                      src={featuredMedia.thumbnailUrl || featuredMedia.previewUrl}
-                      alt={featuredMedia.name}
-                      loading="lazy"
-                      sx={{
-                        width: "100%",
-                        height: 220,
-                        objectFit: "contain",
-                        display: "block",
-                        bgcolor: "background.paper"
-                      }}
-                    />
-                  ) : featuredMedia ? (
-                    <Stack
-                      spacing={0.75}
-                      sx={{
-                        alignItems: "center",
-                        p: 2,
-                        textAlign: "center"
-                      }}
-                    >
-                      {mediaIcon(featuredMedia.type)}
-                      <Typography
-                        sx={{
-                          fontWeight: 800
-                        }}
-                      >
-                        {featuredMedia.name}
-                      </Typography>
-                    </Stack>
-                  ) : (
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        color: "text.secondary"
-                      }}
-                    >
-                      เลือกรูปภาพหรือวิดีโอด้านล่าง
-                    </Typography>
-                  )}
-                </Box>
-                <Stack
-                  direction="row"
-                  spacing={0.75}
-                  useFlexGap
-                  sx={{
-                    flexWrap: "wrap"
-                  }}
-                >
-                  {selectedMedia.map((asset) => (
-                    <Chip
-                      key={asset.id}
-                      label={asset.name}
-                      onDelete={() => toggleMedia(asset)}
-                      size="small"
-                      sx={{ maxWidth: "100%" }}
-                    />
-                  ))}
-                  {!selectedMedia.length && (
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        color: "text.secondary"
-                      }}
-                    >
-                      ยังไม่ได้แนบสื่อ
-                    </Typography>
-                  )}
-                </Stack>
-                <Divider />
-                <Typography
-                  sx={{
-                    fontWeight: 900
-                  }}
-                >
-                  คลังสื่อ
-                </Typography>
-                <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-                  <TextField
-                    label="ค้นหาในคลังสื่อ"
-                    value={mediaSearch}
-                    onChange={(event) => {
-                      setMediaSearch(event.target.value);
-                      setMediaPage(1);
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontWeight: 900
                     }}
-                    size="small"
-                    fullWidth
-                  />
-                  <TextField
-                    label="ประเภทสื่อ"
-                    value={mediaFilter}
-                    onChange={(event) => {
-                      setMediaFilter(event.target.value as MediaLibraryFilter);
-                      setMediaPage(1);
-                    }}
-                    size="small"
-                    select
-                    fullWidth
                   >
-                    <MenuItem value="all">ทั้งหมด</MenuItem>
-                    {mediaTypes.map((type) => (
-                      <MenuItem key={type} value={type}>
-                        {mediaTypeLabels[type]}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </Stack>
-                {mediaListQuery.isFetching && <LinearProgress aria-label="กำลังโหลดคลังสื่อ" />}
-                {mediaListQuery.isError && (
-                  <Alert severity="warning">
-                    {mediaListQuery.error instanceof Error ? mediaListQuery.error.message : "ไม่สามารถโหลดคลังสื่อได้"}
-                  </Alert>
-                )}
-                {selectedMediaQuery.isError && (
-                  <Alert severity="warning">
-                    ไม่สามารถโหลดข้อมูลสื่อที่แนบไว้บางรายการได้ กรุณาลองค้นหาในคลังสื่ออีกครั้ง
-                  </Alert>
-                )}
-                {allSelectedLookupIds.length > ADMIN_MEDIA_BY_IDS_MAX && (
-                  <Alert severity="warning">
-                    แสดงข้อมูลสื่อที่แนบไว้ได้สูงสุด {ADMIN_MEDIA_BY_IDS_MAX} รายการต่อครั้ง
-                  </Alert>
-                )}
-                <Stack
-                  spacing={1}
-                  aria-busy={mediaListQuery.isFetching}
-                  sx={{
-                    maxHeight: 260,
-                    overflowY: "auto",
-                    pr: 0.5,
-                    opacity: mediaListQuery.isPlaceholderData ? 0.55 : 1,
-                    transition: "opacity 120ms ease"
-                  }}
-                >
-                  {libraryMedia.map((asset) => {
-                    const checked = selectedMediaIds.includes(asset.id);
-                    return (
-                      <Box
-                        key={asset.id}
+                    ชุดหมวดหมู่และแท็กสำหรับการแสดงผลหน้าแรก
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "text.secondary"
+                    }}
+                  >
+                    เลือกชุดข้อมูลเพื่อช่วยให้เนื้อหาถูกจัดเข้า section หน้าแรกและค้นหาเจอได้ถูกต้อง
+                  </Typography>
+                  {metadataPresetGroups.map((group) => (
+                    <Box key={group.name} sx={{ mt: 1 }}>
+                      <Typography
+                        variant="caption"
                         sx={{
-                          ...staticSurfaceSx,
-                          display: "grid",
-                          gridTemplateColumns: "auto 42px minmax(0, 1fr)",
-                          gap: 1,
-                          alignItems: "center",
-                          p: 1,
-                          bgcolor: checked ? "primary.light" : "white"
+                          fontWeight: 900,
+                          color: "text.secondary"
                         }}
                       >
-                        <Checkbox
-                          checked={checked}
-                          onChange={() => toggleMedia(asset)}
-                          size="small"
-                          slotProps={{ input: { "aria-label": `${checked ? "นำออก" : "แนบ"} ${asset.name}` } }}
-                        />
-                        <Box
-                          sx={{
-                            width: 42,
-                            height: 42,
-                            borderRadius: designTokens.radius.small,
-                            display: "grid",
-                            placeItems: "center",
-                            bgcolor: "background.default",
-                            color: "primary.main",
-                            overflow: "hidden"
-                          }}
-                        >
-                          {asset.type === "image" && (asset.thumbnailUrl || asset.previewUrl) ? (
-                            <Box
-                              component="img"
-                              src={asset.thumbnailUrl || asset.previewUrl}
-                              alt={asset.name}
-                              loading="lazy"
-                              sx={{ width: "100%", height: "100%", objectFit: "cover" }}
-                            />
-                          ) : (
-                            mediaIcon(asset.type)
-                          )}
-                        </Box>
-                        <Box sx={{ minWidth: 0 }}>
-                          <Typography
-                            noWrap
-                            sx={{
-                              fontWeight: 800
-                            }}
-                          >
-                            {asset.name}
-                          </Typography>
-                          <Stack
-                            direction="row"
-                            spacing={0.75}
-                            sx={{
-                              alignItems: "center"
-                            }}
-                          >
-                            <Typography
-                              variant="caption"
-                              sx={{
-                                color: "text.secondary"
-                              }}
-                            >
-                              {mediaTypeLabels[asset.type]}
-                            </Typography>
-                            {checked && (asset.type === "image" || asset.type === "video") && (
-                              <Button size="small" onClick={() => updateDraft("featuredMediaId", asset.id)}>
-                                ตั้งเป็นสื่อแนะนำ
-                              </Button>
-                            )}
-                          </Stack>
-                        </Box>
-                      </Box>
-                    );
-                  })}
-                  {!mediaListQuery.isLoading && !libraryMedia.length && (
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        color: "text.secondary"
-                      }}
-                    >
-                      ไม่พบสื่อที่ตรงกับการค้นหา
-                    </Typography>
-                  )}
-                </Stack>
-                {mediaListQuery.data && (
-                  <AdminPagination
-                    pagination={{
-                      ...mediaListQuery.data.pagination,
-                      page: mediaPage,
-                      pageSize: mediaPageSize
+                        {group.name}
+                      </Typography>
+                      <Stack
+                        direction="row"
+                        spacing={0.75}
+                        useFlexGap
+                        sx={{
+                          flexWrap: "wrap",
+                          mt: 0.75
+                        }}
+                      >
+                        {group.presets.map((preset) => (
+                          <Chip
+                            key={preset.label}
+                            label={preset.label}
+                            variant="outlined"
+                            color="primary"
+                            onClick={() => applyMetadataPreset(preset)}
+                          />
+                        ))}
+                      </Stack>
+                    </Box>
+                  ))}
+                </Box>
+              )}
+              <TextField
+                label="หมวดหมู่"
+                value={draft.category ?? ""}
+                onChange={(event) => updateDraft("category", event.target.value)}
+                placeholder="เช่น รับสมัคร, วิจัย, ชีวิตผู้เรียน"
+                helperText="ใช้จุลภาคเพื่อสร้างหลายหมวดหมู่ เช่น จัดซื้อจัดจ้าง, สมัครงาน, ผลงาน, เอกสาร"
+                size="small"
+                fullWidth
+              />
+              <TextField
+                label="ลิงก์หมวดหมู่"
+                value={categorySlugs.join(", ")}
+                helperText="สร้างอัตโนมัติจากชื่อหมวดหมู่"
+                size="small"
+                fullWidth
+                slotProps={{ input: { readOnly: true } }}
+              />
+              <Autocomplete
+                multiple
+                freeSolo
+                options={[]}
+                value={normalizeTags(draft.tags)}
+                inputValue={tagInputValue}
+                onChange={(_, nextValue) => {
+                  setDraftTags(nextValue);
+                }}
+                onInputChange={(_, nextValue, reason) => {
+                  if (reason === "reset") {
+                    setTagInputValue("");
+                    return;
+                  }
+
+                  if (nextValue.includes(",")) {
+                    const segments = nextValue.split(",");
+                    const completedTags = segments.slice(0, -1).join(",");
+                    const pendingValue = segments[segments.length - 1] || "";
+
+                    if (completedTags.trim()) {
+                      commitTagInput(completedTags);
+                    }
+
+                    setTagInputValue(pendingValue.trimStart());
+                    return;
+                  }
+
+                  markDirty();
+                  setTagInputValue(nextValue);
+                }}
+                renderValue={(value, getItemProps) =>
+                  value.map((option, index) => (
+                    <Chip {...getItemProps({ index })} key={`${option}-${index}`} label={option} size="small" />
+                  ))
+                }
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="แท็ก"
+                    placeholder="พิมพ์แท็กแล้วกด Enter หรือจุลภาค"
+                    helperText="จุลภาค Enter หรือ Tab จะเพิ่มแท็ก เช่น procurement, job, achievement, document"
+                    size="small"
+                    fullWidth
+                    onKeyDown={(event) => {
+                      if (event.key === "," || event.key === "Enter" || event.key === "Tab") {
+                        if (commitTagInput(tagInputValue)) {
+                          event.preventDefault();
+                        }
+                      }
                     }}
-                    pageSizeOptions={ADMIN_MEDIA_PAGE_SIZE_OPTIONS}
-                    onPageChange={setMediaPage}
-                    onPageSizeChange={(nextPageSize) => {
-                      setMediaPageSize(nextPageSize);
-                      setMediaPage(1);
+                    onBlur={() => {
+                      commitTagInput(tagInputValue);
                     }}
-                    disabled={uploading}
-                    isFetching={mediaListQuery.isFetching}
                   />
                 )}
-                <Divider />
-                <Typography
-                  sx={{
-                    fontWeight: 900
-                  }}
+              />
+              <FormControl fullWidth size="small">
+                <InputLabel id="content-template-label">เทมเพลต</InputLabel>
+                <Select
+                  labelId="content-template-label"
+                  label="เทมเพลต"
+                  value={draftTemplate}
+                  onChange={(event) => updateDraft("template", event.target.value)}
                 >
-                  อัปโหลดด่วน
-                </Typography>
-                {uploadError && <Alert severity="error">{uploadError}</Alert>}
-                <Button
-                  component="label"
-                  variant="outlined"
-                  startIcon={<UploadFileOutlinedIcon />}
-                  disabled={uploading}
-                >
-                  เลือกไฟล์
-                  <input
-                    hidden
-                    type="file"
-                    accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.csv"
-                    onChange={handleFileChange}
+                  {CONTENT_TEMPLATES.map((template) => (
+                    <MenuItem key={template} value={template}>
+                      {CONTENT_TEMPLATE_LABELS[template]}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <TextField
+                label="เวลาอ่าน (นาที)"
+                type="number"
+                value={Math.max(1, Number(draft.readingMinutes) || 1)}
+                onChange={(event) => updateDraft("readingMinutes", Math.max(1, Number(event.target.value) || 1))}
+                size="small"
+                fullWidth
+                slotProps={{ htmlInput: { min: 1, step: 1 } }}
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={Boolean(draft.featured)}
+                    onChange={(event) => updateDraft("featured", event.target.checked)}
+                    size="small"
                   />
-                </Button>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: "text.secondary"
-                  }}
-                >
-                  รองรับไฟล์ขนาดไม่เกิน 100 MB
-                </Typography>
-                {uploadFile && (
+                }
+                label="เรื่องแนะนำ"
+              />
+              <Divider />
+              <Typography
+                sx={{
+                  fontWeight: 900
+                }}
+              >
+                SEO
+              </Typography>
+              <TextField
+                label="ชื่อเรื่องสำหรับผลการค้นหา"
+                value={draft.seoTitle ?? ""}
+                onChange={(event) => updateDraft("seoTitle", event.target.value)}
+                size="small"
+                fullWidth
+              />
+              <TextField
+                label="คำอธิบายสำหรับผลการค้นหา"
+                value={draft.seoDescription ?? ""}
+                onChange={(event) => updateDraft("seoDescription", event.target.value)}
+                size="small"
+                minRows={2}
+                multiline
+                fullWidth
+              />
+              <TextField
+                label="URL หลัก"
+                value={draft.canonicalUrl ?? ""}
+                onChange={(event) => updateDraft("canonicalUrl", event.target.value)}
+                placeholder="https://example.edu/blog/post"
+                size="small"
+                fullWidth
+              />
+              <Divider />
+              <Typography
+                sx={{
+                  fontWeight: 900
+                }}
+              >
+                สื่อแนะนำ
+              </Typography>
+              <Box
+                sx={{
+                  ...staticSurfaceSx,
+                  minHeight: 120,
+                  borderStyle: "dashed",
+                  display: "grid",
+                  placeItems: "center",
+                  overflow: "hidden",
+                  bgcolor: "white"
+                }}
+              >
+                {featuredMedia?.type === "image" && (featuredMedia.thumbnailUrl || featuredMedia.previewUrl) ? (
+                  <Box
+                    component="img"
+                    src={featuredMedia.thumbnailUrl || featuredMedia.previewUrl}
+                    alt={featuredMedia.name}
+                    loading="lazy"
+                    sx={{
+                      width: "100%",
+                      height: 220,
+                      objectFit: "contain",
+                      display: "block",
+                      bgcolor: "background.paper"
+                    }}
+                  />
+                ) : featuredMedia ? (
+                  <Stack
+                    spacing={0.75}
+                    sx={{
+                      alignItems: "center",
+                      p: 2,
+                      textAlign: "center"
+                    }}
+                  >
+                    {mediaIcon(featuredMedia.type)}
+                    <Typography
+                      sx={{
+                        fontWeight: 800
+                      }}
+                    >
+                      {featuredMedia.name}
+                    </Typography>
+                  </Stack>
+                ) : (
                   <Typography
                     variant="body2"
                     sx={{
                       color: "text.secondary"
                     }}
                   >
-                    {uploadFile.name} / {formatFileSize(uploadFile.size)}
+                    เลือกรูปภาพหรือวิดีโอด้านล่าง
                   </Typography>
                 )}
-                {uploading && <MediaUploadProgressFeedback preparing={!uploadProgress} progress={uploadProgress} />}
+              </Box>
+              <Stack
+                direction="row"
+                spacing={0.75}
+                useFlexGap
+                sx={{
+                  flexWrap: "wrap"
+                }}
+              >
+                {selectedMedia.map((asset) => (
+                  <Chip
+                    key={asset.id}
+                    label={asset.name}
+                    onDelete={() => toggleMedia(asset)}
+                    size="small"
+                    sx={{ maxWidth: "100%" }}
+                  />
+                ))}
+                {!selectedMedia.length && (
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: "text.secondary"
+                    }}
+                  >
+                    ยังไม่ได้แนบสื่อ
+                  </Typography>
+                )}
+              </Stack>
+              <Divider />
+              <Typography
+                sx={{
+                  fontWeight: 900
+                }}
+              >
+                คลังสื่อ
+              </Typography>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
                 <TextField
-                  label="ชื่อสื่อ"
-                  value={uploadName}
-                  disabled={uploading}
-                  onChange={(event) => setUploadName(event.target.value)}
+                  label="ค้นหาในคลังสื่อ"
+                  value={mediaSearch}
+                  onChange={(event) => {
+                    setMediaSearch(event.target.value);
+                    setMediaPage(1);
+                  }}
                   size="small"
                   fullWidth
                 />
                 <TextField
-                  label="ประเภท"
-                  value={uploadType}
-                  disabled={uploading}
-                  onChange={(event) => setUploadType(event.target.value as MediaType)}
+                  label="ประเภทสื่อ"
+                  value={mediaFilter}
+                  onChange={(event) => {
+                    setMediaFilter(event.target.value as MediaLibraryFilter);
+                    setMediaPage(1);
+                  }}
                   size="small"
                   select
                   fullWidth
                 >
+                  <MenuItem value="all">ทั้งหมด</MenuItem>
                   {mediaTypes.map((type) => (
                     <MenuItem key={type} value={type}>
                       {mediaTypeLabels[type]}
                     </MenuItem>
                   ))}
                 </TextField>
-                <Button
-                  type="button"
-                  variant="contained"
-                  disabled={uploading || !uploadFile || !onUploadMedia}
-                  onClick={() => void handleUploadMedia()}
-                >
-                  {uploading
-                    ? uploadProgress
-                      ? `กำลังอัปโหลด ${uploadProgress.percent}%`
-                      : "กำลังเตรียมไฟล์"
-                    : "อัปโหลดและแนบ"}
-                </Button>
               </Stack>
-            </Box>
-          )}
-        </DialogContent>
-        <ResponsiveDialogActions>
-          {discarding ? (
-            <>
-              <Button type="button" onClick={() => setDiscarding(false)}>
-                กลับไปแก้ไข
+              {mediaListQuery.isFetching && <LinearProgress aria-label="กำลังโหลดคลังสื่อ" />}
+              {mediaListQuery.isError && (
+                <Alert severity="warning">
+                  {mediaListQuery.error instanceof Error ? mediaListQuery.error.message : "ไม่สามารถโหลดคลังสื่อได้"}
+                </Alert>
+              )}
+              {selectedMediaQuery.isError && (
+                <Alert severity="warning">
+                  ไม่สามารถโหลดข้อมูลสื่อที่แนบไว้บางรายการได้ กรุณาลองค้นหาในคลังสื่ออีกครั้ง
+                </Alert>
+              )}
+              {allSelectedLookupIds.length > ADMIN_MEDIA_BY_IDS_MAX && (
+                <Alert severity="warning">
+                  แสดงข้อมูลสื่อที่แนบไว้ได้สูงสุด {ADMIN_MEDIA_BY_IDS_MAX} รายการต่อครั้ง
+                </Alert>
+              )}
+              <Stack
+                spacing={1}
+                aria-busy={mediaListQuery.isFetching}
+                sx={{
+                  maxHeight: 260,
+                  overflowY: "auto",
+                  pr: 0.5,
+                  opacity: mediaListQuery.isPlaceholderData ? 0.55 : 1,
+                  transition: "opacity 120ms ease"
+                }}
+              >
+                {libraryMedia.map((asset) => {
+                  const checked = selectedMediaIds.includes(asset.id);
+                  return (
+                    <Box
+                      key={asset.id}
+                      sx={{
+                        ...staticSurfaceSx,
+                        display: "grid",
+                        gridTemplateColumns: "auto 42px minmax(0, 1fr)",
+                        gap: 1,
+                        alignItems: "center",
+                        p: 1,
+                        bgcolor: checked ? "primary.light" : "white"
+                      }}
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onChange={() => toggleMedia(asset)}
+                        size="small"
+                        slotProps={{ input: { "aria-label": `${checked ? "นำออก" : "แนบ"} ${asset.name}` } }}
+                      />
+                      <Box
+                        sx={{
+                          width: 42,
+                          height: 42,
+                          borderRadius: designTokens.radius.small,
+                          display: "grid",
+                          placeItems: "center",
+                          bgcolor: "background.default",
+                          color: "primary.main",
+                          overflow: "hidden"
+                        }}
+                      >
+                        {asset.type === "image" && (asset.thumbnailUrl || asset.previewUrl) ? (
+                          <Box
+                            component="img"
+                            src={asset.thumbnailUrl || asset.previewUrl}
+                            alt={asset.name}
+                            loading="lazy"
+                            sx={{ width: "100%", height: "100%", objectFit: "cover" }}
+                          />
+                        ) : (
+                          mediaIcon(asset.type)
+                        )}
+                      </Box>
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography
+                          noWrap
+                          sx={{
+                            fontWeight: 800
+                          }}
+                        >
+                          {asset.name}
+                        </Typography>
+                        <Stack
+                          direction="row"
+                          spacing={0.75}
+                          sx={{
+                            alignItems: "center"
+                          }}
+                        >
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: "text.secondary"
+                            }}
+                          >
+                            {mediaTypeLabels[asset.type]}
+                          </Typography>
+                          {checked && (asset.type === "image" || asset.type === "video") && (
+                            <Button size="small" onClick={() => updateDraft("featuredMediaId", asset.id)}>
+                              ตั้งเป็นสื่อแนะนำ
+                            </Button>
+                          )}
+                        </Stack>
+                      </Box>
+                    </Box>
+                  );
+                })}
+                {!mediaListQuery.isLoading && !libraryMedia.length && (
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: "text.secondary"
+                    }}
+                  >
+                    ไม่พบสื่อที่ตรงกับการค้นหา
+                  </Typography>
+                )}
+              </Stack>
+              {mediaListQuery.data && (
+                <AdminPagination
+                  pagination={{
+                    ...mediaListQuery.data.pagination,
+                    page: mediaPage,
+                    pageSize: mediaPageSize
+                  }}
+                  pageSizeOptions={ADMIN_MEDIA_PAGE_SIZE_OPTIONS}
+                  onPageChange={setMediaPage}
+                  onPageSizeChange={(nextPageSize) => {
+                    setMediaPageSize(nextPageSize);
+                    setMediaPage(1);
+                  }}
+                  disabled={uploading}
+                  isFetching={mediaListQuery.isFetching}
+                />
+              )}
+              <Divider />
+              <Typography
+                sx={{
+                  fontWeight: 900
+                }}
+              >
+                อัปโหลดด่วน
+              </Typography>
+              {uploadError && <Alert severity="error">{uploadError}</Alert>}
+              <Button
+                component="label"
+                variant="outlined"
+                startIcon={<UploadFileOutlinedIcon />}
+                disabled={uploading}
+              >
+                เลือกไฟล์
+                <input
+                  hidden
+                  type="file"
+                  accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.csv"
+                  onChange={handleFileChange}
+                />
               </Button>
-              <Button type="button" color="error" variant="contained" onClick={handleConfirmDiscard}>
-                ละทิ้งฉบับร่าง
-              </Button>
-            </>
-          ) : confirming ? (
-            <>
-              <Button type="button" onClick={() => setConfirming(false)} disabled={saving}>
-                กลับ
-              </Button>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: "text.secondary"
+                }}
+              >
+                รองรับไฟล์ขนาดไม่เกิน 100 MB
+              </Typography>
+              {uploadFile && (
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "text.secondary"
+                  }}
+                >
+                  {uploadFile.name} / {formatFileSize(uploadFile.size)}
+                </Typography>
+              )}
+              {uploading && <MediaUploadProgressFeedback preparing={!uploadProgress} progress={uploadProgress} />}
+              <TextField
+                label="ชื่อสื่อ"
+                value={uploadName}
+                disabled={uploading}
+                onChange={(event) => setUploadName(event.target.value)}
+                size="small"
+                fullWidth
+              />
+              <TextField
+                label="ประเภท"
+                value={uploadType}
+                disabled={uploading}
+                onChange={(event) => setUploadType(event.target.value as MediaType)}
+                size="small"
+                select
+                fullWidth
+              >
+                {mediaTypes.map((type) => (
+                  <MenuItem key={type} value={type}>
+                    {mediaTypeLabels[type]}
+                  </MenuItem>
+                ))}
+              </TextField>
               <Button
                 type="button"
                 variant="contained"
-                startIcon={<SaveOutlinedIcon />}
-                disabled={saving}
-                onClick={handleConfirmSave}
+                disabled={uploading || !uploadFile || !onUploadMedia}
+                onClick={() => void handleUploadMedia()}
               >
-                {saving ? "กำลังบันทึก" : confirmButton}
+                {uploading
+                  ? uploadProgress
+                    ? `กำลังอัปโหลด ${uploadProgress.percent}%`
+                    : "กำลังเตรียมไฟล์"
+                  : "อัปโหลดและแนบ"}
               </Button>
-            </>
-          ) : (
-            <>
-              <Button type="button" onClick={handleClose} disabled={saving || uploading}>
-                ยกเลิก
-              </Button>
-              <Button type="submit" variant="contained" startIcon={<SaveOutlinedIcon />} disabled={saving || uploading}>
-                ดำเนินการต่อ
-              </Button>
-            </>
-          )}
-        </ResponsiveDialogActions>
+            </Stack>
+          </Box>
+        )}
+      </DialogContent>
+      <ResponsiveDialogActions>
+        {discarding ? (
+          <>
+            <Button type="button" onClick={() => setDiscarding(false)}>
+              กลับไปแก้ไข
+            </Button>
+            <Button type="button" color="error" variant="contained" onClick={handleConfirmDiscard}>
+              ละทิ้งฉบับร่าง
+            </Button>
+          </>
+        ) : confirming ? (
+          <>
+            <Button type="button" onClick={() => setConfirming(false)} disabled={saving}>
+              กลับ
+            </Button>
+            <Button
+              type="button"
+              variant="contained"
+              startIcon={<SaveOutlinedIcon />}
+              disabled={saving}
+              onClick={handleConfirmSave}
+            >
+              {saving ? "กำลังบันทึก" : confirmButton}
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button type="button" onClick={handleClose} disabled={saving || uploading}>
+              ยกเลิก
+            </Button>
+            <Button type="submit" variant="contained" startIcon={<SaveOutlinedIcon />} disabled={saving || uploading}>
+              ดำเนินการต่อ
+            </Button>
+          </>
+        )}
+      </ResponsiveDialogActions>
     </form>
   );
 
