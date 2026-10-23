@@ -590,7 +590,7 @@ test("Admin content primary action opens a full-page editor instead of a modal",
   await page.getByRole("heading", { name: "เนื้อหา", exact: true }).waitFor();
   await page.getByRole("link", { name: "เพิ่มเนื้อหา" }).click();
 
-  await expect(page).toHaveURL(/\\/admin\\/content\\/new/);
+  await page.waitForURL("**/admin/content/new");
   await expect(page.getByLabel("พื้นที่เขียนและแก้ไขเนื้อหา")).toBeVisible({ timeout: 20_000 });
   await expect(page.getByRole("textbox", { name: "ชื่อเรื่อง" })).toBeVisible();
   await expect(page.getByRole("dialog")).toHaveCount(0);
