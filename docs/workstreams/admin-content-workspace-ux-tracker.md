@@ -42,8 +42,10 @@ Target branch: `main`
 - [x] Show the media library and quick upload only on request in full-page mode.
 - [x] Keep the existing dialog form fully expanded as a transitional fallback.
 - [x] Move media controls into a dedicated modal for full-page editing.
-- [ ] Add a cohesive publishing/taxonomy/settings panel architecture.
-- [ ] Verify on mobile and preserve existing saved fields and API contracts.
+- [x] Implement an accessible tabbed settings panel for publication, taxonomy, SEO and media in page mode.
+- [x] Keep the legacy quick dialog's settings fields together without changing API data.
+- [x] Add component and Playwright navigation checks for settings sections across viewports.
+- [ ] Confirm the settings tab change in the final CI run and on an authenticated deployed session.
 
 ### UX-04: Responsive layouts
 
@@ -52,13 +54,15 @@ Target branch: `main`
 - [x] Keep save/confirm actions reachable with a sticky full-page toolbar.
 - [x] Use the media dialog as the only scroll container in full-page mode and give it mobile viewport dimensions.
 - [x] Add Playwright checks for 390px, 768px, and 1440px viewports.
-- [ ] Pass UX-04 CI and verify no overflow or inaccessible controls on a deployed authenticated session.
+- [x] Pass UX-04 CI including 390px, 768px and 1440px Playwright checks (PR #701).
+- [ ] Verify no overflow or inaccessible controls on a deployed authenticated session.
 
 ### UX-05: Release validation
 
 - [ ] Verify create, edit, review, publish, schedule, delete, and recovery.
 - [ ] Verify RBAC and media upload permissions.
-- [ ] Run focused unit, integration, build, and governance checks.
+- [x] Complete unit, integration, build and governance checks for PR #697 through #701.
+- [ ] Repeat required CI on the final settings architecture PR before merging.
 - [ ] Complete authenticated visual QA before release.
 
 ## Guardrails
@@ -77,4 +81,5 @@ Target branch: `main`
 - 2026-10-23: Started UX-02 with guarded editor routes and transitional list actions.
 - 2026-10-23: PR #699 merged after green CI, commit `f270060bf6c2bc6a9f1008f3880f1abc6a09d01b`.
 - 2026-10-23: PR #700 merged after green CI, commit `a9cfc61dfd6de5e9b73d0953d61f1890c925fdfa`.
-- 2026-10-23: Started UX-04 with compact settings disclosure, mobile media dialog, sticky actions, and responsive browser regression tests.
+- 2026-10-23: PR #701 merged after all required checks, commit `c7347f236bb465b22673f68aa28086d2c991bb8e`. Vercel reported Production READY for this commit.
+- 2026-10-23: Started UX-03b focused settings tabs; verify create/edit lifecycle, role-based permissions, media uploads and deployed visual UX as final acceptance.
