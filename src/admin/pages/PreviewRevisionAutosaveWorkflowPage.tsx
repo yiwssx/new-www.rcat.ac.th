@@ -58,33 +58,31 @@ export default function PreviewRevisionAutosaveWorkflowPage() {
         aria-labelledby={`admin-content-tab-${section}`}
         sx={{ minWidth: 0 }}
       >
-
         {section === "list" && <ContentPage />}
         {section === "editorial" && (
-            <Stack spacing={2}>
-              <ContentWorkflowGuide />
-              <EditorialWorkflowPanel />
-            </Stack>
+          <Stack spacing={2}>
+            <ContentWorkflowGuide />
+            <EditorialWorkflowPanel />
+          </Stack>
         )}
         {section === "revisions" && (
-            <Stack spacing={2}>
-              <RevisionHistoryViewer />
-              <RevisionComparePanel />
-            </Stack>
+          <Stack spacing={2}>
+            <RevisionHistoryViewer />
+            <RevisionComparePanel />
+          </Stack>
         )}
         {section === "taxonomy" && (
-            <Stack spacing={2}>
-              <TaxonomyManagerPanel />
-              <ContentRedirectManagerPanel />
-            </Stack>
+          <Stack spacing={2}>
+            <TaxonomyManagerPanel />
+            <ContentRedirectManagerPanel />
+          </Stack>
         )}
         {section === "governance" && (
-            <Stack spacing={2}>
-              <ContentHealthDashboard />
-              <ContentLifecycleGovernancePanel />
-            </Stack>
+          <Stack spacing={2}>
+            <ContentHealthDashboard />
+            <ContentLifecycleGovernancePanel />
+          </Stack>
         )}
-
       </Box>
     </Stack>
   );
