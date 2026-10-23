@@ -58,7 +58,11 @@ import {
   CMS_SESSION_EXPIRED_MESSAGE,
   CMS_SESSION_NOTICE_KEY
 } from "../../features/cms-auth/constants";
-import { writeContentDraftRecovery, type ContentDraftRecoveryMode } from "../../features/cms-content/draftRecovery";
+import {
+  CONTENT_EDITOR_FLUSH_RECOVERY_EVENT,
+  writeContentDraftRecovery,
+  type ContentDraftRecoveryMode
+} from "../../features/cms-content/draftRecovery";
 
 const contentTypes: ContentType[] = ["page", "news", "program", "announcement", "blog"];
 const contentStatuses: ContentStatus[] = ["draft", "review", "scheduled", "published"];
@@ -327,6 +331,7 @@ interface ContentEditorDialogProps {
   errorMessage?: string;
   onClose: () => void;
   onSave: (item: ContentItem) => void;
+  onDirtyChange?: (dirty: boolean) => void;
   onUploadMedia?: (input: MediaAssetInput, options?: MediaUploadOptions) => Promise<MediaAsset>;
 }
 
@@ -343,6 +348,7 @@ export default function ContentEditorDialog({
   errorMessage = "",
   onClose,
   onSave,
+  onDirtyChange,
   onUploadMedia
 }: ContentEditorDialogProps) {
   const [draftSource, setDraftSource] = useState(() => ({ item, mode, open, recovered, recoveredTagInputValue }));
@@ -513,12 +519,15 @@ export default function ContentEditorDialog({
     window.addEventListener(CMS_SESSION_EXPIRED_EVENT, handleSessionExpired);
     window.addEventListener("beforeunload", handleBeforeUnload);
     window.addEventListener("pagehide", persistRecovery);
+    const handleRouteDraftFlush = () => persistRecoveryRef.current(true);
+    window.addEventListener(CONTENT_EDITOR_FLUSH_RECOVERY_EVENT, handleRouteDraftFlush);
 
     return () => {
       window.clearInterval(recoveryTimer);
       window.removeEventListener(CMS_SESSION_EXPIRED_EVENT, handleSessionExpired);
       window.removeEventListener("beforeunload", handleBeforeUnload);
       window.removeEventListener("pagehide", persistRecovery);
+      window.removeEventListener(CONTENT_EDITOR_FLUSH_RECOVERY_EVENT, handleRouteDraftFlush);
     };
   }, [open, ownerUserId]);
 
@@ -551,11 +560,15 @@ export default function ContentEditorDialog({
 
   useEffect(() => {
     dirtyRef.current = recovered;
+    onDirtyChange?.(recovered);
     lastRecoveryFingerprintRef.current = "";
-  }, [draftSource, recovered]);
+  }, [draftSource, onDirtyChange, recovered]);
 
   function markDirty() {
-    dirtyRef.current = true;
+    if (!dirtyRef.current) {
+      dirtyRef.current = true;
+      onDirtyChange?.(true);
+    }
   }
 
   function setDraftTags(nextTags: string[]) {
@@ -774,6 +787,7 @@ export default function ContentEditorDialog({
 
   function handleConfirmDiscard() {
     dirtyRef.current = false;
+    onDirtyChange?.(false);
     setDiscarding(false);
     setConfirming(false);
     setPendingDraft(null);
