@@ -596,6 +596,28 @@ test("Admin content primary action opens a full-page editor instead of a modal",
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });
 
+test("Admin full-page editor protects unsaved changes during SPA navigation", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await installAuthenticatedDesignSystemCmsFixture(page);
+  await page.goto("/admin/content/new");
+  await expect(page.getByRole("textbox", { name: "ชื่อเรื่อง", exact: true })).toBeVisible({ timeout: 20_000 });
+
+  await page.getByRole("textbox", { name: "ชื่อเรื่อง", exact: true }).fill("ฉบับร่างก่อนกดกลับ");
+  page.once("dialog", async (dialog) => {
+    expect(dialog.message()).toContain("ยังไม่บันทึก");
+    await dialog.dismiss();
+  });
+  await page.getByRole("button", { name: "กลับไปรายการเนื้อหา" }).click();
+  await page.waitForURL("**/admin/content/new");
+
+  page.once("dialog", async (dialog) => {
+    await dialog.accept();
+  });
+  await page.getByRole("button", { name: "กลับไปรายการเนื้อหา" }).click();
+  await page.waitForURL("**/admin/content");
+  await expect(page.getByText(/พบฉบับร่างเนื้อหาที่ยังไม่บันทึก/)).toBeVisible();
+});
+
 test("Admin content dialog retains an accessible title, actions, and destructive distinction", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await installAuthenticatedDesignSystemCmsFixture(page);
