@@ -596,6 +596,46 @@ test("Admin content primary action opens a full-page editor instead of a modal",
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });
 
+test("compact Admin editor keeps settings on demand and the media manager within the viewport", async ({ page }) => {
+  await installAuthenticatedDesignSystemCmsFixture(page);
+
+  for (const viewport of [
+    { width: 390, height: 844 },
+    { width: 768, height: 1024 }
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/admin/content/new");
+    await expect(page.getByRole("textbox", { name: "ชื่อเรื่อง", exact: true })).toBeVisible({ timeout: 20_000 });
+
+    const settings = page.locator("#content-editor-settings-panel");
+    const toggle = page.getByRole("button", { name: "แสดงการตั้งค่าเนื้อหาและการเผยแพร่" });
+    await expect(toggle).toBeVisible();
+    await expect(settings).toBeHidden();
+    await expectNoHorizontalOverflow(page);
+
+    await toggle.click();
+    await expect(settings).toBeVisible();
+    await expect(page.getByRole("combobox", { name: "สถานะ" })).toBeVisible();
+    await page.getByRole("button", { name: "เปิดคลังสื่อและอัปโหลด" }).click();
+    const mediaManager = page.getByRole("dialog", { name: "คลังสื่อและอัปโหลด" });
+    await expect(mediaManager).toBeVisible();
+    await expect(mediaManager.getByRole("button", { name: "เสร็จสิ้น" })).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await mediaManager.getByRole("button", { name: "เสร็จสิ้น" }).click();
+    await expect(mediaManager).toHaveCount(0);
+  }
+});
+
+test("desktop Admin editor keeps publishing settings visible beside writing", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await installAuthenticatedDesignSystemCmsFixture(page);
+  await page.goto("/admin/content/new");
+  await expect(page.getByRole("textbox", { name: "ชื่อเรื่อง", exact: true })).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator("#content-editor-settings-panel")).toBeVisible();
+  await expect(page.getByRole("button", { name: "แสดงการตั้งค่าเนื้อหาและการเผยแพร่" })).toBeHidden();
+  await expectNoHorizontalOverflow(page);
+});
+
 test("Admin full-page editor protects unsaved changes during SPA navigation", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await installAuthenticatedDesignSystemCmsFixture(page);
