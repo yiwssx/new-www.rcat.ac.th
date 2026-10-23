@@ -129,7 +129,7 @@ export default function ContentEditorRoutePage({ mode }: ContentEditorRoutePageP
 
   return (
     <Box sx={{ minWidth: 0 }}>
-      <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2, flexWrap: "wrap" }}>
+      <Stack direction="row" spacing={2} sx={{ mb: 2, flexWrap: "wrap", alignItems: "center" }}>
         <Button
           variant="text"
           startIcon={<ArrowBackOutlinedIcon />}
@@ -141,7 +141,7 @@ export default function ContentEditorRoutePage({ mode }: ContentEditorRoutePageP
         >
           กลับไปรายการเนื้อหา
         </Button>
-        <Typography component="h1" variant="h5" fontWeight={800}>
+        <Typography variant="h5" sx={{ fontWeight: 800 }}>
           {mode === "create" ? "เพิ่มเนื้อหาใหม่" : "แก้ไขเนื้อหา"}
         </Typography>
       </Stack>
@@ -155,7 +155,7 @@ export default function ContentEditorRoutePage({ mode }: ContentEditorRoutePageP
       ) : mode === "edit" && !contentId ? (
         <Alert severity="error">ไม่ได้ระบุรายการเนื้อหาที่ต้องการแก้ไข</Alert>
       ) : mode === "edit" && detailQuery.isPending && !matchingRecovery ? (
-        <Stack alignItems="center" sx={{ py: 5 }}>
+        <Stack sx={{ py: 5, alignItems: "center" }}>
           <CircularProgress aria-label="กำลังโหลดเนื้อหา" />
         </Stack>
       ) : mode === "edit" && detailQuery.isError && !matchingRecovery ? (
