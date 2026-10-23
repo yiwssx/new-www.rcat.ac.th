@@ -68,6 +68,7 @@ function renderEditor(
   options: {
     mediaAssets?: MediaAsset[];
     mode?: ContentDraftRecoveryMode;
+    presentation?: "dialog" | "page";
     onClose?: () => void;
     onSave?: (item: ContentItem) => void;
     onUploadMedia?: (input: MediaAssetInput, options?: MediaUploadOptions) => Promise<MediaAsset>;
@@ -88,6 +89,7 @@ function renderEditor(
       <ContentEditorDialog
         open
         item={item}
+        presentation={options.presentation}
         mode={options.mode}
         ownerUserId={options.ownerUserId}
         recovered={options.recovered}
@@ -119,6 +121,20 @@ async function selectTemplate(label: string) {
 }
 
 describe("ContentEditorDialog", () => {
+  it("supports a full-page workspace without changing the save confirmation flow", () => {
+    const onSave = vi.fn();
+    renderEditor(createContentItem({ template: "standard" }), {
+      presentation: "page",
+      onSave
+    });
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByLabelText("พื้นที่เขียนและแก้ไขเนื้อหา")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "ดำเนินการต่อ" }));
+    fireEvent.click(screen.getByRole("button", { name: "บันทึก" }));
+    expect(onSave).toHaveBeenCalledTimes(1);
+  });
+
   it("rejects quick-upload files over 100 MB before reading or sending them", () => {
     const onUploadMedia = vi.fn();
     renderEditor(createContentItem({ template: "standard" }), { onUploadMedia });
