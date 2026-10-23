@@ -142,7 +142,7 @@ describe("ContentEditorDialog", () => {
     expect(onDirtyChange).toHaveBeenCalledWith(false);
   });
 
-  it("keeps advanced SEO and the media manager out of the full-page editor until opened", () => {
+  it("keeps advanced SEO and the media manager out of the full-page editor until opened", async () => {
     renderEditor(createContentItem({ template: "standard" }), { presentation: "page" });
 
     expect(screen.queryByRole("textbox", { name: "ชื่อเรื่องสำหรับผลการค้นหา" })).toBeNull();
@@ -159,7 +159,7 @@ describe("ContentEditorDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "เปิดคลังสื่อและอัปโหลด" }));
     expect(screen.getByRole("button", { name: "อัปโหลดและแนบ" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "เสร็จสิ้น" }));
-    fireEvent.click(screen.getByRole("tab", { name: "SEO" }));
+    fireEvent.click(await screen.findByRole("tab", { name: "SEO" }));
     expect(screen.getByRole("textbox", { name: "ชื่อเรื่องสำหรับผลการค้นหา" })).toHaveValue(
       "SEO headline retained across tabs"
     );
