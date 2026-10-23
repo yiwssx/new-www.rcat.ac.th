@@ -840,8 +840,7 @@ export default function ContentEditorDialog({
                 color: "text.secondary"
               }}
             >
-              {contentTypeLabels[pendingDraft.type]} / {contentStatusLabels[pendingDraft.status]} /{" "}
-              {pendingDraft.owner}
+              {contentTypeLabels[pendingDraft.type]} / {contentStatusLabels[pendingDraft.status]} / {pendingDraft.owner}
             </Typography>
             <Chip
               label={CONTENT_TEMPLATE_LABELS[pendingDraftTemplate]}
@@ -912,9 +911,7 @@ export default function ContentEditorDialog({
             <Stack spacing={2.2}>
               {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
               {recovered && (
-                <Alert severity="info">
-                  กู้คืนฉบับร่างจากก่อนเข้าสู่ระบบอีกครั้งแล้ว กรุณาตรวจสอบข้อมูลก่อนบันทึก
-                </Alert>
+                <Alert severity="info">กู้คืนฉบับร่างจากก่อนเข้าสู่ระบบอีกครั้งแล้ว กรุณาตรวจสอบข้อมูลก่อนบันทึก</Alert>
               )}
               <TextField
                 label="ชื่อเรื่อง"
@@ -1492,12 +1489,7 @@ export default function ContentEditorDialog({
                 อัปโหลดด่วน
               </Typography>
               {uploadError && <Alert severity="error">{uploadError}</Alert>}
-              <Button
-                component="label"
-                variant="outlined"
-                startIcon={<UploadFileOutlinedIcon />}
-                disabled={uploading}
-              >
+              <Button component="label" variant="outlined" startIcon={<UploadFileOutlinedIcon />} disabled={uploading}>
                 เลือกไฟล์
                 <input
                   hidden
