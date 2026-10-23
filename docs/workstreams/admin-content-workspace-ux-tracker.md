@@ -21,7 +21,7 @@ Target branch: `main`
 - [x] Make the content list the default workspace.
 - [x] Keep all eight existing administration panels.
 - [x] Group operational tools behind scrollable tabs.
-- [x] Lazy-load only the selected workspace.
+- [x] Mount only the selected workspace to prevent unrelated requests.
 - [x] Add regression tests for tab selection.
 - [ ] Pass required CI checks and review the PR.
 
@@ -55,6 +55,7 @@ Target branch: `main`
 - Do not change D1 schema or Cloudflare API contracts for a layout fix.
 - Do not remove revision history, redirects, taxonomy, or content governance.
 - Do not bypass CI, bundle budgets, or branch protection.
+- Revisit dynamic imports only after a measured editor-bundle optimization.
 - Open one narrow PR per independent implementation slice.
 - UX-01 retains the existing editor dialog; UX-02 handles editor routing.
 
