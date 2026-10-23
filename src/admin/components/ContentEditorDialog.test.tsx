@@ -70,6 +70,7 @@ function renderEditor(
     mode?: ContentDraftRecoveryMode;
     presentation?: "dialog" | "page";
     onClose?: () => void;
+    onDirtyChange?: (dirty: boolean) => void;
     onSave?: (item: ContentItem) => void;
     onUploadMedia?: (input: MediaAssetInput, options?: MediaUploadOptions) => Promise<MediaAsset>;
     ownerUserId?: string;
@@ -96,6 +97,7 @@ function renderEditor(
         recoveredTagInputValue={options.recoveredTagInputValue}
         mediaAssets={options.mediaAssets ?? []}
         onClose={options.onClose ?? vi.fn()}
+        onDirtyChange={options.onDirtyChange}
         onSave={options.onSave ?? vi.fn()}
         onUploadMedia={options.onUploadMedia}
       />
@@ -121,6 +123,25 @@ async function selectTemplate(label: string) {
 }
 
 describe("ContentEditorDialog", () => {
+  it("signals dirty state, flushes a draft on SPA navigation, and clears on discard", () => {
+    const onDirtyChange = vi.fn();
+    renderEditor(createContentItem({ template: "standard" }), {
+      presentation: "page",
+      ownerUserId: "editor-1",
+      onDirtyChange
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: "ชื่อเรื่อง" }), {
+      target: { value: "แก้ไขก่อนเปลี่ยนหน้า" }
+    });
+    expect(onDirtyChange).toHaveBeenCalledWith(true);
+    window.dispatchEvent(new Event("rcat:content-editor:flush-recovery"));
+    expect(readContentDraftRecovery("editor-1")?.item.title).toBe("แก้ไขก่อนเปลี่ยนหน้า");
+
+    fireEvent.click(screen.getByRole("button", { name: "ยกเลิก" }));
+    fireEvent.click(screen.getByRole("button", { name: "ละทิ้งฉบับร่าง" }));
+    expect(onDirtyChange).toHaveBeenCalledWith(false);
+  });
+
   it("keeps advanced SEO and the media manager out of the full-page editor until opened", () => {
     renderEditor(createContentItem({ template: "standard" }), { presentation: "page" });
 
