@@ -364,6 +364,7 @@ export default function ContentEditorDialog({
   const [uploadError, setUploadError] = useState("");
   const [seoExpanded, setSeoExpanded] = useState(false);
   const [mediaControlsOpen, setMediaControlsOpen] = useState(false);
+  const [compactSettingsOpen, setCompactSettingsOpen] = useState(false);
   const uploadLockRef = useRef(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<MediaUploadProgress | null>(null);
@@ -858,8 +859,8 @@ export default function ContentEditorDialog({
         spacing={1}
         aria-busy={mediaListQuery.isFetching}
         sx={{
-          maxHeight: 260,
-          overflowY: "auto",
+          maxHeight: presentation === "page" ? "none" : 260,
+          overflowY: presentation === "page" ? "visible" : "auto",
           pr: 0.5,
           opacity: mediaListQuery.isPlaceholderData ? 0.55 : 1,
           transition: "opacity 120ms ease"
@@ -1061,6 +1062,18 @@ export default function ContentEditorDialog({
         )}
       </DialogTitle>
       <DialogContent dividers>
+        {presentation === "page" && !discarding && !confirming && (
+          <Button
+            type="button"
+            variant="outlined"
+            onClick={() => setCompactSettingsOpen((current) => !current)}
+            aria-controls="content-editor-settings-panel"
+            aria-expanded={compactSettingsOpen}
+            sx={{ display: { xs: "flex", lg: "none" }, mb: 2, width: "100%" }}
+          >
+            {compactSettingsOpen ? "ซ่อนการตั้งค่าเนื้อหา" : "แสดงการตั้งค่าเนื้อหาและการเผยแพร่"}
+          </Button>
+        )}
         {discarding ? (
           <Stack spacing={1.5} sx={{ pt: 1 }}>
             <Alert severity="warning">
@@ -1152,12 +1165,12 @@ export default function ContentEditorDialog({
           <Box
             sx={{
               display: "grid",
-              gridTemplateColumns: { xs: "1fr", lg: "minmax(0, 1fr) 330px" },
+              gridTemplateColumns: { xs: "minmax(0, 1fr)", lg: "minmax(0, 1fr) 330px" },
               gap: 2.5,
               pt: 1
             }}
           >
-            <Stack spacing={2.2}>
+            <Stack spacing={2.2} sx={{ minWidth: 0 }}>
               {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
               {recovered && (
                 <Alert severity="info">กู้คืนฉบับร่างจากก่อนเข้าสู่ระบบอีกครั้งแล้ว กรุณาตรวจสอบข้อมูลก่อนบันทึก</Alert>
@@ -1201,11 +1214,15 @@ export default function ContentEditorDialog({
               />
             </Stack>
             <Stack
+              id="content-editor-settings-panel"
+              aria-label="การตั้งค่าเนื้อหา"
               spacing={2}
               sx={{
                 ...staticSurfaceSx,
                 p: 2,
                 bgcolor: "background.default",
+                minWidth: 0,
+                display: { xs: presentation === "page" && !compactSettingsOpen ? "none" : "flex", lg: "flex" },
                 alignSelf: "start"
               }}
             >
@@ -1585,6 +1602,14 @@ export default function ContentEditorDialog({
                   maxWidth="md"
                   fullWidth
                   aria-labelledby="content-media-manager-title"
+                  sx={{
+                    "& .MuiDialog-paper": {
+                      m: { xs: 0, sm: 2 },
+                      width: { xs: "100%", sm: "auto" },
+                      height: { xs: "100dvh", sm: "auto" },
+                      maxHeight: { xs: "100dvh", sm: "calc(100% - 64px)" }
+                    }
+                  }}
                 >
                   <DialogTitle id="content-media-manager-title">คลังสื่อและอัปโหลด</DialogTitle>
                   <DialogContent dividers>{mediaLibraryControls}</DialogContent>
@@ -1651,6 +1676,14 @@ export default function ContentEditorDialog({
             px: { xs: 1, sm: 2, lg: 3 },
             overflow: "visible",
             maxHeight: "none"
+          },
+          "& > form > .MuiDialogActions-root": {
+            position: "sticky",
+            bottom: 0,
+            zIndex: 2,
+            bgcolor: "background.paper",
+            borderTop: "1px solid",
+            borderColor: "divider"
           }
         }}
       >
