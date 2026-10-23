@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Alert from "@mui/material/Alert";
@@ -43,6 +43,7 @@ export default function ContentEditorRoutePage({ mode }: ContentEditorRoutePageP
   const canWrite = hasCapability(mode === "create" ? "content.create" : "content.update");
   const canManageMedia = hasCapability("media.manage");
   const [saveError, setSaveError] = useState("");
+  const thumbnailWarningRef = useRef(false);
 
   const recovery = useMemo(() => readContentDraftRecovery(ownerUserId), [ownerUserId]);
   const matchingRecovery =
@@ -62,6 +63,9 @@ export default function ContentEditorRoutePage({ mode }: ContentEditorRoutePageP
     mutationFn: (input: ContentItem) =>
       saveContentItem(input, {
         onProgress: (progress) => {
+          if (progress.severity === "warning") {
+            thumbnailWarningRef.current = true;
+          }
           updateBlockingLoading("กำลังบันทึกเนื้อหา", `${progress.percent}% • ${progress.message}`);
         }
       })
@@ -88,20 +92,13 @@ export default function ContentEditorRoutePage({ mode }: ContentEditorRoutePageP
     showBlockingLoading("กำลังบันทึกเนื้อหา", "10% • กำลังตรวจสอบข้อมูลก่อนบันทึก");
     try {
       setSaveError("");
-      let thumbnailWarning = false;
-      await saveContentItem(nextItem, {
-        onProgress: (progress) => {
-          if (progress.severity === "warning") {
-            thumbnailWarning = true;
-          }
-          updateBlockingLoading("กำลังบันทึกเนื้อหา", `${progress.percent}% • ${progress.message}`);
-        }
-      });
+      thumbnailWarningRef.current = false;
+      await saveMutation.mutateAsync(nextItem);
       await Promise.all([invalidateAdminListQueries(queryClient, "content"), invalidatePublicCmsData(queryClient)]);
       clearContentDraftRecovery();
       await appSwal.close();
 
-      if (thumbnailWarning) {
+      if (thumbnailWarningRef.current) {
         await appSwal.fire({
           icon: "warning",
           title: "บันทึกเนื้อหาสำเร็จ แต่ยังไม่มี Thumbnail",
@@ -136,7 +133,11 @@ export default function ContentEditorRoutePage({ mode }: ContentEditorRoutePageP
         <Button
           variant="text"
           startIcon={<ArrowBackOutlinedIcon />}
-          onClick={() => void navigate({ to: "/admin/content" })}
+          onClick={() => {
+            if (window.confirm("กลับไปรายการเนื้อหา? การเปลี่ยนแปลงที่ยังไม่บันทึกอาจสูญหาย")) {
+              void navigate({ to: "/admin/content" });
+            }
+          }}
         >
           กลับไปรายการเนื้อหา
         </Button>
