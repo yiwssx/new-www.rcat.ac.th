@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "@tanstack/react-router";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { useBlocker, useNavigate, useParams } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -12,7 +12,11 @@ import ContentEditorDialog from "../components/ContentEditorDialog";
 import { useAuth } from "../../context/authSessionContext";
 import { getAdminContentDetail, isAdminStaleRevisionError, saveContentItem } from "../../features/cms-content";
 import { saveMediaAsset, type MediaAssetInput, type MediaUploadOptions } from "../../features/cms-media";
-import { clearContentDraftRecovery, readContentDraftRecovery } from "../../features/cms-content/draftRecovery";
+import {
+  CONTENT_EDITOR_FLUSH_RECOVERY_EVENT,
+  clearContentDraftRecovery,
+  readContentDraftRecovery
+} from "../../features/cms-content/draftRecovery";
 import { invalidateAdminListQueries } from "../../features/admin-pagination";
 import { invalidatePublicCmsData } from "../../services/publicCmsInvalidation";
 import type { ContentItem } from "../../types";
@@ -40,6 +44,23 @@ export default function ContentEditorRoutePage({ mode }: ContentEditorRoutePageP
   const canManageMedia = hasCapability("media.manage");
   const [saveError, setSaveError] = useState("");
   const thumbnailWarningRef = useRef(false);
+  const unsavedChangesRef = useRef(false);
+  const onDirtyChange = useCallback((dirty: boolean) => {
+    unsavedChangesRef.current = dirty;
+  }, []);
+
+  useBlocker({
+    shouldBlockFn: ({ current, next }) => {
+      if (!unsavedChangesRef.current || current.pathname === next.pathname) {
+        return false;
+      }
+      // Persist the latest draft synchronously, including an edit made
+      // just before navigating, rather than relying on the interval timer.
+      window.dispatchEvent(new Event(CONTENT_EDITOR_FLUSH_RECOVERY_EVENT));
+      return !window.confirm("มีเนื้อหาที่ยังไม่บันทึก ต้องการออกจากหน้านี้หรือไม่?");
+    },
+    enableBeforeUnload: false
+  });
 
   const recovery = useMemo(() => readContentDraftRecovery(ownerUserId), [ownerUserId]);
   const matchingRecovery =
@@ -75,6 +96,7 @@ export default function ContentEditorRoutePage({ mode }: ContentEditorRoutePageP
   });
 
   function goToList() {
+    unsavedChangesRef.current = false;
     clearContentDraftRecovery();
     void navigate({ to: "/admin/content" });
   }
@@ -91,6 +113,7 @@ export default function ContentEditorRoutePage({ mode }: ContentEditorRoutePageP
       thumbnailWarningRef.current = false;
       await saveMutation.mutateAsync(nextItem);
       await Promise.all([invalidateAdminListQueries(queryClient, "content"), invalidatePublicCmsData(queryClient)]);
+      unsavedChangesRef.current = false;
       clearContentDraftRecovery();
       await appSwal.close();
 
@@ -129,11 +152,7 @@ export default function ContentEditorRoutePage({ mode }: ContentEditorRoutePageP
         <Button
           variant="text"
           startIcon={<ArrowBackOutlinedIcon />}
-          onClick={() => {
-            if (window.confirm("กลับไปรายการเนื้อหา? การเปลี่ยนแปลงที่ยังไม่บันทึกอาจสูญหาย")) {
-              void navigate({ to: "/admin/content" });
-            }
-          }}
+          onClick={() => void navigate({ to: "/admin/content" })}
         >
           กลับไปรายการเนื้อหา
         </Button>
@@ -171,6 +190,7 @@ export default function ContentEditorRoutePage({ mode }: ContentEditorRoutePageP
           saving={saveMutation.isPending}
           errorMessage={saveError}
           onClose={goToList}
+          onDirtyChange={onDirtyChange}
           onSave={(nextItem) => void handleSave(nextItem)}
           onUploadMedia={canManageMedia ? handleUploadMedia : undefined}
         />
