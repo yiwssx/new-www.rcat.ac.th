@@ -317,6 +317,7 @@ function mediaIcon(type: MediaType) {
 interface ContentEditorDialogProps {
   open: boolean;
   item: ContentItem | null;
+  presentation?: "dialog" | "page";
   mode?: ContentDraftRecoveryMode;
   ownerUserId?: string;
   recovered?: boolean;
@@ -332,6 +333,7 @@ interface ContentEditorDialogProps {
 export default function ContentEditorDialog({
   open,
   item,
+  presentation = "dialog",
   mode = item ? "edit" : "create",
   ownerUserId = "",
   recovered = false,
@@ -792,9 +794,8 @@ export default function ContentEditorDialog({
     }));
   }
 
-  return (
-    <Dialog open={open} onClose={saving || uploading ? undefined : handleClose} fullWidth maxWidth="lg">
-      <form onSubmit={handleSubmit}>
+  const editorForm = (
+    <form onSubmit={handleSubmit}>
         <DialogTitle>
           <Typography component="span" variant="h2" sx={{ display: "block", fontSize: "1.45rem" }}>
             {discarding ? "ละทิ้งฉบับร่างที่ยังไม่บันทึก?" : confirming ? confirmTitle : title}
@@ -1599,7 +1600,33 @@ export default function ContentEditorDialog({
             </>
           )}
         </ResponsiveDialogActions>
-      </form>
+    </form>
+  );
+
+  if (presentation === "page") {
+    return (
+      <Box
+        aria-label="พื้นที่เขียนและแก้ไขเนื้อหา"
+        sx={{
+          width: "100%",
+          maxWidth: 1600,
+          mx: "auto",
+          "& .MuiDialogTitle-root": { px: { xs: 1, sm: 2, lg: 3 } },
+          "& .MuiDialogContent-root": {
+            px: { xs: 1, sm: 2, lg: 3 },
+            overflow: "visible",
+            maxHeight: "none"
+          }
+        }}
+      >
+        {editorForm}
+      </Box>
+    );
+  }
+
+  return (
+    <Dialog open={open} onClose={saving || uploading ? undefined : handleClose} fullWidth maxWidth="lg">
+      {editorForm}
     </Dialog>
   );
 }
