@@ -1,23 +1,22 @@
-import { lazy, Suspense, useState } from "react";
+import { useState } from "react";
 import Box from "@mui/material/Box";
-import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
+import ContentWorkflowGuide from "../components/PreviewRevisionAutosaveWorkflowGuide";
+import EditorialWorkflowPanel from "../components/EditorialWorkflowPanel";
+import ContentHealthDashboard from "../components/ContentHealthDashboard";
+import RevisionHistoryViewer from "../components/RevisionHistoryViewer";
+import ContentLifecycleGovernancePanel from "../components/ContentLifecycleGovernancePanel";
+import RevisionComparePanel from "../components/RevisionComparePanel";
+import TaxonomyManagerPanel from "../components/TaxonomyManagerPanel";
+import ContentRedirectManagerPanel from "../components/ContentRedirectManagerPanel";
+import ContentPage from "./ContentPage";
 
-// Only mount the selected workspace. The former page mounted every operational
-// dashboard above the content list, producing a very long admin page and
-// triggering unrelated queries on every visit.
-const ContentPage = lazy(() => import("./ContentPage"));
-const PreviewRevisionAutosaveWorkflowGuide = lazy(() => import("../components/PreviewRevisionAutosaveWorkflowGuide"));
-const EditorialWorkflowPanel = lazy(() => import("../components/EditorialWorkflowPanel"));
-const ContentHealthDashboard = lazy(() => import("../components/ContentHealthDashboard"));
-const RevisionHistoryViewer = lazy(() => import("../components/RevisionHistoryViewer"));
-const ContentLifecycleGovernancePanel = lazy(() => import("../components/ContentLifecycleGovernancePanel"));
-const RevisionComparePanel = lazy(() => import("../components/RevisionComparePanel"));
-const TaxonomyManagerPanel = lazy(() => import("../components/TaxonomyManagerPanel"));
-const ContentRedirectManagerPanel = lazy(() => import("../components/ContentRedirectManagerPanel"));
-
+// Only mount the selected workspace. The previous screen mounted all eight
+// operational panels before the content list and triggered unrelated queries.
+// Static imports preserve the existing editor-bundle governance baseline;
+// further code splitting needs its own measured performance change.
 type WorkspaceSection = "list" | "editorial" | "revisions" | "taxonomy" | "governance";
 
 const sections: { value: WorkspaceSection; label: string }[] = [
@@ -59,33 +58,33 @@ export default function PreviewRevisionAutosaveWorkflowPage() {
         aria-labelledby={`admin-content-tab-${section}`}
         sx={{ minWidth: 0 }}
       >
-        <Suspense fallback={<LinearProgress aria-label="กำลังโหลดเครื่องมือจัดการเนื้อหา" />}>
-          {section === "list" && <ContentPage />}
-          {section === "editorial" && (
+
+        {section === "list" && <ContentPage />}
+        {section === "editorial" && (
             <Stack spacing={2}>
-              <PreviewRevisionAutosaveWorkflowGuide />
+              <ContentWorkflowGuide />
               <EditorialWorkflowPanel />
             </Stack>
-          )}
-          {section === "revisions" && (
+        )}
+        {section === "revisions" && (
             <Stack spacing={2}>
               <RevisionHistoryViewer />
               <RevisionComparePanel />
             </Stack>
-          )}
-          {section === "taxonomy" && (
+        )}
+        {section === "taxonomy" && (
             <Stack spacing={2}>
               <TaxonomyManagerPanel />
               <ContentRedirectManagerPanel />
             </Stack>
-          )}
-          {section === "governance" && (
+        )}
+        {section === "governance" && (
             <Stack spacing={2}>
               <ContentHealthDashboard />
               <ContentLifecycleGovernancePanel />
             </Stack>
-          )}
-        </Suspense>
+        )}
+
       </Box>
     </Stack>
   );
