@@ -1,80 +1,64 @@
-# RCAT Admin Content Workspace — UX Execution Tracker
+# RCAT Admin Content UX Tracker
 
-- **Repository:** `yiwssx/new-www.rcat.ac.th`
-- **Started:** 2026-10-23 (Asia/Bangkok)
-- **Status:** In progress
-- **Owner request:** Shorter, WordPress-inspired content administration with a dedicated writing workspace. Keep every existing CMS capability.
-- **Target branch:** `main`
-- **Implementation principle:** One focused PR per independently testable slice. Do not merge until required checks are green and the head SHA has been rechecked.
+Status: In progress
 
-## Evidence / baseline
+Started: 2026-10-23 (Asia/Bangkok)
 
-1. `src/routeComponents.tsx` maps `/admin/content` to `PreviewRevisionAutosaveWorkflowPage.tsx`.
-2. That page previously mounted **eight** operational panels and guides in a vertical stack **before** `ContentPage`. This is the primary reason the default content page feels excessively long; it also mounts unrelated query consumers.
-3. `ContentPage.tsx` maintains list search, filters, pagination, role-aware actions, recovery and publishing. It opens `ContentEditorDialog.tsx` for create/edit.
-4. `ContentEditorDialog.tsx` (~1,606 lines at audit) combines blocks, publication metadata, SEO, media picker and quick upload in a large dialog. At mobile width its desktop two-column grid falls back to a single long column.
-5. **Do not confuse SPA routing with the long-form layout problem.** React/TanStack Router should remain; information architecture and progressive disclosure must change.
+Repository: `yiwssx/new-www.rcat.ac.th`
 
-## Work packages
+Target branch: `main`
 
-### UX-01 — Decompose the content landing page
+## Problem
 
-- **Status:** Implemented on branch; CI pending.
-- **Scope:** Split content list, editorial operations, revision tools, taxonomy/redirects, and governance into selectable, lazy workspaces.
-- **Acceptance:** Default `/admin/content` mounts content list only; all eight panels remain reachable; mobile tabs scroll; API and schema unchanged.
+- The admin content route mounted eight operational panels before the content list.
+- The content editor is a long dialog with publishing, taxonomy, SEO, media, and uploads.
+- A React SPA does not require a single long screen.
 
-### UX-02 — Full-page content editor
+## Execution plan
 
-- **Status:** Not started.
-- **Scope:** Dedicated routes for creating and editing content.
-- **Acceptance:** Direct URL, back navigation, and refresh work; no blocking dialog; loading/not-found and RBAC handled; list context retained.
+### UX-01: Separate content workspaces
 
-### UX-03 — Progressive settings and separate media picker
+- [x] Make the content list the default workspace.
+- [x] Keep all eight existing administration panels.
+- [x] Group operational tools behind scrollable tabs.
+- [x] Lazy-load only the selected workspace.
+- [x] Add regression tests for tab selection.
+- [ ] Pass required CI checks and review the PR.
 
-- **Status:** Not started.
-- **Scope:** Group editor settings by task, move media selection into its own overlay, and reveal advanced SEO when needed.
-- **Acceptance:** All fields are preserved; save payload remains compatible; writing surface remains visible.
+### UX-02: Full-page editor
 
-### UX-04 — Responsive editor and list
+- [ ] Create URL-addressable routes for new and existing content.
+- [ ] Preserve existing save, draft recovery, and permission behavior.
+- [ ] Support browser back, reload, and navigation confirmation.
 
-- **Status:** Not started.
-- **Scope:** Improve phone and tablet layouts for writing, publishing, and table actions.
-- **Acceptance:** No unmanageable nested scrolling; accessible media and settings controls; responsive layouts verified.
+### UX-03: Progressive editor settings
 
-### UX-05 — Full integration and release verification
+- [ ] Group publication, taxonomy, media, and SEO controls.
+- [ ] Move the media picker out of the always-visible sidebar.
+- [ ] Keep existing saved data fields and API contracts unchanged.
 
-- **Status:** Not started.
-- **Scope:** Test write operations, draft recovery, media, roles, publishing, scheduling, and deployment.
-- **Acceptance:** Focused tests and CI green; manual authenticated QA completed.
+### UX-04: Responsive layouts
 
+- [ ] Verify desktop, tablet, and mobile breakpoints.
+- [ ] Make editing, toolbar actions, and media selection accessible.
+- [ ] Remove excessive nested scrolling.
 
-## UX-01 implementation details
+### UX-05: Release validation
 
-- Default tab: **รายการเนื้อหา**, preserving the `ContentPage` search, pagination and actions.
-- Other tabs: **การตรวจทาน**, **ประวัติและเวอร์ชัน**, **หมวดหมู่และลิงก์**, **คุณภาพและกำหนดเวลา**.
-- Mount and load components only after their tab is selected; do not remove the eight tools.
-- Tabs are horizontally scrollable at narrow widths.
-- Keep the existing content editing dialog unchanged in this first isolated slice, to avoid conflating navigation changes with write behavior.
-- Navigation tab state is local in UX-01. URL-addressable subsections and full-page edit routes belong to UX-02.
+- [ ] Verify create, edit, review, publish, schedule, delete, and recovery.
+- [ ] Verify RBAC and media upload permissions.
+- [ ] Run focused unit, integration, build, and governance checks.
+- [ ] Complete authenticated visual QA before release.
 
-## Safety boundaries
+## Guardrails
 
-- No database migration, Worker/D1/API mutation, login/session/RBAC contract change or schema rewrite.
-- Preserve revision history/compare, content health, scheduled publishing, redirects, taxonomy and legacy Facebook thumbnail recovery.
-- Do not modify dependency versions, Renovate, deployment settings or unrelated public pages.
-- Merge only after CI and focused tests pass; do not bypass branch protection.
-- Avoid creating additional always-visible dashboards that recreate the scrolling problem.
+- Do not change D1 schema or Cloudflare API contracts for a layout fix.
+- Do not remove revision history, redirects, taxonomy, or content governance.
+- Do not bypass CI, bundle budgets, or branch protection.
+- Open one narrow PR per independent implementation slice.
+- UX-01 retains the existing editor dialog; UX-02 handles editor routing.
 
-## Verification checklist
+## Progress
 
-- [x] Audit current components and route composition.
-- [x] Define work packages and acceptance gates.
-- [x] Implement on-demand workspaces for UX-01.
-- [ ] Run focused component tests and TypeScript/lint/build checks.
-- [ ] Verify role-aware behaviors and all workspace views on a running authenticated instance.
-- [ ] Validate exact PR head SHA and merge only with green required checks.
-- [ ] Begin UX-02 on a fresh branch after UX-01 is merged.
-
-## Progress log
-
-- **2026-10-23:** Identified eight always-visible operational panels as the main source of excessive vertical length. Started UX-01 with lazy, mutually exclusive workspaces; retained all original panels.
+- 2026-10-23: Audited route composition and started UX-01.
+- 2026-10-23: Opened PR #697 with selective workspaces and tests.
