@@ -148,11 +148,20 @@ describe("ContentEditorDialog", () => {
     expect(screen.queryByRole("textbox", { name: "ชื่อเรื่องสำหรับผลการค้นหา" })).toBeNull();
     expect(screen.queryByRole("button", { name: "อัปโหลดและแนบ" })).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "แสดง SEO และข้อมูลขั้นสูง" }));
+    expect(screen.getByRole("tab", { name: "เผยแพร่" })).toHaveAttribute("aria-selected", "true");
+    fireEvent.click(screen.getByRole("tab", { name: "SEO" }));
     expect(screen.getByRole("textbox", { name: "ชื่อเรื่องสำหรับผลการค้นหา" })).toBeInTheDocument();
+    fireEvent.change(screen.getByRole("textbox", { name: "ชื่อเรื่องสำหรับผลการค้นหา" }), {
+      target: { value: "SEO headline retained across tabs" }
+    });
 
+    fireEvent.click(screen.getByRole("tab", { name: "สื่อ" }));
     fireEvent.click(screen.getByRole("button", { name: "เปิดคลังสื่อและอัปโหลด" }));
     expect(screen.getByRole("button", { name: "อัปโหลดและแนบ" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "SEO" }));
+    expect(screen.getByRole("textbox", { name: "ชื่อเรื่องสำหรับผลการค้นหา" })).toHaveValue(
+      "SEO headline retained across tabs"
+    );
   });
 
   it("supports a full-page workspace without changing the save confirmation flow", () => {
