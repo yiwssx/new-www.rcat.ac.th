@@ -95,6 +95,8 @@ function getSessionStorage() {
   }
 }
 
+export const CONTENT_EDITOR_FLUSH_RECOVERY_EVENT = "rcat:content-editor:flush-recovery";
+
 export function clearContentDraftRecovery() {
   try {
     getSessionStorage()?.removeItem(CONTENT_DRAFT_RECOVERY_KEY);
