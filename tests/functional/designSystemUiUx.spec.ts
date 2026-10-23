@@ -616,6 +616,7 @@ test("compact Admin editor keeps settings on demand and the media manager within
     await toggle.click();
     await expect(settings).toBeVisible();
     await expect(page.getByRole("combobox", { name: "สถานะ" })).toBeVisible();
+    await page.getByRole("tab", { name: "สื่อ" }).click();
     await page.getByRole("button", { name: "เปิดคลังสื่อและอัปโหลด" }).click();
     const mediaManager = page.getByRole("dialog", { name: "คลังสื่อและอัปโหลด" });
     await expect(mediaManager).toBeVisible();
@@ -633,6 +634,13 @@ test("desktop Admin editor keeps publishing settings visible beside writing", as
   await expect(page.getByRole("textbox", { name: "ชื่อเรื่อง", exact: true })).toBeVisible({ timeout: 20_000 });
   await expect(page.locator("#content-editor-settings-panel")).toBeVisible();
   await expect(page.getByRole("button", { name: "แสดงการตั้งค่าเนื้อหาและการเผยแพร่" })).toBeHidden();
+  await expect(page.getByRole("tab", { name: "เผยแพร่" })).toHaveAttribute("aria-selected", "true");
+  await page.getByRole("tab", { name: "หมวดหมู่" }).click();
+  await expect(page.getByRole("textbox", { name: "หมวดหมู่", exact: true })).toBeVisible();
+  await page.getByRole("tab", { name: "SEO" }).click();
+  await expect(page.getByRole("textbox", { name: "ชื่อเรื่องสำหรับผลการค้นหา" })).toBeVisible();
+  await page.getByRole("tab", { name: "เผยแพร่" }).click();
+  await expect(page.getByRole("combobox", { name: "สถานะ" })).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });
 
