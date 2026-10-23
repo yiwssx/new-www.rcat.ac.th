@@ -264,6 +264,17 @@ describe("ContentPage operation feedback", () => {
     swalInstance.update.mockResolvedValue(undefined);
   });
 
+  it("exposes dedicated full-page create and edit links", async () => {
+    renderContentPage();
+    await screen.findByText(contentItem.title);
+
+    expect(screen.getByRole("link", { name: "เพิ่มเนื้อหา" })).toHaveAttribute("href", "/admin/content/new");
+    expect(screen.getByRole("link", { name: "แก้ไขเต็มหน้า" })).toHaveAttribute(
+      "href",
+      "/admin/content/content-1/edit"
+    );
+  });
+
   it("starts editor module preload as soon as edit intent begins", async () => {
     const detail = deferred<ContentItem>();
     contentMock.getAdminContentDetail.mockReturnValue(detail.promise);
@@ -272,7 +283,7 @@ describe("ContentPage operation feedback", () => {
     await screen.findByText(contentItem.title);
     expect(editorLoaderMock.preloadContentEditorModules).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole("button", { name: "แก้ไข" }));
+    fireEvent.click(screen.getByRole("button", { name: "แก้ไขแบบด่วน" }));
 
     expect(editorLoaderMock.preloadContentEditorModules).toHaveBeenCalledTimes(1);
     expect(contentMock.getAdminContentDetail).toHaveBeenCalledWith({ id: contentItem.id });
@@ -288,7 +299,7 @@ describe("ContentPage operation feedback", () => {
     renderContentPage();
 
     await screen.findByText(contentItem.title);
-    fireEvent.click(screen.getByRole("button", { name: "เพิ่มเนื้อหา" }));
+    fireEvent.click(screen.getByRole("button", { name: "เปิดแบบด่วน" }));
     fireEvent.click(await screen.findByRole("button", { name: "mock save content" }));
 
     await waitFor(() => expect(contentMock.saveContentItem).toHaveBeenCalledTimes(1));
@@ -324,7 +335,7 @@ describe("ContentPage operation feedback", () => {
     renderContentPage();
 
     await screen.findByText(contentItem.title);
-    fireEvent.click(screen.getByRole("button", { name: "เพิ่มเนื้อหา" }));
+    fireEvent.click(screen.getByRole("button", { name: "เปิดแบบด่วน" }));
     fireEvent.click(await screen.findByRole("button", { name: "mock save content" }));
 
     await waitFor(() =>
@@ -365,7 +376,7 @@ describe("ContentPage operation feedback", () => {
     renderContentPage();
 
     await screen.findByText(contentItem.title);
-    fireEvent.click(screen.getByRole("button", { name: "เพิ่มเนื้อหา" }));
+    fireEvent.click(screen.getByRole("button", { name: "เปิดแบบด่วน" }));
     fireEvent.click(await screen.findByRole("button", { name: "mock save content" }));
 
     await waitFor(() => {
@@ -491,8 +502,8 @@ describe("ContentPage operation feedback", () => {
     renderContentPage();
 
     expect(await screen.findByText(/พบฉบับร่างเนื้อหาที่ยังไม่บันทึก/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "เพิ่มเนื้อหา" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "แก้ไข" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "เปิดแบบด่วน" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "แก้ไขแบบด่วน" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "กู้คืนฉบับร่าง" }));
     expect(await screen.findByRole("dialog", { name: "content-editor" })).toBeInTheDocument();
     expect(screen.getByText("mock item:ฉบับร่างหลังเข้าสู่ระบบใหม่")).toBeInTheDocument();

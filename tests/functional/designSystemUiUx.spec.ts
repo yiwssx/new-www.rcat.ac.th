@@ -583,12 +583,25 @@ test("mobile Admin content table scrolls inside its container without page overf
   await expectNoHorizontalOverflow(page);
 });
 
+test("Admin content primary action opens a full-page editor instead of a modal", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await installAuthenticatedDesignSystemCmsFixture(page);
+  await page.goto("/admin/content");
+  await page.getByRole("heading", { name: "เนื้อหา", exact: true }).waitFor();
+  await page.getByRole("link", { name: "เพิ่มเนื้อหา" }).click();
+
+  await page.waitForURL("**/admin/content/new");
+  await expect(page.getByLabel("พื้นที่เขียนและแก้ไขเนื้อหา")).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole("textbox", { name: "ชื่อเรื่อง", exact: true })).toBeVisible();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
 test("Admin content dialog retains an accessible title, actions, and destructive distinction", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await installAuthenticatedDesignSystemCmsFixture(page);
   await page.goto("/admin/content");
   await page.getByRole("heading", { name: "เนื้อหา", exact: true }).waitFor();
-  await page.getByRole("button", { name: "เพิ่มเนื้อหา" }).click();
+  await page.getByRole("button", { name: "เปิดแบบด่วน" }).click();
 
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();

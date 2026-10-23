@@ -9,6 +9,7 @@ import {
   CarouselPage,
   CmsAuthRouteLayout,
   ContentPage,
+  ContentEditorRoutePage,
   OrganizationPage,
   DashboardPage,
   DocumentsPage,
@@ -306,6 +307,26 @@ const adminContentRoute = createRoute({
   )
 });
 
+const adminContentNewRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: "content/new",
+  component: () => (
+    <CapabilityGuard capability="content.create">
+      <ContentEditorRoutePage mode="create" />
+    </CapabilityGuard>
+  )
+});
+
+const adminContentEditRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: "content/$contentId/edit",
+  component: () => (
+    <CapabilityGuard capability="content.update">
+      <ContentEditorRoutePage mode="edit" />
+    </CapabilityGuard>
+  )
+});
+
 const adminOrganizationRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: "organization",
@@ -481,6 +502,8 @@ const routeTree = rootRoute.addChildren([
       adminDashboardRoute,
       adminSystemHealthRoute,
       adminContentRoute,
+      adminContentNewRoute,
+      adminContentEditRoute,
       adminOrganizationRoute,
       ...adminOrganizationChildRoutes,
       adminDocumentsRoute,

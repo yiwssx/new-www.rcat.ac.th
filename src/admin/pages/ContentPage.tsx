@@ -24,6 +24,7 @@ import Typography from "@mui/material/Typography";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import EditNoteOutlinedIcon from "@mui/icons-material/EditNoteOutlined";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import PublishOutlinedIcon from "@mui/icons-material/PublishOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
@@ -402,15 +403,32 @@ export default function ContentPage() {
               </Tooltip>
               {(canUpdate || canPublish || canDelete) && (
                 <>
-                  <Tooltip title="แก้ไข">
+                  <Tooltip title="แก้ไขเต็มหน้า">
                     <span>
                       <IconButton
-                        aria-label="แก้ไข"
+                        component="a"
+                        href={
+                          !canUpdate || contentWritePending || draftRecovery
+                            ? undefined
+                            : `/admin/content/${encodeURIComponent(info.row.original.id)}/edit`
+                        }
+                        aria-label="แก้ไขเต็มหน้า"
+                        size="small"
+                        disabled={!canUpdate || contentWritePending || Boolean(draftRecovery)}
+                      >
+                        <EditOutlinedIcon fontSize="small" />
+                      </IconButton>
+                    </span>
+                  </Tooltip>
+                  <Tooltip title="แก้ไขแบบด่วน">
+                    <span>
+                      <IconButton
+                        aria-label="แก้ไขแบบด่วน"
                         size="small"
                         disabled={!canUpdate || loadingEditorItem || contentWritePending || Boolean(draftRecovery)}
                         onClick={() => void handleEdit(info.row.original)}
                       >
-                        <EditOutlinedIcon fontSize="small" />
+                        <EditNoteOutlinedIcon fontSize="small" />
                       </IconButton>
                     </span>
                   </Tooltip>
@@ -573,14 +591,24 @@ export default function ContentPage() {
         description="สร้างและดูแลหน้าเว็บ บทความ ข้อมูลแผนกวิชา ข่าว และประกาศ"
         action={
           canCreate ? (
-            <Button
-              variant="contained"
-              startIcon={<AddOutlinedIcon />}
-              disabled={contentWritePending || Boolean(draftRecovery)}
-              onClick={handleCreate}
-            >
-              เพิ่มเนื้อหา
-            </Button>
+            <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
+              <Button
+                variant="contained"
+                startIcon={<AddOutlinedIcon />}
+                component="a"
+                href={contentWritePending || draftRecovery ? undefined : "/admin/content/new"}
+                disabled={contentWritePending || Boolean(draftRecovery)}
+              >
+                เพิ่มเนื้อหา
+              </Button>
+              <Button
+                variant="outlined"
+                disabled={contentWritePending || Boolean(draftRecovery)}
+                onClick={handleCreate}
+              >
+                เปิดแบบด่วน
+              </Button>
+            </Stack>
           ) : undefined
         }
       />
