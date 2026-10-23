@@ -90,7 +90,7 @@ Target branch: `main`
 
 - [x] PR #697-#702 merged with all required CI checks green.
 - [x] CI covers core content create/edit links, publish and delete behavior, autosave recovery, settings tabs, mobile/tablet breakpoints and media panel accessibility.
-- [ ] Confirm Vercel production deployment for PR #702 is READY and serving the expected commit.
+- [x] Vercel deployment `dpl_HBiyho2ozfY6NqjxtTgYFfNSBWGU` is READY and matches PR #702 commit `0831e647e511e347e5fcf75e4d2045b5706651cc`.
 - [ ] In an authorized production admin session, inspect new/edit on desktop, tablet and mobile for clipping, focus order, keyboard access and nested scrolling.
 - [ ] With approved disposable content, verify the create -> edit -> review -> publish -> schedule -> delete lifecycle and recover an unsaved draft without affecting real announcements.
 - [ ] Verify read-only/editor/publisher privileges and upload limits using appropriately authorized test accounts.
@@ -101,5 +101,5 @@ Target branch: `main`
 - PR #697-#701 merged previously with passing required checks.
 - PR #702 merged with all 10 jobs successful: `0831e647e511e347e5fcf75e4d2045b5706651cc`.
 - Playwright includes compact/mobile/tablet/desktop editor checks and focused publishing, taxonomy, SEO and media tabs.
-- CI and Vercel readiness are distinct from a manually authenticated production acceptance test.
+- Vercel production READY confirmed for `0831e647e511e347e5fcf75e4d2045b5706651cc`; CI and deployment readiness are distinct from a manually authenticated acceptance test.
 
