@@ -36,9 +36,12 @@ Target branch: `main`
 
 ### UX-03: Progressive editor settings
 
-- [ ] Group publication, taxonomy, media, and SEO controls.
-- [ ] Move the media picker out of the always-visible sidebar.
-- [ ] Keep existing saved data fields and API contracts unchanged.
+- [x] Keep publishing and taxonomy visible while hiding advanced SEO by default in full-page mode.
+- [x] Show the media library and quick upload only on request in full-page mode.
+- [x] Keep the existing dialog form fully expanded as a transitional fallback.
+- [x] Move media controls into a dedicated modal for full-page editing.
+- [ ] Add a cohesive publishing/taxonomy/settings panel architecture.
+- [ ] Verify on mobile and preserve existing saved fields and API contracts.
 
 ### UX-04: Responsive layouts
 
@@ -67,3 +70,4 @@ Target branch: `main`
 - 2026-10-23: Audited route composition and started UX-01.
 - 2026-10-23: PR #697 merged after green CI, commit `de63d18d4f06bf61b59894348a05e7e940bf3c7e`.
 - 2026-10-23: Started UX-02 with guarded editor routes and transitional list actions.
+- 2026-10-23: Started UX-03 progressive disclosure of advanced SEO and media controls in page mode.
