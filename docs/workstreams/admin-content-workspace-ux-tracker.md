@@ -33,7 +33,8 @@ Target branch: `main`
 - [x] Reuse save, upload, draft recovery, and permissions in the dedicated route.
 - [ ] Run CI and authenticated visual QA for the full-page editor.
 - [x] Add SPA navigation guard for unsaved edits and synchronous draft preservation.
-- [ ] Verify navigation guard on CI and authenticated mobile/browser QA.
+- [x] Verify navigation guard with CI Unit Tests and Playwright E2E in PR #700.
+- [ ] Complete authenticated manual visual QA on the deployed editor.
 
 ### UX-03: Progressive editor settings
 
@@ -46,9 +47,12 @@ Target branch: `main`
 
 ### UX-04: Responsive layouts
 
-- [ ] Verify desktop, tablet, and mobile breakpoints.
-- [ ] Make editing, toolbar actions, and media selection accessible.
-- [ ] Remove excessive nested scrolling.
+- [x] Add compact-layout settings disclosure for the full-page editor under the desktop breakpoint.
+- [x] Keep publishing settings visible alongside writing on desktop.
+- [x] Keep save/confirm actions reachable with a sticky full-page toolbar.
+- [x] Use the media dialog as the only scroll container in full-page mode and give it mobile viewport dimensions.
+- [x] Add Playwright checks for 390px, 768px, and 1440px viewports.
+- [ ] Pass UX-04 CI and verify no overflow or inaccessible controls on a deployed authenticated session.
 
 ### UX-05: Release validation
 
@@ -72,4 +76,5 @@ Target branch: `main`
 - 2026-10-23: PR #697 merged after green CI, commit `de63d18d4f06bf61b59894348a05e7e940bf3c7e`.
 - 2026-10-23: Started UX-02 with guarded editor routes and transitional list actions.
 - 2026-10-23: PR #699 merged after green CI, commit `f270060bf6c2bc6a9f1008f3880f1abc6a09d01b`.
-- 2026-10-23: Started UX-02b route exit protection, flush draft on SPA navigation, and regression tests (PR #700).
+- 2026-10-23: PR #700 merged after green CI, commit `a9cfc61dfd6de5e9b73d0953d61f1890c925fdfa`.
+- 2026-10-23: Started UX-04 with compact settings disclosure, mobile media dialog, sticky actions, and responsive browser regression tests.
