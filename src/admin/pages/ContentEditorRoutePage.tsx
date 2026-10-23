@@ -10,11 +10,7 @@ import Typography from "@mui/material/Typography";
 import ArrowBackOutlinedIcon from "@mui/icons-material/ArrowBackOutlined";
 import ContentEditorDialog from "../components/ContentEditorDialog";
 import { useAuth } from "../../context/authSessionContext";
-import {
-  getAdminContentDetail,
-  isAdminStaleRevisionError,
-  saveContentItem
-} from "../../features/cms-content";
+import { getAdminContentDetail, isAdminStaleRevisionError, saveContentItem } from "../../features/cms-content";
 import { saveMediaAsset, type MediaAssetInput, type MediaUploadOptions } from "../../features/cms-media";
 import { clearContentDraftRecovery, readContentDraftRecovery } from "../../features/cms-content/draftRecovery";
 import { invalidateAdminListQueries } from "../../features/admin-pagination";
@@ -58,7 +54,7 @@ export default function ContentEditorRoutePage({ mode }: ContentEditorRoutePageP
     enabled: mode === "edit" && Boolean(contentId) && canWrite && !matchingRecovery,
     retry: false
   });
-  const item = matchingRecovery?.item ?? (mode === "edit" ? detailQuery.data ?? null : null);
+  const item = matchingRecovery?.item ?? (mode === "edit" ? (detailQuery.data ?? null) : null);
   const saveMutation = useMutation({
     mutationFn: (input: ContentItem) =>
       saveContentItem(input, {
