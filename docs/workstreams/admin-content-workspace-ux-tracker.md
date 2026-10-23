@@ -17,13 +17,36 @@
 
 ## Work packages
 
-| ID | Scope | Status | Acceptance criteria |
-| --- | --- | --- | --- |
-| UX-01 | Split content list, editorial operations, revision tools, taxonomy/redirects, and governance into selectable, lazy workspaces | Implemented on branch; CI pending | Default `/admin/content` mounts content list only; all eight existing panels remain reachable; accessible scrollable mobile tabs; no API/schema change |
-| UX-02 | Dedicated full-page editor routes for new/edit | Not started | Direct URL/back/refresh function; no blocking dialog; RBAC + loading/not-found; preserve list context |
-| UX-03 | Group editor settings by task; media picker in independent overlay; hide advanced SEO when not needed | Not started | No fields lost; consistent save payload; primary editing surface remains visible |
-| UX-04 | Responsive editor and mobile list experience | Not started | No nested unmanageable scrolling; accessible media/settings controls; layout tested at phone/tablet/desktop widths |
-| UX-05 | Comprehensive integration and deployment verification | Not started | Create/edit/publish/schedule/restore draft/media/permissions tests and manual authenticated QA; green CI, then release |
+### UX-01 — Decompose the content landing page
+
+- **Status:** Implemented on branch; CI pending.
+- **Scope:** Split content list, editorial operations, revision tools, taxonomy/redirects, and governance into selectable, lazy workspaces.
+- **Acceptance:** Default `/admin/content` mounts content list only; all eight panels remain reachable; mobile tabs scroll; API and schema unchanged.
+
+### UX-02 — Full-page content editor
+
+- **Status:** Not started.
+- **Scope:** Dedicated routes for creating and editing content.
+- **Acceptance:** Direct URL, back navigation, and refresh work; no blocking dialog; loading/not-found and RBAC handled; list context retained.
+
+### UX-03 — Progressive settings and separate media picker
+
+- **Status:** Not started.
+- **Scope:** Group editor settings by task, move media selection into its own overlay, and reveal advanced SEO when needed.
+- **Acceptance:** All fields are preserved; save payload remains compatible; writing surface remains visible.
+
+### UX-04 — Responsive editor and list
+
+- **Status:** Not started.
+- **Scope:** Improve phone and tablet layouts for writing, publishing, and table actions.
+- **Acceptance:** No unmanageable nested scrolling; accessible media and settings controls; responsive layouts verified.
+
+### UX-05 — Full integration and release verification
+
+- **Status:** Not started.
+- **Scope:** Test write operations, draft recovery, media, roles, publishing, scheduling, and deployment.
+- **Acceptance:** Focused tests and CI green; manual authenticated QA completed.
+
 
 ## UX-01 implementation details
 
