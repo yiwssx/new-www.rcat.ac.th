@@ -356,6 +356,8 @@ export default function ContentEditorDialog({
   const [uploadName, setUploadName] = useState("");
   const [uploadType, setUploadType] = useState<MediaType>("image");
   const [uploadError, setUploadError] = useState("");
+  const [seoExpanded, setSeoExpanded] = useState(false);
+  const [mediaControlsOpen, setMediaControlsOpen] = useState(false);
   const uploadLockRef = useRef(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<MediaUploadProgress | null>(null);
@@ -794,6 +796,239 @@ export default function ContentEditorDialog({
     }));
   }
 
+  const mediaLibraryControls = (
+    <Stack id="content-media-controls" spacing={2}>
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+        <TextField
+          label="ค้นหาในคลังสื่อ"
+          value={mediaSearch}
+          onChange={(event) => {
+            setMediaSearch(event.target.value);
+            setMediaPage(1);
+          }}
+          size="small"
+          fullWidth
+        />
+        <TextField
+          label="ประเภทสื่อ"
+          value={mediaFilter}
+          onChange={(event) => {
+            setMediaFilter(event.target.value as MediaLibraryFilter);
+            setMediaPage(1);
+          }}
+          size="small"
+          select
+          fullWidth
+        >
+          <MenuItem value="all">ทั้งหมด</MenuItem>
+          {mediaTypes.map((type) => (
+            <MenuItem key={type} value={type}>
+              {mediaTypeLabels[type]}
+            </MenuItem>
+          ))}
+        </TextField>
+      </Stack>
+      {mediaListQuery.isFetching && <LinearProgress aria-label="กำลังโหลดคลังสื่อ" />}
+      {mediaListQuery.isError && (
+        <Alert severity="warning">
+          {mediaListQuery.error instanceof Error ? mediaListQuery.error.message : "ไม่สามารถโหลดคลังสื่อได้"}
+        </Alert>
+      )}
+      {selectedMediaQuery.isError && (
+        <Alert severity="warning">ไม่สามารถโหลดข้อมูลสื่อที่แนบไว้บางรายการได้ กรุณาลองค้นหาในคลังสื่ออีกครั้ง</Alert>
+      )}
+      {allSelectedLookupIds.length > ADMIN_MEDIA_BY_IDS_MAX && (
+        <Alert severity="warning">แสดงข้อมูลสื่อที่แนบไว้ได้สูงสุด {ADMIN_MEDIA_BY_IDS_MAX} รายการต่อครั้ง</Alert>
+      )}
+      <Stack
+        spacing={1}
+        aria-busy={mediaListQuery.isFetching}
+        sx={{
+          maxHeight: 260,
+          overflowY: "auto",
+          pr: 0.5,
+          opacity: mediaListQuery.isPlaceholderData ? 0.55 : 1,
+          transition: "opacity 120ms ease"
+        }}
+      >
+        {libraryMedia.map((asset) => {
+          const checked = selectedMediaIds.includes(asset.id);
+          return (
+            <Box
+              key={asset.id}
+              sx={{
+                ...staticSurfaceSx,
+                display: "grid",
+                gridTemplateColumns: "auto 42px minmax(0, 1fr)",
+                gap: 1,
+                alignItems: "center",
+                p: 1,
+                bgcolor: checked ? "primary.light" : "white"
+              }}
+            >
+              <Checkbox
+                checked={checked}
+                onChange={() => toggleMedia(asset)}
+                size="small"
+                slotProps={{ input: { "aria-label": `${checked ? "นำออก" : "แนบ"} ${asset.name}` } }}
+              />
+              <Box
+                sx={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: designTokens.radius.small,
+                  display: "grid",
+                  placeItems: "center",
+                  bgcolor: "background.default",
+                  color: "primary.main",
+                  overflow: "hidden"
+                }}
+              >
+                {asset.type === "image" && (asset.thumbnailUrl || asset.previewUrl) ? (
+                  <Box
+                    component="img"
+                    src={asset.thumbnailUrl || asset.previewUrl}
+                    alt={asset.name}
+                    loading="lazy"
+                    sx={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
+                ) : (
+                  mediaIcon(asset.type)
+                )}
+              </Box>
+              <Box sx={{ minWidth: 0 }}>
+                <Typography
+                  noWrap
+                  sx={{
+                    fontWeight: 800
+                  }}
+                >
+                  {asset.name}
+                </Typography>
+                <Stack
+                  direction="row"
+                  spacing={0.75}
+                  sx={{
+                    alignItems: "center"
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "text.secondary"
+                    }}
+                  >
+                    {mediaTypeLabels[asset.type]}
+                  </Typography>
+                  {checked && (asset.type === "image" || asset.type === "video") && (
+                    <Button size="small" onClick={() => updateDraft("featuredMediaId", asset.id)}>
+                      ตั้งเป็นสื่อแนะนำ
+                    </Button>
+                  )}
+                </Stack>
+              </Box>
+            </Box>
+          );
+        })}
+        {!mediaListQuery.isLoading && !libraryMedia.length && (
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary"
+            }}
+          >
+            ไม่พบสื่อที่ตรงกับการค้นหา
+          </Typography>
+        )}
+      </Stack>
+      {mediaListQuery.data && (
+        <AdminPagination
+          pagination={{
+            ...mediaListQuery.data.pagination,
+            page: mediaPage,
+            pageSize: mediaPageSize
+          }}
+          pageSizeOptions={ADMIN_MEDIA_PAGE_SIZE_OPTIONS}
+          onPageChange={setMediaPage}
+          onPageSizeChange={(nextPageSize) => {
+            setMediaPageSize(nextPageSize);
+            setMediaPage(1);
+          }}
+          disabled={uploading}
+          isFetching={mediaListQuery.isFetching}
+        />
+      )}
+      <Divider />
+      <Typography
+        sx={{
+          fontWeight: 900
+        }}
+      >
+        อัปโหลดด่วน
+      </Typography>
+      {uploadError && <Alert severity="error">{uploadError}</Alert>}
+      <Button component="label" variant="outlined" startIcon={<UploadFileOutlinedIcon />} disabled={uploading}>
+        เลือกไฟล์
+        <input
+          hidden
+          type="file"
+          accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.csv"
+          onChange={handleFileChange}
+        />
+      </Button>
+      <Typography
+        variant="body2"
+        sx={{
+          color: "text.secondary"
+        }}
+      >
+        รองรับไฟล์ขนาดไม่เกิน 100 MB
+      </Typography>
+      {uploadFile && (
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary"
+          }}
+        >
+          {uploadFile.name} / {formatFileSize(uploadFile.size)}
+        </Typography>
+      )}
+      {uploading && <MediaUploadProgressFeedback preparing={!uploadProgress} progress={uploadProgress} />}
+      <TextField
+        label="ชื่อสื่อ"
+        value={uploadName}
+        disabled={uploading}
+        onChange={(event) => setUploadName(event.target.value)}
+        size="small"
+        fullWidth
+      />
+      <TextField
+        label="ประเภท"
+        value={uploadType}
+        disabled={uploading}
+        onChange={(event) => setUploadType(event.target.value as MediaType)}
+        size="small"
+        select
+        fullWidth
+      >
+        {mediaTypes.map((type) => (
+          <MenuItem key={type} value={type}>
+            {mediaTypeLabels[type]}
+          </MenuItem>
+        ))}
+      </TextField>
+      <Button
+        type="button"
+        variant="contained"
+        disabled={uploading || !uploadFile || !onUploadMedia}
+        onClick={() => void handleUploadMedia()}
+      >
+        {uploading ? (uploadProgress ? `กำลังอัปโหลด ${uploadProgress.percent}%` : "กำลังเตรียมไฟล์") : "อัปโหลดและแนบ"}
+      </Button>
+    </Stack>
+  );
+
   const editorForm = (
     <form onSubmit={handleSubmit}>
       <DialogTitle>
@@ -1187,37 +1422,46 @@ export default function ContentEditorDialog({
                 label="เรื่องแนะนำ"
               />
               <Divider />
-              <Typography
-                sx={{
-                  fontWeight: 900
-                }}
+              <Button
+                type="button"
+                size="small"
+                variant="outlined"
+                onClick={() => setSeoExpanded((expanded) => !expanded)}
+                aria-expanded={presentation === "dialog" || seoExpanded || isDraftFacebookEmbed}
+                aria-controls="content-advanced-seo-fields"
               >
-                SEO
-              </Typography>
-              <TextField
-                label="ชื่อเรื่องสำหรับผลการค้นหา"
-                value={draft.seoTitle ?? ""}
-                onChange={(event) => updateDraft("seoTitle", event.target.value)}
-                size="small"
-                fullWidth
-              />
-              <TextField
-                label="คำอธิบายสำหรับผลการค้นหา"
-                value={draft.seoDescription ?? ""}
-                onChange={(event) => updateDraft("seoDescription", event.target.value)}
-                size="small"
-                minRows={2}
-                multiline
-                fullWidth
-              />
-              <TextField
-                label="URL หลัก"
-                value={draft.canonicalUrl ?? ""}
-                onChange={(event) => updateDraft("canonicalUrl", event.target.value)}
-                placeholder="https://example.edu/blog/post"
-                size="small"
-                fullWidth
-              />
+                {presentation === "page" && !seoExpanded && !isDraftFacebookEmbed
+                  ? "แสดง SEO และข้อมูลขั้นสูง"
+                  : "SEO และข้อมูลขั้นสูง"}
+              </Button>
+              {(presentation === "dialog" || seoExpanded || isDraftFacebookEmbed) && (
+                <Stack id="content-advanced-seo-fields" spacing={1.5}>
+                  <TextField
+                    label="ชื่อเรื่องสำหรับผลการค้นหา"
+                    value={draft.seoTitle ?? ""}
+                    onChange={(event) => updateDraft("seoTitle", event.target.value)}
+                    size="small"
+                    fullWidth
+                  />
+                  <TextField
+                    label="คำอธิบายสำหรับผลการค้นหา"
+                    value={draft.seoDescription ?? ""}
+                    onChange={(event) => updateDraft("seoDescription", event.target.value)}
+                    size="small"
+                    minRows={2}
+                    multiline
+                    fullWidth
+                  />
+                  <TextField
+                    label="URL หลัก"
+                    value={draft.canonicalUrl ?? ""}
+                    onChange={(event) => updateDraft("canonicalUrl", event.target.value)}
+                    placeholder="https://example.edu/blog/post"
+                    size="small"
+                    fullWidth
+                  />
+                </Stack>
+              )}
               <Divider />
               <Typography
                 sx={{
@@ -1309,249 +1553,34 @@ export default function ContentEditorDialog({
                 )}
               </Stack>
               <Divider />
-              <Typography
-                sx={{
-                  fontWeight: 900
-                }}
-              >
-                คลังสื่อ
-              </Typography>
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-                <TextField
-                  label="ค้นหาในคลังสื่อ"
-                  value={mediaSearch}
-                  onChange={(event) => {
-                    setMediaSearch(event.target.value);
-                    setMediaPage(1);
-                  }}
-                  size="small"
-                  fullWidth
-                />
-                <TextField
-                  label="ประเภทสื่อ"
-                  value={mediaFilter}
-                  onChange={(event) => {
-                    setMediaFilter(event.target.value as MediaLibraryFilter);
-                    setMediaPage(1);
-                  }}
-                  size="small"
-                  select
-                  fullWidth
-                >
-                  <MenuItem value="all">ทั้งหมด</MenuItem>
-                  {mediaTypes.map((type) => (
-                    <MenuItem key={type} value={type}>
-                      {mediaTypeLabels[type]}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Stack>
-              {mediaListQuery.isFetching && <LinearProgress aria-label="กำลังโหลดคลังสื่อ" />}
-              {mediaListQuery.isError && (
-                <Alert severity="warning">
-                  {mediaListQuery.error instanceof Error ? mediaListQuery.error.message : "ไม่สามารถโหลดคลังสื่อได้"}
-                </Alert>
-              )}
-              {selectedMediaQuery.isError && (
-                <Alert severity="warning">
-                  ไม่สามารถโหลดข้อมูลสื่อที่แนบไว้บางรายการได้ กรุณาลองค้นหาในคลังสื่ออีกครั้ง
-                </Alert>
-              )}
-              {allSelectedLookupIds.length > ADMIN_MEDIA_BY_IDS_MAX && (
-                <Alert severity="warning">
-                  แสดงข้อมูลสื่อที่แนบไว้ได้สูงสุด {ADMIN_MEDIA_BY_IDS_MAX} รายการต่อครั้ง
-                </Alert>
-              )}
-              <Stack
-                spacing={1}
-                aria-busy={mediaListQuery.isFetching}
-                sx={{
-                  maxHeight: 260,
-                  overflowY: "auto",
-                  pr: 0.5,
-                  opacity: mediaListQuery.isPlaceholderData ? 0.55 : 1,
-                  transition: "opacity 120ms ease"
-                }}
-              >
-                {libraryMedia.map((asset) => {
-                  const checked = selectedMediaIds.includes(asset.id);
-                  return (
-                    <Box
-                      key={asset.id}
-                      sx={{
-                        ...staticSurfaceSx,
-                        display: "grid",
-                        gridTemplateColumns: "auto 42px minmax(0, 1fr)",
-                        gap: 1,
-                        alignItems: "center",
-                        p: 1,
-                        bgcolor: checked ? "primary.light" : "white"
-                      }}
-                    >
-                      <Checkbox
-                        checked={checked}
-                        onChange={() => toggleMedia(asset)}
-                        size="small"
-                        slotProps={{ input: { "aria-label": `${checked ? "นำออก" : "แนบ"} ${asset.name}` } }}
-                      />
-                      <Box
-                        sx={{
-                          width: 42,
-                          height: 42,
-                          borderRadius: designTokens.radius.small,
-                          display: "grid",
-                          placeItems: "center",
-                          bgcolor: "background.default",
-                          color: "primary.main",
-                          overflow: "hidden"
-                        }}
-                      >
-                        {asset.type === "image" && (asset.thumbnailUrl || asset.previewUrl) ? (
-                          <Box
-                            component="img"
-                            src={asset.thumbnailUrl || asset.previewUrl}
-                            alt={asset.name}
-                            loading="lazy"
-                            sx={{ width: "100%", height: "100%", objectFit: "cover" }}
-                          />
-                        ) : (
-                          mediaIcon(asset.type)
-                        )}
-                      </Box>
-                      <Box sx={{ minWidth: 0 }}>
-                        <Typography
-                          noWrap
-                          sx={{
-                            fontWeight: 800
-                          }}
-                        >
-                          {asset.name}
-                        </Typography>
-                        <Stack
-                          direction="row"
-                          spacing={0.75}
-                          sx={{
-                            alignItems: "center"
-                          }}
-                        >
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              color: "text.secondary"
-                            }}
-                          >
-                            {mediaTypeLabels[asset.type]}
-                          </Typography>
-                          {checked && (asset.type === "image" || asset.type === "video") && (
-                            <Button size="small" onClick={() => updateDraft("featuredMediaId", asset.id)}>
-                              ตั้งเป็นสื่อแนะนำ
-                            </Button>
-                          )}
-                        </Stack>
-                      </Box>
-                    </Box>
-                  );
-                })}
-                {!mediaListQuery.isLoading && !libraryMedia.length && (
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: "text.secondary"
-                    }}
-                  >
-                    ไม่พบสื่อที่ตรงกับการค้นหา
-                  </Typography>
-                )}
-              </Stack>
-              {mediaListQuery.data && (
-                <AdminPagination
-                  pagination={{
-                    ...mediaListQuery.data.pagination,
-                    page: mediaPage,
-                    pageSize: mediaPageSize
-                  }}
-                  pageSizeOptions={ADMIN_MEDIA_PAGE_SIZE_OPTIONS}
-                  onPageChange={setMediaPage}
-                  onPageSizeChange={(nextPageSize) => {
-                    setMediaPageSize(nextPageSize);
-                    setMediaPage(1);
-                  }}
-                  disabled={uploading}
-                  isFetching={mediaListQuery.isFetching}
-                />
-              )}
-              <Divider />
-              <Typography
-                sx={{
-                  fontWeight: 900
-                }}
-              >
-                อัปโหลดด่วน
-              </Typography>
-              {uploadError && <Alert severity="error">{uploadError}</Alert>}
-              <Button component="label" variant="outlined" startIcon={<UploadFileOutlinedIcon />} disabled={uploading}>
-                เลือกไฟล์
-                <input
-                  hidden
-                  type="file"
-                  accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.csv"
-                  onChange={handleFileChange}
-                />
-              </Button>
-              <Typography
-                variant="body2"
-                sx={{
-                  color: "text.secondary"
-                }}
-              >
-                รองรับไฟล์ขนาดไม่เกิน 100 MB
-              </Typography>
-              {uploadFile && (
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: "text.secondary"
-                  }}
-                >
-                  {uploadFile.name} / {formatFileSize(uploadFile.size)}
-                </Typography>
-              )}
-              {uploading && <MediaUploadProgressFeedback preparing={!uploadProgress} progress={uploadProgress} />}
-              <TextField
-                label="ชื่อสื่อ"
-                value={uploadName}
-                disabled={uploading}
-                onChange={(event) => setUploadName(event.target.value)}
-                size="small"
-                fullWidth
-              />
-              <TextField
-                label="ประเภท"
-                value={uploadType}
-                disabled={uploading}
-                onChange={(event) => setUploadType(event.target.value as MediaType)}
-                size="small"
-                select
-                fullWidth
-              >
-                {mediaTypes.map((type) => (
-                  <MenuItem key={type} value={type}>
-                    {mediaTypeLabels[type]}
-                  </MenuItem>
-                ))}
-              </TextField>
               <Button
                 type="button"
-                variant="contained"
-                disabled={uploading || !uploadFile || !onUploadMedia}
-                onClick={() => void handleUploadMedia()}
+                variant="outlined"
+                onClick={() => setMediaControlsOpen(true)}
+                aria-expanded={presentation === "dialog" || mediaControlsOpen}
+                aria-controls="content-media-controls"
               >
-                {uploading
-                  ? uploadProgress
-                    ? `กำลังอัปโหลด ${uploadProgress.percent}%`
-                    : "กำลังเตรียมไฟล์"
-                  : "อัปโหลดและแนบ"}
+                {presentation === "page" && !mediaControlsOpen ? "เปิดคลังสื่อและอัปโหลด" : "คลังสื่อและอัปโหลด"}
               </Button>
+
+              {presentation === "dialog" && mediaLibraryControls}
+              {presentation === "page" && (
+                <Dialog
+                  open={mediaControlsOpen}
+                  onClose={uploading ? undefined : () => setMediaControlsOpen(false)}
+                  maxWidth="md"
+                  fullWidth
+                  aria-labelledby="content-media-manager-title"
+                >
+                  <DialogTitle id="content-media-manager-title">คลังสื่อและอัปโหลด</DialogTitle>
+                  <DialogContent dividers>{mediaLibraryControls}</DialogContent>
+                  <ResponsiveDialogActions>
+                    <Button type="button" onClick={() => setMediaControlsOpen(false)} disabled={uploading}>
+                      เสร็จสิ้น
+                    </Button>
+                  </ResponsiveDialogActions>
+                </Dialog>
+              )}
             </Stack>
           </Box>
         )}

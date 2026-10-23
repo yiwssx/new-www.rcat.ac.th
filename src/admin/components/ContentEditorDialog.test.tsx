@@ -121,6 +121,19 @@ async function selectTemplate(label: string) {
 }
 
 describe("ContentEditorDialog", () => {
+  it("keeps advanced SEO and the media manager out of the full-page editor until opened", () => {
+    renderEditor(createContentItem({ template: "standard" }), { presentation: "page" });
+
+    expect(screen.queryByRole("textbox", { name: "ชื่อเรื่องสำหรับผลการค้นหา" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "อัปโหลดและแนบ" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "แสดง SEO และข้อมูลขั้นสูง" }));
+    expect(screen.getByRole("textbox", { name: "ชื่อเรื่องสำหรับผลการค้นหา" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "เปิดคลังสื่อและอัปโหลด" }));
+    expect(screen.getByRole("button", { name: "อัปโหลดและแนบ" })).toBeInTheDocument();
+  });
+
   it("supports a full-page workspace without changing the save confirmation flow", () => {
     const onSave = vi.fn();
     renderEditor(createContentItem({ template: "standard" }), {
