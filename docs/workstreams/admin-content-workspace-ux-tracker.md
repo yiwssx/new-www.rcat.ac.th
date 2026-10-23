@@ -23,13 +23,16 @@ Target branch: `main`
 - [x] Group operational tools behind scrollable tabs.
 - [x] Mount only the selected workspace to prevent unrelated requests.
 - [x] Add regression tests for tab selection.
-- [ ] Pass required CI checks and review the PR.
+- [x] Pass required CI checks and merge PR #697.
 
 ### UX-02: Full-page editor
 
-- [ ] Create URL-addressable routes for new and existing content.
-- [ ] Preserve existing save, draft recovery, and permission behavior.
-- [ ] Support browser back, reload, and navigation confirmation.
+- [x] Add guarded `/admin/content/new` and `/admin/content/:contentId/edit` routes.
+- [x] Reuse the existing editor form in full-page presentation mode.
+- [x] Add list-page links while retaining the dialog as a transitional fallback.
+- [x] Reuse save, upload, draft recovery, and permissions in the dedicated route.
+- [ ] Run CI and authenticated visual QA for the full-page editor.
+- [ ] Add SPA navigation guards for browser back and all unsaved editor transitions.
 
 ### UX-03: Progressive editor settings
 
@@ -62,4 +65,5 @@ Target branch: `main`
 ## Progress
 
 - 2026-10-23: Audited route composition and started UX-01.
-- 2026-10-23: Opened PR #697 with selective workspaces and tests.
+- 2026-10-23: PR #697 merged after green CI, commit `de63d18d4f06bf61b59894348a05e7e940bf3c7e`.
+- 2026-10-23: Started UX-02 with guarded editor routes and transitional list actions.
