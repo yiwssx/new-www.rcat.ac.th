@@ -158,6 +158,7 @@ describe("ContentEditorDialog", () => {
     fireEvent.click(screen.getByRole("tab", { name: "สื่อ" }));
     fireEvent.click(screen.getByRole("button", { name: "เปิดคลังสื่อและอัปโหลด" }));
     expect(screen.getByRole("button", { name: "อัปโหลดและแนบ" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "เสร็จสิ้น" }));
     fireEvent.click(screen.getByRole("tab", { name: "SEO" }));
     expect(screen.getByRole("textbox", { name: "ชื่อเรื่องสำหรับผลการค้นหา" })).toHaveValue(
       "SEO headline retained across tabs"
