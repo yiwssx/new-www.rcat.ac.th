@@ -32,7 +32,8 @@ Target branch: `main`
 - [x] Add list-page links while retaining the dialog as a transitional fallback.
 - [x] Reuse save, upload, draft recovery, and permissions in the dedicated route.
 - [ ] Run CI and authenticated visual QA for the full-page editor.
-- [ ] Add SPA navigation guards for browser back and all unsaved editor transitions.
+- [x] Add SPA navigation guard for unsaved edits and synchronous draft preservation.
+- [ ] Verify navigation guard on CI and authenticated mobile/browser QA.
 
 ### UX-03: Progressive editor settings
 
@@ -70,4 +71,5 @@ Target branch: `main`
 - 2026-10-23: Audited route composition and started UX-01.
 - 2026-10-23: PR #697 merged after green CI, commit `de63d18d4f06bf61b59894348a05e7e940bf3c7e`.
 - 2026-10-23: Started UX-02 with guarded editor routes and transitional list actions.
-- 2026-10-23: Started UX-03 progressive disclosure of advanced SEO and media controls in page mode.
+- 2026-10-23: PR #699 merged after green CI, commit `f270060bf6c2bc6a9f1008f3880f1abc6a09d01b`.
+- 2026-10-23: Started UX-02b route exit protection, flush draft on SPA navigation, and regression tests (PR #700).
