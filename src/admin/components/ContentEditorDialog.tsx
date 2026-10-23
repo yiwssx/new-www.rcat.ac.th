@@ -16,6 +16,8 @@ import LinearProgress from "@mui/material/LinearProgress";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
+import Tab from "@mui/material/Tab";
+import Tabs from "@mui/material/Tabs";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useQuery } from "@tanstack/react-query";
@@ -68,6 +70,7 @@ const contentTypes: ContentType[] = ["page", "news", "program", "announcement", 
 const contentStatuses: ContentStatus[] = ["draft", "review", "scheduled", "published"];
 const mediaTypes: MediaType[] = ["image", "document", "sheet", "video"];
 type MediaLibraryFilter = MediaType | "all";
+type EditorSettingsSection = "publishing" | "taxonomy" | "seo" | "media";
 const emptyMediaAssets: MediaAsset[] = [];
 
 type ContentMetadataPreset = {
@@ -365,6 +368,7 @@ export default function ContentEditorDialog({
   const [seoExpanded, setSeoExpanded] = useState(false);
   const [mediaControlsOpen, setMediaControlsOpen] = useState(false);
   const [compactSettingsOpen, setCompactSettingsOpen] = useState(false);
+  const [settingsSection, setSettingsSection] = useState<EditorSettingsSection>("publishing");
   const uploadLockRef = useRef(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<MediaUploadProgress | null>(null);
@@ -1045,7 +1049,15 @@ export default function ContentEditorDialog({
   );
 
   const editorForm = (
-    <form onSubmit={handleSubmit}>
+    <form
+      onSubmit={handleSubmit}
+      onInvalidCapture={() => {
+        if (presentation === "page") {
+          setCompactSettingsOpen(true);
+          setSettingsSection("publishing");
+        }
+      }}
+    >
       <DialogTitle>
         <Typography component="span" variant="h2" sx={{ display: "block", fontSize: "1.45rem" }}>
           {discarding ? "ละทิ้งฉบับร่างที่ยังไม่บันทึก?" : confirming ? confirmTitle : title}
@@ -1226,13 +1238,39 @@ export default function ContentEditorDialog({
                 alignSelf: "start"
               }}
             >
-              <Typography
-                sx={{
-                  fontWeight: 900
-                }}
+              {presentation === "page" && (
+                <Tabs
+                  value={settingsSection}
+                  onChange={(_, nextSection: EditorSettingsSection) => {
+                    setSettingsSection(nextSection);
+                    if (nextSection === "seo") {
+                      setSeoExpanded(true);
+                    }
+                  }}
+                  aria-label="หมวดการตั้งค่าเนื้อหา"
+                  variant="scrollable"
+                  scrollButtons="auto"
+                  sx={{ borderBottom: "1px solid", borderColor: "divider" }}
+                >
+                  <Tab value="publishing" label="เผยแพร่" />
+                  <Tab value="taxonomy" label="หมวดหมู่" />
+                  <Tab value="seo" label="SEO" />
+                  <Tab value="media" label="สื่อ" />
+                </Tabs>
+              )}
+              <Stack
+                role="tabpanel"
+                aria-label="การเผยแพร่"
+                spacing={2}
+                sx={{ display: presentation === "dialog" || settingsSection === "publishing" ? "flex" : "none" }}
               >
-                การเผยแพร่
-              </Typography>
+                <Typography
+                  sx={{
+                    fontWeight: 900
+                  }}
+                >
+                  การเผยแพร่
+                </Typography>
               <FormControl fullWidth size="small">
                 <InputLabel id="content-type-label">ประเภท</InputLabel>
                 <Select
@@ -1278,14 +1316,21 @@ export default function ContentEditorDialog({
                   updateDraft("publishAt", fromLocalDateTimeInputValue(value) || new Date().toISOString())
                 }
               />
-              <Divider />
-              <Typography
-                sx={{
-                  fontWeight: 900
-                }}
+              </Stack>
+              {presentation === "dialog" && <Divider />}
+              <Stack
+                role="tabpanel"
+                aria-label="หมวดหมู่และแท็ก"
+                spacing={2}
+                sx={{ display: presentation === "dialog" || settingsSection === "taxonomy" ? "flex" : "none" }}
               >
-                หมวดหมู่และแท็ก
-              </Typography>
+                <Typography
+                  sx={{
+                    fontWeight: 900
+                  }}
+                >
+                  หมวดหมู่และแท็ก
+                </Typography>
               {!!metadataPresetGroups.length && (
                 <Box
                   sx={{
@@ -1452,7 +1497,14 @@ export default function ContentEditorDialog({
                 }
                 label="เรื่องแนะนำ"
               />
-              <Divider />
+              </Stack>
+              {presentation === "dialog" && <Divider />}
+              <Stack
+                role="tabpanel"
+                aria-label="SEO และข้อมูลขั้นสูง"
+                spacing={2}
+                sx={{ display: presentation === "dialog" || settingsSection === "seo" ? "flex" : "none" }}
+              >
               <Button
                 type="button"
                 size="small"
@@ -1493,14 +1545,21 @@ export default function ContentEditorDialog({
                   />
                 </Stack>
               )}
-              <Divider />
-              <Typography
-                sx={{
-                  fontWeight: 900
-                }}
+              </Stack>
+              {presentation === "dialog" && <Divider />}
+              <Stack
+                role="tabpanel"
+                aria-label="สื่อแนะนำและคลังสื่อ"
+                spacing={2}
+                sx={{ display: presentation === "dialog" || settingsSection === "media" ? "flex" : "none" }}
               >
-                สื่อแนะนำ
-              </Typography>
+                <Typography
+                  sx={{
+                    fontWeight: 900
+                  }}
+                >
+                  สื่อแนะนำ
+                </Typography>
               <Box
                 sx={{
                   ...staticSurfaceSx,
@@ -1620,6 +1679,7 @@ export default function ContentEditorDialog({
                   </ResponsiveDialogActions>
                 </Dialog>
               )}
+              </Stack>
             </Stack>
           </Box>
         )}
