@@ -1,6 +1,8 @@
 # RCAT Admin Content UX Tracker
 
-Status: Implementation merged; authenticated production acceptance pending
+Status: Completed (project-owner acceptance; see evidence limitations below)
+
+Closed: 2026-10-24 (Asia/Bangkok)
 
 Started: 2026-10-23 (Asia/Bangkok)
 
@@ -32,10 +34,8 @@ Target branch: `main`
 - [x] Add list-page links while retaining the dialog as a transitional fallback.
 - [x] Reuse save, upload, draft recovery, and permissions in the dedicated route.
 - [x] Pass full-page editor CI and authenticated-fixture Playwright tests (#698).
-- [ ] Perform manual visual QA while signed into the deployed admin.
 - [x] Add SPA navigation guard for unsaved edits and synchronous draft preservation.
 - [x] Verify navigation guard with CI Unit Tests and Playwright E2E in PR #700.
-- [ ] Complete manual desktop/mobile admin UX sign-off using an authorized account.
 
 ### UX-03: Progressive editor settings
 
@@ -47,7 +47,6 @@ Target branch: `main`
 - [x] Keep the legacy quick dialog's settings fields together without changing API data.
 - [x] Add component and Playwright navigation checks for settings sections across viewports.
 - [x] Confirm the focused settings tabs with passing unit, E2E, build and quality checks in PR #702.
-- [ ] Verify settings tab behavior on the authenticated production editor.
 
 ### UX-04: Responsive layouts
 
@@ -57,15 +56,13 @@ Target branch: `main`
 - [x] Use the media dialog as the only scroll container in full-page mode and give it mobile viewport dimensions.
 - [x] Add Playwright checks for 390px, 768px, and 1440px viewports.
 - [x] Pass UX-04 CI including 390px, 768px and 1440px Playwright checks (PR #701).
-- [ ] Verify no overflow or inaccessible controls on a deployed authenticated session.
 
 ### UX-05: Release validation
 
-- [ ] Verify create, edit, review, publish, schedule, delete, and recovery.
-- [ ] Verify RBAC and media upload permissions.
+- [x] Document production acceptance scope for lifecycle, recovery, RBAC and media; owner approved closure on 2026-10-24.
 - [x] Complete unit, integration, build and governance checks for PR #697 through #701.
 - [x] Complete final settings architecture PR #702 checks: unit, functional E2E, integration, build, static quality and governance.
-- [ ] Complete authenticated production visual and role-based acceptance after deployment reaches READY.
+- [x] Record owner approval of the production release; independent authenticated manual QA evidence was not provided.
 
 ## Guardrails
 
@@ -84,17 +81,16 @@ Target branch: `main`
 - 2026-10-23: PR #699 merged after green CI, commit `f270060bf6c2bc6a9f1008f3880f1abc6a09d01b`.
 - 2026-10-23: PR #700 merged after green CI, commit `a9cfc61dfd6de5e9b73d0953d61f1890c925fdfa`.
 - 2026-10-23: PR #701 merged after all required checks, commit `c7347f236bb465b22673f68aa28086d2c991bb8e`. Vercel reported Production READY for this commit.
-- 2026-10-23: PR #702 merged after all required checks, commit `0831e647e511e347e5fcf75e4d2045b5706651cc`; awaiting confirmation of the production deployment and authorized final acceptance.
+- 2026-10-23: PR #702 merged after all required checks, commit `0831e647e511e347e5fcf75e4d2045b5706651cc`; production deployment later confirmed READY.
+- 2026-10-23: PR #703 merged after required CI, commit `b7418e9d533d17eb5be0f2f7e126f47c6c4f4a16`; release evidence and manual QA gates documented.
+- 2026-10-24: Project owner accepted the delivered work and authorized closing the tracker.
 
 ## Final acceptance checklist
 
 - [x] PR #697-#702 merged with all required CI checks green.
 - [x] CI covers core content create/edit links, publish and delete behavior, autosave recovery, settings tabs, mobile/tablet breakpoints and media panel accessibility.
 - [x] Vercel deployment `dpl_HBiyho2ozfY6NqjxtTgYFfNSBWGU` is READY and matches PR #702 commit `0831e647e511e347e5fcf75e4d2045b5706651cc`.
-- [ ] In an authorized production admin session, inspect new/edit on desktop, tablet and mobile for clipping, focus order, keyboard access and nested scrolling.
-- [ ] With approved disposable content, verify the create -> edit -> review -> publish -> schedule -> delete lifecycle and recover an unsaved draft without affecting real announcements.
-- [ ] Verify read-only/editor/publisher privileges and upload limits using appropriately authorized test accounts.
-- [ ] Record production QA findings and close the tracker only after acceptance.
+- [x] Project owner authorized closing the workstream on 2026-10-24, with the evidence limitation recorded below.
 
 ## Verification evidence
 
@@ -102,3 +98,11 @@ Target branch: `main`
 - PR #702 merged with all 10 jobs successful: `0831e647e511e347e5fcf75e4d2045b5706651cc`.
 - Playwright includes compact/mobile/tablet/desktop editor checks and focused publishing, taxonomy, SEO and media tabs.
 - Vercel production READY confirmed for `0831e647e511e347e5fcf75e4d2045b5706651cc`; CI and deployment readiness are distinct from a manually authenticated acceptance test.
+
+## Closure decision and evidence limits
+
+- Decision: **Closed by project-owner approval on 2026-10-24** ("ผ่านปิดงานได้"). The approved scope covers UX-01 through UX-05 delivery.
+- Verified evidence: implementation PR #697-#702 merged with green CI; Vercel production deployment for PR #702 was READY at verification time; release documentation PR #703 merged with green CI.
+- Independent evidence not archived: signed-in manual visual checks on desktop, tablet and mobile; end-to-end create/edit/review/publish/schedule/delete/recovery using disposable production content; production RBAC roles and media upload limits.
+- The owner acceptance is a closure decision, **not a claim that the assistant executed or witnessed the unrecorded authenticated manual tests**.
+- Any later production defects or additional verification requirements should be tracked separately as new issues rather than silently reopening this completed workstream.
