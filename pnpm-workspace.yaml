@@ -15,7 +15,7 @@ overrides:
   "js-yaml@>=4.0.0 <4.3.2": 4.3.2
   "nanoid@<3.3.17": 3.3.18
   "sharp@<0.35.5": 0.35.5
-  "undici@>=7.0.0 <7.29.1": 7.29.1
+  "undici@>=7.0.0 <7.30.1": 7.30.1
   "zod@>=4.0.0 <4.6.6": 4.6.7
 patchedDependencies:
   "@mui/material@>=9.4.0 <9.6.0": patches/@mui__material@9.4.0.patch
