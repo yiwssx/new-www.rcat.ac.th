@@ -54,6 +54,14 @@ describe("workflow inventory governance", () => {
     }
   });
 
+  it("keeps all routine and protected jobs on the moving ubuntu-latest label", () => {
+    for (const name of workflowFiles.filter((file) => file !== "ubuntu26-compatibility-canary.yml")) {
+      const labels = [...readWorkflow(name).matchAll(/^\s*runs-on:\s*([^\s#]+)/gm)].map((match) => match[1]);
+      expect(labels.length, name).toBeGreaterThan(0);
+      expect(labels, name).toEqual(Array.from({ length: labels.length }, () => "ubuntu-latest"));
+    }
+  });
+
   it("keeps the Ubuntu 26 canary unprivileged and isolated from production", () => {
     // ASVS 15.2.5: keep compatibility execution isolated from production authority.
     const canary = readWorkflow("ubuntu26-compatibility-canary.yml");
