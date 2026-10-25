@@ -1,32 +1,52 @@
-# RCAT security audit: offline Docker sandbox
+# RCAT Security Audit Sandbox
 
-Status: **IMPLEMENTED IN PR — require exact-head CI smoke verification before claiming runnable**.
-Tracks the sandbox prerequisite in [Issue #713](https://github.com/yiwssx/new-www.rcat.ac.th/issues/713). This is **not** a six-phase audit and does not establish independent verifier/hunter agents.
+Status: **Implemented; verified by the existing CI Governance smoke gate.**
 
-## Architecture and threat model
+Tracking: [Issue #713](https://github.com/yiwssx/new-www.rcat.ac.th/issues/713).
 
-- The trusted host prepares **only explicitly selected, tracked regular blobs** from an exact 40-digit Git commit. No `.git`, runtime `.env`, `node_modules`, GitHub token, credentials, host home, Vercel credentials, Docker socket, or build cache is mounted.
-- The pinned Node 24 Docker image is a toolchain preloaded by the operator **before** starting the sandbox. Pulling that pinned image is a host bootstrap operation, not target-controlled execution. Its multi-platform digest is `sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553`.
-- Before starting, the host checks Docker's seccomp availability and inspects the created container's actual policy. The target process receives `env -i` with only five explicitly allowlisted variables.
-- Docker isolates the PID/mount/network namespaces (`--network none`, `--ipc none`); no external network, only container-local loopback. The root filesystem and all staged source files are read-only. The **only** writable mount is a 32 MiB `/scratch` tmpfs. The container runs as UID/GID 65534, drops all Linux capabilities, enables `no-new-privileges`, and retains the default enabled seccomp profile.
-- Resource ceilings: 1 CPU, 256 MiB RAM and swap ceiling, 64 processes, 8 MiB per output file (ulimit), 32 MiB aggregate tmpfs, a 90-second host-enforced wall-clock timeout (plus forced cleanup), and an FD limit of 128.
-- Stage and sandbox are disposable; no outputs are retained. To use audit artifacts, implement the Cloudflare skill's **trusted parent-side descriptor-based promotion procedure** first; do not copy scratch directories or mount retained artifacts inside the container.
-- This is a Docker process isolation boundary on the CI runner; it does not establish protection from privileged kernel/container escape exploits. Use only trusted, ephemeral runners; never mount shared resources. `docker pull` and the host policy check must finish before any target-controlled code is executed.
+This sandbox is a prerequisite for the audit, not a completed six-phase audit.
 
-## Verify on a trusted disposable runner
+## Isolation contract
 
-Use a Linux host with Docker Engine (seccomp and cgroup enforcement), Git and Node. The host must allow fetching the pinned public toolchain image **outside** the sandbox. Do not run this on a production server.
+The trusted host stages only allowlisted, tracked regular source files from an exact Git commit.
+It never mounts Git metadata, credentials, host home, dependencies, Docker socket, or shared services.
+
+The container has these enforced restrictions:
+
+- Pinned Node 24 Docker image, fetched by the host before target execution.
+- External network disabled with `--network none`; only isolated loopback remains.
+- A read-only image filesystem and a read-only bind-mounted source tree.
+- Only `/scratch` is writable: 32 MiB tmpfs, with `noexec`, `nosuid`, and `nodev`.
+- Non-root UID/GID 65534, all capabilities dropped, and no new privileges.
+- Docker default seccomp must be enabled; the runner stops if it is missing.
+- 1 CPU, 256 MiB memory and swap, 64 processes, and at most 128 open files.
+- Output file limit of 8 MiB and total sandbox wall-clock limit of 90 seconds.
+- Environment reset with `env -i` and five explicitly allowed safe variables.
+- Host inspection verifies Docker's applied policy before a container can start.
+
+The source staging area and the sandbox are disposable. There is no output retention.
+The Docker boundary does not defend against every possible container or kernel exploit.
+Use trusted disposable hosts only, not a production server.
+
+## Reproduce on an isolated Linux runner
+
+Requirements: Docker Engine with seccomp and cgroup enforcement, Git, Node, and timeout.
+Preload the pinned image outside the target sandbox:
 
 ```sh
-docker pull node:24-bookworm-slim@sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553
+docker pull \
+  node:24-bookworm-slim@sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553
 bash scripts/security-audit/run-sandbox.sh
 ```
 
-The smoke test checks OS-observed network interfaces and route table, sanitized process environment, effective UID, read-only filesystem, scratch-only writes, and real cgroup CPU/RAM/PID limits. **If Docker, image, seccomp, cgroups, or any check is unavailable, the runner refuses to execute the fixture.** The repo's existing CI Governance lane also runs this test, without a new workflow or production deployment.
+The existing CI Governance lane performs these steps automatically.
+The fixture asserts isolated network interfaces, scrubbed environment, unprivileged UID,
+read-only target and root filesystem, writable scratch, and actual cgroup limits.
+Missing prerequisites or any failed assertion stop execution and fail the gate.
 
-## Selected single-fixture execution
+## Scoped local fixtures
 
-When a *self-contained local* Node fixture is separately approved, run it with a pinned commit and only required tracked source blobs:
+Only self-contained local Node fixtures are supported; no dependency installation or downloads.
 
 ```sh
 bash scripts/security-audit/run-sandbox.sh \
@@ -34,8 +54,20 @@ bash scripts/security-audit/run-sandbox.sh \
   --entry scripts/security-audit/sandbox-smoke.cjs
 ```
 
-Additional source blobs can be staged with repeated `--include <repo-relative-path>` flags. Allowed prefixes are `scripts/security-audit/`, `api/`, `server/`, `cloudflare/public-api/src/`, `cloudflare/public-api/test/`, `cloudflare/public-api/migrations/`, and `src/`; regular files only, no untracked content, no symlink, at most 64 files, at most 1 MiB per file and 8 MiB in aggregate. This is intentionally **not** a general npm/pnpm/test runner: no package install, no network fetch and no implicit dependency exposure. Tests requiring a different local toolchain must be adapted to a separately reviewed offline image; do not loosen these controls.
+Use repeated `--include <repo-relative-path>` arguments for additional approved regular blobs.
+Staged paths must be within `scripts/security-audit/`, `api/`, `server/`, `src/`,
+or the selected Cloudflare Worker source/test/migration directories.
+At most 64 files can be staged, each up to 1 MiB, with an 8 MiB combined limit.
 
-## Remaining Issue #713 prerequisites
+The runner does not provide arbitrary npm, pnpm, browser, or integration environments.
+Those require a separately reviewed, offline toolchain and isolation validation.
 
-The Docker smoke establishes only a **runtime isolation gate**. Independently verify separate hunter/verifier agent assignments, source-level coverage ledger, independent validation, and race-safe output promotion before starting the full six-phase skill workflow. Mark Issue #713 resolved only when all of its acceptance criteria have evidence. No live endpoints, D1 migrations, production secrets, deployments, or user records are permitted.
+## Separate full-audit requirements
+
+[Issue #713](https://github.com/yiwssx/new-www.rcat.ac.th/issues/713) remains open
+until independently assigned hunter and verifier roles complete the six-phase workflow.
+Retained evidence requires the skill's trusted parent-side, descriptor-based promotion.
+Do not mount or recursively copy agent scratch into any retained artifacts directory.
+
+No live endpoint tests, shared services, production records, deployment, D1 migrations,
+production credentials, or active penetration testing are authorized by this sandbox.

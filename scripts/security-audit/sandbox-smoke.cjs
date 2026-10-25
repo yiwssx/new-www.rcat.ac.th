@@ -44,4 +44,4 @@ if (v2) {
   assert(quota > 0 && period > 0 && quota / period <= 1, "CPU quota missing");
 }
 
-console.log("PASS: offline, scrubbed environment, unprivileged, read-only target, scratch-only writes, enforced cgroups");
+console.log("PASS: offline, unprivileged, read-only target, scrubbed environment and cgroup limits");
