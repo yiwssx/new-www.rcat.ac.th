@@ -25,7 +25,7 @@ jobs:
   monitor:
     name: Registry and Security Audit Monitor
     if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.operation == 'monitor') }}
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-project
@@ -35,7 +35,7 @@ jobs:
   snapshot-repair:
     name: Snapshot Repair
     if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.operation == 'snapshot-repair' }}
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-latest
     permissions:
       actions: write
       contents: write

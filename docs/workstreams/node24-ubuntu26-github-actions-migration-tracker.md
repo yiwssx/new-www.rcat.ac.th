@@ -1,15 +1,20 @@
-# Node.js 24 LTS and Ubuntu 26.04 migration
+# Node.js 24 LTS and Ubuntu 26.04 compatibility migration
 
-**Status:** ACTIVE (planning and evidence gathering)
+**Status:** ACTIVE (Ubuntu 26 compatibility; restore floating runner policy)
 **Priority:** P0 (shared CI/CD infrastructure)
 **Updated:** 2026-10-26 (Asia/Bangkok)
 **Issue:** [#717](https://github.com/yiwssx/new-www.rcat.ac.th/issues/717)
 **Planning PR:** [#718](https://github.com/yiwssx/new-www.rcat.ac.th/pull/718)
 **Baseline main:** `6ff069420b56977b1b189f7a54aa8dbdc701f25b`
 
+> **Authoritative scope correction, 2026-10-26:** Keep all 36 normal jobs on `ubuntu-latest`;
+> keep only the three isolated Ubuntu 26 canary jobs explicitly on `ubuntu-26.04`.
+> Prior text describing a target of 39/39 explicitly pinned jobs or moving 19 protected jobs
+> is superseded historical evidence, not a current instruction. PR #723 was closed unmerged.
+
 ## Objective
 
-Move every active GitHub-hosted Ubuntu Actions job to explicit `ubuntu-26.04`.
+Keep regular CI, maintenance, verification, and protected operations on `ubuntu-latest`, and verify they work when GitHub moves that label to Ubuntu 26.04. Use explicit `ubuntu-26.04` only for the isolated compatibility canary.
 Track the latest secure Node.js 24 release without hardcoding minor/patch in `.node-version` (PR #720).
 Keep Vercel Node `24.x` and pnpm major 10. pnpm remains exact `10.34.5` until the separate centralization task.
 Preserve all required quality checks, production approvals, security isolation, and rollback paths.
@@ -59,9 +64,9 @@ Each task requires an exact SHA, PR, relevant Actions run IDs, pass/fail evidenc
 - [ ] **M26-04:** Validate frozen installs, client/SSR builds, tests, and native packages.
 - [ ] **M26-05:** Validate Playwright Chromium installation, functional E2E, and safe smoke tests.
 - [ ] **M26-06:** Validate Docker seccomp, offline sandbox, CodeQL, and audit preflight.
-- [ ] **M26-07:** Move unprivileged CI, dependency, maintenance, and security jobs.
-- [ ] **M26-08:** Move read-only production verification jobs and exact-SHA gates.
-- [ ] **M26-09:** Move protected Worker, D1, image Worker, and Apps Script operations safely.
+- [ ] **M26-07:** Restore `ubuntu-latest` for the 15 routine jobs mistakenly pinned by #722; verify quality/CodeQL and Ubuntu 26 canary.
+- [ ] **M26-08:** Verify read-only Production Verification on moving `ubuntu-latest`; preserve exact-SHA gates.
+- [ ] **M26-09:** Verify protected Worker, D1, image Worker, and Apps Script compatibility without changing their `ubuntu-latest` runner labels or dispatching live operations.
 - [ ] **M26-10:** Verify all cross-workstream checks, Renovate, Vercel, and deployment gates.
 - [ ] **M26-11:** Validate documented temporary runner-label rollback and incident response.
 - [ ] **M26-12:** Audit every job on main and close the issue only with verified evidence.
@@ -75,9 +80,9 @@ No task is DONE merely because a branch passes checks.
 - **PR-00:** Tracker documentation only; PR #718.
 - **PR-01:** Manual, read-only Ubuntu 26 compatibility canary.
 - **PR-02:** Independent Node.js 24 patch update.
-- **PR-03:** Core CI and unprivileged workflow migration.
-- **PR-04:** Read-only production verification migration.
-- **PR-05:** Protected workflow definitions after safe preflight evidence.
+- **PR-03:** Restore floating `ubuntu-latest` on 15 routine jobs; preserve explicit Ubuntu 26 canary.
+- **PR-04:** Validate read-only production verification compatibility on GitHub-managed `ubuntu-latest`.
+- **PR-05:** Validate protected workflow definitions and approved read-only preflight without pinning Ubuntu.
 - **PR-06:** Final coverage audit, runbooks, and tracker closure.
 
 ## Safety and acceptance criteria
@@ -188,3 +193,14 @@ Main `9d1595fcf8c67031b72bcfc35296baea847200ed` CI/quality and CodeQL passed, bu
 A separate fix deduplicates IDs, explicitly matches the requested completed conclusion, and treats only DELETE 404 for an enumerated retention target as already absent. Other API errors, including enumeration 404 and deletion 403, remain fatal. Retention windows, protected/current/recent/successful run preservation, workflow triggers and token permissions are unchanged.
 Four regression tests use a loopback HTTP fixture and fake token only; they verify overlapping pages, protected record preservation, idempotent disappearance, authorization/enumeration failures and dry-run non-mutation. The existing CI Unit lane now runs these Node tests explicitly.
 Require exact-head CI/CodeQL and successful current-main history maintenance before proceeding with operations runner integration. Preserve the failed old run as diagnostic evidence; do not count it as PASS or weaken the gate.
+
+## Corrected Ubuntu runner policy — 2026-10-26
+
+- Requested outcome: GitHub-managed `ubuntu-latest` for all 36 routine and protected jobs; automatic compatibility with Ubuntu 26.04 during GitHub's 2026-10-19 to 2026-11-19 rollout.
+- Keep the three manual, unprivileged `ubuntu26-compatibility-canary.yml` jobs explicitly on `ubuntu-26.04` for deterministic pre-migration testing. The canary must not deploy or access production.
+- PR #722 already pinned 15 normal jobs in main; restore those labels to `ubuntu-latest` through a narrow, CI/CodeQL-verified corrective PR. No code behavior, triggers, approval rules, token permissions or release commands should change.
+- PR #723 (19 more explicit runner pins) was closed **without merging** because it contradicts the clarified objective. The other 21 normal jobs already use `ubuntu-latest`, so do not migrate their labels.
+- PR #724 maintenance idempotency fix is merged and current-main CI, CodeQL and Maintenance & Recovery succeeded. Preserve that regression fix.
+- Acceptance requires successful real Ubuntu 26 canary native install/build, Playwright, offline Docker/seccomp and security preflight; current-main required `quality` and CodeQL; and representative `ubuntu-latest` ImageOS/ImageVersion evidence after GitHub retargets the label.
+- Do not claim uninvoked, protected production preflight is PASS. Do not trigger Worker/App Script production deploy, D1 write, rollback or credentials mutation. The `ubuntu-24.04` label is only a documented temporary emergency fallback while supported.
+- Node.js 24 major-only PR #720 and pnpm major 10 policy are separate workstreams; they do not authorize pinning OS runners.

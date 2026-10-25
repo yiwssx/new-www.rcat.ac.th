@@ -20,7 +20,7 @@ permissions:
 jobs:
   dependency-preflight:
     name: Dependency Preflight
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v7
@@ -32,7 +32,7 @@ jobs:
   dependencies:
     name: Dependencies
     needs: dependency-preflight
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v7
@@ -45,7 +45,7 @@ jobs:
   static-quality:
     name: Static Quality
     needs: dependency-preflight
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v7
@@ -56,7 +56,7 @@ jobs:
   unit:
     name: Unit Tests
     needs: dependency-preflight
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v7
@@ -79,7 +79,7 @@ jobs:
   integration:
     name: Integration Tests
     needs: dependency-preflight
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v7
@@ -89,7 +89,7 @@ jobs:
   build:
     name: Build
     needs: dependency-preflight
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v7
@@ -99,7 +99,7 @@ jobs:
   governance:
     name: Governance
     needs: dependency-preflight
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v7
@@ -130,7 +130,7 @@ jobs:
   worker:
     name: Worker
     needs: dependency-preflight
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v7
@@ -142,7 +142,7 @@ jobs:
   functional:
     name: Functional E2E
     needs: dependency-preflight
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v7
@@ -166,7 +166,7 @@ jobs:
       - governance
       - worker
       - functional
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Verify all CI lanes passed

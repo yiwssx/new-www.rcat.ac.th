@@ -50,7 +50,7 @@ jobs:
   history-cleanup:
     name: Maintain Deployment and Actions History
     if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.operation == 'history-cleanup') }}
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-latest
     permissions:
       actions: write
       contents: read
@@ -78,7 +78,7 @@ jobs:
       (github.event_name == 'push' ||
        github.event_name == 'schedule' ||
        (github.event_name == 'workflow_dispatch' && inputs.operation == 'cache-cleanup'))
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-latest
     permissions:
       actions: write
       contents: read
