@@ -114,6 +114,10 @@ jobs:
       - run: node scripts/check-p5f-security-boundary.mjs
       - run: node scripts/check-p5g-apps-script-release-governance.mjs
       - run: node scripts/check-p5h-maintainability-observability.mjs
+      - name: Preload pinned offline security audit toolchain
+        run: docker pull node:24-bookworm-slim@sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553
+      - name: Verify security audit sandbox isolation
+        run: bash scripts/security-audit/run-sandbox.sh
 
   worker:
     name: Worker
