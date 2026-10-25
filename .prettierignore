@@ -22,3 +22,4 @@ pnpm-lock.yaml
 .agents/skills/vitest/**
 .agents/skills/security-guidance/**
 .agents/skills/frontend-accessibility-best-practices/**
+.agents/skills/security-audit/**

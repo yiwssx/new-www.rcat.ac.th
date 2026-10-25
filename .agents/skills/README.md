@@ -16,7 +16,20 @@ release, or production constraints.
 | `vite` | `antfu/skills` | `e53a142a2420e8cd812cfe9ed0484ab01bc856aa` |
 | `vitest` | `antfu/skills` | `e53a142a2420e8cd812cfe9ed0484ab01bc856aa` |
 | `security-guidance` | `OWASP/secure-agent-playbook` | `1b5fd4cff76075feb56d61ee2985e82516f8c53b` |
+| `security-audit` | `cloudflare/security-audit-skill` | `c1c8a8c1471069fb0e188eeaff69b8e8db6564a8` |
 | `frontend-accessibility-best-practices` | `sergiodxa/agent-skills` | `40e21b46189d5c7de6610b68a25280af863f8775` |
+
+## Cloudflare security audit operation
+
+The `security-audit` skill is vendored byte-for-byte from the pinned upstream `skills/security-audit/` directory, including companion guidance, the JSON report schema, coverage/findings validators, and their self-tests. The upstream MIT `LICENSE` is copied into the skill directory.
+
+**Mode selection:** `security-guidance` applies OWASP ASVS during security-sensitive implementation. `security-audit` performs source-first, evidence-based review when requested. Ordinary code changes and PRs do **not** trigger a full six-phase audit. Use a bounded `quick` scoped pilot first for Admin auth/session/MFA, Worker RBAC/D1, and the Vercel↔Worker trust boundary. Record source commit and excluded paths; do not present scoped coverage as repository-wide assurance.
+
+**Isolation:** Run the full audit only with independent sub-agents and an OS-enforced, no-external-network, resource-limited sandbox for executing target code. Without these controls, do not execute the target: retain the unresolved step as `needs_validation`. Do not scan the live website or Cloudflare/Vercel control planes. Keep unremediated vulnerability details out of public issues, PR descriptions, reports, workflow logs, and committed trackers; use `SECURITY.md` for private reporting.
+
+**Workflow separation:** This skill is not installed as a GitHub Action and does not replace CodeQL, dependency scanning, OWASP guidance, CI quality checks, or existing production security verification. Remediation belongs in separate minimal PRs with regression tests and existing CI gates. Do not modify production systems or launch protected operations from this skill alone.
+
+**Validator self-tests** (safe to run locally against the vendored code, without executing the application): `node --test .agents/skills/security-audit/validate-coverage-ledger.test.cjs .agents/skills/security-audit/validate-findings.test.cjs`.
 
 ## Wave B RCAT-owned skills
 

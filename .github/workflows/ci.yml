@@ -62,6 +62,8 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-project
       - run: pnpm test:unit
+      - name: Verify vendored Cloudflare security audit validators with Node test runner
+        run: node --test .agents/skills/security-audit/validate-coverage-ledger.test.cjs .agents/skills/security-audit/validate-findings.test.cjs
       - name: Enforce critical coverage thresholds
         run: >-
           node scripts/run-vitest.mjs run
