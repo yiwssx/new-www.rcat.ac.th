@@ -27,7 +27,7 @@ Use `ubuntu-24.04` only as a temporary fallback while GitHub supports it.
 - CI has ten Ubuntu jobs, including aggregate required check `quality`.
 - CI runs native dependency installation, Vite builds, Playwright, Wrangler, and Docker security checks.
 - The migration inventory includes eleven active `ubuntu-latest` workflow files.
-- PR #719 has partial Ubuntu 26 evidence; its initial runtime lane failed the workflow inventory contract.
+- PR #719 repair head `8aeb1e234c4f79f8de10451ddd3dcce42e1b932e` passed all 16 checks, including all three Ubuntu 26 canary lanes.
 - The baseline above describes main; branch-only validation does not prove a production rollout.
 
 ## Workflow inventory
@@ -54,7 +54,7 @@ Each task requires an exact SHA, PR, relevant Actions run IDs, pass/fail evidenc
 
 - [ ] **M26-00:** Inventory all jobs, runner labels, dependency versions, and production controls.
 - [ ] **M26-01:** Assess Ubuntu 26 breaking changes and assign failure risks.
-- [ ] **M26-02 (IN_PROGRESS):** PR #719 adds the unprivileged canary. Inventory and toolchain checks repaired at `8aeb1e234c4f79f8de10451ddd3dcce42e1b932e`; exact-head CI, CodeQL and all three canary lanes required before merge.
+- [ ] **M26-02 (IN_PROGRESS; PR VERIFIED):** PR #719 head `8aeb1e234c4f79f8de10451ddd3dcce42e1b932e` passed all 16 checks, including quality, CodeQL and all three canary lanes. Branch validation is complete; merge and main verification remain pending.
 - [ ] **M26-03 (IN_PROGRESS):** Track the latest secure Node 24 patch without hardcoding; preserve pnpm 10.34.5. PR #720 head `42fa19fbd26806a0db694e6bac3d4d68c858348e` passed all 13 CI/CodeQL checks; draft and unmerged. No repeated implementation needed.
 - [ ] **M26-04:** Validate frozen installs, client/SSR builds, tests, and native packages.
 - [ ] **M26-05:** Validate Playwright Chromium installation, functional E2E, and safe smoke tests.
@@ -109,7 +109,22 @@ No task is DONE merely because a branch passes checks.
 - Local verification: repository lockfile Prettier `3.9.10` formatted both changed files; focused Vitest `5.0.5` passed 4 tests against the branch's 12 workflows; shell toolchain matrix passed 7/7 (exact pin, major marker, wrong patch/major, prerelease, pnpm mismatch, shell data).
 - New exact-head [CI #40232576286](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40232576286) and [Ubuntu 26 canary #40232576275](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40232576275) are IN_PROGRESS at checkpoint. CodeQL must also be confirmed at this repair SHA before any merge.
 - Safety: no merge to main, production deployment, protected operation, secrets change or security-gate bypass. ASVS 1.2.5 comparison avoids evaluating version data; ASVS 15.2.5 production-isolation assertions preserve the canary boundary.
-- Next: verify these existing runs and CodeQL on the exact PR #719 repair SHA; fix any failure, then report before the next migration step. Do not start pnpm centralization or runner migrations while this checkpoint is pending.
+- This waiting checkpoint is superseded by the verified results below.
+
+## Verified canary checkpoint — 2026-10-26
+
+- Owner: `yiwssx`; PR #719 repair head: `8aeb1e234c4f79f8de10451ddd3dcce42e1b932e`. All **16/16 checks SUCCESS**; no rerun or duplicate dispatch needed.
+- [CI #40232576286](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40232576286): all lanes and aggregate `quality` SUCCESS.
+- [CodeQL #40232573819](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40232573819): Actions and JavaScript/TypeScript analyses SUCCESS. CodeQL result [121287376691](https://github.com/yiwssx/new-www.rcat.ac.th/runs/121287376691) is now SUCCESS with no new alerts; earlier NEUTRAL state was interim.
+- [Ubuntu 26 canary #40232576275](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40232576275): runtime, browser and offline security all SUCCESS. Required functional steps were individually verified; none were skipped.
+- [Runtime/build job](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40232576275/job/121287245751): `ID=ubuntu VERSION_ID=26.04`, `ImageOS=ubuntu26`, environment `ImageVersion=20261023.163.3`; Node `v24.20.0`, pnpm `10.34.5`. Frozen strict-peer install, dependency checks, formatting, lint, 2,752 unit tests, 20 integration tests, client/SSR builds, Worker typecheck and deploy dry-run passed.
+- [Browser job](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40232576275/job/121287245801): Chromium installation with system dependencies and production test discovery passed without production access; **149 local functional tests passed**.
+- [Security job](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40232576275/job/121287245563): Docker built-in seccomp confirmed; pinned image, disposable offline sandbox and quick/standard preflight all passed.
+- OS comparison: [main build job](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40191986494/job/121164812362) used `ubuntu-24.04` image `20261012.334.1` with the same Node `v24.20.0`, pnpm `10.34.5` and frozen strict-peer install. This preserves the OS-only comparison before PR #720 changes Node selection. Runner setup headers and environment image metadata are recorded as emitted, not assumed identical across jobs.
+- PR #720 remains draft/unmerged at `42fa19fbd26806a0db694e6bac3d4d68c858348e`, all 13 checks still SUCCESS. No repeated Node repair.
+- PR #718 head before this update: `fc30c5130d0cb391318ac3e936180b627c6951ed`; [CI #40232650718](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40232650718) had Functional E2E pending when first checked; CodeQL and other completed lanes passed. This documentation update requires checks on its new exact head.
+- Main remains `6ff069420b56977b1b189f7a54aa8dbdc701f25b`. All three PRs remain unmerged; production runtime/settings, protected workflows and security gates unchanged.
+- Next: verify fresh PR #718 documentation checks, review merge/deployment boundaries, then integrate tracker and canary through normal gates and validate main. Report this verified checkpoint before starting pnpm centralization or migrating additional runner labels. M26-00/01 and main/production acceptance remain open; this is not full migration completion.
 
 ## pnpm follow-up decision
 
