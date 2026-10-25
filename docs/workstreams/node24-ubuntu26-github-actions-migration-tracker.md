@@ -204,3 +204,11 @@ Require exact-head CI/CodeQL and successful current-main history maintenance bef
 - Acceptance requires successful real Ubuntu 26 canary native install/build, Playwright, offline Docker/seccomp and security preflight; current-main required `quality` and CodeQL; and representative `ubuntu-latest` ImageOS/ImageVersion evidence after GitHub retargets the label.
 - Do not claim uninvoked, protected production preflight is PASS. Do not trigger Worker/App Script production deploy, D1 write, rollback or credentials mutation. The `ubuntu-24.04` label is only a documented temporary emergency fallback while supported.
 - Node.js 24 major-only PR #720 and pnpm major 10 policy are separate workstreams; they do not authorize pinning OS runners.
+
+## Current-main acceptance checkpoint — 2026-10-26
+
+Main `c24a870b99d17631412ec42f0636dff274ecd855` has 36 jobs using `ubuntu-latest` and three isolated Ubuntu 26 canary jobs. No unexpected runner label remains.
+
+Main [CI](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40244603801), [CodeQL](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40244603700) and [Maintenance](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40244603886) passed. The [read-only browser QA](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40244931246) passed, but five other conditional jobs were skipped.
+
+The [Ubuntu 26 canary](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40236112636) passed on merged PR #719. Actual `ubuntu-latest` main runner logs still show Ubuntu 24.04.5. Main canary recheck, Ubuntu 26 floating-runner evidence and approved protected preflights remain open. Node/pnpm changes are separate and not authorized for production.
