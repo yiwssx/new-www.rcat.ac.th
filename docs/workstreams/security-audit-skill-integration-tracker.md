@@ -1,6 +1,6 @@
 # Cloudflare Security Audit Skill Integration
 
-Status: **ACTIVE — INTEGRATION PR PENDING CI**
+Status: **ACTIVE — PR #711 OPEN, CI IN PROGRESS**
 
 Updated: 2026-10-25 (Asia/Bangkok)
 
@@ -9,6 +9,8 @@ Repository: `yiwssx/new-www.rcat.ac.th`
 Baseline: `main` (verify live state before merge)
 
 Integration branch: `chore/security-audit-skill`
+
+Integration PR: [#711](https://github.com/yiwssx/new-www.rcat.ac.th/pull/711) (open)
 
 Upstream: `cloudflare/security-audit-skill@c1c8a8c1471069fb0e188eeaff69b8e8db6564a8` (MIT)
 
@@ -30,7 +32,7 @@ Vendor the complete pinned Cloudflare Security Audit Agent Skill into existing R
 - [x] Review current `main` repository skills, CI, security and production boundaries.
 - [x] Select and verify exact upstream commit, source file SHA equality and MIT license.
 - [x] Prepare integration documentation and skill registration.
-- [ ] Open an integration PR to `main` and record the exact PR and head SHA.
+- [x] Open an integration PR to `main` and record the exact PR and head SHA.
 - [ ] Verify vendored file inventory / SHA and Node validator self-tests where a safe runner is available.
 - [ ] Require current-head PR CI/governance green and approved protected-main merge.
 - [ ] Conduct a separate **read-only, scoped** Pilot Audit for Admin auth/session/MFA, Worker RBAC/D1, and Vercel-to-Worker trust boundaries. Select `quick` or `standard` profile only if proper independent-agent and sandbox execution is available; otherwise perform a labeled preliminary static review and retain unverified leads as `needs_validation`.
@@ -46,4 +48,4 @@ Vendor the complete pinned Cloudflare Security Audit Agent Skill into existing R
 
 ## Current checkpoint
 
-Pinned upstream skill source is prepared for a vendor-only integration PR. No audit outcome or vulnerability is asserted. CI/merge, sandboxed pilot audit, and private remediation review remain pending.
+PR #711 is open at initial head `f0ae5b10b9e2ab5610bf1f9dbf4d5e71578cff3d`; CI run [40151803054](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40151803054) was in progress at this checkpoint. All 20 upstream skill blob SHAs and the MIT license blob SHA matched their pinned source counterparts. No audit outcome or vulnerability is asserted. CI/merge, sandboxed pilot audit, and private remediation review remain pending.
