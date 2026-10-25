@@ -54,7 +54,7 @@ let s="";process.stdin.on("data",x=>s+=x).on("end",()=>{
 ' || die "Docker daemon seccomp policy not verified"
 
 stage="$(mktemp -d)" || die "cannot allocate disposable source stage"
-name="rcat-audit-$-$RANDOM"
+name="rcat-audit-${BASHPID}-${RANDOM}"
 cleanup() {
   docker rm --force "$name" >/dev/null 2>&1 || true
   rm -rf -- "$stage"
