@@ -120,6 +120,10 @@ jobs:
         run: docker pull node:24-bookworm-slim@sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553
       - name: Verify security audit sandbox isolation
         run: bash scripts/security-audit/run-sandbox.sh
+      - name: Verify offline security preflight profiles
+        run: |
+          bash scripts/security-audit/run-preflight.sh quick
+          bash scripts/security-audit/run-preflight.sh standard
 
   worker:
     name: Worker
