@@ -19,6 +19,7 @@ const expectedWorkflows = [
   "maintenance-recovery.yml",
   "production-data-operations.yml",
   "production-verification.yml",
+  "security-audit-preflight.yml",
   "worker-production-rollback.yml",
   "worker-production.yml"
 ].sort();
@@ -26,7 +27,7 @@ const expectedWorkflows = [
 describe("workflow inventory governance", () => {
   it("keeps the active workflow surface intentionally bounded", () => {
     expect(workflowFiles).toEqual(expectedWorkflows);
-    expect(workflowFiles).toHaveLength(10);
+    expect(workflowFiles).toHaveLength(11);
   });
 
   it("does not restore retired branch-mutating, phase-specific, or duplicate workflows", () => {
@@ -59,6 +60,12 @@ describe("workflow inventory governance", () => {
     expect(readWorkflow("production-verification.yml")).toContain("name: Production Verification");
     expect(readWorkflow("production-data-operations.yml")).toContain("name: Production Data Operations");
     expect(readWorkflow("maintenance-recovery.yml")).toContain("name: Maintenance & Recovery");
+    const auditPreflight = readWorkflow("security-audit-preflight.yml");
+    expect(auditPreflight).toContain("name: Security Audit Preflight");
+    expect(auditPreflight).toContain("workflow_dispatch:");
+    expect(auditPreflight).toContain("permissions:\n  contents: read");
+    expect(auditPreflight).not.toContain("pull_request:");
+    expect(auditPreflight).not.toContain("  push:");
     expect(readWorkflow("worker-production.yml")).toContain("name: Deploy / Worker");
     expect(readWorkflow("apps-script-production-release.yml")).toContain("name: Deploy / Apps Script");
   });
