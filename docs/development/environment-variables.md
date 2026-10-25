@@ -21,7 +21,7 @@ This is operator-attested production evidence, recorded in `docs/operations/envi
 
 ## Vercel Build Toolchain
 
-The repository contract is Node `24.x` and pnpm `10.34.5`. The local `.node-version` pin uses Node `24.20.0`, while CI and `engines.node` accept the current Node 24 release line. Vercel uses `engines.node` for Node selection. To make Vercel honor the exact `packageManager` pin through Corepack, configure the non-secret build variable `ENABLE_EXPERIMENTAL_COREPACK=1`; do not replace the frozen-lockfile install with a permissive install command.
+The repository contract is Node `24.x` and pnpm `10.34.5`. The `.node-version` file tracks Node major `24` without hard-coding a patch. The shared GitHub Actions setup uses `check-latest: true` to resolve the newest available Node 24 release. Vercel uses `engines.node` for Node selection. To make Vercel honor the exact `packageManager` pin through Corepack, configure the non-secret build variable `ENABLE_EXPERIMENTAL_COREPACK=1`; do not replace the frozen-lockfile install with a permissive install command.
 
 ## Public Frontend Variables
 
