@@ -200,6 +200,7 @@ the current repository state as authoritative when generic guidance conflicts.
   handling, environment behavior, Rolldown migration concerns, and bundling.
 - `vitest`: use for Vitest configuration, mocking, environments, coverage,
   concurrency, fixtures, and test isolation.
+- `security-audit`: use for explicitly requested security audits, penetration-test planning, security vulnerability investigations, and focused trust-boundary reviews. Use guidance mode for ordinary security questions; the full six-phase audit requires an explicit audit request, isolated agents, and an OS-enforced no-network target sandbox. Do not probe live services, use production credentials, write public vulnerability details, run disruptive tests, or modify target code during an audit. Report blocked proof as `needs_validation`; keep unremediated finding details private per `SECURITY.md`. Preserve existing CI, CodeQL, Renovate, security/reliability verification, and protected production gates. The skill does not authorize deployment or remediation by itself.
 - `security-guidance`: use automatically for work involving user input,
   authentication, authorization, persistence, network boundaries, file
   handling, cryptography, browser security, or other security-sensitive
