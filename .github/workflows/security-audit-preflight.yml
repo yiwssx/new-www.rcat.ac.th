@@ -23,7 +23,7 @@ concurrency:
 jobs:
   offline-preflight:
     name: Offline security preflight (no findings published)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     steps:
       - name: Require trusted main checkout

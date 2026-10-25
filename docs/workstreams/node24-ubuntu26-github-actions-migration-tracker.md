@@ -136,3 +136,48 @@ PENDING; no implementation yet. Keep `packageManager` exact for Corepack/Vercel,
 - [GitHub runner-images migration](https://github.com/actions/runner-images/issues/14748)
 - [Node.js security releases](https://nodejs.org/en/blog/vulnerability/october-2026-security-releases)
 - [Vercel Node.js support](https://vercel.com/docs/functions/runtimes/node-js/node-js-versions)
+
+## Continuous execution checkpoint — core runner migration
+
+The user authorized continuous execution across CI waits on 2026-10-26. Production mutations still require separate approval.
+PR #718 is merged at `cd2fd5777f7facd519c7b9230a7bf63195291cbe`; its main CI #40234230710 and CodeQL #40234230868 passed.
+PR #719 was refreshed with that main baseline at `18db14f8adbecf218f2ffb1ad3ba132c2a670d98`; initial OS evidence remains separately recorded above.
+
+### Inventory and risks (M26-00 / M26-01)
+
+Owner: `yiwssx`. Inventory: 12 repository workflow files, 39 jobs; 36 originally floating Ubuntu jobs plus 3 explicit Ubuntu 26 canary jobs. CodeQL default setup is provider-managed and was independently checked; it is not a missing repository YAML file.
+
+| Workflow                       | Jobs | Production boundary                                                        |
+| ------------------------------ | ---: | -------------------------------------------------------------------------- |
+| CI                             |   10 | Build/test/dry-run only                                                    |
+| Dependency Monitor             |    2 | GitHub maintenance; no application deployment                              |
+| Maintenance & Recovery         |    3 | Two GitHub cleanup jobs; D1 drill stays protected                          |
+| Security Audit Preflight       |    1 | Manual offline sandbox                                                     |
+| Production Verification        |    6 | Read-only checks; protected manual D1 diagnostics                          |
+| Production Data Operations     |    6 | One tooling validation; five protected operations                          |
+| Worker release / rollback      |    3 | Manual protected preflight, release and rollback                           |
+| Apps Script release / rollback |    3 | Manual protected preflight, release and rollback                           |
+| Image Worker                   |    2 | **Push to its workflow file automatically deploys production; hold merge** |
+| Ubuntu 26 canary               |    3 | Unprivileged, no production credentials                                    |
+
+| Risk                                           | Validation / disposition                                                                                                                               |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Native esbuild/sharp/workerd and glibc/OpenSSL | Frozen strict-peer install, client/SSR/Worker dry-run passed in Ubuntu 26 canary; main core CI must independently pass                                 |
+| Chromium apt dependencies                      | `playwright install --with-deps chromium` and 149 local browser tests passed                                                                           |
+| Docker/seccomp/isolation                       | Pinned image and offline sandbox quick/standard profiles passed; keep all flags/limits unchanged                                                       |
+| Git/shell/Actions changes                      | Real canary checkout/setup/test jobs passed; preserve all permissions/triggers/concurrency                                                             |
+| Node version policy                            | #720 is separate; merging `.node-version` triggers Vercel because unknown root paths are conservatively runtime-impacting                              |
+| pnpm/Corepack                                  | Preserve exact packageManager metadata; centralization and constrained Renovate follow separately                                                      |
+| Protected operations                           | Runner definitions can be reviewed without executing a production release, rollback or data write; protected preflight is distinct acceptance evidence |
+
+### Core implementation (M26-07)
+
+Change only `runs-on` for 15 jobs: all 10 CI jobs, both dependency jobs, both unprotected maintenance jobs, and offline security preflight. Leave the protected D1 drill and all other production-adjacent runner definitions for separate scopes.
+Python YAML structural comparison against the branch baseline confirms every non-runner field is identical, including check names, quality dependencies, triggers, permissions, secret boundaries and approvals.
+Node #720 remains unmerged pending production authorization. This core lane deliberately retains the already-validated OS-only Node baseline, rather than allowing that approval boundary to block safe non-runtime implementation.
+
+### Rollback (M26-11 preparation)
+
+If Ubuntu 26 breaks a gate, stop downstream merges. Revert only affected runner labels to explicit `ubuntu-24.04` through a reviewed PR while that image is supported; require exact-head quality/CodeQL again. Do not fall back to floating `ubuntu-latest`.
+This runner rollback does not roll back Vercel, Worker, Apps Script or production data. Never dispatch deployment/data recovery as a compatibility test.
+Final protected preflight, all-job coverage and main CI evidence remain mandatory before M26-12 closure.
