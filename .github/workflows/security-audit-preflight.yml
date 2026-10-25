@@ -1,0 +1,62 @@
+name: Security Audit Preflight
+
+# Explicit, read-only source-control inventory. Not a six-phase agent audit.
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "Offline source-control inventory breadth (not a complete security audit)"
+        type: choice
+        required: true
+        default: quick
+        options:
+          - quick
+          - standard
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-audit-preflight-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  offline-preflight:
+    name: Offline security preflight (no findings published)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Require trusted main checkout
+        run: test "$GITHUB_REF" = "refs/heads/main"
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify exact checked-out commit
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain)"
+      - name: Preload pinned offline toolchain outside target sandbox
+        run: docker pull node:24-bookworm-slim@sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553
+      - name: Verify sandbox containment
+        run: bash scripts/security-audit/run-sandbox.sh
+      - name: Evaluate bounded source-control inventory
+        env:
+          AUDIT_PROFILE: ${{ inputs.profile }}
+        run: bash scripts/security-audit/run-preflight.sh "$AUDIT_PROFILE"
+      - name: Record safe completion status
+        if: always()
+        env:
+          AUDIT_PROFILE: ${{ inputs.profile }}
+        run: |
+          {
+            echo "## RCAT Security Audit Preflight"
+            echo
+            echo "- Source commit: \`$GITHUB_SHA\`"
+            echo "- Profile: \`$AUDIT_PROFILE\`"
+            echo "- Scope: bounded CMS/Admin control-presence inventory in offline Docker sandbox."
+            echo "- Public findings: none; this workflow does not classify vulnerabilities."
+            echo "- Full six-phase audit: **NOT PERFORMED**; independent agents and protected evidence workflow remain required."
+            echo "- Follow-up: issue #713."
+          } >> "$GITHUB_STEP_SUMMARY"
