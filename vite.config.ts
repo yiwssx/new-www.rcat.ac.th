@@ -146,13 +146,7 @@ export default defineConfig(({ command, mode, isSsrBuild }) => {
       globals: true,
       setupFiles: "./src/test/setup.ts",
       // Vendored Node.js test-runner suites are verified separately; they are not Vitest suites.
-      exclude: [
-        "tests/functional/**",
-        "node_modules/**",
-        "dist/**",
-        ".dependency-migration/**",
-        ".agents/skills/**"
-      ]
+      exclude: ["tests/functional/**", "node_modules/**", "dist/**", ".dependency-migration/**", ".agents/skills/**"]
     }
   };
 });
