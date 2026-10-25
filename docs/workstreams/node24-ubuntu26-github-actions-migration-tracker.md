@@ -54,7 +54,7 @@ Each task requires an exact SHA, PR, relevant Actions run IDs, pass/fail evidenc
 - [ ] **M26-00:** Inventory all jobs, runner labels, dependency versions, and production controls.
 - [ ] **M26-01:** Assess Ubuntu 26 breaking changes and assign failure risks.
 - [ ] **M26-02:** Introduce an isolated, manual, unprivileged Ubuntu 26 canary.
-- [ ] **M26-03:** Patch Node.js within major 24; preserve pnpm 10.34.5.
+- [ ] **M26-03 (IN_PROGRESS):** Track the latest secure Node 24 patch without hardcoding; preserve pnpm 10.34.5. Draft PR #720 fixes the dependency-validator runtime-major contract; exact-head CI is pending.
 - [ ] **M26-04:** Validate frozen installs, client/SSR builds, tests, and native packages.
 - [ ] **M26-05:** Validate Playwright Chromium installation, functional E2E, and safe smoke tests.
 - [ ] **M26-06:** Validate Docker seccomp, offline sandbox, CodeQL, and audit preflight.
@@ -96,7 +96,9 @@ All tasks are P0 and PENDING at this planning checkpoint.
 - 2026-10-25: [Issue #717](https://github.com/yiwssx/new-www.rcat.ac.th/issues/717) created.
 - 2026-10-25: Draft [PR #718](https://github.com/yiwssx/new-www.rcat.ac.th/pull/718) created.
 - 2026-10-25: Initial PR CI failed Markdown formatting only; functional jobs passed.
-- Next: pass the tracker PR checks, merge it, and start the manual canary.
+- 2026-10-26: PR #718 documentation CI #40194792143 passed. M26-02 Ubuntu canary PR #719 passed browser and Docker isolation lanes, but its first Node/build lane failed the strict workflow inventory count; fix independently before merge.
+- 2026-10-26: M26-03 Node policy PR #720 head `42fa19fbd26806a0db694e6bac3d4d68c858348e` resolves an exact-patch dependency validator mismatch. [CI #40231208358](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40231208358) was running when checked. Node major is `24`, pnpm remains `10.34.5`; no merge or production mutation.
+- Next: require PR #720 exact-head `quality` and CodeQL checks before merging; separately reconcile Ubuntu 26 canary workflow inventory.
 
 ## Official references
 
