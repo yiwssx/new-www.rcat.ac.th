@@ -8,6 +8,7 @@
 **Read-only baseline SHA:** `6ff069420b56977b1b189f7a54aa8dbdc701f25b` (recheck before each implementation PR)  
 **GitHub issue:** [#717](https://github.com/yiwssx/new-www.rcat.ac.th/issues/717)  
 **Tracker branch:** `docs/node24-ubuntu26-migration-tracker`  
+**Tracker draft PR:** [#718](https://github.com/yiwssx/new-www.rcat.ac.th/pull/718) (docs only; pending required checks)  
 **Migration execution:** NOT STARTED; no runner, application, production service, Node, pnpm, or CI configuration changes have been authorized by this planning-only PR
 
 ## Decision and objective
@@ -87,7 +88,7 @@ Order can be adjusted to reduce production exposure but no task may be marked DO
 
 - **2026-10-25 — BASELINE RECORDED:** 11 active workflow files using `ubuntu-latest`; baseline `main@6ff069420b56977b1b189f7a54aa8dbdc701f25b`; Vercel Production `dpl_Bx5GSyAKTf21KxiUcgQr73Q5qF3a` READY and logs show pnpm `10.34.5`; Node CI `24.20.0`, Vercel `24.x`.
 - **2026-10-25 — ISSUE CREATED:** [#717](https://github.com/yiwssx/new-www.rcat.ac.th/issues/717); phases M26-00 through M26-12 all **PENDING**.
-- **2026-10-25 — TRACKER PR:** Documentation-only draft in `docs/node24-ubuntu26-migration-tracker`; **no Ubuntu 26 migration tests run** and **no production changes**. PR number, exact SHA and CI evidence must be added after creation/verification.
+- **2026-10-25 — TRACKER PR:** Draft [#718](https://github.com/yiwssx/new-www.rcat.ac.th/pull/718) in `docs/node24-ubuntu26-migration-tracker`; original documentation commit `cae1b69be82b84a02e7643aea2150a3ca44a98df`, with initial CI run [#40193853094](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40193853094) queued when observed. **No Ubuntu 26 migration tests run** and **no production changes**. Recheck latest PR SHA and checks before merge.
 - **Open blockers:** Ubuntu 26 compatibility and rollback evidence not yet collected; protected path validation pending; main branch may advance independently.
 - **Next action:** Review/merge the documentation-only tracker PR after appropriate checks, then start M26-00 and M26-01 before a manual Ubuntu 26 compatibility canary.
 
