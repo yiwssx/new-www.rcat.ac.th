@@ -145,8 +145,15 @@ export default defineConfig(({ command, mode, isSsrBuild }) => {
       environment: "jsdom",
       globals: true,
       setupFiles: "./src/test/setup.ts",
-      // Vendored Node.js test-runner suites are verified separately; they are not Vitest suites.
-      exclude: ["tests/functional/**", "node_modules/**", "dist/**", ".dependency-migration/**", ".agents/skills/**"]
+      // Node.js test-runner suites are verified in dedicated CI steps, not by Vitest.
+      exclude: [
+        "tests/functional/**",
+        "node_modules/**",
+        "dist/**",
+        ".dependency-migration/**",
+        ".agents/skills/**",
+        "scripts/security-audit/*.test.cjs"
+      ]
     }
   };
 });
