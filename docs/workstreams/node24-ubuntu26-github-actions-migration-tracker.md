@@ -1,6 +1,6 @@
 # Node.js 24 LTS and Ubuntu 26.04 compatibility migration
 
-**Status:** ACTIVE (floating runner policy corrected; full migration acceptance pending)
+**Status:** ACTIVE (Ubuntu 26 compatibility; restore floating runner policy)
 **Priority:** P0 (shared CI/CD infrastructure)
 **Updated:** 2026-10-26 (Asia/Bangkok)
 **Issue:** [#717](https://github.com/yiwssx/new-www.rcat.ac.th/issues/717)
@@ -57,18 +57,18 @@ Recheck the live inventory before each PR to include newly added workflows.
 
 Each task requires an exact SHA, PR, relevant Actions run IDs, pass/fail evidence, and next action.
 
-- [x] **M26-00 (DONE):** Inventory 12 workflows / 39 jobs, runner labels, toolchain and production boundaries; revalidated on main `c24a870b`.
-- [x] **M26-01 (DONE):** Risk matrix and Ubuntu 24-versus-26 OS-only comparison are recorded below, with baseline Node/pnpm held constant.
-- [ ] **M26-02 (PR VERIFIED; MAIN RECHECK PENDING):** PR #719 merged as `f6ca11b8`. Final PR head `baf882a4` passed 16/16 checks, including canary, quality and CodeQL; no separate manual canary run on current main is verified.
+- [ ] **M26-00:** Inventory all jobs, runner labels, dependency versions, and production controls.
+- [ ] **M26-01:** Assess Ubuntu 26 breaking changes and assign failure risks.
+- [ ] **M26-02 (IN_PROGRESS; PR VERIFIED):** PR #719 head `8aeb1e234c4f79f8de10451ddd3dcce42e1b932e` passed all 16 checks, including quality, CodeQL and all three canary lanes. Branch validation is complete; merge and main verification remain pending.
 - [ ] **M26-03 (IN_PROGRESS):** Track the latest secure Node 24 patch without hardcoding; preserve pnpm 10.34.5. PR #720 head `42fa19fbd26806a0db694e6bac3d4d68c858348e` passed all 13 CI/CodeQL checks; draft and unmerged. No repeated implementation needed.
 - [ ] **M26-04:** Validate frozen installs, client/SSR builds, tests, and native packages.
 - [ ] **M26-05:** Validate Playwright Chromium installation, functional E2E, and safe smoke tests.
 - [ ] **M26-06:** Validate Docker seccomp, offline sandbox, CodeQL, and audit preflight.
-- [x] **M26-07 (DONE):** PR #727 restored all 15 ordinary jobs to `ubuntu-latest`. Exact-main `c24a870b` quality, CodeQL and maintenance passed; all three explicit Ubuntu 26 canary jobs retained.
-- [ ] **M26-08 (PARTIAL):** Current-main read-only Browser Field QA passed; the five other conditional Production Verification jobs skipped. Post-retarget Ubuntu 26 normal-run evidence remains pending.
-- [ ] **M26-09 (DEFINITIONS VERIFIED):** Protected Worker, D1, image Worker and Apps Script jobs retain `ubuntu-latest`; no protected production operation was dispatched as a test.
-- [ ] **M26-10 (PARTIAL):** Exact-main quality, CodeQL, normal maintenance and read-only Browser QA passed; remaining Vercel/production and Ubuntu 26 floating-runner evidence is outstanding.
-- [ ] **M26-11 (DOCUMENTED):** Incident fallback to explicit `ubuntu-24.04` while supported has been documented. No live rollback drill performed.
+- [ ] **M26-07:** Restore `ubuntu-latest` for the 15 routine jobs mistakenly pinned by #722; verify quality/CodeQL and Ubuntu 26 canary.
+- [ ] **M26-08:** Verify read-only Production Verification on moving `ubuntu-latest`; preserve exact-SHA gates.
+- [ ] **M26-09:** Verify protected Worker, D1, image Worker, and Apps Script compatibility without changing their `ubuntu-latest` runner labels or dispatching live operations.
+- [ ] **M26-10:** Verify all cross-workstream checks, Renovate, Vercel, and deployment gates.
+- [ ] **M26-11:** Validate documented temporary runner-label rollback and incident response.
 - [ ] **M26-12:** Audit every job on main and close the issue only with verified evidence.
 
 All tasks are P0. Owner: `yiwssx` (implementation assistance: Codex).
@@ -204,8 +204,6 @@ Require exact-head CI/CodeQL and successful current-main history maintenance bef
 - Acceptance requires successful real Ubuntu 26 canary native install/build, Playwright, offline Docker/seccomp and security preflight; current-main required `quality` and CodeQL; and representative `ubuntu-latest` ImageOS/ImageVersion evidence after GitHub retargets the label.
 - Do not claim uninvoked, protected production preflight is PASS. Do not trigger Worker/App Script production deploy, D1 write, rollback or credentials mutation. The `ubuntu-24.04` label is only a documented temporary emergency fallback while supported.
 - Node.js 24 major-only PR #720 and pnpm major 10 policy are separate workstreams; they do not authorize pinning OS runners.
-
-
 ## Current-main acceptance checkpoint — 2026-10-26
 
 Current main: `c24a870b99d17631412ec42f0636dff274ecd855`. No production changes or protected dispatch performed.
