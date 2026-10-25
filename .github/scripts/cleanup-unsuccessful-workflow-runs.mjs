@@ -33,6 +33,9 @@ async function github(path, options = {}) {
   });
 
   if (response.status === 204) return null;
+  // An enumerated retention target may already have been removed by another run.
+  // Only DELETE 404 is idempotent; listing and authorization errors still fail.
+  if (options.method === "DELETE" && response.status === 404) return { alreadyAbsent: true };
 
   const text = await response.text();
   const body = text ? JSON.parse(text) : null;
@@ -57,14 +60,23 @@ function isPastRetention(run, retentionDays) {
 
 async function listRetainedStatusTargets(status, retentionDays) {
   const targets = [];
+  const seenIds = new Set();
 
   for (let page = 1; ; page += 1) {
     const result = await github(runsPath(status, page));
     const allRuns = result?.workflow_runs || [];
     const batch = allRuns.filter(
-      (run) => run.id !== currentRunId && run.status === "completed" && isPastRetention(run, retentionDays)
+      (run) =>
+        run.id !== currentRunId &&
+        run.status === "completed" &&
+        run.conclusion === status &&
+        isPastRetention(run, retentionDays)
     );
-    targets.push(...batch);
+    for (const run of batch) {
+      if (seenIds.has(run.id)) continue;
+      seenIds.add(run.id);
+      targets.push(run);
+    }
 
     if (allRuns.length < 100) {
       return targets;
@@ -76,6 +88,7 @@ const byConclusion = new Map();
 let examined = 0;
 let matched = 0;
 let deleted = 0;
+let alreadyAbsent = 0;
 
 for (const [status, retentionDays] of retentionDaysByStatus.entries()) {
   const targets = await listRetainedStatusTargets(status, retentionDays);
@@ -91,8 +104,9 @@ for (const [status, retentionDays] of retentionDaysByStatus.entries()) {
     );
 
     if (dryRun) continue;
-    await github(`/repos/${repository}/actions/runs/${run.id}`, { method: "DELETE" });
-    deleted += 1;
+    const result = await github(`/repos/${repository}/actions/runs/${run.id}`, { method: "DELETE" });
+    if (result?.alreadyAbsent) alreadyAbsent += 1;
+    else deleted += 1;
   }
 }
 
@@ -108,6 +122,7 @@ const summary = [
   `- Retention-expired runs examined: ${examined}`,
   `- Retention-expired runs matched: ${matched}`,
   `- Deleted: ${deleted}`,
+  `- Already absent: ${alreadyAbsent}`,
   `- Dry run: ${dryRun}`,
   "- Successful runs preserved: yes",
   "- Queued/in-progress runs preserved: yes",
