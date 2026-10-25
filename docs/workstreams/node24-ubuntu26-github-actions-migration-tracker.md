@@ -181,3 +181,10 @@ Node #720 remains unmerged pending production authorization. This core lane deli
 If Ubuntu 26 breaks a gate, stop downstream merges. Revert only affected runner labels to explicit `ubuntu-24.04` through a reviewed PR while that image is supported; require exact-head quality/CodeQL again. Do not fall back to floating `ubuntu-latest`.
 This runner rollback does not roll back Vercel, Worker, Apps Script or production data. Never dispatch deployment/data recovery as a compatibility test.
 Final protected preflight, all-job coverage and main CI evidence remain mandatory before M26-12 closure.
+
+## Maintenance regression remediation
+
+Main `9d1595fcf8c67031b72bcfc35296baea847200ed` CI/quality and CodeQL passed, but Maintenance & Recovery #40237055192 failed in Actions history cleanup. Logs prove run `37947259964` occurred twice in the enumeration: its first DELETE succeeded and its repeated DELETE returned 404. This is API pagination/idempotency behavior, not a native Ubuntu failure.
+A separate fix deduplicates IDs, explicitly matches the requested completed conclusion, and treats only DELETE 404 for an enumerated retention target as already absent. Other API errors, including enumeration 404 and deletion 403, remain fatal. Retention windows, protected/current/recent/successful run preservation, workflow triggers and token permissions are unchanged.
+Four regression tests use a loopback HTTP fixture and fake token only; they verify overlapping pages, protected record preservation, idempotent disappearance, authorization/enumeration failures and dry-run non-mutation. The existing CI Unit lane now runs these Node tests explicitly.
+Require exact-head CI/CodeQL and successful current-main history maintenance before proceeding with operations runner integration. Preserve the failed old run as diagnostic evidence; do not count it as PASS or weaken the gate.
