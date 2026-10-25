@@ -1,4 +1,6 @@
 import fs from "node:fs";
+import process from "node:process";
+import console from "node:console";
 
 const token = process.env.GITHUB_TOKEN;
 const repository = process.env.GITHUB_REPOSITORY;
@@ -22,7 +24,7 @@ if (!token || !repository) {
 }
 
 async function github(path, options = {}) {
-  const response = await fetch(`${apiUrl}${path}`, {
+  const response = await globalThis.fetch(`${apiUrl}${path}`, {
     ...options,
     headers: {
       Accept: "application/vnd.github+json",

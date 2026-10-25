@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { createServer } from "node:http";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, URL } from "node:url";
+import process from "node:process";
 import { promisify } from "node:util";
 import test from "node:test";
 
