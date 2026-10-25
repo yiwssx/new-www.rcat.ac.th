@@ -201,15 +201,16 @@ record(
 
 const engineNode = packageJson.engines?.node || "";
 const engineNodeMajor = Number(engineNode.match(/^(\d+)\.x$/)?.[1]);
-const localNode = parseVersion(localNodeVersion);
+const localNodeMajor = Number(localNodeVersion.match(/^([1-9]\d*)$/)?.[1]);
 const actualNode = parseVersion(process.versions.node);
 const ciNodeVersionFile = normalizeYamlScalar(ciRuntimeSource.match(/\bnode-version-file:\s*([^\s#]+)/)?.[1]);
 record(
   "Node engine, CI, local pin, and active runtime alignment",
   Boolean(engineNodeMajor) &&
     ciNodeVersionFile === ".node-version" &&
-    localNode?.major === engineNodeMajor &&
-    actualNode?.raw === localNode?.raw,
+    localNodeMajor === engineNodeMajor &&
+    actualNode?.major === engineNodeMajor &&
+    !actualNode.prerelease,
   `engines ${engineNode || "missing"}; CI file ${ciNodeVersionFile || "missing"}; local ${
     localNodeVersion || "missing"
   }; active ${process.versions.node}`
@@ -304,7 +305,7 @@ record(
 const nodeTypes = directVersion("@types/node");
 record(
   "Node runtime and @types/node major alignment",
-  Boolean(localNode && nodeTypes && localNode.major === nodeTypes.major && engineNodeMajor === nodeTypes.major),
+  Boolean(localNodeMajor && nodeTypes && localNodeMajor === nodeTypes.major && engineNodeMajor === nodeTypes.major),
   `runtime ${localNodeVersion}; engines ${engineNode}; @types/node ${directSpecifier("@types/node")}`
 );
 
@@ -348,7 +349,7 @@ for (const [packageName, exception] of Object.entries(compatibilityExceptions ||
       compatibilityPolicyErrors.push(`${packageName} selected version does not satisfy the installed peer range`);
     }
   } else if (validation?.kind === "runtime-major") {
-    if (validation.runtimeFile !== ".node-version" || !selected || selected.major !== localNode?.major) {
+    if (validation.runtimeFile !== ".node-version" || !selected || selected.major !== localNodeMajor) {
       compatibilityPolicyErrors.push(`${packageName} selected major does not match the committed Node runtime`);
     }
   } else {
