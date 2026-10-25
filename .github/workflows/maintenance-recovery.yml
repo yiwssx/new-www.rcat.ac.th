@@ -104,7 +104,7 @@ jobs:
       inputs.operation == 'd1-recovery-drill' &&
       inputs.acknowledge_read_only_production == true &&
       github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     environment:
       name: production
       deployment: false

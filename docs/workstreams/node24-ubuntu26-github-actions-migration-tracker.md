@@ -181,3 +181,12 @@ Node #720 remains unmerged pending production authorization. This core lane deli
 If Ubuntu 26 breaks a gate, stop downstream merges. Revert only affected runner labels to explicit `ubuntu-24.04` through a reviewed PR while that image is supported; require exact-head quality/CodeQL again. Do not fall back to floating `ubuntu-latest`.
 This runner rollback does not roll back Vercel, Worker, Apps Script or production data. Never dispatch deployment/data recovery as a compatibility test.
 Final protected preflight, all-job coverage and main CI evidence remain mandatory before M26-12 closure.
+
+## Operations runner definitions (M26-08 / M26-09)
+
+Scope: 19 further jobs in Production Verification, Production Data Operations, protected D1 recovery drill, Worker release/rollback and Apps Script release/rollback. Change only runner labels to `ubuntu-26.04`.
+All `on`, `if`, `permissions`, `environment`, credentials, confirmation inputs, exact-SHA checks, concurrency, release and rollback commands remain structurally identical to the preceding core-runner baseline.
+These workflow edits do not dispatch protected preflight, release, rollback, D1 writes or Apps Script operations. Production Verification already owns automatic read-only checks; preserve its exact-SHA/non-runtime classification.
+
+After integrating core plus this scope, 37/39 repository jobs use Ubuntu 26. The two remaining Image Worker jobs are deliberately isolated in their own approval-held PR because changing that workflow on main automatically deploys production.
+Acceptance remains IN_PROGRESS: ordinary CI and CodeQL must pass on each exact PR head and on main; protected Worker/Apps Script/D1 preflight must be separately run through the existing protected main-only operation with read-only credentials. Static validation is not a claimed live preflight PASS.

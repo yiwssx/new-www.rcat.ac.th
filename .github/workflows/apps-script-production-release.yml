@@ -27,7 +27,7 @@ jobs:
   preflight:
     name: Apps Script Production Preflight
     if: ${{ github.ref == 'refs/heads/main' && inputs.operation == 'preflight' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
     environment:
@@ -106,7 +106,7 @@ jobs:
   release:
     name: Apps Script Production Release
     if: ${{ github.ref == 'refs/heads/main' && inputs.operation == 'release' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       deployments: write

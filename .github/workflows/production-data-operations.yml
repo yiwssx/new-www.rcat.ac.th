@@ -45,7 +45,7 @@ jobs:
   facebook-tooling-validation:
     name: Facebook Tooling Validation
     if: ${{ github.event_name == 'push' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -57,7 +57,7 @@ jobs:
   cms-link-audit:
     name: Production CMS Integrity
     if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.operation == 'cms-link-audit' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     environment:
       name: production
       deployment: false
@@ -115,7 +115,7 @@ jobs:
   authenticated-cms-field:
     name: Authenticated Disposable CMS Field
     if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.operation == 'authenticated-cms-field' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     environment:
       name: production
@@ -242,7 +242,7 @@ jobs:
     if: >-
       github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' &&
       (inputs.operation == 'fixture-audit' || inputs.operation == 'fixture-cleanup')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     environment:
       name: production
       deployment: false
@@ -423,7 +423,7 @@ jobs:
     if: >-
       github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' &&
       (inputs.operation == 'facebook-audit' || inputs.operation == 'facebook-apply')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     environment:
       name: production
       deployment: false
@@ -538,7 +538,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 45
     environment:
       name: production

@@ -19,7 +19,7 @@ jobs:
   preflight:
     name: Production Migration Preflight
     if: ${{ github.ref == 'refs/heads/main' && inputs.operation == 'preflight' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
     environment:
@@ -104,7 +104,7 @@ jobs:
   release:
     name: Production Worker Release
     if: ${{ github.ref == 'refs/heads/main' && inputs.operation == 'release' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       deployments: write
