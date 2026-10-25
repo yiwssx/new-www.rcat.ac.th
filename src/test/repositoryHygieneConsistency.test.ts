@@ -21,14 +21,14 @@ describe("repository hygiene consistency", () => {
   it("keeps current toolchain guidance aligned with the repository pins", () => {
     expect(nodeVersion).toBe("24");
     expect(packageJson.engines?.node).toBe(`${nodeVersion}.x`);
-    expect(packageJson.engines?.pnpm).toBe("10.34.5");
-    expect(packageJson.packageManager).toBe("pnpm@10.34.5");
+    expect(packageJson.engines?.pnpm).toBe("10.x");
+    expect(packageJson.packageManager).toMatch(/^pnpm@10\.\d+\.\d+$/);
 
     expect(sharedSetup).toMatch(/node-version-file: \.node-version\s+check-latest: true/);
 
     for (const source of [dependencyGuide, environmentGuide]) {
       expect(source).toContain("Node `24.x`");
-      expect(source).toContain("pnpm `10.34.5`");
+      expect(source).toContain("pnpm `10.x`");
     }
   });
 

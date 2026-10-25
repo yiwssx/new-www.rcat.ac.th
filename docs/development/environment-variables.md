@@ -21,7 +21,7 @@ This is operator-attested production evidence, recorded in `docs/operations/envi
 
 ## Vercel Build Toolchain
 
-The repository contract is Node `24.x` and pnpm `10.34.5`. The `.node-version` file tracks Node major `24` without hard-coding a patch. The shared GitHub Actions setup uses `check-latest: true` to resolve the newest available Node 24 release. Vercel uses `engines.node` for Node selection. To make Vercel honor the exact `packageManager` pin through Corepack, configure the non-secret build variable `ENABLE_EXPERIMENTAL_COREPACK=1`; do not replace the frozen-lockfile install with a permissive install command.
+The repository contract is Node `24.x` and pnpm `10.x`. `package.json#packageManager` is the single exact pnpm version used by Corepack and every `pnpm/action-setup` step. Renovate may propose pnpm 10 patch/minor updates for manual review after CI and Preview evidence; it must never resolve pnpm 11 or put a range in `packageManager`. The `.node-version` file tracks Node major `24` without hard-coding a patch. The shared GitHub Actions setup uses `check-latest: true` to resolve the newest available Node 24 release. Vercel uses `engines.node` for Node selection. To make Vercel honor the exact `packageManager` pin through Corepack, configure the non-secret build variable `ENABLE_EXPERIMENTAL_COREPACK=1`; do not replace the frozen-lockfile install with a permissive install command.
 
 ## Public Frontend Variables
 

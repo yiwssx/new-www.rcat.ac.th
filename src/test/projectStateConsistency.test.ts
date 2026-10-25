@@ -191,7 +191,7 @@ describe("current project-state consistency", () => {
   it("keeps the current warning inventory on the live toolchain and green repository baseline", () => {
     expect(warningInventory).toContain("Node `24.x`");
     expect(warningInventory).toContain("`.node-version` tracks Node major `24`");
-    expect(warningInventory).toContain("pnpm `10.34.5`");
+    expect(warningInventory).toContain("pnpm `10.x`");
     expect(warningInventory).toContain("no known current warning blocker");
     expect(warningInventory).not.toContain("Node `22.23.1`; pnpm `10.34.5`");
     expect(warningInventory).not.toContain("Main-tree unit guards intentionally fail");

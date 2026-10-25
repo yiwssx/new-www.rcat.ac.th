@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { validatePnpmRuntime } from "./pnpm-toolchain-policy.mjs";
 import { validateCompatibilityExceptionPackages } from "./dependency-status-policy.mjs";
 
 const auditLevel = process.argv.find((argument) => argument.startsWith("--audit-level="))?.split("=", 2)[1] || "high";
@@ -184,19 +185,16 @@ console.log("Deterministic dependency manifest and policy checks:");
 const packageManagerMatch = packageJson.packageManager?.match(/^pnpm@(.+)$/);
 const packageManagerPnpm = packageManagerMatch?.[1] || "";
 const enginePnpm = packageJson.engines?.pnpm || "";
-const ciPnpm = normalizeYamlScalar(ciRuntimeSource.match(/pnpm\/action-setup@v\d+[\s\S]*?\bversion:\s*([^\s#]+)/)?.[1]);
+// The action reads the exact manifest pin; a second version input would drift.
+const ciPnpmOverride = /^\s+version:\s*\S+/m.test(ciSetupAction);
 const actualPnpmResult = runPnpm(["--version"], { capture: true });
 const actualPnpm = actualPnpmResult.stdout.trim();
 record(
   "packageManager, engines, CI, and active pnpm alignment",
   actualPnpmResult.status === 0 &&
-    Boolean(packageManagerPnpm) &&
-    packageManagerPnpm === enginePnpm &&
-    enginePnpm === ciPnpm &&
-    ciPnpm === actualPnpm,
-  `packageManager ${packageManagerPnpm || "missing"}; engines ${enginePnpm || "missing"}; CI ${
-    ciPnpm || "missing"
-  }; active ${actualPnpm || `exit ${actualPnpmResult.status}`}`
+    validatePnpmRuntime(packageJson.packageManager, enginePnpm, actualPnpm) &&
+    !ciPnpmOverride,
+  `packageManager ${packageManagerPnpm || "missing"}; engines ${enginePnpm || "missing"}; CI manifest-managed ${!ciPnpmOverride}; active ${actualPnpm || `exit ${actualPnpmResult.status}`}`
 );
 
 const engineNode = packageJson.engines?.node || "";
