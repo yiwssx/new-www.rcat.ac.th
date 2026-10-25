@@ -204,17 +204,11 @@ Require exact-head CI/CodeQL and successful current-main history maintenance bef
 - Acceptance requires successful real Ubuntu 26 canary native install/build, Playwright, offline Docker/seccomp and security preflight; current-main required `quality` and CodeQL; and representative `ubuntu-latest` ImageOS/ImageVersion evidence after GitHub retargets the label.
 - Do not claim uninvoked, protected production preflight is PASS. Do not trigger Worker/App Script production deploy, D1 write, rollback or credentials mutation. The `ubuntu-24.04` label is only a documented temporary emergency fallback while supported.
 - Node.js 24 major-only PR #720 and pnpm major 10 policy are separate workstreams; they do not authorize pinning OS runners.
+
 ## Current-main acceptance checkpoint — 2026-10-26
 
-Current main: `c24a870b99d17631412ec42f0636dff274ecd855`. No production changes or protected dispatch performed.
+Main `c24a870b99d17631412ec42f0636dff274ecd855` has 36 jobs using `ubuntu-latest` and three isolated Ubuntu 26 canary jobs. No unexpected runner label remains.
 
-- Workflow inventory: 12 files, 39 jobs; 36 use `ubuntu-latest` and three isolated Ubuntu 26 canary jobs use `ubuntu-26.04`. Corrective PR #727 is merged.
-- Main CI and aggregate `quality`: [run #40244603801](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40244603801) SUCCESS.
-- Main CodeQL: [run #40244603700](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40244603700) SUCCESS for both Actions and JavaScript/TypeScript.
-- Main Maintenance: [run #40244603886](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40244603886) SUCCESS for both routine jobs; protected recovery SKIPPED.
-- Read-only browser QA: [run #40244931246](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40244931246) SUCCESS. Five other conditional verification jobs SKIPPED, not proven PASS.
-- Ubuntu 26 canary: final merged PR #719 head `baf882a4144bb2d9cf575b10d0758f4e0c4c3fc1` passed all 16 checks, including [canary run #40236112636](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40236112636).
-- Actual `ubuntu-latest` Build and Browser QA logs show Ubuntu 24.04.5 image `20261012.334.1`, so the upstream Ubuntu 26 rollout is not yet evidenced on normal jobs.
-- Node remains `24.20.0`; pnpm remains `10.34.5`. Draft #720 is held for production build approval. The pnpm major-10 policy is a separate follow-up.
+Main [CI](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40244603801), [CodeQL](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40244603700) and [Maintenance](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40244603886) passed. The [read-only browser QA](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40244931246) passed, but five other conditional jobs were skipped.
 
-Open gates: rerun the isolated canary on current main without production credentials, observe normal `ubuntu-latest` jobs selecting Ubuntu 26, and validate permitted read-only or protected preflights. Keep #717 open.
+The [Ubuntu 26 canary](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40236112636) passed on merged PR #719. Actual `ubuntu-latest` main runner logs still show Ubuntu 24.04.5. Main canary recheck, Ubuntu 26 floating-runner evidence and approved protected preflights remain open. Node/pnpm changes are separate and not authorized for production.
