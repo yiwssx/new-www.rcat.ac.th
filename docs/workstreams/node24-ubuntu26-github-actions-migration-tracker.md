@@ -7,11 +7,11 @@
 **Planning PR:** [#718](https://github.com/yiwssx/new-www.rcat.ac.th/pull/718)
 **Baseline main:** `6ff069420b56977b1b189f7a54aa8dbdc701f25b`
 
-
 > **Authoritative scope correction, 2026-10-26:** Keep all 36 normal jobs on `ubuntu-latest`;
 > keep only the three isolated Ubuntu 26 canary jobs explicitly on `ubuntu-26.04`.
 > Prior text describing a target of 39/39 explicitly pinned jobs or moving 19 protected jobs
 > is superseded historical evidence, not a current instruction. PR #723 was closed unmerged.
+
 ## Objective
 
 Keep regular CI, maintenance, verification, and protected operations on `ubuntu-latest`, and verify they work when GitHub moves that label to Ubuntu 26.04. Use explicit `ubuntu-26.04` only for the isolated compatibility canary.
