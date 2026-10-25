@@ -205,17 +205,18 @@ Require exact-head CI/CodeQL and successful current-main history maintenance bef
 - Do not claim uninvoked, protected production preflight is PASS. Do not trigger Worker/App Script production deploy, D1 write, rollback or credentials mutation. The `ubuntu-24.04` label is only a documented temporary emergency fallback while supported.
 - Node.js 24 major-only PR #720 and pnpm major 10 policy are separate workstreams; they do not authorize pinning OS runners.
 
+
 ## Current-main acceptance checkpoint — 2026-10-26
 
-**Source of truth:** exact main `c24a870b99d17631412ec42f0636dff274ecd855`, after corrected [PR #727](https://github.com/yiwssx/new-www.rcat.ac.th/pull/727) merged. Evidence collected read-only; no production deployment or protected dispatch.
+Current main: `c24a870b99d17631412ec42f0636dff274ecd855`. No production changes or protected dispatch performed.
 
-- **Runner policy:** all 12 active workflow files were read. Exactly 39 `runs-on` declarations: 36 routine/protected jobs at `ubuntu-latest`, plus 3 isolated runtime/browser/security canary jobs at `ubuntu-26.04`. No other labels. #723 was closed unmerged.
-- **Current-main CI:** [run #40244603801](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40244603801) SUCCESS; all ten jobs including required aggregate `quality`, Governance, Build, Worker, Dependencies, Unit, Integration, Functional E2E and Static Quality passed.
-- **Current-main CodeQL:** [run #40244603700](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40244603700) SUCCESS; `Analyze (actions)` and `Analyze (javascript-typescript)` both passed at this exact SHA.
-- **Current-main Maintenance & Recovery:** [run #40244603886](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40244603886) SUCCESS on both normal cleanup jobs; protected Production Time Travel Readiness SKIPPED by design. #724 idempotency fix retained.
-- **Read-only Production Verification:** [run #40244931246](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40244931246) completed SUCCESS with `Read-only Browser Field QA` SUCCESS. WAF, recovery baseline, CSP, D1 usage and auth anomaly diagnostic were SKIPPED by workflow conditions; they are not proven PASS.
-- **Real Ubuntu 26 canary:** merged [PR #719](https://github.com/yiwssx/new-www.rcat.ac.th/pull/719) final head `baf882a4144bb2d9cf575b10d0758f4e0c4c3fc1` passed 16/16 checks, including [runtime/browser/offline security canary run #40236112636](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40236112636), required quality and CodeQL. A *separate* manual Ubuntu 26 canary run on the new main is still PENDING (not dispatched or claimed).
-- **Actual floating-label image:** current-main [Build job #121323501138](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40244603801/job/121323501138) and read-only [Browser QA job #121324390665](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40244931246/job/121324390665) both ran Ubuntu `24.04.5`, image `ubuntu-24.04`, version `20261012.334.1`, even though their workflow definitions use `ubuntu-latest`. GitHub's staged remapping has not yet selected Ubuntu 26 for these observed normal jobs.
-- **Node/pnpm boundary:** current main has `.node-version=24.20.0` and pnpm `10.34.5`. Draft [PR #720](https://github.com/yiwssx/new-www.rcat.ac.th/pull/720) contains the separate Node-major-only policy update; leave it unmerged until the runtime/production build side effect is explicitly approved. pnpm major-10 centralization is a separate follow-up.
+- Workflow inventory: 12 files, 39 jobs; 36 use `ubuntu-latest` and three isolated Ubuntu 26 canary jobs use `ubuntu-26.04`. Corrective PR #727 is merged.
+- Main CI and aggregate `quality`: [run #40244603801](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40244603801) SUCCESS.
+- Main CodeQL: [run #40244603700](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40244603700) SUCCESS for both Actions and JavaScript/TypeScript.
+- Main Maintenance: [run #40244603886](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40244603886) SUCCESS for both routine jobs; protected recovery SKIPPED.
+- Read-only browser QA: [run #40244931246](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40244931246) SUCCESS. Five other conditional verification jobs SKIPPED, not proven PASS.
+- Ubuntu 26 canary: final merged PR #719 head `baf882a4144bb2d9cf575b10d0758f4e0c4c3fc1` passed all 16 checks, including [canary run #40236112636](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40236112636).
+- Actual `ubuntu-latest` Build and Browser QA logs show Ubuntu 24.04.5 image `20261012.334.1`, so the upstream Ubuntu 26 rollout is not yet evidenced on normal jobs.
+- Node remains `24.20.0`; pnpm remains `10.34.5`. Draft #720 is held for production build approval. The pnpm major-10 policy is a separate follow-up.
 
-**Remaining gates:** recheck isolated Ubuntu-26 canary on current main, observe representative normal `ubuntu-latest` jobs actually selecting Ubuntu 26 during GitHub's rollout, obtain only authorized read-only/protected preflight evidence, and verify remaining Vercel/rollback boundaries. Keep issue #717 OPEN; configured runner counts alone do not prove final runtime acceptance.
+Open gates: rerun the isolated canary on current main without production credentials, observe normal `ubuntu-latest` jobs selecting Ubuntu 26, and validate permitted read-only or protected preflights. Keep #717 open.
