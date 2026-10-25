@@ -145,7 +145,14 @@ export default defineConfig(({ command, mode, isSsrBuild }) => {
       environment: "jsdom",
       globals: true,
       setupFiles: "./src/test/setup.ts",
-      exclude: ["tests/functional/**", "node_modules/**", "dist/**", ".dependency-migration/**"]
+      // Vendored Node.js test-runner suites are verified separately; they are not Vitest suites.
+      exclude: [
+        "tests/functional/**",
+        "node_modules/**",
+        "dist/**",
+        ".dependency-migration/**",
+        ".agents/skills/**"
+      ]
     }
   };
 });

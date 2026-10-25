@@ -1,6 +1,6 @@
 # Cloudflare Security Audit Skill Integration
 
-Status: **ACTIVE — PR #711 OPEN, CI IN PROGRESS**
+Status: **ACTIVE — PR #711 OPEN; FIXING CI UNIT TEST DISCOVERY**
 
 Updated: 2026-10-25 (Asia/Bangkok)
 
@@ -33,7 +33,8 @@ Vendor the complete pinned Cloudflare Security Audit Agent Skill into existing R
 - [x] Select and verify exact upstream commit, source file SHA equality and MIT license.
 - [x] Prepare integration documentation and skill registration.
 - [x] Open an integration PR to `main` and record the exact PR and head SHA.
-- [ ] Verify vendored file inventory / SHA and Node validator self-tests where a safe runner is available.
+- [x] Verify all 20 upstream vendored files and MIT license against pinned source blob SHAs.
+- [ ] Verify vendored Node validator self-tests via a dedicated Node test-runner step in existing CI.
 - [ ] Require current-head PR CI/governance green and approved protected-main merge.
 - [ ] Conduct a separate **read-only, scoped** Pilot Audit for Admin auth/session/MFA, Worker RBAC/D1, and Vercel-to-Worker trust boundaries. Select `quick` or `standard` profile only if proper independent-agent and sandbox execution is available; otherwise perform a labeled preliminary static review and retain unverified leads as `needs_validation`.
 - [ ] Privately triage confirmed findings, open separate narrow remediation PRs with regression tests, and verify required gates. Do not auto-merge security fixes or deploy.
@@ -48,4 +49,10 @@ Vendor the complete pinned Cloudflare Security Audit Agent Skill into existing R
 
 ## Current checkpoint
 
-PR #711 is open at initial head `f0ae5b10b9e2ab5610bf1f9dbf4d5e71578cff3d`; CI run [40151803054](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40151803054) was in progress at this checkpoint. All 20 upstream skill blob SHAs and the MIT license blob SHA matched their pinned source counterparts. No audit outcome or vulnerability is asserted. CI/merge, sandboxed pilot audit, and private remediation review remain pending.
+PR #711 initial commit added the pinned skill at upstream `c1c8a8c1471069fb0e188eeaff69b8e8db6564a8` (21 unchanged source files including MIT license), docs and registration.
+
+- PR head before CI correction: `268eccb622801dd88df0694d15a3405dae9b64ea`.
+- [CI #40151869007](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40151869007) failed the aggregate `quality` check because Vitest discovered two vendored `node:test` suites as if they were Vitest tests; its 2,751 application tests passed, and other primary CI lanes passed.
+- Fix under review: exclude vendored skill trees from Vitest discovery in `vite.config.ts`, and run both untouched upstream validator test suites using `node --test` in the existing Unit Tests lane.
+- No runtime application behavior, dependencies, production state, or vulnerable-code claims changed.
+- Integration merge, read-only scoped pilot security review, and private remediation triage remain pending.
