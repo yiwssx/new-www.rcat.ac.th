@@ -190,3 +190,9 @@ These workflow edits do not dispatch protected preflight, release, rollback, D1 
 
 After integrating core plus this scope, 37/39 repository jobs use Ubuntu 26. The two remaining Image Worker jobs are deliberately isolated in their own approval-held PR because changing that workflow on main automatically deploys production.
 Acceptance remains IN_PROGRESS: ordinary CI and CodeQL must pass on each exact PR head and on main; protected Worker/Apps Script/D1 preflight must be separately run through the existing protected main-only operation with read-only credentials. Static validation is not a claimed live preflight PASS.
+
+## Image runner approval hold
+
+The final two job labels in `image-production-worker.yml` are prepared separately. All 39 repository Ubuntu jobs then use explicit Ubuntu 26.04. No trigger, permission, deploy command or secret reference changes.
+**Do not merge this scope without production authorization:** its existing push path includes the workflow itself and its deploy job has no protected Environment. Merging its label change therefore automatically deploys the existing Image Worker source. PR validation runs only lint, typecheck and Wrangler dry-run; it does not authorize a production deployment.
+This hold is a discovered existing trigger boundary, not a proposed security-gate bypass. Do not silently remove the push trigger or add a bypass to finish migration.
