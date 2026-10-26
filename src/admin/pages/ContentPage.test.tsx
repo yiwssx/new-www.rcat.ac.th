@@ -8,6 +8,7 @@ import {
   type ContentDraftRecoveryMode
 } from "../../features/cms-content/draftRecovery";
 import type { ContentItem, User } from "../../types";
+import { formatDisplayDate } from "../../utils/dateDisplay";
 import ContentPage from "./ContentPage";
 
 const authMock = vi.hoisted(() => ({
@@ -262,6 +263,21 @@ describe("ContentPage operation feedback", () => {
     swalInstance.showLoading.mockReset();
     swalInstance.update.mockReset();
     swalInstance.update.mockResolvedValue(undefined);
+  });
+
+  it("shows the backdated publication date separately from the latest modification", () => {
+    const publicationDate = "2026-05-11T01:00:00.000Z";
+    const modificationDate = "2026-06-24T00:00:00.000Z";
+    paginationMock.content = [
+      { ...contentItem, status: "published", publishAt: publicationDate, updatedAt: modificationDate }
+    ];
+
+    renderContentPage();
+
+    expect(screen.getByRole("columnheader", { name: "วันที่เผยแพร่" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "ปรับปรุง" })).toBeInTheDocument();
+    expect(screen.getByText(formatDisplayDate(publicationDate))).toBeInTheDocument();
+    expect(screen.getByText(formatDisplayDate(modificationDate))).toBeInTheDocument();
   });
 
   it("exposes dedicated full-page create and edit links", async () => {
