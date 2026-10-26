@@ -59,9 +59,7 @@
       "matchFileNames": ["package.json"],
       "matchDepTypes": ["packageManager"],
       "matchPackageNames": ["pnpm"],
-      "matchUpdateTypes": ["patch", "minor"],
       "allowedVersions": ">=10.0.0 <11.0.0",
-      "rangeStrategy": "pin",
       "enabled": true,
       "automerge": false,
       "addLabels": ["manual-review", "toolchain"]

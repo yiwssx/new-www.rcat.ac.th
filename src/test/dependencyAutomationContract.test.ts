@@ -107,6 +107,35 @@ describe("dependency automation contract", () => {
     );
   });
 
+  it("keeps the pnpm 10 Renovate rule schema-valid and manual-review only", () => {
+    const rules = renovate.packageRules as Array<Record<string, unknown>>;
+    for (const rule of rules) {
+      if (rule.matchUpdateTypes !== undefined) {
+        // Renovate rejects either matcher combination and disables all updates.
+        expect(rule).not.toHaveProperty("allowedVersions");
+        expect(rule).not.toHaveProperty("rangeStrategy");
+      }
+    }
+
+    const pnpmRule = rules.find(
+      (rule) =>
+        Array.isArray(rule.matchDepTypes) &&
+        rule.matchDepTypes.includes("packageManager") &&
+        Array.isArray(rule.matchPackageNames) &&
+        rule.matchPackageNames.includes("pnpm")
+    );
+    expect(pnpmRule).toEqual(
+      expect.objectContaining({
+        allowedVersions: ">=10.0.0 <11.0.0",
+        enabled: true,
+        automerge: false,
+        addLabels: ["manual-review", "toolchain"]
+      })
+    );
+    expect(pnpmRule).not.toHaveProperty("matchUpdateTypes");
+    expect(pnpmRule).not.toHaveProperty("rangeStrategy");
+  });
+
   it("keeps retired JWT libraries out of direct runtime dependencies", () => {
     expect(packageJson.dependencies).not.toHaveProperty("jose");
     expect(packageJson.dependencies).not.toHaveProperty("jwt-decode");
