@@ -28,6 +28,28 @@ describe("AdminDateTimeField", () => {
     expect(onChange).toHaveBeenCalledWith("2026-09-16T06:20");
   });
 
+  it("accepts a Thai Buddhist Era publication year and converts it to the Gregorian API date", () => {
+    const onChange = vi.fn();
+    const { container } = render(
+      <AdminDateTimeField label="วันที่เผยแพร่" value="2026-10-02T06:20" onChange={onChange} />
+    );
+    const dateInput = screen.getByLabelText("วันที่เผยแพร่ - วันที่ (วัน/เดือน/ปี)");
+    fireEvent.change(dateInput, { target: { value: "16/09/2569" } });
+
+    expect(onChange).toHaveBeenCalledWith("2026-09-16T06:20");
+    expect((container.querySelector('input[type="date"]') as HTMLInputElement).value).toBe("2026-10-02");
+  });
+
+  it("rejects an invalid Buddhist Era leap-day just as it rejects an invalid Gregorian date", () => {
+    const onChange = vi.fn();
+    render(<AdminDateTimeField label="วันที่เผยแพร่" value="2026-10-02T06:20" onChange={onChange} />);
+    fireEvent.change(screen.getByLabelText("วันที่เผยแพร่ - วันที่ (วัน/เดือน/ปี)"), {
+      target: { value: "29/02/2569" }
+    });
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
   it("opens the native calendar and commits a selected date without changing the visible format contract", () => {
     const onChange = vi.fn();
     const { container } = render(
