@@ -1,0 +1,110 @@
+name: Ubuntu 26 Compatibility Canary
+
+# Non-production compatibility evidence. This workflow is not a release gate.
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/ubuntu26-compatibility-canary.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ubuntu26-canary-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  runtime:
+    name: Ubuntu 26 / Node and Build
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Verify runner OS
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          echo "ID=$ID VERSION_ID=$VERSION_ID"
+          test "$ID" = "ubuntu"
+          test "$VERSION_ID" = "26.04"
+          echo "ImageOS=${ImageOS:-unknown}"
+          echo "ImageVersion=${ImageVersion:-unknown}"
+      - uses: ./.github/actions/setup-project
+      - name: Verify toolchain contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --version
+          pnpm --version
+          # ASVS 1.2.5: compare version data without evaluating it as shell code.
+          expected_node="$(tr -d '\r\n' < .node-version)"
+          actual_node="$(node --version)"
+          [[ "$actual_node" =~ ^v24\.[0-9]+\.[0-9]+$ ]]
+          if [[ "$expected_node" != "24" ]]; then
+            test "$actual_node" = "v$expected_node"
+          fi
+          test "$(pnpm --version)" = "10.34.5"
+      - name: Validate dependencies and static quality
+        run: |
+          pnpm deps:check -- --skip-documentation-freshness
+          pnpm format:check
+          pnpm lint:strict
+      - name: Run unit and integration tests
+        run: |
+          pnpm test:unit
+          pnpm test:integration
+      - name: Verify client and SSR builds
+        run: |
+          pnpm build
+          pnpm exec vite build --ssr src/vercelSsr.ts --outDir server-build --emptyOutDir
+          node scripts/prepare-ssr-cutover-output.mjs
+      - name: Verify Worker toolchain without deployment
+        run: |
+          pnpm worker:typecheck
+          pnpm worker:deploy:dry
+
+  browser:
+    name: Ubuntu 26 / Chromium E2E
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-project
+      - name: Install Chromium and system dependencies
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Verify field test discovery (no production access)
+        run: pnpm exec playwright test --config playwright.production.config.ts --list
+      - name: Run local functional tests
+        run: pnpm test:functional
+
+  security:
+    name: Ubuntu 26 / Offline Security Sandbox
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-project
+      - name: Verify Docker daemon is present
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker version --format '{{.Server.Version}}'
+          docker info --format '{{json .SecurityOptions}}'
+      - name: Preload the already pinned offline security image
+        run: docker pull node:24-bookworm-slim@sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553
+      - name: Verify offline sandbox isolation and preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/security-audit/run-sandbox.sh
+          bash scripts/security-audit/run-preflight.sh quick
+          bash scripts/security-audit/run-preflight.sh standard

@@ -64,6 +64,8 @@ jobs:
       - run: pnpm test:unit
       - name: Verify vendored Cloudflare security audit validators with Node test runner
         run: node --test .agents/skills/security-audit/validate-coverage-ledger.test.cjs .agents/skills/security-audit/validate-findings.test.cjs
+      - name: Verify Actions history retention safety and idempotency
+        run: node --test .github/scripts/cleanup-unsuccessful-workflow-runs.node-test.mjs
       - name: Verify security preflight presence-check contract (trusted test fixtures)
         run: node --test scripts/security-audit/audit-controls.test.cjs
       - name: Enforce critical coverage thresholds

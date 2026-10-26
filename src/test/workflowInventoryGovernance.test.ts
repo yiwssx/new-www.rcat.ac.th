@@ -20,6 +20,7 @@ const expectedWorkflows = [
   "production-data-operations.yml",
   "production-verification.yml",
   "security-audit-preflight.yml",
+  "ubuntu26-compatibility-canary.yml",
   "worker-production-rollback.yml",
   "worker-production.yml"
 ].sort();
@@ -27,7 +28,7 @@ const expectedWorkflows = [
 describe("workflow inventory governance", () => {
   it("keeps the active workflow surface intentionally bounded", () => {
     expect(workflowFiles).toEqual(expectedWorkflows);
-    expect(workflowFiles).toHaveLength(11);
+    expect(workflowFiles).toHaveLength(12);
   });
 
   it("does not restore retired branch-mutating, phase-specific, or duplicate workflows", () => {
@@ -51,6 +52,31 @@ describe("workflow inventory governance", () => {
     ]) {
       expect(workflowFiles).not.toContain(retired);
     }
+  });
+
+  it("keeps all routine and protected jobs on the moving ubuntu-latest label", () => {
+    for (const name of workflowFiles.filter((file) => file !== "ubuntu26-compatibility-canary.yml")) {
+      const labels = [...readWorkflow(name).matchAll(/^\s*runs-on:\s*([^\s#]+)/gm)].map((match) => match[1]);
+      expect(labels.length, name).toBeGreaterThan(0);
+      expect(labels, name).toEqual(Array.from({ length: labels.length }, () => "ubuntu-latest"));
+    }
+  });
+
+  it("keeps the Ubuntu 26 canary unprivileged and isolated from production", () => {
+    // ASVS 15.2.5: keep compatibility execution isolated from production authority.
+    const canary = readWorkflow("ubuntu26-compatibility-canary.yml");
+    expect(canary).toContain("permissions:\n  contents: read");
+    expect(canary).toContain("workflow_dispatch:");
+    expect(canary).toContain('      - ".github/workflows/ubuntu26-compatibility-canary.yml"');
+    expect(canary.match(/runs-on: ubuntu-26\.04/g)).toHaveLength(3);
+    expect(canary.match(/persist-credentials: false/g)).toHaveLength(3);
+    expect(canary).not.toMatch(/\b(?:schedule|push|pull_request_target|workflow_run|environment|secrets)\s*:/);
+    expect(canary).not.toContain("secrets.");
+    expect(canary).not.toContain("continue-on-error:");
+    expect(canary).not.toContain("workflow_dispatch --");
+    expect(canary).not.toMatch(/wrangler\s+(?:deploy|d1)|clasp\s+(?:push|deploy)|vercel\s+--prod/);
+    expect(canary).toContain("pnpm worker:deploy:dry");
+    expect(canary).toContain("bash scripts/security-audit/run-preflight.sh standard");
   });
 
   it("uses clear responsibility-oriented workflow names", () => {
