@@ -15,16 +15,19 @@ const packageJson = JSON.parse(readRepoFile("package.json")) as {
 };
 const dependencyGuide = readRepoFile("docs/development/dependency-update-and-warning-cleanup.md");
 const environmentGuide = readRepoFile("docs/development/environment-variables.md");
+const sharedSetup = readRepoFile(".github/actions/setup-project/action.yml");
 
 describe("repository hygiene consistency", () => {
   it("keeps current toolchain guidance aligned with the repository pins", () => {
-    expect(nodeVersion).toMatch(/^24\.\d+\.\d+$/);
-    expect(packageJson.engines?.node).toBe("24.x");
+    expect(nodeVersion).toBe("24");
+    expect(packageJson.engines?.node).toBe(`${nodeVersion}.x`);
     expect(packageJson.engines?.pnpm).toBe("10.34.5");
     expect(packageJson.packageManager).toBe("pnpm@10.34.5");
 
+    expect(sharedSetup).toMatch(/node-version-file: \.node-version\s+check-latest: true/);
+
     for (const source of [dependencyGuide, environmentGuide]) {
-      expect(source).toContain(`Node \`${nodeVersion}\``);
+      expect(source).toContain("Node `24.x`");
       expect(source).toContain("pnpm `10.34.5`");
     }
   });
