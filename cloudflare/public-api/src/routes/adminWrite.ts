@@ -515,17 +515,15 @@ export function resolveContentPublishAtForWrite(
   const existingPublishAt = trimString(existingPublishAtValue);
 
   if (status === "published") {
-    if (existingStatus === "published" && existingPublishAt && isPublishAtAtOrBefore(existingPublishAt, now)) {
-      return existingPublishAt;
+    // Editors may backdate both new publications and already-published items.
+    // Continue rejecting future/invalid client timestamps for immediate publication.
+    if (requestedPublishAt && isPublishAtAtOrBefore(requestedPublishAt, now)) {
+      return requestedPublishAt;
     }
 
-    if (
-      existingStatus &&
-      existingStatus !== "published" &&
-      requestedPublishAt &&
-      isPublishAtAtOrBefore(requestedPublishAt, now)
-    ) {
-      return requestedPublishAt;
+    // An invalid edit must not overwrite a valid historical publication date.
+    if (existingStatus === "published" && existingPublishAt && isPublishAtAtOrBefore(existingPublishAt, now)) {
+      return existingPublishAt;
     }
 
     return now;

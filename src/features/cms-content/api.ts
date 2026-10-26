@@ -101,10 +101,14 @@ function normalizePublishedTimestampForSave(item: ContentItem, now = new Date())
 
   const publishAtMillis = Date.parse(item.publishAt ?? "");
   const nowMillis = now.getTime();
-  const isExistingPublishedTimestampValid =
-    Boolean(item.id) && Number.isFinite(publishAtMillis) && publishAtMillis <= nowMillis;
+  // A valid historical date is intentional for both new and existing content.
+  if (Number.isFinite(publishAtMillis) && publishAtMillis <= nowMillis) {
+    return item;
+  }
 
-  if (isExistingPublishedTimestampValid) {
+  // The Worker decides how to handle invalid/future timestamps on existing
+  // publications so an edit cannot silently replace their original date.
+  if (item.id) {
     return item;
   }
 

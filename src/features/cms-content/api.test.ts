@@ -74,7 +74,7 @@ describe("content save progress", () => {
     );
   });
 
-  it("stamps a direct published create at the actual save time", async () => {
+  it("preserves an explicitly backdated timestamp for a direct published create", async () => {
     const directPublish: ContentItem = {
       ...facebookContent,
       id: "",
@@ -83,17 +83,35 @@ describe("content save progress", () => {
       canonicalUrl: "",
       publishAt: "2026-09-29T00:00:00.000Z"
     };
-    const beforeSave = Date.now();
 
     await saveContentItem(directPublish);
 
-    const afterSave = Date.now();
-    const submittedItem = cloudflareMock.saveContentItemToCloudflare.mock.calls[0]?.[0] as ContentItem;
-    const submittedPublishAt = Date.parse(submittedItem.publishAt ?? "");
-
-    expect(submittedPublishAt).toBeGreaterThanOrEqual(beforeSave);
-    expect(submittedPublishAt).toBeLessThanOrEqual(afterSave);
+    expect(cloudflareMock.saveContentItemToCloudflare).toHaveBeenCalledWith(directPublish);
   });
+
+  it.each(["", "2099-01-01T00:00:00.000Z"])(
+    "defaults a new published item with an empty or future timestamp to save time (%s)",
+    async (publishAt) => {
+      const directPublish: ContentItem = {
+        ...facebookContent,
+        id: "",
+        status: "published",
+        template: "standard",
+        canonicalUrl: "",
+        publishAt
+      };
+      const beforeSave = Date.now();
+
+      await saveContentItem(directPublish);
+
+      const afterSave = Date.now();
+      const submittedItem = cloudflareMock.saveContentItemToCloudflare.mock.calls[0]?.[0] as ContentItem;
+      const submittedPublishAt = Date.parse(submittedItem.publishAt ?? "");
+
+      expect(submittedPublishAt).toBeGreaterThanOrEqual(beforeSave);
+      expect(submittedPublishAt).toBeLessThanOrEqual(afterSave);
+    }
+  );
 
   it("preserves a valid past publish timestamp when editing already-published content", async () => {
     const existingPublished: ContentItem = {
@@ -109,7 +127,7 @@ describe("content save progress", () => {
     expect(cloudflareMock.saveContentItemToCloudflare).toHaveBeenCalledWith(existingPublished);
   });
 
-  it("clamps an invalid future timestamp before saving published content", async () => {
+  it("leaves invalid future edits for Worker validation without replacing the historical date", async () => {
     const futurePublished: ContentItem = {
       ...facebookContent,
       status: "published",
@@ -117,16 +135,25 @@ describe("content save progress", () => {
       canonicalUrl: "",
       publishAt: "2099-01-01T00:00:00.000Z"
     };
-    const beforeSave = Date.now();
 
     await saveContentItem(futurePublished);
 
-    const afterSave = Date.now();
-    const submittedItem = cloudflareMock.saveContentItemToCloudflare.mock.calls[0]?.[0] as ContentItem;
-    const submittedPublishAt = Date.parse(submittedItem.publishAt ?? "");
+    expect(cloudflareMock.saveContentItemToCloudflare).toHaveBeenCalledWith(futurePublished);
+  });
 
-    expect(submittedPublishAt).toBeGreaterThanOrEqual(beforeSave);
-    expect(submittedPublishAt).toBeLessThanOrEqual(afterSave);
+  it("does not change a scheduled future publication timestamp", async () => {
+    const scheduled: ContentItem = {
+      ...facebookContent,
+      id: "",
+      status: "scheduled",
+      template: "standard",
+      canonicalUrl: "",
+      publishAt: "2099-01-01T00:00:00.000Z"
+    };
+
+    await saveContentItem(scheduled);
+
+    expect(cloudflareMock.saveContentItemToCloudflare).toHaveBeenCalledWith(scheduled);
   });
 
   it("blocks an incomplete Facebook post collection URL before thumbnail or content writes", async () => {
