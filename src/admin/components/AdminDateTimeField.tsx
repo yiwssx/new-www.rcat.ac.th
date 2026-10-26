@@ -75,7 +75,10 @@ function parseDisplayDate(value: string) {
 
   const day = Number(match[1]);
   const month = Number(match[2]);
-  const year = Number(match[3]);
+  const inputYear = Number(match[3]);
+  // Thai editors may enter a Buddhist Era year (e.g. 2569), while the
+  // canonical date picker and API must use Gregorian years (2026).
+  const year = inputYear >= 2400 && inputYear <= 2799 ? inputYear - 543 : inputYear;
   const candidate = new Date(Date.UTC(year, month - 1, day));
 
   if (candidate.getUTCFullYear() !== year || candidate.getUTCMonth() !== month - 1 || candidate.getUTCDate() !== day) {
