@@ -213,7 +213,6 @@ Main [CI](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40244603801)
 
 The [Ubuntu 26 canary](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40236112636) passed on merged PR #719. Actual `ubuntu-latest` main runner logs still show Ubuntu 24.04.5. Main canary recheck, Ubuntu 26 floating-runner evidence and approved protected preflights remain open. Node/pnpm changes are separate and not authorized for production.
 
-
 ## Node and pnpm policy validation checkpoint — 2026-10-26
 
 Current main `6e675a6c33c5e9040d15abdf5ad5f8ea917393d5` retains 36 routine and protected jobs on floating `ubuntu-latest` and only three isolated canary jobs on `ubuntu-26.04`. [Main CI](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40247178572) and [CodeQL](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40247178660) passed. [Read-only Browser Field QA](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/40247516032) passed; the other five conditional production-verification jobs were skipped, not validated.
