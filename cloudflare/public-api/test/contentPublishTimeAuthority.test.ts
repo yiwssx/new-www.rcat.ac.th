@@ -11,6 +11,15 @@ describe("Worker-authoritative content publish time", () => {
     expect(resolveContentPublishAtForWrite("published", future, undefined, undefined, now)).toBe(now);
   });
 
+  it("honors an explicit past timestamp for a direct published create", () => {
+    expect(resolveContentPublishAtForWrite("published", past, undefined, undefined, now)).toBe(past);
+  });
+
+  it("defaults missing and malformed publication dates to Worker time on create", () => {
+    expect(resolveContentPublishAtForWrite("published", "", undefined, undefined, now)).toBe(now);
+    expect(resolveContentPublishAtForWrite("published", "not-a-date", undefined, undefined, now)).toBe(now);
+  });
+
   it("clamps a future client timestamp when draft content becomes published", () => {
     expect(resolveContentPublishAtForWrite("published", future, "draft", past, now)).toBe(now);
   });
@@ -19,8 +28,16 @@ describe("Worker-authoritative content publish time", () => {
     expect(resolveContentPublishAtForWrite("published", past, "draft", past, now)).toBe(past);
   });
 
-  it("preserves the historical server-approved timestamp during published edits", () => {
+  it("accepts a valid edited past timestamp for already-published content", () => {
+    const original = "2026-09-01T08:45:00.000Z";
+    expect(resolveContentPublishAtForWrite("published", past, "published", original, now)).toBe(past);
+    expect(resolveContentPublishAtForWrite("published", original, "published", past, now)).toBe(original);
+  });
+
+  it("preserves the historical server-approved timestamp for invalid published edits", () => {
     expect(resolveContentPublishAtForWrite("published", future, "published", past, now)).toBe(past);
+    expect(resolveContentPublishAtForWrite("published", "not-a-date", "published", past, now)).toBe(past);
+    expect(resolveContentPublishAtForWrite("published", "", "published", past, now)).toBe(past);
   });
 
   it("repairs a legacy published future timestamp to Worker time", () => {

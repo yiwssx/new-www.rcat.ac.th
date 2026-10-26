@@ -98,6 +98,7 @@ const contentTableColumnLayout = {
   type: { minWidth: 88, whiteSpace: "nowrap" },
   status: { minWidth: 120, whiteSpace: "nowrap" },
   owner: { minWidth: 120, whiteSpace: "nowrap" },
+  publishAt: { minWidth: 132, whiteSpace: "nowrap" },
   updatedAt: { minWidth: 132, whiteSpace: "nowrap" },
   actions: { minWidth: 184, whiteSpace: "nowrap" }
 } as const;
@@ -371,6 +372,10 @@ export default function ContentPage() {
         }),
         columnHelper.accessor("owner", {
           header: "ผู้รับผิดชอบ"
+        }),
+        columnHelper.accessor("publishAt", {
+          header: "วันที่เผยแพร่",
+          cell: (info) => (info.getValue() ? formatDisplayDate(info.getValue()) : "—")
         }),
         columnHelper.accessor("updatedAt", {
           header: "ปรับปรุง",
