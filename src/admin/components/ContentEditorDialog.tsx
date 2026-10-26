@@ -1312,6 +1312,7 @@ export default function ContentEditorDialog({
                 <AdminDateTimeField
                   label="วันที่เผยแพร่"
                   value={toLocalDateTimeInputValue(draft.publishAt)}
+                  helperText="กรอกปี ค.ศ. (2026) หรือ พ.ศ. (2569) ได้ ระบบจะใช้วันที่ ค.ศ. ในการบันทึก"
                   onChange={(value) =>
                     updateDraft("publishAt", fromLocalDateTimeInputValue(value) || new Date().toISOString())
                   }
