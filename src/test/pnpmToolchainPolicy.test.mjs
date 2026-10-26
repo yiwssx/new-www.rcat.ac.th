@@ -17,24 +17,50 @@ describe("pnpm manifest toolchain policy", () => {
     expect(validatePnpmRuntime("pnpm@10.34.5", "10.x", "10.35.0")).toBe(false);
   });
 
-  it("leaves every action setup manifest-managed, including release and rollback paths", () => {
+  it("keeps setup manifest-managed except production push workflows pending explicit release approval", () => {
+    const manifest = JSON.parse(readFileSync("package.json", "utf8"));
+    const pin = /^pnpm@(10\.\d+\.\d+)$/.exec(manifest.packageManager)?.[1];
+    expect(pin).toBeTruthy();
+
+    // These existing push-on-main workflows must not change as a side effect of
+    // pnpm tooling maintenance: doing so can deploy the production image Worker
+    // or delete eligible deployment/Actions history. They retain their current
+    // exact pin until the separately authorized production workflow change.
+    const protectedExceptions = new Map([
+      [".github/workflows/image-production-worker.yml", 2],
+      [".github/workflows/maintenance-recovery.yml", 1]
+    ]);
     const paths = [
       ".github/actions/setup-project/action.yml",
       ...readdirSync(".github/workflows")
         .filter((name) => /\.ya?ml$/.test(name))
-        .map((name) => `.github/workflows/${name}`)
+        .map((name) => ".github/workflows/" + name)
     ];
-    let count = 0;
+    let setupCount = 0;
+    let exceptionCount = 0;
     for (const path of paths) {
       const source = readFileSync(path, "utf8");
-      const blocks = source.matchAll(/uses: pnpm\/action-setup@v\d+([\s\S]*?)(?=\n[ \t]*-(?: name:| uses:| run:)|$)/g);
+      const blocks = [
+        ...source.matchAll(/uses: pnpm\/action-setup@v\d+([\s\S]*?)(?=\n[ \t]*-(?: name:| uses:| run:)|$)/g)
+      ];
+      if (protectedExceptions.has(path)) {
+        expect(source, path).toMatch(/^  push:\s*$/m);
+        expect(blocks, path).toHaveLength(protectedExceptions.get(path));
+      }
       for (const [, options] of blocks) {
-        count += 1;
-        expect(options).not.toMatch(/^\s*version:/m);
+        setupCount += 1;
         expect(options).not.toMatch(/^\s*package_json_file:/m);
         expect(options).toContain("run_install: false");
+        if (protectedExceptions.has(path)) {
+          const explicitVersions = [...options.matchAll(/^\s*version:\s*(\S+)\s*$/gm)].map((match) => match[1]);
+          expect(explicitVersions, path).toEqual([pin]);
+          exceptionCount += 1;
+        } else {
+          expect(options, path).not.toMatch(/^\s*version:/m);
+        }
       }
     }
-    expect(count).toBe(16);
+    expect(setupCount).toBe(16);
+    expect(exceptionCount).toBe(3);
   });
 });
