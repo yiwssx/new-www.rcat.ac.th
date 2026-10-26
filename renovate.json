@@ -54,6 +54,19 @@
       "enabled": false
     },
     {
+      "description": "Propose exact pnpm 10 packageManager patch/minor updates; require review after CI and Preview evidence",
+      "matchManagers": ["npm"],
+      "matchFileNames": ["package.json"],
+      "matchDepTypes": ["packageManager"],
+      "matchPackageNames": ["pnpm"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "allowedVersions": ">=10.0.0 <11.0.0",
+      "rangeStrategy": "pin",
+      "enabled": true,
+      "automerge": false,
+      "addLabels": ["manual-review", "toolchain"]
+    },
+    {
       "description": "Automatically merge stable patch and minor direct npm updates",
       "matchManagers": ["npm"],
       "matchDepTypes": ["dependencies", "devDependencies"],
