@@ -1,3 +1,5 @@
+<!-- prettier-ignore-start -->
+
 # RCAT CI/CD Change-Impact Optimization — Implementation Plan
 
 Status: **PLAN ONLY** — tracking issue [#739](https://github.com/yiwssx/new-www.rcat.ac.th/issues/739)  
@@ -53,7 +55,6 @@ Domains (initial): `public-ui`, `admin-ui`, `design-system`, `cms-auth-security`
 
 ### Example impact rules (proposals; require dedicated tests)
 
-<!-- prettier-ignore -->
 | Changed area | Required validation | Lanes not automatically required |
 | --- | --- | --- |
 | `src/theme.ts`, design tokens, CSS | design governance, affected Public/Admin UI, relevant visual, relevant build | D1 migration, unrelated MFA, full Worker |
@@ -142,3 +143,5 @@ Primary source files:
 - `playwright.config.ts`, `playwright.production.config.ts`
 
 **Issue:** https://github.com/yiwssx/new-www.rcat.ac.th/issues/739
+
+<!-- prettier-ignore-end -->
