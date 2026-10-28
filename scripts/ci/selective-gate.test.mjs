@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { defaultImpactMap } from "./impact-plan.mjs";
 import { formatImpactOutputs, parseChangedFiles, selectCIPlan } from "./detect-impact.mjs";
-import { validateQualityGate } from "./quality-gate.mjs";
+import { formatQualityGateSummary, validateQualityGate } from "./quality-gate.mjs";
 
 const BASE_SHA = "a".repeat(40);
 const EVENT_SHA = "b".repeat(40);
@@ -120,5 +120,57 @@ describe("CI quality aggregation", () => {
   it("rejects selective execution on a main push", () => {
     const plan = planFor([{ path: "docs/a.md", status: "modified" }]);
     expect(validateQualityGate(plan, laneResults(plan), "success", "success", "push")).not.toEqual([]);
+  });
+});
+
+describe("CI quality report evidence", () => {
+  it("records planned and observed statuses and reasons for successful selective CI", () => {
+    const plan = planFor([{ path: "docs/guide.md", status: "modified" }]);
+    const summary = formatQualityGateSummary({
+      plan,
+      results: laneResults(plan),
+      impactStatus: "success",
+      preflightStatus: "success",
+      eventName: "pull_request",
+      errors: []
+    });
+    expect(summary).toContain("Verdict: **PASS**");
+    expect(summary).toContain("| static-quality | success | success | yes |");
+    expect(summary).toContain("| functional | skipped | skipped | yes |");
+    expect(summary).toContain("docs/guide.md");
+  });
+
+  it("reports a failed lane as a mismatch and does not hide validation errors", () => {
+    const plan = planFor([{ path: "src/public/pages/PublicNewsPage.tsx", status: "modified" }]);
+    const results = laneResults(plan);
+    results.functional = "cancelled";
+    const errors = validateQualityGate(plan, results, "success", "success", "pull_request");
+    const summary = formatQualityGateSummary({
+      plan,
+      results,
+      impactStatus: "success",
+      preflightStatus: "success",
+      eventName: "pull_request",
+      errors
+    });
+    expect(errors.length).toBeGreaterThan(0);
+    expect(summary).toContain("Verdict: **FAIL**");
+    expect(summary).toContain("| functional | success | cancelled | NO |");
+    expect(summary).toContain("Gate failures");
+  });
+
+  it("sanitizes untrusted reason content in markdown tables and summaries", () => {
+    const plan = planFor([{ path: "docs/guide.md", status: "modified" }]);
+    const summary = formatQualityGateSummary({
+      plan: { ...plan, reasons: ["untrusted|cell\n<script>"], verifiedIntegration: false },
+      results: laneResults(plan),
+      impactStatus: "failure",
+      preflightStatus: "success",
+      eventName: "pull_request",
+      errors: ["Impact detector did not succeed"]
+    });
+    expect(summary).not.toContain("<script>");
+    expect(summary).not.toContain("untrusted|cell");
+    expect(summary).toContain("Verdict: **FAIL**");
   });
 });

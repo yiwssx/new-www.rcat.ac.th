@@ -55,6 +55,55 @@ export function validateQualityGate(plan, results, impactStatus, preflightStatus
   return errors;
 }
 
+/**
+ * Auditable, read-only report for the final required quality check.
+ * Reporting never changes the fail-closed verdict from validateQualityGate.
+ */
+export function formatQualityGateSummary({ plan, results, impactStatus, preflightStatus, eventName, errors }) {
+  const safeText = (value) =>
+    String(value ?? "missing")
+      .replace(/[\r\n|<>`]/g, " ")
+      .slice(0, 240);
+  const required = new Set(Array.isArray(plan?.requiredLanes) ? plan.requiredLanes : []);
+  let reasons = "missing";
+  if (Array.isArray(plan?.reasons) && plan.reasons.length > 0) {
+    reasons = plan.reasons.map(safeText).join("; ");
+  }
+
+  const lines = [
+    "### RCAT CI quality gate",
+    "",
+    `- Verdict: **${errors.length === 0 ? "PASS" : "FAIL"}**`,
+    `- Event: ${safeText(eventName)}`,
+    `- Impact mode: ${safeText(plan?.mode)}`,
+    `- Verified integration: ${plan?.verifiedIntegration === true}`,
+    `- Change-impact job: ${safeText(impactStatus)}`,
+    `- Dependency preflight: ${safeText(preflightStatus)}`,
+    `- Reasons: ${reasons}`,
+    "",
+    "| Lane | Planned | Observed | Match |",
+    "| --- | --- | --- | --- |"
+  ];
+
+  for (const lane of defaultImpactMap.lanes) {
+    const planned = required.has(lane) ? "success" : "skipped";
+    const actual = results?.[lane] ?? "missing";
+    const match = actual === planned ? "yes" : "NO";
+    lines.push(`| ${lane} | ${planned} | ${safeText(actual)} | ${match} |`);
+  }
+
+  if (errors.length > 0) {
+    lines.push("", "#### Gate failures", ...errors.map((error) => `- ${safeText(error)}`));
+  }
+
+  lines.push(
+    "",
+    "Skipped lanes are accepted only when backed by a validated change-impact plan. " +
+      "The final gate always rejects unexpected results, detector failures, and missing preflight."
+  );
+  return lines.join("\n") + "\n";
+}
+
 if (process.argv[1] && process.argv[1].endsWith("/quality-gate.mjs")) {
   const requiredEnv = ["CI_PLAN", "CI_RESULTS", "CI_IMPACT_STATUS", "CI_PREFLIGHT_STATUS", "GITHUB_EVENT_NAME"];
   const missing = requiredEnv.filter((name) => !process.env[name]);
@@ -73,6 +122,24 @@ if (process.argv[1] && process.argv[1].endsWith("/quality-gate.mjs")) {
         process.env.GITHUB_EVENT_NAME
       );
       console.log("RCAT CI lanes:", JSON.stringify({ mode: plan.mode, required: plan.requiredLanes, results }));
+      if (process.env.GITHUB_STEP_SUMMARY) {
+        try {
+          const { appendFileSync } = await import("node:fs");
+          appendFileSync(
+            process.env.GITHUB_STEP_SUMMARY,
+            formatQualityGateSummary({
+              plan,
+              results,
+              impactStatus: process.env.CI_IMPACT_STATUS,
+              preflightStatus: process.env.CI_PREFLIGHT_STATUS,
+              eventName: process.env.GITHUB_EVENT_NAME,
+              errors
+            })
+          );
+        } catch (error) {
+          console.warn("Unable to write CI quality summary:", error instanceof Error ? error.message : String(error));
+        }
+      }
       if (errors.length > 0) {
         for (const error of errors) console.error("CI quality gate: " + error);
         process.exitCode = 1;
