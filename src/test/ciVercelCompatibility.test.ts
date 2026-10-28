@@ -41,6 +41,7 @@ describe("CI Vercel compatibility", () => {
 
   it("scopes changed unit-test files without skipping critical coverage checks", () => {
     expect(workflow).toContain("run: node scripts/ci/run-affected-unit.mjs");
+    expect(workflow).not.toContain("--pool=vmForks");
     expect(workflow).toContain("CI_PLAN: ${{ needs.impact.outputs.plan }}");
     expect(workflow).toContain("Enforce critical coverage thresholds");
     expect(workflow).toContain("run: pnpm test:integration");
