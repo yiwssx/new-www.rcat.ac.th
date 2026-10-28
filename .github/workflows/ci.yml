@@ -78,7 +78,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-project
-      - name: Select changed-document formatting or full static checks
+      - run: pnpm format:check
+      - name: Skip ESLint only for trusted docs-only pull requests
         env:
           CI_PLAN: ${{ needs.impact.outputs.plan }}
         run: node scripts/ci/run-affected-static.mjs
