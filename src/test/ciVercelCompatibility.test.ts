@@ -50,6 +50,14 @@ describe("CI Vercel compatibility", () => {
     expect(quality).toContain("CI_PREFLIGHT_STATUS: ${{ needs.dependency-preflight.result }}");
   });
 
+  it("keeps full static checks for code while allowing verified docs-only formatting", () => {
+    expect(workflow).toContain("      - run: pnpm format:check");
+    expect(workflow).toContain("run: node scripts/ci/run-affected-static.mjs");
+    expect(workflow).toContain("CI_PLAN: ${{ needs.impact.outputs.plan }}");
+    expect(workflow).toContain("      - static-quality");
+    expect(workflow).toContain("needs.static-quality.result");
+  });
+
   it("scopes changed unit-test files without skipping critical coverage checks", () => {
     expect(workflow).toContain("run: node scripts/ci/run-affected-unit.mjs");
     expect(workflow).not.toContain("--pool=vmForks");
