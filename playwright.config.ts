@@ -4,6 +4,8 @@ const functionalApiBaseUrl = "http://127.0.0.1:8787";
 
 export default defineConfig({
   testDir: "./tests/functional",
+  // CI-only bounded parallelism trial; keep developers\u0027 local default unchanged.
+  workers: process.env.CI ? 3 : undefined,
   timeout: 60_000,
   expect: {
     timeout: 5_000
