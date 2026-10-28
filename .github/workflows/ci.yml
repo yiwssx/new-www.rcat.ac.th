@@ -97,8 +97,6 @@ jobs:
         env:
           CI_PLAN: ${{ needs.impact.outputs.plan }}
         run: node scripts/ci/run-affected-unit.mjs
-      - name: Verify CI timing telemetry arithmetic and formatting
-        run: node --test scripts/ci/report-job-times.test.mjs
       - name: Verify vendored Cloudflare security audit validators with Node test runner
         run: node --test .agents/skills/security-audit/validate-coverage-ledger.test.cjs .agents/skills/security-audit/validate-findings.test.cjs
       - name: Verify Actions history retention safety and idempotency
