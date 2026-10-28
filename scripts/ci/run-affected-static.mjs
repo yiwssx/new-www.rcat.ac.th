@@ -21,7 +21,7 @@ export function selectStaticQualityCommands(plan, eventName, regularFileExists) 
   const full = {
     mode: "full",
     reason: "conservative-default",
-    commands: [["format:check"], ["lint:strict"]]
+    commands: [["lint:strict"]]
   };
 
   if (
@@ -56,7 +56,7 @@ export function selectStaticQualityCommands(plan, eventName, regularFileExists) 
   return {
     mode: "docs-only",
     reason: "verified-pr-changed-existing-documents",
-    commands: [["exec", "prettier", "--check", ...paths.sort()]]
+    commands: []
   };
 }
 
@@ -78,7 +78,8 @@ function runQuality() {
   }
 
   const selection = selectStaticQualityCommands(plan, process.env.GITHUB_EVENT_NAME, isRegularFile);
-  console.log("[CI Static Quality] " + selection.mode + ": " + selection.reason);
+  // Repository-wide Prettier still runs directly in CI for dependency governance.
+  console.log("[CI ESLint] " + selection.mode + ": " + selection.reason);
 
   for (const args of selection.commands) {
     const result = spawnSync("pnpm", args, {
