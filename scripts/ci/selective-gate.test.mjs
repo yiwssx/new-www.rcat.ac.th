@@ -50,16 +50,14 @@ describe("verified CI impact detection", () => {
     expect(validateQualityGate(plan, laneResults(plan), "success", "success", "pull_request")).toEqual([]);
   });
 
-  it.each([
-    { firstParentSha: EVENT_SHA },
-    { checkoutSha: BASE_SHA },
-    { eventSha: "not-a-sha" },
-    { changes: [] }
-  ])("fails closed for unverified integration metadata: %j", (override) => {
-    const plan = planFor([{ path: "docs/a.md", status: "modified" }], override);
-    expect(plan.mode).toBe("full");
-    expect(plan.requiredLanes).toEqual(defaultImpactMap.lanes);
-  });
+  it.each([{ firstParentSha: EVENT_SHA }, { checkoutSha: BASE_SHA }, { eventSha: "not-a-sha" }, { changes: [] }])(
+    "fails closed for unverified integration metadata: %j",
+    (override) => {
+      const plan = planFor([{ path: "docs/a.md", status: "modified" }], override);
+      expect(plan.mode).toBe("full");
+      expect(plan.requiredLanes).toEqual(defaultImpactMap.lanes);
+    }
+  );
 
   it("always runs full checks for push main and manual executions", () => {
     for (const eventName of ["push", "workflow_dispatch", "merge_group"]) {
@@ -99,9 +97,9 @@ describe("CI quality aggregation", () => {
   it("rejects unverified selective plans, missing detector, and missing preflight", () => {
     const plan = planFor([{ path: "docs/a.md", status: "added" }]);
     const results = laneResults(plan);
-    expect(validateQualityGate({ ...plan, verifiedIntegration: false }, results, "success", "success", "pull_request")).not.toEqual(
-      []
-    );
+    expect(
+      validateQualityGate({ ...plan, verifiedIntegration: false }, results, "success", "success", "pull_request")
+    ).not.toEqual([]);
     expect(validateQualityGate(plan, results, "failure", "success", "pull_request")).not.toEqual([]);
     expect(validateQualityGate(plan, results, "success", "skipped", "pull_request")).not.toEqual([]);
   });
