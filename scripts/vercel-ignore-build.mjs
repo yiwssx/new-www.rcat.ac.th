@@ -1,7 +1,16 @@
 import { execFileSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 
-const NON_RUNTIME_PREFIXES = [".github/", ".husky/", "apps-script/", "cloudflare/", "docs/", "imports/", "scripts/ci/", "src/test/"];
+const NON_RUNTIME_PREFIXES = [
+  ".github/",
+  ".husky/",
+  "apps-script/",
+  "cloudflare/",
+  "docs/",
+  "imports/",
+  "scripts/ci/",
+  "src/test/"
+];
 
 const RUNTIME_EXACT_FILES = new Set([
   "index.html",
