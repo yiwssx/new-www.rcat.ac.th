@@ -47,7 +47,8 @@ export function formatJobTimingSummary(result, runId) {
   ];
 
   for (const entry of result.entries) {
-    lines.push(`| ${entry.name} | ${entry.conclusion} | ${entry.seconds === null ? "n/a" : `${entry.seconds} s`} |`);
+    const time = entry.seconds === null ? "n/a" : `${entry.seconds} s`;
+    lines.push(`| ${entry.name} | ${entry.conclusion} | ${time} |`);
   }
 
   lines.push("", "Skipped and uncompleted jobs are not assigned invented runtimes.");
@@ -88,11 +89,14 @@ async function main() {
 
   const result = summarizeJobTimings(payload.jobs);
   appendFileSync(summaryFile, formatJobTimingSummary(result, runId));
-  console.log("RCAT CI job timings recorded:", JSON.stringify({
-    measuredJobs: result.measuredJobs,
-    jobSeconds: result.jobSeconds,
-    wallSeconds: result.wallSeconds
-  }));
+  console.log(
+    "RCAT CI job timings recorded:",
+    JSON.stringify({
+      measuredJobs: result.measuredJobs,
+      jobSeconds: result.jobSeconds,
+      wallSeconds: result.wallSeconds
+    })
+  );
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
