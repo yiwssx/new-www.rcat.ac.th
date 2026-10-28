@@ -29,7 +29,9 @@ describe("CI Vercel compatibility", () => {
 
     const qualityJob = workflow.slice(qualityStart);
     expect(qualityJob).toContain("if: ${{ always() }}");
-    expect(qualityJob).toContain("Verify all CI lanes passed");
+    expect(qualityJob).toContain("Verify planned CI lanes and justified skips");
+    expect(qualityJob).toContain("run: node scripts/ci/quality-gate.mjs");
+    expect(workflow).toContain("run: node scripts/ci/detect-impact.mjs");
 
     for (const lane of requiredLanes) {
       expect(qualityJob, lane).toContain(`      - ${lane}`);
