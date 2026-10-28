@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const configFile = fileURLToPath(new URL("../../config/ci-impact-map.json", import.meta.url));
 
@@ -121,7 +122,7 @@ export function createImpactPlan(entries, map = defaultImpactMap) {
   };
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === fileURLToPath(new URL(`file://${process.argv[1].startsWith("/") ? "" : process.cwd() + "/"}${process.argv[1]}`))) {
+if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
   const args = process.argv.slice(2);
   if (args[0] !== "--files") {
     console.error("Usage: node scripts/ci/impact-plan.mjs --files <changed-file> [...]");
