@@ -22,9 +22,7 @@ export const FUNCTIONAL_OWNER_CANDIDATES = Object.freeze({
     "tests/functional/publicTelemetry.spec.ts",
     "tests/functional/publicCookieConsent.spec.ts"
   ],
-  "src/public/components/OrganizationChartView.tsx": [
-    "tests/functional/organizationAccessibility.spec.ts"
-  ],
+  "src/public/components/OrganizationChartView.tsx": ["tests/functional/organizationAccessibility.spec.ts"],
   "src/admin/components/OrganizationAssignmentTransferDialog.tsx": [
     "tests/functional/organizationAssignmentTransfer.spec.ts"
   ]
@@ -131,7 +129,10 @@ if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.m
     try {
       appendFileSync(process.env.GITHUB_STEP_SUMMARY, report);
     } catch (error) {
-      console.warn("Could not append optional E2E observation:", error instanceof Error ? error.message : String(error));
+      console.warn(
+        "Could not append optional E2E observation:",
+        error instanceof Error ? error.message : String(error)
+      );
     }
   }
 }
