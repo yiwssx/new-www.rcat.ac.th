@@ -17,23 +17,19 @@ const docsPlan = {
 const exists = () => true;
 
 describe("P3 selective Static Quality", () => {
-  it("checks only a verified changed Markdown document in a docs-only PR", () => {
+  it("skips ESLint only for a verified existing Markdown document in a docs-only PR", () => {
     const result = selectStaticQualityCommands(docsPlan, "pull_request", exists);
     expect(result.mode).toBe("docs-only");
-    expect(result.commands).toEqual([
-      ["exec", "prettier", "--check", "docs/architecture/ci-impact-aware-optimization-plan.md"]
-    ]);
+    expect(result.commands).toEqual([]);
   });
 
-  it("checks multiple docs and root README with deterministic ordering", () => {
+  it("skips ESLint for verified multiple docs and a root README", () => {
     const plan = {
       ...docsPlan,
       changedPaths: ["README.md", "docs/guide.md", "docs/policy.json"]
     };
     const result = selectStaticQualityCommands(plan, "pull_request", exists);
-    expect(result.commands).toEqual([
-      ["exec", "prettier", "--check", "README.md", "docs/guide.md", "docs/policy.json"]
-    ]);
+    expect(result.commands).toEqual([]);
   });
 
   it.each(["push", "workflow_dispatch", "merge_group"])("keeps full checks for %s", (eventName) => {
@@ -56,7 +52,7 @@ describe("P3 selective Static Quality", () => {
   ])("keeps full formatting and lint for unsafe or broader changes: %j", (plan) => {
     const result = selectStaticQualityCommands(plan, "pull_request", exists);
     expect(result.mode).toBe("full");
-    expect(result.commands).toEqual([["format:check"], ["lint:strict"]]);
+    expect(result.commands).toEqual([["lint:strict"]]);
   });
 
   it("does not narrow checks for deleted documents or symlinks", () => {
