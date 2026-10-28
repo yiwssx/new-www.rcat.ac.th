@@ -39,6 +39,12 @@ describe("CI Vercel compatibility", () => {
     }
   });
 
+  it("uses isolated vmForks only for CI unit tests", () => {
+    expect(workflow).toContain("pnpm test:unit --pool=vmForks");
+    expect(workflow).toContain("pnpm test:integration");
+    expect(workflow).not.toContain("pnpm test:integration --pool=vmForks");
+  });
+
   it("delegates Vercel build suppression to the tested runtime classifier", () => {
     expect(vercelConfig.ignoreCommand).toBe("node scripts/vercel-ignore-build.mjs");
   });
