@@ -45,9 +45,10 @@ describe("CI job timing evidence", () => {
   });
 
   it("escapes untrusted markdown from job names", () => {
-    const result = summarizeJobTimings([{ name: "Bad|name\n<script>", conclusion: "failure" }]);
+    const result = summarizeJobTimings([{ name: "Bad|name\n<script><SCRIPT>", conclusion: "failure" }]);
     const summary = formatJobTimingSummary(result, "123");
-    expect(summary).not.toMatch(/<script>/);
-    expect(summary).not.toMatch(/Bad\|name/);
+    expect(summary).not.toContain("<script>");
+    expect(summary).not.toContain("<SCRIPT>");
+    expect(summary).not.toContain("Bad|name");
   });
 });
