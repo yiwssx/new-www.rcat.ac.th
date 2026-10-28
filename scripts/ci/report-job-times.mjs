@@ -98,6 +98,6 @@ async function main() {
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main().catch((error) => {
     console.error("Non-blocking CI timing telemetry:", error instanceof Error ? error.message : String(error));
-    process.exitCode = 1;
+    // Optional telemetry cannot override the required quality gate.
   });
 }
