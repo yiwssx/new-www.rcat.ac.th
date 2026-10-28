@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { installPublicAuthIsolationFixture } from "./fixtures/publicAuthIsolationFixture";
 
+// Keep consent tests in CI even when unrelated E2E specs are intentionally skipped.
 test.describe("Public cookie consent", () => {
   test("blocks all optional telemetry by default and after rejection, then respects acceptance and withdrawal", async ({
     page
