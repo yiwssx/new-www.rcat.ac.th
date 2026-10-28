@@ -1,6 +1,25 @@
 import { appendFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
+const OBSERVED_STEPS = new Map([
+  [
+    "Functional E2E",
+    new Set([
+      "Run ./.github/actions/setup-project",
+      "Validate production Playwright suite discovery",
+      "Run pnpm exec playwright install --with-deps chromium",
+      "Run changed Playwright specs when safe, or full Functional E2E"
+    ])
+  ],
+  ["Governance", new Set(["Run pnpm perf:check"])]
+]);
+
+function safeLabel(value) {
+  return String(value ?? "unnamed")
+    .replace(/[\r\n|<>`]/g, " ")
+    .slice(0, 120);
+}
+
 export function summarizeJobTimings(jobs) {
   if (!Array.isArray(jobs) || jobs.length === 0) {
     throw new Error("GitHub returned no workflow jobs");
@@ -13,9 +32,7 @@ export function summarizeJobTimings(jobs) {
       const end = Date.parse(job.completed_at ?? "");
       const timed = Number.isFinite(start) && Number.isFinite(end) && end >= start;
       return {
-        name: String(job.name ?? "unnamed")
-          .replace(/[\r\n|<>]/g, " ")
-          .slice(0, 80),
+        name: safeLabel(job.name).slice(0, 80),
         conclusion: String(job.conclusion ?? job.status ?? "unknown"),
         seconds: timed ? Math.ceil((end - start) / 1000) : null,
         start: timed ? start : null,
@@ -23,12 +40,31 @@ export function summarizeJobTimings(jobs) {
       };
     });
 
+  const stepEntries = jobs.flatMap((job) => {
+    const observed = OBSERVED_STEPS.get(job.name);
+    if (!observed || !Array.isArray(job.steps)) return [];
+    return job.steps
+      .filter((step) => observed.has(step.name))
+      .map((step) => {
+        const start = Date.parse(step.started_at ?? "");
+        const end = Date.parse(step.completed_at ?? "");
+        const timed = step.conclusion !== "skipped" && Number.isFinite(start) && Number.isFinite(end) && end >= start;
+        return {
+          job: safeLabel(job.name),
+          step: safeLabel(step.name),
+          conclusion: safeLabel(step.conclusion ?? step.status ?? "unknown"),
+          seconds: timed ? Math.ceil((end - start) / 1000) : null
+        };
+      });
+  });
+
   const measured = entries.filter((entry) => entry.seconds !== null);
   const earliest = measured.length > 0 ? Math.min(...measured.map((entry) => entry.start)) : null;
   const latest = measured.length > 0 ? Math.max(...measured.map((entry) => entry.end)) : null;
 
   return {
     entries,
+    stepEntries,
     jobSeconds: measured.reduce((sum, entry) => sum + entry.seconds, 0),
     wallSeconds: earliest === null ? null : Math.ceil((latest - earliest) / 1000),
     measuredJobs: measured.length
@@ -51,6 +87,21 @@ export function formatJobTimingSummary(result, runId) {
   for (const entry of result.entries) {
     const time = entry.seconds === null ? "n/a" : `${entry.seconds} s`;
     lines.push(`| ${entry.name} | ${entry.conclusion} | ${time} |`);
+  }
+
+  if (result.stepEntries?.length > 0) {
+    lines.push(
+      "",
+      "#### Observed setup and test steps (GitHub Actions step elapsed time)",
+      "",
+      "| Job | Step | Result | Elapsed |",
+      "| --- | --- | --- | ---: |"
+    );
+    for (const step of result.stepEntries) {
+      const time = step.seconds === null ? "n/a" : `${step.seconds} s`;
+      lines.push(`| ${step.job} | ${step.step} | ${step.conclusion} | ${time} |`);
+    }
+    lines.push("", "Step elapsed durations do not represent billed runner minutes or guaranteed cache savings.");
   }
 
   lines.push("", "Skipped and uncompleted jobs are not assigned invented runtimes.");

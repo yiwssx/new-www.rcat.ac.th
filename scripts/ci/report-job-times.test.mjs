@@ -44,6 +44,69 @@ describe("CI job timing evidence", () => {
     expect(result.jobSeconds).toBe(0);
   });
 
+  it("reports measured E2E setup and execution steps independently of job elapsed time", () => {
+    const result = summarizeJobTimings([
+      {
+        name: "Functional E2E",
+        conclusion: "success",
+        started_at: "2026-10-28T00:00:00Z",
+        completed_at: "2026-10-28T00:00:20Z",
+        steps: [
+          {
+            name: "Run ./.github/actions/setup-project",
+            conclusion: "success",
+            started_at: "2026-10-28T00:00:01Z",
+            completed_at: "2026-10-28T00:00:04Z"
+          },
+          {
+            name: "Run pnpm exec playwright install --with-deps chromium",
+            conclusion: "success",
+            started_at: "2026-10-28T00:00:04Z",
+            completed_at: "2026-10-28T00:00:09Z"
+          },
+          {
+            name: "Run changed Playwright specs when safe, or full Functional E2E",
+            conclusion: "success",
+            started_at: "2026-10-28T00:00:09Z",
+            completed_at: "2026-10-28T00:00:20Z"
+          },
+          {
+            name: "Complete job",
+            conclusion: "success",
+            started_at: "2026-10-28T00:00:20Z",
+            completed_at: "2026-10-28T00:00:20Z"
+          }
+        ]
+      }
+    ]);
+    expect(result.jobSeconds).toBe(20);
+    expect(result.stepEntries.map((entry) => entry.seconds)).toEqual([3, 5, 11]);
+    expect(formatJobTimingSummary(result, "42")).toContain(
+      "| Functional E2E | Run pnpm exec playwright install --with-deps chromium | success | 5 s |"
+    );
+    expect(result.stepEntries).toHaveLength(3);
+  });
+
+  it("does not invent step durations for skipped or uncompleted steps", () => {
+    const result = summarizeJobTimings([
+      {
+        name: "Governance",
+        conclusion: "success",
+        steps: [
+          {
+            name: "Run pnpm perf:check",
+            conclusion: "skipped",
+            started_at: "2026-10-28T00:00:00Z",
+            completed_at: "2026-10-28T00:00:01Z"
+          }
+        ]
+      }
+    ]);
+    expect(result.stepEntries).toHaveLength(1);
+    expect(result.stepEntries[0].seconds).toBeNull();
+    expect(formatJobTimingSummary(result, "42")).toContain("| Governance | Run pnpm perf:check | skipped | n/a |");
+  });
+
   it("escapes untrusted markdown from job names", () => {
     const result = summarizeJobTimings([{ name: "Bad|name\n<script><SCRIPT>", conclusion: "failure" }]);
     const summary = formatJobTimingSummary(result, "123");
