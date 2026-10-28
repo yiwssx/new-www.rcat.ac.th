@@ -1,5 +1,4 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { describe, expect, it } from "vitest";
 import { formatJobTimingSummary, summarizeJobTimings } from "./report-job-times.mjs";
 
 describe("CI job timing evidence", () => {
@@ -26,29 +25,29 @@ describe("CI job timing evidence", () => {
       }
     ]);
 
-    assert.equal(result.measuredJobs, 2);
-    assert.equal(result.jobSeconds, 25);
-    assert.equal(result.wallSeconds, 20);
-    assert.equal(result.entries.length, 3);
-    assert.equal(result.entries[2].seconds, null);
+    expect(result.measuredJobs).toBe(2);
+    expect(result.jobSeconds).toBe(25);
+    expect(result.wallSeconds).toBe(20);
+    expect(result.entries).toHaveLength(3);
+    expect(result.entries[2].seconds).toBeNull();
     const report = formatJobTimingSummary(result, "123");
-    assert.match(report, /Measured upstream jobs: 2/);
-    assert.match(report, /Sum of job elapsed times \(not billed runner minutes\): 25 s/);
-    assert.match(report, /\| Worker \| skipped \| n\/a \|/);
-    assert.doesNotMatch(report, /\| quality \|/);
+    expect(report).toMatch(/Measured upstream jobs: 2/);
+    expect(report).toMatch(/Sum of job elapsed times \(not billed runner minutes\): 25 s/);
+    expect(report).toMatch(/\| Worker \| skipped \| n\/a \|/);
+    expect(report).not.toMatch(/\| quality \|/);
   });
 
   it("rejects missing job metadata instead of inventing numbers", () => {
-    assert.throws(() => summarizeJobTimings([]), /no workflow jobs/);
+    expect(() => summarizeJobTimings([])).toThrow(/no workflow jobs/);
     const result = summarizeJobTimings([{ name: "Build", started_at: "bad", completed_at: "bad" }]);
-    assert.equal(result.wallSeconds, null);
-    assert.equal(result.jobSeconds, 0);
+    expect(result.wallSeconds).toBeNull();
+    expect(result.jobSeconds).toBe(0);
   });
 
   it("escapes untrusted markdown from job names", () => {
     const result = summarizeJobTimings([{ name: "Bad|name\n<script>", conclusion: "failure" }]);
     const summary = formatJobTimingSummary(result, "123");
-    assert.doesNotMatch(summary, /<script>/);
-    assert.doesNotMatch(summary, /Bad\|name/);
+    expect(summary).not.toMatch(/<script>/);
+    expect(summary).not.toMatch(/Bad\|name/);
   });
 });
