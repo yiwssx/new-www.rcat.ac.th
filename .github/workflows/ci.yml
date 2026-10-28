@@ -89,7 +89,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-project
-      - run: pnpm test:unit
+      # Reuse jsdom initialization across isolated VM contexts; keep Integration on its default pool.
+      - run: pnpm test:unit --pool=vmForks
       - name: Verify vendored Cloudflare security audit validators with Node test runner
         run: node --test .agents/skills/security-audit/validate-coverage-ledger.test.cjs .agents/skills/security-audit/validate-findings.test.cjs
       - name: Verify Actions history retention safety and idempotency
