@@ -168,7 +168,9 @@ describe("dependency automation contract", () => {
     expect(ciWorkflow).toContain("pnpm deps:check -- --skip-documentation-freshness");
     expect(ciWorkflow).toContain("pnpm deps:docs:audit -- --skip-status-hashes");
     expect(ciWorkflow).not.toContain("pnpm deps:status:check");
-    expect(ciWorkflow.match(/needs: dependency-preflight/gmu)?.length).toBe(8);
+    expect(ciWorkflow.match(/needs: \[impact, dependency-preflight\]/gmu)?.length).toBe(8);
+    expect(ciWorkflow).toContain("CI_PR_BASE_SHA:");
+    expect(ciWorkflow).toContain("Verify planned CI lanes and justified skips");
   });
 
   it("keeps snapshot mutation out of the normal Renovate PR lifecycle", () => {
