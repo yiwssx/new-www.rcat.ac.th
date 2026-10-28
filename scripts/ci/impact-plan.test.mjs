@@ -36,6 +36,7 @@ describe("CI impact plan classifier", () => {
     expect(plan.requiredLanes).toContain("integration");
     expect(plan.requiredLanes).toContain("governance");
     expect(plan.requiredLanes).toContain("functional");
+    expect(createImpactPlan(["src/admin/pages/LoginPage.tsx"]).areas).toContain("auth");
   });
 
   it("checks D1 and Worker changes without a mandatory React frontend build", () => {
@@ -51,9 +52,7 @@ describe("CI impact plan classifier", () => {
   });
 
   it("classifies both old and new paths for renames", () => {
-    const plan = createImpactPlan([
-      { status: "renamed", path: "src/theme.ts", previousPath: "docs/old-theme.md" }
-    ]);
+    const plan = createImpactPlan([{ status: "renamed", path: "src/theme.ts", previousPath: "docs/old-theme.md" }]);
     expect(plan.changedPaths).toEqual(["docs/old-theme.md", "src/theme.ts"]);
     expect(plan.areas).toContain("design");
   });
@@ -70,6 +69,8 @@ describe("CI impact plan classifier", () => {
     ["../outside-project"],
     ["src/shared/components/Button.tsx"],
     ["src/types.ts"],
+    ["src/test/setup.ts"],
+    ["cloudflare/public-api/src/contracts/publicRead.ts"],
     ["package.json"],
     [".github/workflows/ci.yml"],
     ["config/ci-impact-map.json"]
