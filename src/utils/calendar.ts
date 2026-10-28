@@ -1,3 +1,4 @@
+// PR #739 source-impact canary: preserve existing calendar behavior while verifying related Unit Test selection.
 const THAI_UTC_OFFSET = "+07:00";
 const LOCAL_DATETIME_PATTERN = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})$/;
 
