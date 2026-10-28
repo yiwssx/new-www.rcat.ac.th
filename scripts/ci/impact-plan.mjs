@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { pathToFileURL } from "node:url";
 
-const configFile = fileURLToPath(new URL("../../config/ci-impact-map.json", import.meta.url));
+const configFile = resolve("config/ci-impact-map.json");
 
 export const defaultImpactMap = JSON.parse(readFileSync(configFile, "utf8"));
 
@@ -48,13 +48,7 @@ function resolveChangedPaths(entries) {
 }
 
 function validateMap(map) {
-  if (
-    !map ||
-    map.version !== 1 ||
-    !Array.isArray(map.lanes) ||
-    map.lanes.length === 0 ||
-    !Array.isArray(map.rules)
-  ) {
+  if (!map || map.version !== 1 || !Array.isArray(map.lanes) || map.lanes.length === 0 || !Array.isArray(map.rules)) {
     throw new Error("Invalid CI impact map");
   }
   for (const rule of map.rules) {
