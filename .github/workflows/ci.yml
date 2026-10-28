@@ -97,6 +97,8 @@ jobs:
         env:
           CI_PLAN: ${{ needs.impact.outputs.plan }}
         run: node scripts/ci/run-affected-unit.mjs
+      - name: Verify CI timing telemetry arithmetic and formatting
+        run: node --test scripts/ci/report-job-times.test.mjs
       - name: Verify vendored Cloudflare security audit validators with Node test runner
         run: node --test .agents/skills/security-audit/validate-coverage-ledger.test.cjs .agents/skills/security-audit/validate-findings.test.cjs
       - name: Verify Actions history retention safety and idempotency
@@ -199,6 +201,9 @@ jobs:
   # the GitHub Actions check named `quality`. Keep this aggregate check stable.
   quality:
     if: ${{ always() }}
+    permissions:
+      contents: read
+      actions: read
     needs:
       - impact
       - dependency-preflight
@@ -222,3 +227,9 @@ jobs:
           CI_RESULTS: >-
             {"dependencies":"${{ needs.dependencies.result }}","static-quality":"${{ needs.static-quality.result }}","unit":"${{ needs.unit.result }}","integration":"${{ needs.integration.result }}","build":"${{ needs.build.result }}","governance":"${{ needs.governance.result }}","worker":"${{ needs.worker.result }}","functional":"${{ needs.functional.result }}"}
         run: node scripts/ci/quality-gate.mjs
+      - name: Record upstream job durations for CI performance analysis
+        if: ${{ always() }}
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/ci/report-job-times.mjs
