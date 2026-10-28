@@ -42,9 +42,10 @@ jobs:
           CI_PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: node scripts/ci/detect-impact.mjs
 
+  # Independent safety preflight runs in parallel with change detection.
+  # Every test lane still needs both jobs and `quality` checks both results.
   dependency-preflight:
     name: Dependency Preflight
-    needs: impact
     runs-on: ubuntu-latest
 
     steps:
