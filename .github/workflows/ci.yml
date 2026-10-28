@@ -79,6 +79,14 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-project
       - run: pnpm format:check
+      - name: Diagnose CI timing formatter differences
+        if: ${{ failure() }}
+        shell: bash
+        run: |
+          pnpm exec prettier scripts/ci/report-job-times.mjs > "$RUNNER_TEMP/report-job-times.formatted.mjs"
+          set +e
+          diff -u scripts/ci/report-job-times.mjs "$RUNNER_TEMP/report-job-times.formatted.mjs"
+          exit 0
       - name: Skip ESLint only for trusted docs-only pull requests
         env:
           CI_PLAN: ${{ needs.impact.outputs.plan }}
