@@ -18,8 +18,33 @@ permissions:
   contents: read
 
 jobs:
+  # Detect PR changes against the synthetic merge commit; main always runs full CI.
+  impact:
+    name: Change Impact
+    runs-on: ubuntu-latest
+    outputs:
+      plan: ${{ steps.detect.outputs.plan }}
+      require_dependencies: ${{ steps.detect.outputs.require_dependencies }}
+      require_static_quality: ${{ steps.detect.outputs.require_static_quality }}
+      require_unit: ${{ steps.detect.outputs.require_unit }}
+      require_integration: ${{ steps.detect.outputs.require_integration }}
+      require_build: ${{ steps.detect.outputs.require_build }}
+      require_governance: ${{ steps.detect.outputs.require_governance }}
+      require_worker: ${{ steps.detect.outputs.require_worker }}
+      require_functional: ${{ steps.detect.outputs.require_functional }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Calculate verified PR impact or fail closed to full checks
+        id: detect
+        env:
+          CI_PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: node scripts/ci/detect-impact.mjs
+
   dependency-preflight:
     name: Dependency Preflight
+    needs: impact
     runs-on: ubuntu-latest
 
     steps:
@@ -31,7 +56,8 @@ jobs:
 
   dependencies:
     name: Dependencies
-    needs: dependency-preflight
+    needs: [impact, dependency-preflight]
+    if: ${{ needs.impact.outputs.require_dependencies == 'true' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -44,7 +70,8 @@ jobs:
 
   static-quality:
     name: Static Quality
-    needs: dependency-preflight
+    needs: [impact, dependency-preflight]
+    if: ${{ needs.impact.outputs.require_static_quality == 'true' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -55,7 +82,8 @@ jobs:
 
   unit:
     name: Unit Tests
-    needs: dependency-preflight
+    needs: [impact, dependency-preflight]
+    if: ${{ needs.impact.outputs.require_unit == 'true' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -78,7 +106,8 @@ jobs:
 
   integration:
     name: Integration Tests
-    needs: dependency-preflight
+    needs: [impact, dependency-preflight]
+    if: ${{ needs.impact.outputs.require_integration == 'true' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -88,7 +117,8 @@ jobs:
 
   build:
     name: Build
-    needs: dependency-preflight
+    needs: [impact, dependency-preflight]
+    if: ${{ needs.impact.outputs.require_build == 'true' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -98,7 +128,8 @@ jobs:
 
   governance:
     name: Governance
-    needs: dependency-preflight
+    needs: [impact, dependency-preflight]
+    if: ${{ needs.impact.outputs.require_governance == 'true' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -129,7 +160,8 @@ jobs:
 
   worker:
     name: Worker
-    needs: dependency-preflight
+    needs: [impact, dependency-preflight]
+    if: ${{ needs.impact.outputs.require_worker == 'true' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -141,7 +173,8 @@ jobs:
 
   functional:
     name: Functional E2E
-    needs: dependency-preflight
+    needs: [impact, dependency-preflight]
+    if: ${{ needs.impact.outputs.require_functional == 'true' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -157,6 +190,7 @@ jobs:
   quality:
     if: ${{ always() }}
     needs:
+      - impact
       - dependency-preflight
       - dependencies
       - static-quality
@@ -169,34 +203,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Verify all CI lanes passed
+      - uses: actions/checkout@v7
+      - name: Verify planned CI lanes and justified skips
         env:
-          DEPENDENCY_PREFLIGHT: ${{ needs.dependency-preflight.result }}
-          DEPENDENCIES: ${{ needs.dependencies.result }}
-          STATIC_QUALITY: ${{ needs.static-quality.result }}
-          UNIT: ${{ needs.unit.result }}
-          INTEGRATION: ${{ needs.integration.result }}
-          BUILD: ${{ needs.build.result }}
-          GOVERNANCE: ${{ needs.governance.result }}
-          WORKER: ${{ needs.worker.result }}
-          FUNCTIONAL: ${{ needs.functional.result }}
-        run: |
-          printf '%s\n' \
-            "dependency-preflight=$DEPENDENCY_PREFLIGHT" \
-            "dependencies=$DEPENDENCIES" \
-            "static-quality=$STATIC_QUALITY" \
-            "unit=$UNIT" \
-            "integration=$INTEGRATION" \
-            "build=$BUILD" \
-            "governance=$GOVERNANCE" \
-            "worker=$WORKER" \
-            "functional=$FUNCTIONAL"
-          test "$DEPENDENCY_PREFLIGHT" = "success"
-          test "$DEPENDENCIES" = "success"
-          test "$STATIC_QUALITY" = "success"
-          test "$UNIT" = "success"
-          test "$INTEGRATION" = "success"
-          test "$BUILD" = "success"
-          test "$GOVERNANCE" = "success"
-          test "$WORKER" = "success"
-          test "$FUNCTIONAL" = "success"
+          CI_PLAN: ${{ needs.impact.outputs.plan }}
+          CI_IMPACT_STATUS: ${{ needs.impact.result }}
+          CI_PREFLIGHT_STATUS: ${{ needs.dependency-preflight.result }}
+          CI_RESULTS: >-
+            {"dependencies":"${{ needs.dependencies.result }}","static-quality":"${{ needs.static-quality.result }}","unit":"${{ needs.unit.result }}","integration":"${{ needs.integration.result }}","build":"${{ needs.build.result }}","governance":"${{ needs.governance.result }}","worker":"${{ needs.worker.result }}","functional":"${{ needs.functional.result }}"}
+        run: node scripts/ci/quality-gate.mjs
