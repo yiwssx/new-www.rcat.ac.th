@@ -51,6 +51,7 @@ describe("CI Vercel compatibility", () => {
   });
 
   it("keeps full static checks for code while allowing verified docs-only formatting", () => {
+    expect(workflow).toContain("      - run: pnpm format:check");
     expect(workflow).toContain("run: node scripts/ci/run-affected-static.mjs");
     expect(workflow).toContain("CI_PLAN: ${{ needs.impact.outputs.plan }}");
     expect(workflow).toContain("      - static-quality");
