@@ -79,6 +79,14 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-project
       - run: pnpm format:check
+      - name: Diagnose issue 757 formatting (temporary)
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          for file in scripts/ci/observe-functional-ownership.mjs scripts/ci/observe-functional-ownership.test.mjs; do
+            echo "### $file"
+            diff -u "$file" <(pnpm exec prettier "$file") || true
+          done
       - name: Skip ESLint only for trusted docs-only pull requests
         env:
           CI_PLAN: ${{ needs.impact.outputs.plan }}
