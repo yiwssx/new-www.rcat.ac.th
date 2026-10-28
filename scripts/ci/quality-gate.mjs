@@ -55,7 +55,6 @@ export function validateQualityGate(plan, results, impactStatus, preflightStatus
   return errors;
 }
 
-
 /**
  * Auditable, read-only report for the final required quality check.
  * Reporting never changes the fail-closed verdict from validateQualityGate.
@@ -63,19 +62,21 @@ export function validateQualityGate(plan, results, impactStatus, preflightStatus
 export function formatQualityGateSummary({ plan, results, impactStatus, preflightStatus, eventName, errors }) {
   const safeText = (value) => String(value ?? "missing").replace(/[\r\n|<>`]/g, " ").slice(0, 240);
   const required = new Set(Array.isArray(plan?.requiredLanes) ? plan.requiredLanes : []);
+  let reasons = "missing";
+  if (Array.isArray(plan?.reasons) && plan.reasons.length > 0) {
+    reasons = plan.reasons.map(safeText).join("; ");
+  }
+
   const lines = [
     "### RCAT CI quality gate",
     "",
-    "- Verdict: **" + (errors.length === 0 ? "PASS" : "FAIL") + "**",
-    "- Event: " + safeText(eventName),
-    "- Impact mode: " + safeText(plan?.mode),
-    "- Verified integration: " + String(plan?.verifiedIntegration === true),
-    "- Change-impact job: " + safeText(impactStatus),
-    "- Dependency preflight: " + safeText(preflightStatus),
-    "- Reasons: " +
-      (Array.isArray(plan?.reasons) && plan.reasons.length
-        ? plan.reasons.map(safeText).join("; ")
-        : "missing"),
+    `- Verdict: **${errors.length === 0 ? "PASS" : "FAIL"}**`,
+    `- Event: ${safeText(eventName)}`,
+    `- Impact mode: ${safeText(plan?.mode)}`,
+    `- Verified integration: ${plan?.verifiedIntegration === true}`,
+    `- Change-impact job: ${safeText(impactStatus)}`,
+    `- Dependency preflight: ${safeText(preflightStatus)}`,
+    `- Reasons: ${reasons}`,
     "",
     "| Lane | Planned | Observed | Match |",
     "| --- | --- | --- | --- |"
@@ -84,14 +85,12 @@ export function formatQualityGateSummary({ plan, results, impactStatus, prefligh
   for (const lane of defaultImpactMap.lanes) {
     const planned = required.has(lane) ? "success" : "skipped";
     const actual = results?.[lane] ?? "missing";
-    lines.push(
-      "| " + lane + " | " + planned + " | " + safeText(actual) + " | " +
-        (actual === planned ? "yes" : "NO") + " |"
-    );
+    const match = actual === planned ? "yes" : "NO";
+    lines.push(`| ${lane} | ${planned} | ${safeText(actual)} | ${match} |`);
   }
 
   if (errors.length > 0) {
-    lines.push("", "#### Gate failures", ...errors.map((error) => "- " + safeText(error)));
+    lines.push("", "#### Gate failures", ...errors.map((error) => `- ${safeText(error)}`));
   }
 
   lines.push(
