@@ -17,7 +17,6 @@ const INTEGRATION_EXCLUDES = [
   "cloudflare/public-api/test/cmsUserLifecycleD1Integration.test.ts"
 ];
 
-
 function realUnitTest(path, fileIsRegular) {
   if (!UNIT_TEST_PATH.test(path) || path.split("/").some((part) => part === ".." || part === ".")) {
     return false;
