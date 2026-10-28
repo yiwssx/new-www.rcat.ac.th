@@ -22,10 +22,11 @@ describe("P3 CI unit test scope selection", () => {
   });
 
   it("permits documentation to accompany existing test-file changes", () => {
-    const plan = { ...verifiedPlan, areas: ["documentation", "unit"], changedPaths: [
-      "docs/ci-guide.md",
-      "src/test/ciVercelCompatibility.test.ts"
-    ] };
+    const plan = {
+      ...verifiedPlan,
+      areas: ["documentation", "unit"],
+      changedPaths: ["docs/ci-guide.md", "src/test/ciVercelCompatibility.test.ts"]
+    };
     expect(selectUnitTestCommand(plan, "pull_request", exists).mode).toBe("selected-tests");
   });
 
