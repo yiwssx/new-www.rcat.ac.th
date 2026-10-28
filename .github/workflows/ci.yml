@@ -78,8 +78,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-project
-      - run: pnpm format:check
-      - run: pnpm lint:strict
+      - name: Select changed-document formatting or full static checks
+        env:
+          CI_PLAN: ${{ needs.impact.outputs.plan }}
+        run: node scripts/ci/run-affected-static.mjs
 
   unit:
     name: Unit Tests
