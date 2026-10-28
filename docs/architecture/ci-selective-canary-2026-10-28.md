@@ -13,3 +13,5 @@ Expected pull-request execution:
 - Required `quality`: success only when all planned skips match the observed job results.
 
 A push to `main` remains subject to the full CI suite until P4 validates effective repository branch protection and pre-merge integration safeguards.
+
+The P3 docs-only static check also preserves repository-wide Prettier while skipping ESLint only for a verified documentation-only change.
