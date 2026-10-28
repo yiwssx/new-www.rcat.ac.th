@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 
 const repositoryRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const workflow = readFileSync(join(repositoryRoot, ".github", "workflows", "ci.yml"), "utf8");
+const playwrightConfig = readFileSync(join(repositoryRoot, "playwright.config.ts"), "utf8");
 const vercelConfig = JSON.parse(readFileSync(join(repositoryRoot, "vercel.json"), "utf8")) as {
   ignoreCommand?: string;
 };
@@ -63,6 +64,11 @@ describe("CI Vercel compatibility", () => {
     expect(workflow).toContain("playwright install --with-deps chromium");
     expect(workflow).toContain("playwright.production.config.ts --list");
     expect(workflow).toContain("needs.impact.outputs.plan");
+  });
+
+  it("bounds Playwright CI-only workers while leaving local execution default", () => {
+    expect(playwrightConfig).toContain("workers: process.env.CI ? 3 : undefined");
+    expect(workflow).toContain("run: node scripts/ci/run-affected-functional.mjs");
   });
 
   it("delegates Vercel build suppression to the tested runtime classifier", () => {
