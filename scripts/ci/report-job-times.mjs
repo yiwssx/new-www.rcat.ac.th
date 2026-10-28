@@ -13,7 +13,9 @@ export function summarizeJobTimings(jobs) {
       const end = Date.parse(job.completed_at ?? "");
       const timed = Number.isFinite(start) && Number.isFinite(end) && end >= start;
       return {
-        name: String(job.name ?? "unnamed").replace(/[\r\n|<>]/g, " ").slice(0, 80),
+        name: String(job.name ?? "unnamed")
+          .replace(/[\r\n|<>]/g, " ")
+          .slice(0, 80),
         conclusion: String(job.conclusion ?? job.status ?? "unknown"),
         seconds: timed ? Math.ceil((end - start) / 1000) : null,
         start: timed ? start : null,
