@@ -229,7 +229,6 @@ jobs:
         run: node scripts/ci/quality-gate.mjs
       - name: Record upstream job durations for CI performance analysis
         if: ${{ always() }}
-        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/ci/report-job-times.mjs
