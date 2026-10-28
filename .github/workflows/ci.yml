@@ -186,7 +186,10 @@ jobs:
       - name: Validate production Playwright suite discovery
         run: pnpm exec playwright test --config playwright.production.config.ts --list
       - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm test:functional
+      - name: Run changed Playwright specs when safe, or full Functional E2E
+        env:
+          CI_PLAN: ${{ needs.impact.outputs.plan }}
+        run: node scripts/ci/run-affected-functional.mjs
 
   # Compatibility contract: Vercel deployment checks and the production branch ruleset consume
   # the GitHub Actions check named `quality`. Keep this aggregate check stable.
