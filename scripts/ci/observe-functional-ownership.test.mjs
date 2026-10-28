@@ -22,10 +22,7 @@ describe("source-to-E2E shadow-mode ownership canary", () => {
   it("records reviewable candidate specs but retains the full browser suite", () => {
     const observed = observeFunctionalOwnership(base, "pull_request", exists);
     expect(observed.mode).toBe("candidate-only");
-    expect(observed.candidateSpecs).toEqual([
-      "tests/functional/carousel.spec.ts",
-      "tests/functional/smoke.spec.ts"
-    ]);
+    expect(observed.candidateSpecs).toEqual(["tests/functional/carousel.spec.ts", "tests/functional/smoke.spec.ts"]);
     expect(selectFunctionalTestCommand(base, "pull_request", exists).mode).toBe("full");
     expect(formatFunctionalOwnershipReport(observed)).toContain("full Functional E2E is unchanged");
   });
@@ -89,7 +86,9 @@ describe("source-to-E2E shadow-mode ownership canary", () => {
 
   it("rejects untrusted paths and malformed plans", () => {
     for (const path of ["/src/public/components/PublicHomeCarousel.tsx", "src/public/../../evil", "src/\0bad"]) {
-      expect(observeFunctionalOwnership({ ...base, changedPaths: [path] }, "pull_request", exists).candidateSpecs).toEqual([]);
+      expect(
+        observeFunctionalOwnership({ ...base, changedPaths: [path] }, "pull_request", exists).candidateSpecs
+      ).toEqual([]);
     }
     expect(observeFunctionalOwnership(null, "pull_request", exists).mode).toBe("full-e2e-only");
   });
