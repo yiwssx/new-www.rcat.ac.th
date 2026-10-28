@@ -6,6 +6,16 @@ const UNIT_TEST_PATH = /^src\/test\/(?!integration\/)[A-Za-z0-9_./-]+\.(?:test|s
 const DOC_PATH = /^(?:docs\/[A-Za-z0-9_./-]+|README\.md|CHANGELOG\.md|CONTRIBUTING\.md)$/;
 const BASE_ARGS = ["scripts/run-vitest.mjs", "run"];
 const MAX_SCOPED_FILES = 30;
+const CALENDAR_SOURCE = "src/utils/calendar.ts";
+const CALENDAR_TEST = "src/utils/calendar.test.ts";
+const INTEGRATION_EXCLUDES = [
+  "--exclude",
+  "src/test/integration/**",
+  "--exclude",
+  "cloudflare/public-api/test/cmsMfaD1Integration.test.ts",
+  "--exclude",
+  "cloudflare/public-api/test/cmsUserLifecycleD1Integration.test.ts"
+];
 
 function realUnitTest(path, fileIsRegular) {
   if (!UNIT_TEST_PATH.test(path) || path.split("/").some((part) => part === ".." || part === ".")) {
@@ -21,6 +31,42 @@ function realUnitTest(path, fileIsRegular) {
  */
 export function selectUnitTestCommand(plan, eventName, fileIsRegular) {
   const full = { mode: "full", args: ["test:unit"], reason: "conservative-default" };
+  // First source-code opt-in: keep all cross-domain CI lanes, but select
+  // statically related Vitest unit tests for this explicitly reviewed utility.
+  // Vitest related cannot track arbitrary dynamic import paths, so unknown,
+  // shared, deleted, renamed or multi-source changes keep the full suite.
+  if (
+    eventName === "pull_request" &&
+    plan?.mode === "affected" &&
+    plan.gateReady === true &&
+    plan.verifiedIntegration === true &&
+    Array.isArray(plan.changedPaths) &&
+    plan.changedPaths.includes(CALENDAR_SOURCE) &&
+    plan.changedPaths.length <= 10 &&
+    plan.changedPaths.every(
+      (path) =>
+        path === CALENDAR_SOURCE ||
+        (typeof path === "string" &&
+          DOC_PATH.test(path) &&
+          !path.split("/").some((part) => part === "." || part === ".."))
+    ) &&
+    Array.isArray(plan.areas) &&
+    plan.areas.includes("admin") &&
+    plan.areas.every((area) => area === "admin" || area === "documentation") &&
+    Array.isArray(plan.requiredLanes) &&
+    ["static-quality", "unit", "integration", "build", "governance", "functional"].every((lane) =>
+      plan.requiredLanes.includes(lane)
+    ) &&
+    fileIsRegular(CALENDAR_SOURCE) &&
+    fileIsRegular(CALENDAR_TEST)
+  ) {
+    return {
+      mode: "related-source",
+      args: [...BASE_ARGS.slice(0, 1), "related", "--run", ...INTEGRATION_EXCLUDES, CALENDAR_SOURCE],
+      reason: "verified-calendar-module-with-direct-test-anchor"
+    };
+  }
+
   if (
     eventName !== "pull_request" ||
     !plan ||
@@ -82,7 +128,7 @@ function runCIUnitTests(env = process.env) {
   const choice = selectUnitTestCommand(plan, env.GITHUB_EVENT_NAME, isRegularFile);
   console.log("[CI Unit Tests] " + choice.mode + ": " + choice.reason);
 
-  const isSelected = choice.mode === "selected-tests";
+  const isSelected = choice.mode === "selected-tests" || choice.mode === "related-source";
   const command = isSelected ? "node" : "pnpm";
   const args = choice.args;
   const result = spawnSync(command, args, { stdio: "inherit", env, shell: process.platform === "win32" });

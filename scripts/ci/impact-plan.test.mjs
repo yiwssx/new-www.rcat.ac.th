@@ -51,6 +51,14 @@ describe("CI impact plan classifier", () => {
     expect(plan.requiredLanes).toEqual(["static-quality", "integration"]);
   });
 
+  it("preserves integration, build, governance and browser coverage for the reviewed calendar utility", () => {
+    const plan = createImpactPlan(["src/utils/calendar.ts"]);
+    expect(plan.mode).toBe("affected");
+    expect(plan.areas).toEqual(["admin"]);
+    expect(plan.requiredLanes).toEqual(["static-quality", "unit", "integration", "build", "governance", "functional"]);
+    expect(plan.requiredLanes).not.toContain("worker");
+  });
+
   it("classifies both old and new paths for renames", () => {
     const plan = createImpactPlan([{ status: "renamed", path: "src/theme.ts", previousPath: "docs/old-theme.md" }]);
     expect(plan.changedPaths).toEqual(["docs/old-theme.md", "src/theme.ts"]);

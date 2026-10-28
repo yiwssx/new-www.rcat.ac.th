@@ -61,6 +61,46 @@ describe("P3 CI unit test scope selection", () => {
     expect(selectUnitTestCommand(plan, "pull_request", exists).mode).toBe("full");
   });
 
+  it("selects statically related calendar unit tests only under an audited source plan", () => {
+    const plan = {
+      ...verifiedPlan,
+      areas: ["admin"],
+      requiredLanes: ["static-quality", "unit", "integration", "build", "governance", "functional"],
+      changedPaths: ["src/utils/calendar.ts"]
+    };
+    const selected = selectUnitTestCommand(plan, "pull_request", exists);
+    expect(selected.mode).toBe("related-source");
+    expect(selected.args).toEqual([
+      "scripts/run-vitest.mjs",
+      "related",
+      "--run",
+      "--exclude",
+      "src/test/integration/**",
+      "--exclude",
+      "cloudflare/public-api/test/cmsMfaD1Integration.test.ts",
+      "--exclude",
+      "cloudflare/public-api/test/cmsUserLifecycleD1Integration.test.ts",
+      "src/utils/calendar.ts"
+    ]);
+  });
+
+  it("fails closed on mixed source changes, missing anchor tests and unverified PR integration", () => {
+    const plan = {
+      ...verifiedPlan,
+      areas: ["admin"],
+      requiredLanes: ["static-quality", "unit", "integration", "build", "governance", "functional"],
+      changedPaths: ["src/utils/calendar.ts"]
+    };
+    const mode = (overrides, eventName = "pull_request", fileExists = exists) =>
+      selectUnitTestCommand({ ...plan, ...overrides }, eventName, fileExists).mode;
+
+    expect(mode({}, "push")).toBe("full");
+    expect(mode({ verifiedIntegration: false })).toBe("full");
+    expect(mode({ changedPaths: [...plan.changedPaths, "src/theme.ts"] })).toBe("full");
+    expect(mode({ areas: ["admin", "public"] })).toBe("full");
+    expect(mode({}, "pull_request", (path) => path !== "src/utils/calendar.test.ts")).toBe("full");
+  });
+
   it("rejects malformed plans by using the full command", () => {
     expect(selectUnitTestCommand(null, "pull_request", exists).args).toEqual(["test:unit"]);
   });

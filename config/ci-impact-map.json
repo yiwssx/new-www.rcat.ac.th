@@ -107,6 +107,12 @@
       "lanes": ["static-quality"]
     },
     {
+      "id": "calendar-source-related",
+      "exact": ["src/utils/calendar.ts"],
+      "areas": ["admin"],
+      "lanes": ["static-quality", "unit", "integration", "build", "governance", "functional"]
+    },
+    {
       "id": "critical-remaining",
       "prefix": [
         "server/",
