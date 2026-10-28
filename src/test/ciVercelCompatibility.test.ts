@@ -39,6 +39,17 @@ describe("CI Vercel compatibility", () => {
     }
   });
 
+  it("runs impact detection and dependency preflight independently while keeping every lane gated", () => {
+    const preflight = workflow.split("\n  dependency-preflight:\n")[1]?.split("\n  dependencies:\n")[0];
+    const quality = workflow.split("\n  quality:\n")[1];
+
+    expect(preflight).toBeDefined();
+    expect(preflight).not.toContain("needs: impact");
+    expect(workflow.match(/needs: \[impact, dependency-preflight\]/gmu)?.length).toBe(8);
+    expect(quality).toContain("CI_IMPACT_STATUS: ${{ needs.impact.result }}");
+    expect(quality).toContain("CI_PREFLIGHT_STATUS: ${{ needs.dependency-preflight.result }}");
+  });
+
   it("scopes changed unit-test files without skipping critical coverage checks", () => {
     expect(workflow).toContain("run: node scripts/ci/run-affected-unit.mjs");
     expect(workflow).not.toContain("--pool=vmForks");
