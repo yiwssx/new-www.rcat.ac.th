@@ -187,6 +187,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-project
+      - name: Observe candidate source-to-E2E ownership (non-gating, full suite retained)
+        env:
+          CI_PLAN: ${{ needs.impact.outputs.plan }}
+        run: node scripts/ci/observe-functional-ownership.mjs
       - name: Validate production Playwright suite discovery
         run: pnpm exec playwright test --config playwright.production.config.ts --list
       - run: pnpm exec playwright install --with-deps chromium
