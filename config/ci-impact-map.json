@@ -1,0 +1,242 @@
+{
+  "version": 1,
+  "lanes": [
+    "dependencies",
+    "static-quality",
+    "unit",
+    "integration",
+    "build",
+    "governance",
+    "worker",
+    "functional"
+  ],
+  "rules": [
+    {
+      "id": "critical-runtime-config",
+      "exact": [
+        "package.json",
+        "pnpm-lock.yaml",
+        "pnpm-workspace.yaml",
+        "vercel.json",
+        "vite.config.ts",
+        "tsconfig.json",
+        "src/routes.tsx",
+        "src/entry-client.tsx",
+        "src/entry-server.tsx",
+        "src/vercelSsr.ts",
+        "src/AppProviders.tsx",
+        "config/ci-impact-map.json"
+      ],
+      "prefix": [
+        ".github/workflows/",
+        ".github/actions/",
+        "scripts/ci/",
+        "api/"
+      ],
+      "full": true,
+      "areas": [
+        "infrastructure"
+      ]
+    },
+    {
+      "id": "cms-auth",
+      "exact": [
+        "src/context/AuthContext.tsx",
+        "src/context/authSessionContext.ts",
+        "src/cmsAuthRouteComponents.tsx"
+      ],
+      "prefix": [
+        "server/cmsAuth/",
+        "src/features/cms-auth/"
+      ],
+      "areas": [
+        "admin",
+        "auth"
+      ],
+      "lanes": [
+        "static-quality",
+        "unit",
+        "integration",
+        "build",
+        "governance",
+        "functional"
+      ]
+    },
+    {
+      "id": "theme-design",
+      "exact": [
+        "src/theme.ts",
+        "src/styles.css"
+      ],
+      "prefix": [
+        "src/design-system/"
+      ],
+      "areas": [
+        "public",
+        "admin",
+        "design"
+      ],
+      "lanes": [
+        "static-quality",
+        "unit",
+        "build",
+        "governance",
+        "functional"
+      ]
+    },
+    {
+      "id": "worker-tests",
+      "prefix": [
+        "cloudflare/public-api/test/"
+      ],
+      "areas": [
+        "worker"
+      ],
+      "lanes": [
+        "static-quality",
+        "unit",
+        "integration",
+        "worker"
+      ]
+    },
+    {
+      "id": "worker-d1",
+      "prefix": [
+        "cloudflare/public-api/"
+      ],
+      "areas": [
+        "worker"
+      ],
+      "lanes": [
+        "static-quality",
+        "unit",
+        "integration",
+        "worker",
+        "governance"
+      ]
+    },
+    {
+      "id": "integration-tests",
+      "prefix": [
+        "src/test/integration/"
+      ],
+      "areas": [
+        "integration"
+      ],
+      "lanes": [
+        "static-quality",
+        "integration"
+      ]
+    },
+    {
+      "id": "unit-tests",
+      "prefix": [
+        "src/test/"
+      ],
+      "areas": [
+        "unit"
+      ],
+      "lanes": [
+        "static-quality",
+        "unit"
+      ]
+    },
+    {
+      "id": "functional-tests",
+      "prefix": [
+        "tests/functional/",
+        "tests/production/"
+      ],
+      "areas": [
+        "functional"
+      ],
+      "lanes": [
+        "static-quality",
+        "functional"
+      ]
+    },
+    {
+      "id": "public",
+      "prefix": [
+        "src/public/",
+        "src/features/public-"
+      ],
+      "areas": [
+        "public"
+      ],
+      "lanes": [
+        "static-quality",
+        "unit",
+        "build",
+        "governance",
+        "functional"
+      ]
+    },
+    {
+      "id": "admin",
+      "prefix": [
+        "src/admin/",
+        "src/features/admin-"
+      ],
+      "areas": [
+        "admin"
+      ],
+      "lanes": [
+        "static-quality",
+        "unit",
+        "integration",
+        "build",
+        "functional"
+      ]
+    },
+    {
+      "id": "shared",
+      "exact": [
+        "src/types.ts"
+      ],
+      "prefix": [
+        "src/shared/",
+        "src/services/",
+        "src/features/cms-settings/"
+      ],
+      "full": true,
+      "areas": [
+        "shared"
+      ]
+    },
+    {
+      "id": "docs",
+      "exact": [
+        "README.md",
+        "CHANGELOG.md",
+        "CONTRIBUTING.md"
+      ],
+      "prefix": [
+        "docs/"
+      ],
+      "areas": [
+        "documentation"
+      ],
+      "lanes": [
+        "static-quality"
+      ]
+    },
+    {
+      "id": "critical-remaining",
+      "prefix": [
+        "server/",
+        "src/context/",
+        "src/config/",
+        "src/features/cms-",
+        "scripts/",
+        ".github/",
+        "config/",
+        "src/"
+      ],
+      "full": true,
+      "areas": [
+        "unknown"
+      ]
+    }
+  ]
+}
