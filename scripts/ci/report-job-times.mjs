@@ -48,8 +48,7 @@ export function summarizeJobTimings(jobs) {
       .map((step) => {
         const start = Date.parse(step.started_at ?? "");
         const end = Date.parse(step.completed_at ?? "");
-        const timed =
-          step.conclusion !== "skipped" && Number.isFinite(start) && Number.isFinite(end) && end >= start;
+        const timed = step.conclusion !== "skipped" && Number.isFinite(start) && Number.isFinite(end) && end >= start;
         return {
           job: safeLabel(job.name),
           step: safeLabel(step.name),
