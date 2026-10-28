@@ -47,6 +47,13 @@ describe("CI Vercel compatibility", () => {
     expect(workflow).toContain("run: pnpm test:integration");
   });
 
+  it("keeps browser setup and full fallback when adding test-only Playwright selection", () => {
+    expect(workflow).toContain("run: node scripts/ci/run-affected-functional.mjs");
+    expect(workflow).toContain("playwright install --with-deps chromium");
+    expect(workflow).toContain("playwright.production.config.ts --list");
+    expect(workflow).toContain("needs.impact.outputs.plan");
+  });
+
   it("delegates Vercel build suppression to the tested runtime classifier", () => {
     expect(vercelConfig.ignoreCommand).toBe("node scripts/vercel-ignore-build.mjs");
   });
