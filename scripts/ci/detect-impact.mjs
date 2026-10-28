@@ -12,7 +12,7 @@ export function parseChangedFiles(output) {
   const tokens = output.slice(0, -1).split("\0");
   const entries = [];
 
-  for (let index = 0; index < tokens.length; ) {
+  for (let index = 0; index < tokens.length;) {
     const status = tokens[index++];
     if (status === "A" || status === "M" || status === "D") {
       if (index >= tokens.length) throw new Error("Incomplete git diff path");
