@@ -53,6 +53,7 @@ Domains (initial): `public-ui`, `admin-ui`, `design-system`, `cms-auth-security`
 
 ### Example impact rules (proposals; require dedicated tests)
 
+<!-- prettier-ignore -->
 | Changed area | Required validation | Lanes not automatically required |
 | --- | --- | --- |
 | `src/theme.ts`, design tokens, CSS | design governance, affected Public/Admin UI, relevant visual, relevant build | D1 migration, unrelated MFA, full Worker |
