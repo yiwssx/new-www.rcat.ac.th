@@ -44,7 +44,6 @@ describe("CI job timing evidence", () => {
     expect(result.jobSeconds).toBe(0);
   });
 
-
   it("reports measured E2E setup and execution steps independently of job elapsed time", () => {
     const result = summarizeJobTimings([
       {
