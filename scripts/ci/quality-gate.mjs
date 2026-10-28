@@ -60,7 +60,10 @@ export function validateQualityGate(plan, results, impactStatus, preflightStatus
  * Reporting never changes the fail-closed verdict from validateQualityGate.
  */
 export function formatQualityGateSummary({ plan, results, impactStatus, preflightStatus, eventName, errors }) {
-  const safeText = (value) => String(value ?? "missing").replace(/[\r\n|<>`]/g, " ").slice(0, 240);
+  const safeText = (value) =>
+    String(value ?? "missing")
+      .replace(/[\r\n|<>`]/g, " ")
+      .slice(0, 240);
   const required = new Set(Array.isArray(plan?.requiredLanes) ? plan.requiredLanes : []);
   let reasons = "missing";
   if (Array.isArray(plan?.reasons) && plan.reasons.length > 0) {
