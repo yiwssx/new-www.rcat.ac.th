@@ -92,10 +92,19 @@ describe("P3 CI unit test scope selection", () => {
       changedPaths: ["src/utils/calendar.ts"]
     };
     expect(selectUnitTestCommand(plan, "push", exists).mode).toBe("full");
-    expect(selectUnitTestCommand({ ...plan, verifiedIntegration: false }, "pull_request", exists).mode).toBe("full");
-    expect(selectUnitTestCommand({ ...plan, changedPaths: [...plan.changedPaths, "src/theme.ts"] }, "pull_request", exists).mode).toBe("full");
-    expect(selectUnitTestCommand({ ...plan, areas: ["admin", "public"] }, "pull_request", exists).mode).toBe("full");
-    expect(selectUnitTestCommand(plan, "pull_request", (path) => path !== "src/utils/calendar.test.ts").mode).toBe("full");
+    expect(selectUnitTestCommand({ ...plan, verifiedIntegration: false }, "pull_request", exists).mode).toBe(
+      "full"
+    );
+    expect(
+      selectUnitTestCommand({ ...plan, changedPaths: [...plan.changedPaths, "src/theme.ts"] }, "pull_request", exists)
+        .mode
+    ).toBe("full");
+    expect(selectUnitTestCommand({ ...plan, areas: ["admin", "public"] }, "pull_request", exists).mode).toBe(
+      "full"
+    );
+    expect(selectUnitTestCommand(plan, "pull_request", (path) => path !== "src/utils/calendar.test.ts").mode).toBe(
+      "full"
+    );
   });
 
   it("rejects malformed plans by using the full command", () => {
