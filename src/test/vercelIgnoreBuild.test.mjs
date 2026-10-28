@@ -15,6 +15,15 @@ describe("Vercel runtime change classifier", () => {
     ).toBe(true);
   });
 
+  it("ignores isolated CI-only changes without skipping adjacent runtime scripts", () => {
+    expect(isVercelRuntimeImpactingPath("scripts/ci/report-job-times.mjs")).toBe(false);
+    expect(isVercelRuntimeImpactingPath("scripts/ci/quality-gate.mjs")).toBe(false);
+    expect(shouldIgnoreVercelBuild(["scripts/ci/report-job-times.mjs", ".github/workflows/ci.yml"])).toBe(true);
+    const changesWithRuntimeScript = ["scripts/ci/report-job-times.mjs", "scripts/prepare-ssr-cutover-output.mjs"];
+    expect(shouldIgnoreVercelBuild(changesWithRuntimeScript)).toBe(false);
+    expect(isVercelRuntimeImpactingPath("scripts/unknown-script.mjs")).toBe(true);
+  });
+
   it("builds for application and Vercel runtime paths", () => {
     for (const path of [
       "src/main.tsx",

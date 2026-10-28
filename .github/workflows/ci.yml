@@ -199,6 +199,9 @@ jobs:
   # the GitHub Actions check named `quality`. Keep this aggregate check stable.
   quality:
     if: ${{ always() }}
+    permissions:
+      contents: read
+      actions: read
     needs:
       - impact
       - dependency-preflight
@@ -222,3 +225,8 @@ jobs:
           CI_RESULTS: >-
             {"dependencies":"${{ needs.dependencies.result }}","static-quality":"${{ needs.static-quality.result }}","unit":"${{ needs.unit.result }}","integration":"${{ needs.integration.result }}","build":"${{ needs.build.result }}","governance":"${{ needs.governance.result }}","worker":"${{ needs.worker.result }}","functional":"${{ needs.functional.result }}"}
         run: node scripts/ci/quality-gate.mjs
+      - name: Record upstream job durations for CI performance analysis
+        if: ${{ always() }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/ci/report-job-times.mjs
