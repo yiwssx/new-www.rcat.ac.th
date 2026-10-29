@@ -40,6 +40,23 @@ Reference: https://developers.cloudflare.com/cloudflare-for-platforms/cloudflare
 - `cloudflare/web-failover/saas-gateway.node-check.mjs` tests primary 200, status 502/503/504, network failure and recovery, Public API JSON, cookie sanitization, write/auth preservation, redirect loops, and host allowlisting.
 - Existing Cloudflare CI checks Wrangler syntax and full Node tests. Do not add a second workflow.
 
+## Production canonical redirect blocker (2026-10-29, manual preflight #40840782026)
+
+GitHub Actions **Cloudflare Emergency Failover Check** run `40840782026` showed **4/4 Vercel project-alias probes returned an unexpected redirect**, whereas all **6/6 Cloudflare Standby probes passed**, as did offline tests and Wrangler dry-run.
+
+**Root cause:** `middleware.ts` intentionally sends all Production `*.vercel.app` traffic to `www.rcat.ac.th` with a permanent 308. The future SaaS Gateway must use the independent Vercel project alias, not `www.rcat.ac.th`, so an unmodified canonical redirect would send Gateway traffic in a loop and produce HTTP 508.
+
+**Narrowly scoped repair:**
+
+- Vercel production middleware keeps canonical redirects for every ordinary browser/robot request and every other `*.vercel.app` host.
+- It skips only the *canonical redirect* for HTTPS traffic addressed to the exact project alias `new-wwwrcatacth-rcat-it-dev-team.vercel.app` and carrying `X-RCAT-Origin-Bridge: rcat-origin-v1`.
+- The independent `saas-gateway-worker.mjs` and read-only external `origin-readiness.mjs` add that marker to their Vercel requests. Neither sends the marker to Standby. This marker is a **routing hint, NOT a secret, proof of identity, authorization or WAF bypass**. Admin/CMS authentication and API Edge WAF continue normally.
+- The explicit marker has to be tested against an actual Vercel Production deployment. It is not proof that Vercel has stopped routing or the Cloudflare for SaaS custom hostname works.
+- Canonical SEO and public site security depend on maintaining the normal 308 for all requests **without** the marker. Unit tests verify this, including arbitrary deployment aliases.
+- Keep the original failed run as evidence. After deploying corrected Vercel middleware and CI passing, rerun the same *manual* Cloudflare Emergency Failover Check on `main`; it must show **10/10 PASS**. If it still reports a redirect, inspect Vercel alias configuration separately (Vercel may also emit platform redirects).
+
+This change neither configures nor activates Cloudflare SaaS, a DNS record, an active provider zone, nor a Worker Route.
+
 ## Independent live origin readiness, without a SaaS zone
 
 **New work (Issue #760):** `cloudflare/web-failover/origin-readiness.mjs` is a **read-only** external probe for the exact existing Vercel project alias and Cloudflare Standby. It does not depend on an active SaaS zone or touch `www.rcat.ac.th`.
