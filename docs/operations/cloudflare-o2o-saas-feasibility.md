@@ -17,17 +17,17 @@ Reference: https://developers.cloudflare.com/cloudflare-for-platforms/cloudflare
 
 ## Verified current prerequisites
 
-| Item | Observation (2026-10-29) | Decision |
-| --- | --- | --- |
-| Account `rcat-digital` | Account `c2536d1093fd8a43002f514754bf02e7` | Keeps Standby and API |
-| Active SaaS provider zone | **Not present**. Only `rcat.ac.th` status `pending` with non-authoritative nameservers `roan`/`serena` | **BLOCKED: obtain a separately owned active domain/zone; never activate the pending .ac.th zone** |
-| Existing authoritative `rcat.ac.th` | Managed externally with original nameservers `maria`/`kirk` | No access/no changes allowed |
-| SaaS feature | GET fallback-origin on pending zone returned HTTP 401 feature unavailable/permission denied | **Not verified enabled**. Do not attempt custom-hostname or billing activation on pending zone |
-| Cloudflare Standby | `https://rcat-web-standby.rcat-digital.workers.dev` exists and has local `PUBLIC_API` binding | Already deployed, do not mutate production API/D1 |
-| Vercel project | `new-www.rcat.ac.th` in team `rcat-it-dev-team` | Keep production SSR |
-| Vercel project alias | `new-wwwrcatacth-rcat-it-dev-team.vercel.app` is attached to last known READY production deployment | Candidate origin ONLY. Must verify HTTP redirects, Host handling, cookies, paths and Vercel Pause behavior BEFORE traffic |
-| SSL and Custom Hostname for `www.rcat.ac.th` | Not provisioned in a provider zone | **BLOCKED** |
-| Public DNS/CNAME change | Not authorized / not performed | **BLOCKED** |
+| Item                                         | Observation (2026-10-29)                                                                               | Decision                                                                                                                  |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| Account `rcat-digital`                       | Account `c2536d1093fd8a43002f514754bf02e7`                                                             | Keeps Standby and API                                                                                                     |
+| Active SaaS provider zone                    | **Not present**. Only `rcat.ac.th` status `pending` with non-authoritative nameservers `roan`/`serena` | **BLOCKED: obtain a separately owned active domain/zone; never activate the pending .ac.th zone**                         |
+| Existing authoritative `rcat.ac.th`          | Managed externally with original nameservers `maria`/`kirk`                                            | No access/no changes allowed                                                                                              |
+| SaaS feature                                 | GET fallback-origin on pending zone returned HTTP 401 feature unavailable/permission denied            | **Not verified enabled**. Do not attempt custom-hostname or billing activation on pending zone                            |
+| Cloudflare Standby                           | `https://rcat-web-standby.rcat-digital.workers.dev` exists and has local `PUBLIC_API` binding          | Already deployed, do not mutate production API/D1                                                                         |
+| Vercel project                               | `new-www.rcat.ac.th` in team `rcat-it-dev-team`                                                        | Keep production SSR                                                                                                       |
+| Vercel project alias                         | `new-wwwrcatacth-rcat-it-dev-team.vercel.app` is attached to last known READY production deployment    | Candidate origin ONLY. Must verify HTTP redirects, Host handling, cookies, paths and Vercel Pause behavior BEFORE traffic |
+| SSL and Custom Hostname for `www.rcat.ac.th` | Not provisioned in a provider zone                                                                     | **BLOCKED**                                                                                                               |
+| Public DNS/CNAME change                      | Not authorized / not performed                                                                         | **BLOCKED**                                                                                                               |
 
 ## Implemented code — tests only, no changes to live site
 

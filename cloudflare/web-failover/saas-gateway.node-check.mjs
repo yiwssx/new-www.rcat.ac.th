@@ -193,13 +193,9 @@ test("fails closed for invalid aliases, missing standby binding or credentials i
     { STANDBY_ORIGIN: "http://rcat-web-standby.rcat-digital.workers.dev" },
     { STANDBY: undefined }
   ]) {
-    const response = await handleSaasGatewayRequest(
-      new Request(PUB + "/"),
-      { ...env, ...changes },
-      async () => {
-        throw new Error("Must not request Vercel with invalid config");
-      }
-    );
+    const response = await handleSaasGatewayRequest(new Request(PUB + "/"), { ...env, ...changes }, async () => {
+      throw new Error("Must not request Vercel with invalid config");
+    });
     assert.equal(response.status, 503, JSON.stringify(Object.keys(changes)));
     assert.equal(response.headers.get("X-RCAT-Gateway"), "unconfigured-provider");
   }

@@ -44,15 +44,18 @@ function exactHttpsOrigin(raw, expected) {
 export async function handleSaasGatewayRequest(request, env, fetchOrigin = fetch) {
   const inbound = new URL(request.url);
   if (inbound.pathname === "/_rcat/saas-health" && request.method === "GET") {
-    return Response.json({
-      service: "rcat-saas-gateway-candidate",
-      configured: Boolean(
-        exactHttpsOrigin(env?.RCAT_VERCEL_ORIGIN, VERIFIED_PROJECT_ALIAS) &&
-        exactHttpsOrigin(env?.STANDBY_ORIGIN, STANDBY_HOST) &&
-        env?.STANDBY?.fetch
-      ),
-      status: "not-routed"
-    }, { headers: { "Cache-Control": "no-store", "X-Robots-Tag": "noindex" } });
+    return Response.json(
+      {
+        service: "rcat-saas-gateway-candidate",
+        configured: Boolean(
+          exactHttpsOrigin(env?.RCAT_VERCEL_ORIGIN, VERIFIED_PROJECT_ALIAS) &&
+          exactHttpsOrigin(env?.STANDBY_ORIGIN, STANDBY_HOST) &&
+          env?.STANDBY?.fetch
+        ),
+        status: "not-routed"
+      },
+      { headers: { "Cache-Control": "no-store", "X-Robots-Tag": "noindex" } }
+    );
   }
   if (inbound.protocol !== "https:" || inbound.hostname !== PUBLIC_HOST || env?.PUBLIC_HOSTNAME !== PUBLIC_HOST) {
     return blocked("wrong-hostname");
