@@ -1,8 +1,11 @@
 /* global URL, Request, Response, Headers, fetch */
 // Cloudflare for SaaS / Orange-to-Orange gateway candidate.
 // This file is NOT a Worker Route in the authoritative rcat.ac.th account.
-// It may be deployed only after a distinct ACTIVE SaaS-provider zone and
-// independently validated Custom Hostname + TLS have been provisioned.
+// It MAY be deployed as an isolated workers.dev preview on the independently
+// ACTIVE rcat.dpdns.org provider account before Custom Hostname/TLS cutover.
+// On workers.dev it rejects every normal public request with HTTP 503;
+// only its read-only health probe can return 200. A production zone Route
+// remains prohibited until owner-approved O2O and TLS tests are complete.
 // No DNS, nameserver, D1, Vercel or production-route mutations are made here.
 
 import { handleGatewayRequest } from "./gateway-worker.mjs";

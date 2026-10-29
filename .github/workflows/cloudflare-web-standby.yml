@@ -17,6 +17,7 @@ on:
         options:
           - standby
           - gateway-preview
+          - saas-gateway-preview
 
 permissions:
   contents: read
@@ -59,6 +60,36 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
 
+      - name: Select isolated SaaS target on reviewed main-only provider changes
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { readFileSync, appendFileSync } from "node:fs";
+          const event = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, "utf8"));
+          const files = new Set();
+          for (const commit of [...(event.commits || []), ...(event.head_commit ? [event.head_commit] : [])]) {
+            for (const kind of ["added", "modified", "removed"]) {
+              for (const filename of commit[kind] || []) files.add(filename);
+            }
+          }
+          const previewSources = new Set([
+            "cloudflare/web-failover/saas-gateway-worker.mjs",
+            "cloudflare/web-failover/saas-gateway-wrangler.toml",
+            "cloudflare/web-failover/saas-gateway.node-check.mjs"
+          ]);
+          const saasChanged = [...files].some((file) => previewSources.has(file));
+          const standbyChanged = [...files].some(
+            (file) => file.startsWith("cloudflare/web-failover/") && !previewSources.has(file)
+          );
+          // Fail closed: if GitHub did not supply changed paths, preserve the
+          // existing standby push behavior; manual dispatch remains available.
+          const selected = saasChanged && !standbyChanged ? "saas-gateway-preview" : "standby";
+          appendFileSync(process.env.GITHUB_ENV, "TARGET=" + selected + "\n");
+          console.log("Selected isolated deployment target: " + selected);
+          NODE
+
       - name: Fail closed on missing credentials and invalid public origin
         shell: bash
         run: |
@@ -82,6 +113,7 @@ jobs:
               test "$GATEWAY_PREVIEW_APPROVED" = "true" ||
                 { echo "Set RCAT_ALLOW_GATEWAY_PREVIEW=true only after operator review" >&2; exit 1; }
               ;;
+            saas-gateway-preview) ;;
             *) echo "Invalid target" >&2; exit 1 ;;
           esac
 
@@ -104,6 +136,24 @@ jobs:
           grep -q 'id="root"' dist/index.html
           grep -q 'noindex' dist/index.html
 
+      - name: Check SaaS candidate never configures DNS, Routes, TLS or D1
+        if: ${{ env.TARGET == 'saas-gateway-preview' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            const text = readFileSync("cloudflare/web-failover/saas-gateway-wrangler.toml", "utf8");
+            if (!/^name = "rcat-saas-gateway-candidate"$/m.test(text) ||
+                !/^workers_dev = true$/m.test(text) ||
+                !/^service = "rcat-web-standby"$/m.test(text) ||
+                /^(?:route|routes|zone_id|zone_name|custom_domain)\s*=/m.test(text) ||
+                /\[\[d1_databases\]\]|\[assets\]/.test(text)) {
+              throw Error("Unsafe SaaS candidate scope: refusing deployment");
+            }
+          '
+          pnpm exec wrangler deploy --config cloudflare/web-failover/saas-gateway-wrangler.toml --dry-run
+
       - name: Deploy Workers.dev only (never assign a DNS route)
         shell: bash
         run: |
@@ -116,6 +166,10 @@ jobs:
             gateway-preview)
               SERVICE=rcat-web-gateway
               pnpm exec wrangler deploy --config cloudflare/web-failover/gateway-wrangler.toml
+              ;;
+            saas-gateway-preview)
+              SERVICE=rcat-saas-gateway-candidate
+              pnpm exec wrangler deploy --config cloudflare/web-failover/saas-gateway-wrangler.toml
               ;;
           esac
           echo "SERVICE=$SERVICE" >> "$GITHUB_ENV"
@@ -145,6 +199,36 @@ jobs:
           fi
           echo "Validated isolated endpoint: $URL" >> "$GITHUB_STEP_SUMMARY"
           echo "No production DNS, Vercel, API Worker, or D1 changes made." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify isolated SaaS Gateway candidate health and host blocking
+        if: ${{ env.TARGET == 'saas-gateway-preview' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="https://rcat-saas-gateway-candidate.$CF_WORKERS_SUBDOMAIN.workers.dev"
+          for attempt in 1 2 3 4 5; do
+            if curl --fail --silent --show-error --max-time 15 \
+              "$URL/_rcat/saas-health" -o "$RUNNER_TEMP/saas-gateway-health.json"; then
+              break
+            fi
+            sleep 2
+          done
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            const health = JSON.parse(readFileSync(process.env.RUNNER_TEMP + "/saas-gateway-health.json", "utf8"));
+            if (health.service !== "rcat-saas-gateway-candidate" ||
+                health.configured !== true || health.status !== "not-routed") {
+              throw Error("SaaS candidate Service Binding or not-routed guard missing");
+            }
+          '
+          STATUS=$(curl --silent --show-error --max-time 15 \
+            -o "$RUNNER_TEMP/saas-candidate-blocked-body.txt" \
+            -D "$RUNNER_TEMP/saas-candidate-blocked-headers.txt" \
+            -w "%{http_code}" "$URL/news")
+          test "$STATUS" = "503" || { echo "Candidate unexpectedly serves public traffic: $STATUS" >&2; exit 1; }
+          grep -qi 'X-RCAT-Gateway: wrong-hostname' "$RUNNER_TEMP/saas-candidate-blocked-headers.txt"
+          echo "PASS: isolated SaaS candidate health and hostname-block checks" >> "$GITHUB_STEP_SUMMARY"
+          echo "NO DNS, Route, Custom Hostname, TLS, Vercel or D1 changes." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Record gateway preview safely (no DNS, no public traffic)
         if: ${{ env.TARGET == 'gateway-preview' }}
