@@ -1,0 +1,46 @@
+name: Temporary RCAT SaaS Preview Runbook Formatter
+
+on:
+  pull_request:
+    paths:
+      - "docs/operations/cloudflare-o2o-saas-feasibility.md"
+      - ".github/workflows/rcat-saas-doc-format-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  format-runbook-once:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'feat/rcat-saas-gateway-isolated-preview-760'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          persist-credentials: true
+      - uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - name: Prettier — exact runbook only
+        run: pnpm exec prettier --write docs/operations/cloudflare-o2o-saas-feasibility.md
+      - name: Commit only required formatter output
+        shell: bash
+        env:
+          HUSKY: "0"
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- docs/operations/cloudflare-o2o-saas-feasibility.md; then
+            echo "No runbook changes needed"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- docs/operations/cloudflare-o2o-saas-feasibility.md
+          git commit -m "style(operations): format SaaS provider preview runbook (#760)"
+          git push origin HEAD:feat/rcat-saas-gateway-isolated-preview-760
