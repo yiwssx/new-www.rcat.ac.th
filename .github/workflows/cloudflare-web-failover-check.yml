@@ -34,7 +34,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
       - name: Verify routing, status and zero-write invariants
-        run: node --test cloudflare/web-failover/worker.node-check.mjs
+        run: node --test cloudflare/web-failover/worker.node-check.mjs cloudflare/web-failover/gateway.node-check.mjs
       - name: Syntax-check isolated live smoke without network access
         run: node --check cloudflare/web-failover/standby-smoke.mjs
       - name: Build standalone React/Vite CSR
@@ -51,3 +51,4 @@ jobs:
           test -d dist/assets
           test ! -e dist/csr.html
           pnpm exec wrangler deploy --config cloudflare/web-failover/wrangler.toml --env standby --dry-run
+          pnpm exec wrangler deploy --config cloudflare/web-failover/gateway-wrangler.toml --dry-run
