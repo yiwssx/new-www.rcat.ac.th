@@ -1,6 +1,12 @@
 name: Emergency Cloudflare Web Standby
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - "cloudflare/web-failover/**"
+      - ".github/workflows/cloudflare-web-standby.yml"
   workflow_dispatch:
     inputs:
       target:
@@ -28,13 +34,13 @@ jobs:
     timeout-minutes: 20
     environment: cloudflare-web-standby
     env:
-      TARGET: ${{ inputs.target }}
-      VITE_CLOUDFLARE_PUBLIC_API_URL: https://rcat-web-standby.${{ vars.RCAT_CLOUDFLARE_WORKERS_SUBDOMAIN }}.workers.dev
+      TARGET: ${{ github.event_name == 'push' && 'standby' || inputs.target }}
+      VITE_CLOUDFLARE_PUBLIC_API_URL: https://rcat-web-standby.${{ vars.RCAT_CLOUDFLARE_WORKERS_SUBDOMAIN || 'rcat-digital' }}.workers.dev
       VITE_PUBLIC_IMAGE_DELIVERY_BASE_URL: https://rcat-image-production.rcat-digital.workers.dev
       VITE_PUBLIC_IMAGE_DELIVERY_INTENTS: portrait,carousel,intro-gate
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      CF_WORKERS_SUBDOMAIN: ${{ vars.RCAT_CLOUDFLARE_WORKERS_SUBDOMAIN }}
+      CF_WORKERS_SUBDOMAIN: ${{ vars.RCAT_CLOUDFLARE_WORKERS_SUBDOMAIN || 'rcat-digital' }}
       GATEWAY_PREVIEW_APPROVED: ${{ vars.RCAT_ALLOW_GATEWAY_PREVIEW }}
     steps:
       - name: Checkout trusted main source
