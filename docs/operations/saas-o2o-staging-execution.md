@@ -1,3 +1,5 @@
+> **RETIRED — 2026-10-30.** The project owner canceled all SaaS/O2O tests and cutover plans. This document is retained only as a historical record. Do not perform the DNS, SSL, route, simulation, or deployment instructions below. The institutional website remains on Vercel.
+
 # RCAT O2O Staging execution — Issue #760
 
 Project owner authorized test-host-only staging on 2026-10-29. **Production www.rcat.ac.th is NOT approved for cutover.**
