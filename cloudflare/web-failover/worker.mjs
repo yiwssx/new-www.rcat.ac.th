@@ -30,6 +30,61 @@ function standbyEligible(request) {
   return (request.method === "GET" || request.method === "HEAD") && !PRIVATE_PATH.test(path);
 }
 
+// Public READ requests are proxied server-side through the existing Worker
+// Service Binding. This avoids preview-origin CORS failures without ever
+// exposing Admin credentials, making D1 writes, or mutating the Public API.
+function isPublicReadPath(path) {
+  return path.startsWith("/api/public/");
+}
+
+async function publicReadResponse(request, env) {
+  const url = new URL(request.url);
+  const origin = request.headers.get("Origin");
+  const allowed = !origin || origin === url.origin || origin === "https://www.rcat.ac.th";
+  if (!allowed) return new Response("Forbidden", { status: 403, headers: { "Cache-Control": "no-store" } });
+
+  const cors = new Headers({
+    "Cache-Control": "no-store",
+    "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Vary": "Origin"
+  });
+  if (origin) cors.set("Access-Control-Allow-Origin", origin);
+
+  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    return notAvailable("standby-read-only", true);
+  }
+  if (!env.PUBLIC_API || typeof env.PUBLIC_API.fetch !== "function") return notAvailable("public-api-unconfigured", true);
+
+  try {
+    // No Origin, cookies, Authorization, or user-supplied privileged headers
+    // are forwarded; PUBLIC_API receives only a public GET/HEAD and Accept.
+    const backendUrl = new URL(url.pathname + url.search, "https://rcat-public-api-preview.rcat-digital.workers.dev");
+    const upstream = await env.PUBLIC_API.fetch(new Request(backendUrl.toString(), {
+      method: request.method,
+      headers: { Accept: "application/json" }
+    }));
+    const headers = new Headers(upstream.headers);
+    headers.delete("Set-Cookie");
+    headers.delete("Access-Control-Allow-Origin");
+    headers.delete("Access-Control-Allow-Credentials");
+    headers.delete("Access-Control-Allow-Methods");
+    headers.delete("Access-Control-Allow-Headers");
+    for (const [name, value] of cors) {
+      if (name.toLowerCase() !== "cache-control") headers.set(name, value);
+    }
+    headers.set("X-RCAT-Failover", "standby-public-api");
+    return new Response(request.method === "HEAD" ? null : upstream.body, {
+      status: upstream.status,
+      statusText: upstream.statusText,
+      headers
+    });
+  } catch {
+    return notAvailable("public-api-error", true);
+  }
+}
+
 async function standbyResponse(request, env, reason) {
   const path = new URL(request.url).pathname;
   if (!standbyEligible(request)) return notAvailable(reason, /^\/api(?:\/|$)/i.test(path));
@@ -70,7 +125,10 @@ export async function handleRequest(request, env, fetchPrimary = fetch) {
     });
   }
 
-  if (mode === "standby") return standbyResponse(request, env, "standby");
+  if (mode === "standby") {
+    if (isPublicReadPath(url.pathname)) return publicReadResponse(request, env);
+    return standbyResponse(request, env, "standby");
+  }
 
   // In Cloudflare Route mode fetch(request) reaches the existing origin in DNS.
   // Avoid changing Host, auth cookies, redirects, request method, or body.
