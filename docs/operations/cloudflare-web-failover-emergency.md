@@ -16,9 +16,9 @@ Incident tracker: [#760](https://github.com/yiwssx/new-www.rcat.ac.th/issues/760
 | Mode      | Worker name        | Purpose                                                              | DNS/production changes from deploy                         |
 | --------- | ------------------ | -------------------------------------------------------------------- | ---------------------------------------------------------- |
 | `standby` | `rcat-web-standby` | Public read-only CSR assets + public API GET proxy                   | None; workers.dev only                                     |
-| `gateway` | `rcat-web-gateway` | Route-level proxy to Vercel with standby assets on eligible failures | None; route must be attached separately after verification |
+| `gateway` | `rcat-web-gateway` | Route-level proxy to Vercel with HTTPS standby on eligible failures | None; route must be attached separately after verification |
 
-Both use `cloudflare/web-failover/worker.mjs`; config at `cloudflare/web-failover/wrangler.toml`. Both bind `PUBLIC_API` to existing production Worker `rcat-public-api-preview`; this is a read-only API contract, not an authorization bypass for Admin.
+Standby uses `worker.mjs` and `wrangler.toml` in the `rcat-digital` account; only **standby** binds `PUBLIC_API` to the local production Worker. The separate-account Gateway uses `gateway-worker.mjs` and `gateway-wrangler.toml` and fetches Standby over public HTTPS with no Service Binding, D1 or Assets. See [Two-account handoff](cloudflare-gateway-two-account-handoff.md).
 
 ## Stage 0 — Prepare access WITHOUT changing www
 
@@ -42,30 +42,27 @@ Verify the exact deployed URL in the action summary, then use a real browser to 
 - Check public image delivery Worker and original Google Drive fallbacks, routing, navigation, and accessible public content.
 - Static asset 404 must not return index.html as a successful JavaScript payload.
 
-## Stage 2 — Prepare automatic gateway, THEN decide production cutover
+## Stage 2 — Cross-account Gateway and authorized production cutover
 
-Set `RCAT_ALLOW_GATEWAY_PREVIEW=true` only with operator approval and use the same manual workflow with target=`gateway-preview`. This deploys `rcat-web-gateway` to workers.dev, but **auto mode is not a valid functional test on workers.dev**: `fetch(request)` needs an existing proxied DNS origin under a Cloudflare Route.
+**The authoritative Cloudflare Zone is managed in a separate account**. A Service Binding is not usable across Cloudflare accounts. Do **not** deploy the historical `worker.mjs --env gateway` or attach the `rcat-web-standby` Worker directly as a Route in the authoritative zone: both configurations are invalid for this separation.
 
-Test the gateway via a temporary proxied hostname that Vercel accepts and whose SSL/Host redirect behavior is verified. Attach a Worker Route to that test hostname only. Inspect Vercel response status, redirects, authentication cookie forwarding, original Host preservation, 502/503/504 fallback, protected API behavior, and route rollback. Keep public read-only test traffic away from D1 writes.
+The authoritative zone operator must deploy `cloudflare/web-failover/gateway-worker.mjs` via `gateway-wrangler.toml` **inside the authoritative account**. This Gateway fetches only eligible public GET/HEAD through HTTPS to `rcat-web-standby.rcat-digital.workers.dev`. It also routes public `/api/public/*` GET/HEAD when the Vercel Primary fails, without forwarding cookies or credentials. Protected routes and unsafe HTTP methods are never replayed to Standby.
 
-Only if the authorized operator of the **existing authoritative Cloudflare zone** grants suitable privileges and approves the change, verify `www.rcat.ac.th` is the existing Vercel custom domain with a valid proxied DNS origin and SSL; then that operator can attach a **Cloudflare Worker Route** `www.rcat.ac.th/*` to `rcat-web-gateway`. Do **not** attach a Worker Custom Domain to www or overwrite the Vercel CNAME: the Gateway Route must sit **in front of** the existing Vercel origin. This operation changes live traffic and is not automated by the workflow.
+Follow [Two-account handoff and simulation runbook](cloudflare-gateway-two-account-handoff.md) for exact test-stage and production-stage operator actions:
 
-Gateway behavior:
+1. Deploy `gateway-test-wrangler.toml` in the authoritative account; no route is created.
+2. Register `failover-test.rcat.ac.th` in Vercel, verify the authorized DNS test record and TLS, and have the zone operator add only `failover-test.rcat.ac.th/*` → `rcat-web-gateway-test`.
+3. Test `TEST_SIMULATE_503=true` (CSR HTML, JSON, no write replay) then redeploy test config with `TEST_SIMULATE_503=false` (Vercel SSR healthy return).
+4. Only after approval, deploy `gateway-wrangler.toml` in the authoritative account. Its config has **no routes or DNS changes**.
+5. The operator may then attach `www.rcat.ac.th/*` → `rcat-web-gateway` as a Worker **Route**, not a Worker Custom Domain. Preserve existing Vercel DNS and SSL.
 
-1. Vercel 200/301/302/401/403/404: pass through untouched.
-2. Vercel 502/503/504 on eligible public GET/HEAD: serve read-only CSR standby assets with `X-RCAT-Failover` and `no-store` HTML.
-3. Primary network failure: public GET/HEAD stand by; Admin/API/write methods return failure rather than silently pretending success.
-4. Vercel recovery: a subsequent healthy request is forwarded to Vercel again (no DNS reconfiguration).
-
-### Emergency manual cutover WITHOUT auto gateway
-
-If Vercel is already paused and gateway preview is not verified, **only the authorized operator of the existing authoritative Cloudflare zone** may instead attach `www.rcat.ac.th/*` **directly to `rcat-web-standby`** on the Cloudflare zone (requires proxied DNS). This places the read-only public CSR website online and bypasses Vercel. The correct rollback is to remove this route, restoring the original Vercel-origin routing. Treat this as degraded operation only. No DNS record replacement is required if the proxied Vercel record already exists.
+Never change NS, transfer the .ac.th domain, activate pending unrelated zones or automate production www routing without the existing zone administrator.
 
 ## Rollback and limitations
 
 - To disable failover: remove the `www.rcat.ac.th/*` Worker Route; leave the original Vercel DNS origin unchanged. Confirm HTTPS, redirect behavior, SSR HTML metadata, and Admin session on the original Vercel route.
 - Never delete or recreate `rcat-public-api-preview`, overwrite its binding configuration, expose D1 UUID, or alter production Apps Script endpoints during standby deployment.
-- Automatic Gateway adds Worker invocations to **every** incoming request due to `run_worker_first = true`; on Workers Free, the 100,000-request/day limit is shared across Workers. Monitor usage and plan Workers Paid if necessary. It does **not** eliminate Vercel SSR CPU use while the primary is healthy.
+- Automatic Gateway adds Worker invocations to **every** incoming request on the matching www Route; on Workers Free, the 100,000-request/day limit is shared across Workers. Monitor usage and plan Workers Paid if necessary. It does **not** eliminate Vercel SSR CPU use while the primary is healthy.
 - Both frontend origins depend on the same Public API Worker and D1. This is Vercel-specific failover, not a Cloudflare outage solution.
 - CSR standby cannot guarantee crawler indexing, original SSR status codes, canonical metadata, 404 semantics, or Admin functionality. These require a subsequent Workers SSR and proxy parity migration.
 - Do not trigger failover based on an isolated 401/403/404; that would conceal real application authorization or not-found behavior.
