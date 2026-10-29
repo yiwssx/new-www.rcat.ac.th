@@ -24,15 +24,5 @@ FAILOVER_MODE = "standby"
 binding = "PUBLIC_API"
 service = "rcat-public-api-preview"
 
-# Gateway is intentionally NOT assigned a domain or route here.
-# Requires validated DNS-proxied Vercel origin and a separate operator-approved
-# www.rcat.ac.th/* Worker Route. Route-mode fetch(request) goes to Vercel.
-[env.gateway]
-name = "rcat-web-gateway"
-
-[env.gateway.vars]
-FAILOVER_MODE = "auto"
-
-[[env.gateway.services]]
-binding = "PUBLIC_API"
-service = "rcat-public-api-preview"
+# Gateway is a SEPARATE cross-account Worker: gateway-worker.mjs + gateway-wrangler.toml.
+# Do not create env.gateway here: Service Bindings cannot cross Cloudflare accounts.
