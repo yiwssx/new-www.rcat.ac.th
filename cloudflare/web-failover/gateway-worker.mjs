@@ -19,10 +19,13 @@ function errorResponse(reason, api = false) {
     "X-Content-Type-Options": "nosniff"
   };
   if (api) {
-    return Response.json({ error: "Public read service unavailable", code: "RCAT_GATEWAY_READ_ONLY" }, {
-      status: 503,
-      headers
-    });
+    return Response.json(
+      { error: "Public read service unavailable", code: "RCAT_GATEWAY_READ_ONLY" },
+      {
+        status: 503,
+        headers
+      }
+    );
   }
   return new Response("The public website is temporarily unavailable.", {
     status: 503,
@@ -44,11 +47,7 @@ function classify(request) {
   if (path.startsWith("/api/public/")) return "public-api";
   if (path.startsWith("/api/")) return "private";
   if (path === "/api") return "private";
-  if (
-    /^\/(?:admin(?:\/|$)|login\/?$|activate-account\/?$|reset-password\/?$|sitemap\.xml$|_rcat(?:\/|$))/.test(
-      path
-    )
-  ) {
+  if (/^\/(?:admin(?:\/|$)|login\/?$|activate-account\/?$|reset-password\/?$|sitemap\.xml$|_rcat(?:\/|$))/.test(path)) {
     return "private";
   }
   return "public-page";
@@ -148,18 +147,18 @@ export async function handleGatewayRequest(request, env, fetchPrimary = fetch, f
 
   if (url.pathname === "/_rcat/failover-health") {
     if (request.method !== "GET") return errorResponse("method-not-allowed");
-    return Response.json({ service: "rcat-cross-account-gateway", mode: "unrouted-until-authorized", status: "ok" }, {
-      headers: { "Cache-Control": "no-store", "X-Robots-Tag": "noindex" }
-    });
+    return Response.json(
+      { service: "rcat-cross-account-gateway", mode: "unrouted-until-authorized", status: "ok" },
+      {
+        headers: { "Cache-Control": "no-store", "X-Robots-Tag": "noindex" }
+      }
+    );
   }
 
   // workers.dev preview must NOT fetch itself as the primary origin.
   // A test hostname is explicitly opt-in and cannot be enabled on www.
   const production = url.hostname === PUBLIC_HOST && env.PUBLIC_HOSTNAME === PUBLIC_HOST;
-  const testHost =
-    url.hostname === TEST_HOST &&
-    env.PUBLIC_HOSTNAME === TEST_HOST &&
-    env.GATEWAY_TEST_ONLY === "true";
+  const testHost = url.hostname === TEST_HOST && env.PUBLIC_HOSTNAME === TEST_HOST && env.GATEWAY_TEST_ONLY === "true";
   if (url.protocol !== "https:" || (!production && !testHost)) {
     return errorResponse("gateway-not-routed");
   }

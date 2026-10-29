@@ -6,11 +6,11 @@
 
 ## ความรับผิดชอบ
 
-| ฝ่าย | Cloudflare Account | หน้าที่ |
-| --- | --- | --- |
-| วิทยาลัย | rcat-digital | ดูแล Public Standby, Public API Worker, D1 และภาพ |
-| ผู้ดูแลโดเมนเดิม | Active Zone rcat.ac.th, NS maria/kirk | ติดตั้ง Gateway Worker ในบัญชีเดิม, เพิ่ม Test Route และ Production Route หลังผ่านการทดสอบ |
-| วิทยาลัย (Vercel) | rcat-it-dev-team | ดูแล Primary SSR, CMS/Admin และ API ที่ใช้ Vercel |
+| ฝ่าย              | Cloudflare Account                    | หน้าที่                                                                                    |
+| ----------------- | ------------------------------------- | ------------------------------------------------------------------------------------------ |
+| วิทยาลัย          | rcat-digital                          | ดูแล Public Standby, Public API Worker, D1 และภาพ                                          |
+| ผู้ดูแลโดเมนเดิม  | Active Zone rcat.ac.th, NS maria/kirk | ติดตั้ง Gateway Worker ในบัญชีเดิม, เพิ่ม Test Route และ Production Route หลังผ่านการทดสอบ |
+| วิทยาลัย (Vercel) | rcat-it-dev-team                      | ดูแล Primary SSR, CMS/Admin และ API ที่ใช้ Vercel                                          |
 
 **เว็บไซต์สำรอง:** https://rcat-web-standby.rcat-digital.workers.dev/
 
@@ -40,7 +40,7 @@ Standby เป็น CSR แบบอ่านข้อมูลเท่าน�
 
 ดาวน์โหลด Code จาก repo หลักแล้วใช้ Wrangler **ภายใน Cloudflare Account ของผู้ดูแลโดเมน**:
 
-~~~bash
+```bash
 git clone https://github.com/yiwssx/new-www.rcat.ac.th.git
 cd new-www.rcat.ac.th
 corepack enable
@@ -49,7 +49,7 @@ pnpm exec wrangler whoami
 
 # ไม่เพิ่ม DNS หรือ Route อัตโนมัติ
 pnpm exec wrangler deploy --config cloudflare/web-failover/gateway-test-wrangler.toml
-~~~
+```
 
 ในการทดสอบ passthrough Vercel ต้องเพิ่ม `failover-test.rcat.ac.th` เป็น Custom Domain ใน Vercel Project ให้ Verified ก่อน และให้ผู้ดูแลเดิมเพิ่ม DNS ของ Hostname **ทดสอบเท่านั้น** ไปยัง Origin ที่ Vercel ระบุ (Proxy เมฆสีส้ม) หลังอนุมัติ อย่าเดา Vercel IP หรือ CNAME
 
@@ -73,9 +73,9 @@ pnpm exec wrangler deploy --config cloudflare/web-failover/gateway-test-wrangler
 
 ผู้ดูแลโดเมน Deploy Gateway จริงในบัญชีเดิม:
 
-~~~bash
+```bash
 pnpm exec wrangler deploy --config cloudflare/web-failover/gateway-wrangler.toml
-~~~
+```
 
 คำสั่ง Deploy จะ **ไม่แก้ DNS หรือเพิ่ม Route อัตโนมัติ**. เมื่อผ่าน Change Approval แล้วจึงเข้า **Workers & Pages → rcat-web-gateway → Settings → Domains & Routes → Add → Route**:
 

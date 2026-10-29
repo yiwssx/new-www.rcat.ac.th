@@ -13,9 +13,9 @@ Incident tracker: [#760](https://github.com/yiwssx/new-www.rcat.ac.th/issues/760
 
 ## Two distinct Cloudflare Workers
 
-| Mode      | Worker name        | Purpose                                                              | DNS/production changes from deploy                         |
-| --------- | ------------------ | -------------------------------------------------------------------- | ---------------------------------------------------------- |
-| `standby` | `rcat-web-standby` | Public read-only CSR assets + public API GET proxy                   | None; workers.dev only                                     |
+| Mode      | Worker name        | Purpose                                                             | DNS/production changes from deploy                         |
+| --------- | ------------------ | ------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `standby` | `rcat-web-standby` | Public read-only CSR assets + public API GET proxy                  | None; workers.dev only                                     |
 | `gateway` | `rcat-web-gateway` | Route-level proxy to Vercel with HTTPS standby on eligible failures | None; route must be attached separately after verification |
 
 Standby uses `worker.mjs` and `wrangler.toml` in the `rcat-digital` account; only **standby** binds `PUBLIC_API` to the local production Worker. The separate-account Gateway uses `gateway-worker.mjs` and `gateway-wrangler.toml` and fetches Standby over public HTTPS with no Service Binding, D1 or Assets. See [Two-account handoff](cloudflare-gateway-two-account-handoff.md).

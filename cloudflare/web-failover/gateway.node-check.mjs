@@ -194,7 +194,12 @@ test("standalone workers.dev preview cannot be mistaken for a production route",
 });
 
 test("missing/malformed standby configuration fails closed", async () => {
-  for (const origin of ["", "http://rcat-web-standby.rcat-digital.workers.dev", "https://evil.example", BACKUP_HOST + "/public"]) {
+  for (const origin of [
+    "",
+    "http://rcat-web-standby.rcat-digital.workers.dev",
+    "https://evil.example",
+    BACKUP_HOST + "/public"
+  ]) {
     const backup = makeBackup();
     const response = await handleGatewayRequest(
       new Request(LIVE_HOST + "/news"),
@@ -298,9 +303,11 @@ test("gateway health is available on preview without publishing any secrets", as
 test("Gateway package contains no D1/Assets/Service Binding or automatic route", () => {
   const config = readFileSync(new URL("./gateway-wrangler.toml", import.meta.url), "utf8");
   assert.match(config, /name = "rcat-web-gateway"/);
-  assert.doesNotMatch(config, /(?:\[\[services\]\]|\[\[d1_databases\]\]|\[assets\]|(?:^|\n)\s*(?:routes?|custom_domain)\s*=)/i);
+  assert.doesNotMatch(
+    config,
+    /(?:\[\[services\]\]|\[\[d1_databases\]\]|\[assets\]|(?:^|\n)\s*(?:routes?|custom_domain)\s*=)/i
+  );
 });
-
 
 test("test-only hostname simulates 503 and recovers to primary without touching www", async () => {
   const testEnv = {
@@ -316,12 +323,7 @@ test("test-only hostname simulates 503 and recovers to primary without touching 
     return new Response("vercel-healthy", { status: 200 });
   };
   const testUrl = "https://failover-test.rcat.ac.th/news";
-  const duringFailure = await handleGatewayRequest(
-    new Request(testUrl),
-    testEnv,
-    origin,
-    backup.fetchBackup
-  );
+  const duringFailure = await handleGatewayRequest(new Request(testUrl), testEnv, origin, backup.fetchBackup);
   assert.equal(duringFailure.status, 200);
   assert.equal(duringFailure.headers.get("X-RCAT-Failover"), "primary-simulated-503");
   assert.equal(primaryCalls, 0);
