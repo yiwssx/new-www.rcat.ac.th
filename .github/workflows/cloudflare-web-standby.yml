@@ -49,6 +49,7 @@ jobs:
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
+          fetch-depth: 2
 
       - name: Configure Node and pnpm
         uses: pnpm/action-setup@v6
@@ -67,25 +68,33 @@ jobs:
           set -euo pipefail
           node --input-type=module <<'NODE'
           import { readFileSync, appendFileSync } from "node:fs";
+          import { execFileSync } from "node:child_process";
           const event = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, "utf8"));
-          const files = new Set();
-          for (const commit of [...(event.commits || []), ...(event.head_commit ? [event.head_commit] : [])]) {
-            for (const kind of ["added", "modified", "removed"]) {
-              for (const filename of commit[kind] || []) files.add(filename);
-            }
+          // GitHub Actions push events may OMIT added/modified/removed arrays.
+          // Use the exact reviewed commit diff checked out with fetch-depth: 2.
+          let files = [];
+          try {
+            files = execFileSync("git", ["diff", "--name-only", "HEAD^", "HEAD"], {
+              encoding: "utf8"
+            }).split("\n").filter(Boolean);
+          } catch {
+            console.warn("Cannot read reviewed main diff; preserve standby behavior");
           }
           const previewSources = new Set([
             "cloudflare/web-failover/saas-gateway-worker.mjs",
             "cloudflare/web-failover/saas-gateway-wrangler.toml",
             "cloudflare/web-failover/saas-gateway.node-check.mjs"
           ]);
-          const saasChanged = [...files].some((file) => previewSources.has(file));
-          const standbyChanged = [...files].some(
+          const approvedPreviewRelease = (event.head_commit?.message || "").includes("[saas-gateway-preview]");
+          const saasChanged = files.some((file) => previewSources.has(file));
+          const standbyChanged = files.some(
             (file) => file.startsWith("cloudflare/web-failover/") && !previewSources.has(file)
           );
-          // Fail closed: if GitHub did not supply changed paths, preserve the
-          // existing standby push behavior; manual dispatch remains available.
-          const selected = saasChanged && !standbyChanged ? "saas-gateway-preview" : "standby";
+          // The explicit release marker is allowed only on reviewed main and
+          // cannot mask a combined Standby source change.
+          const selected = (approvedPreviewRelease || saasChanged) && !standbyChanged
+            ? "saas-gateway-preview"
+            : "standby";
           appendFileSync(process.env.GITHUB_ENV, "TARGET=" + selected + "\n");
           console.log("Selected isolated deployment target: " + selected);
           NODE
