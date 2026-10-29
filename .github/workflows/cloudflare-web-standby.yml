@@ -22,6 +22,7 @@ on:
           - standby
           - gateway-preview
           - saas-gateway-preview
+          - saas-staging-preview
 
 permissions:
   contents: read
@@ -87,18 +88,27 @@ jobs:
           const previewSources = new Set([
             "cloudflare/web-failover/saas-gateway-worker.mjs",
             "cloudflare/web-failover/saas-gateway-wrangler.toml",
-            "cloudflare/web-failover/saas-gateway.node-check.mjs"
+            "cloudflare/web-failover/saas-gateway.node-check.mjs cloudflare/web-failover/saas-staging.node-check.mjs"
+          ]);
+          const stagingSources = new Set([
+            "cloudflare/web-failover/saas-staging-worker.mjs",
+            "cloudflare/web-failover/saas-staging-wrangler.toml",
+            "cloudflare/web-failover/saas-staging.node-check.mjs"
           ]);
           const approvedPreviewRelease = (event.head_commit?.message || "").includes("[saas-gateway-preview]");
           const saasChanged = files.some((file) => previewSources.has(file));
+          const stagingChanged = files.some((file) => stagingSources.has(file));
           const standbyChanged = files.some(
-            (file) => file.startsWith("cloudflare/web-failover/") && !previewSources.has(file)
+            (file) => file.startsWith("cloudflare/web-failover/") &&
+              !previewSources.has(file) && !stagingSources.has(file)
           );
-          // The explicit release marker is allowed only on reviewed main and
-          // cannot mask a combined Standby source change.
-          const selected = (approvedPreviewRelease || saasChanged) && !standbyChanged
-            ? "saas-gateway-preview"
-            : "standby";
+          // Select a single isolated deployment; mixed changes default to Standby.
+          // Never attach production DNS or a zone route from this workflow.
+          const selected = stagingChanged && !saasChanged && !standbyChanged
+            ? "saas-staging-preview"
+            : (approvedPreviewRelease || saasChanged) && !standbyChanged && !stagingChanged
+              ? "saas-gateway-preview"
+              : "standby";
           appendFileSync(process.env.GITHUB_ENV, "TARGET=" + selected + "\n");
           console.log("Selected isolated deployment target: " + selected);
           NODE
@@ -127,6 +137,7 @@ jobs:
                 { echo "Set RCAT_ALLOW_GATEWAY_PREVIEW=true only after operator review" >&2; exit 1; }
               ;;
             saas-gateway-preview) ;;
+            saas-staging-preview) ;;
             *) echo "Invalid target" >&2; exit 1 ;;
           esac
 
@@ -167,6 +178,25 @@ jobs:
           '
           pnpm exec wrangler deploy --config cloudflare/web-failover/saas-gateway-wrangler.toml --dry-run
 
+      - name: Check staging-only Worker cannot configure production routes, TLS or D1
+        if: ${{ env.TARGET == 'saas-staging-preview' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            const cfg = readFileSync("cloudflare/web-failover/saas-staging-wrangler.toml", "utf8");
+            if (!/^name = "rcat-saas-gateway-staging"$/m.test(cfg) ||
+                !/^PUBLIC_HOSTNAME = "failover-test.rcat.ac.th"$/m.test(cfg) ||
+                !/^GATEWAY_TEST_ONLY = "true"$/m.test(cfg) ||
+                !/^service = "rcat-web-standby"$/m.test(cfg) ||
+                /^(?:route|routes|zone_id|zone_name|custom_domain)\s*=/m.test(cfg) ||
+                /\[\[d1_databases\]\]|\[assets\]/.test(cfg)) {
+              throw Error("Unsafe Staging Worker configuration");
+            }
+          '
+          pnpm exec wrangler deploy --config cloudflare/web-failover/saas-staging-wrangler.toml --dry-run
+
       - name: Deploy Workers.dev only (never assign a DNS route)
         shell: bash
         run: |
@@ -183,6 +213,10 @@ jobs:
             saas-gateway-preview)
               SERVICE=rcat-saas-gateway-candidate
               pnpm exec wrangler deploy --config cloudflare/web-failover/saas-gateway-wrangler.toml
+              ;;
+            saas-staging-preview)
+              SERVICE=rcat-saas-gateway-staging
+              pnpm exec wrangler deploy --config cloudflare/web-failover/saas-staging-wrangler.toml
               ;;
           esac
           echo "SERVICE=$SERVICE" >> "$GITHUB_ENV"
@@ -242,6 +276,36 @@ jobs:
           grep -qi 'X-RCAT-Gateway: wrong-hostname' "$RUNNER_TEMP/saas-candidate-blocked-headers.txt"
           echo "PASS: isolated SaaS candidate health and hostname-block checks" >> "$GITHUB_STEP_SUMMARY"
           echo "NO DNS, Route, Custom Hostname, TLS, Vercel or D1 changes." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify staging Worker health and workers.dev fail-closed hostname
+        if: ${{ env.TARGET == 'saas-staging-preview' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="https://rcat-saas-gateway-staging.$CF_WORKERS_SUBDOMAIN.workers.dev"
+          for attempt in 1 2 3 4 5; do
+            if curl --fail --silent --show-error --max-time 15 \
+              "$URL/_rcat/staging-health" -o "$RUNNER_TEMP/saas-staging-health.json"; then
+              break
+            fi
+            sleep 2
+          done
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            const h = JSON.parse(readFileSync(process.env.RUNNER_TEMP + "/saas-staging-health.json", "utf8"));
+            if (h.service !== "rcat-saas-gateway-staging" ||
+                h.configured !== true || h.status !== "not-routed") {
+              throw Error("Staging Worker is not configured or leaks a route");
+            }
+          '
+          STATUS=$(curl --silent --show-error --max-time 15 \
+            -o "$RUNNER_TEMP/saas-staging-blocked.txt" \
+            -D "$RUNNER_TEMP/saas-staging-headers.txt" \
+            -w "%{http_code}" "$URL/news")
+          test "$STATUS" = "503"
+          grep -qi "X-RCAT-Staging: wrong-hostname" "$RUNNER_TEMP/saas-staging-headers.txt"
+          echo "PASS: staging Worker exists, but refuses workers.dev public routes" >> "$GITHUB_STEP_SUMMARY"
+          echo "Staging hostname DNS, Custom Hostname and Worker Routes NOT changed." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Record gateway preview safely (no DNS, no public traffic)
         if: ${{ env.TARGET == 'gateway-preview' }}
