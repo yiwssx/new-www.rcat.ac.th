@@ -1,0 +1,46 @@
+name: Temporary Cloudflare Standby Smoke Formatter
+
+on:
+  pull_request:
+    paths:
+      - "cloudflare/web-failover/standby-smoke.mjs"
+      - ".github/workflows/cloudflare-web-standby-format-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'ops/cloudflare-standby-live-smoke-20261029'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          persist-credentials: true
+      - uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - name: Format only new standby smoke test
+        run: pnpm exec prettier --write cloudflare/web-failover/standby-smoke.mjs
+      - name: Commit deterministic formatter result
+        shell: bash
+        env:
+          HUSKY: "0"
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- cloudflare/web-failover/standby-smoke.mjs; then
+            echo "No changes needed"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- cloudflare/web-failover/standby-smoke.mjs
+          git commit -m "style(test): format standby smoke script (#760)"
+          git push origin HEAD:ops/cloudflare-standby-live-smoke-20261029
