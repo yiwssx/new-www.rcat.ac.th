@@ -139,3 +139,18 @@ jobs:
           fi
           echo "Validated isolated endpoint: $URL" >> "$GITHUB_STEP_SUMMARY"
           echo "No production DNS, Vercel, API Worker, or D1 changes made." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Install Chromium for real public standby browser smoke
+        if: ${{ env.TARGET == 'standby' }}
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Verify live public API, assets, CORS, protection and hydration
+        if: ${{ env.TARGET == 'standby' }}
+        env:
+          RUN_BROWSER_SMOKE: "true"
+        shell: bash
+        run: |
+          set -euo pipefail
+          export STANDBY_BASE_URL="https://$SERVICE.$CF_WORKERS_SUBDOMAIN.workers.dev"
+          node cloudflare/web-failover/standby-smoke.mjs
+          echo "PASS: live public standby and browser smoke at $STANDBY_BASE_URL" >> "$GITHUB_STEP_SUMMARY"
