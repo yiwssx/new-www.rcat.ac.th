@@ -21,7 +21,7 @@ Project owner authorized test-host-only staging on 2026-10-29. **Production www.
 ## Proposed staging-only O2O changes, in order
 
 1. Create only the SaaS Custom Hostname **failover-test.rcat.ac.th** in provider zone rcat.dpdns.org with standard DV SSL. Track ownership validation and SSL status. TXT/HTTP pre-validation does NOT work for an O2O customer on another Cloudflare zone; plan real-time verification.
-2. Add only the narrow provider zone Worker Route **edge.rcat.dpdns.org/*** to rcat-saas-gateway-staging after verifying the provider target has no existing live consumers. Do NOT create a wildcard */* route.
+2. Add only the narrow provider zone Worker Route `edge.rcat.dpdns.org/*` to rcat-saas-gateway-staging after verifying the provider target has no existing live consumers. Do NOT create a wildcard `*/*` route.
 3. The **authoritative external DNS operator**, not the linked Pending zone, creates the following sole test record:
    - Type: CNAME
    - Name: failover-test (FQDN failover-test.rcat.ac.th)
