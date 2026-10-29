@@ -1,0 +1,55 @@
+name: Temporary O2O Gateway Formatter
+
+on:
+  pull_request:
+    paths:
+      - "cloudflare/web-failover/saas-gateway-worker.mjs"
+      - "cloudflare/web-failover/saas-gateway.node-check.mjs"
+      - "docs/operations/cloudflare-o2o-saas-feasibility.md"
+      - ".github/workflows/o2o-saas-formatter-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'ops/o2o-saas-gateway-feasibility-20261029'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          persist-credentials: true
+      - uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - name: Format only SaaS candidate and runbook
+        run: |
+          pnpm exec prettier --write \
+            cloudflare/web-failover/saas-gateway-worker.mjs \
+            cloudflare/web-failover/saas-gateway.node-check.mjs \
+            docs/operations/cloudflare-o2o-saas-feasibility.md
+      - name: Commit Prettier output on this one trusted branch
+        shell: bash
+        env:
+          HUSKY: "0"
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "No formatting changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- \
+            cloudflare/web-failover/saas-gateway-worker.mjs \
+            cloudflare/web-failover/saas-gateway.node-check.mjs \
+            docs/operations/cloudflare-o2o-saas-feasibility.md
+          git commit -m "style(operations): format O2O SaaS Gateway candidate (#760)"
+          git push origin HEAD:ops/o2o-saas-gateway-feasibility-20261029
