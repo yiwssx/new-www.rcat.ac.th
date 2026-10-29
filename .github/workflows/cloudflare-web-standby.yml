@@ -29,7 +29,7 @@ jobs:
     environment: cloudflare-web-standby
     env:
       TARGET: ${{ inputs.target }}
-      VITE_CLOUDFLARE_PUBLIC_API_URL: ${{ vars.RCAT_PUBLIC_API_URL }}
+      VITE_CLOUDFLARE_PUBLIC_API_URL: https://rcat-web-standby.${{ vars.RCAT_CLOUDFLARE_WORKERS_SUBDOMAIN }}.workers.dev
       VITE_PUBLIC_IMAGE_DELIVERY_BASE_URL: https://rcat-image-production.rcat-digital.workers.dev
       VITE_PUBLIC_IMAGE_DELIVERY_INTENTS: portrait,carousel,intro-gate
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -62,12 +62,12 @@ jobs:
           test -n "$CF_WORKERS_SUBDOMAIN" || { echo "Missing RCAT_CLOUDFLARE_WORKERS_SUBDOMAIN variable" >&2; exit 1; }
           node --input-type=module -e '
             const raw = process.env.VITE_CLOUDFLARE_PUBLIC_API_URL;
-            if (!raw) throw Error("Missing RCAT_PUBLIC_API_URL (not a secret)");
+            if (!raw) throw Error("Missing derived public standby URL");
             const url = new URL(raw);
             if (url.protocol !== "https:" || url.username || url.password ||
                 url.search || url.hash || url.pathname !== "/" ||
                 ["localhost", "127.0.0.1"].includes(url.hostname)) {
-              throw Error("RCAT_PUBLIC_API_URL must be an HTTPS origin without credentials, path, or query");
+              throw Error("Standby API URL must be an HTTPS origin without credentials, path, or query");
             }
           '
           case "$TARGET" in
