@@ -60,12 +60,17 @@ export default function middleware(request: Request) {
   );
 
   if (redirectUrl) {
-    const response = Response.redirect(redirectUrl, 308);
-    // The gateway bypass is selected by request header. Do not let permanent
-    // deployment-domain redirects be cached and replayed to marked requests.
-    response.headers.set("Cache-Control", "private, no-store");
-    response.headers.set("Vary", "X-RCAT-Origin-Bridge");
-    return response;
+    // Response.redirect() returns immutable Headers in Node/Vercel.
+    // Set all headers when constructing the Response to prevent cached 308s
+    // from being replayed to specially marked Gateway-origin requests.
+    return new Response(null, {
+      status: 308,
+      headers: {
+        Location: redirectUrl.toString(),
+        "Cache-Control": "private, no-store",
+        Vary: "X-RCAT-Origin-Bridge"
+      }
+    });
   }
 
   const url = new URL(request.url);
