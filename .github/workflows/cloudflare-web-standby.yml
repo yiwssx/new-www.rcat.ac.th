@@ -1,0 +1,141 @@
+name: Emergency Cloudflare Web Standby
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "cloudflare/web-failover/**"
+      - ".github/workflows/cloudflare-web-standby.yml"
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Deploy target; never changes production DNS or Routes"
+        type: choice
+        required: true
+        default: standby
+        options:
+          - standby
+          - gateway-preview
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rcat-cloudflare-web-standby
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Validate and deploy isolated Workers.dev endpoint
+    # Do not allow unreviewed branches to deploy via manual dispatch.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: cloudflare-web-standby
+    env:
+      TARGET: ${{ github.event_name == 'push' && 'standby' || inputs.target }}
+      VITE_CLOUDFLARE_PUBLIC_API_URL: https://rcat-web-standby.${{ vars.RCAT_CLOUDFLARE_WORKERS_SUBDOMAIN || 'rcat-digital' }}.workers.dev
+      VITE_PUBLIC_IMAGE_DELIVERY_BASE_URL: https://rcat-image-production.rcat-digital.workers.dev
+      VITE_PUBLIC_IMAGE_DELIVERY_INTENTS: portrait,carousel,intro-gate
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CF_WORKERS_SUBDOMAIN: ${{ vars.RCAT_CLOUDFLARE_WORKERS_SUBDOMAIN || 'rcat-digital' }}
+      GATEWAY_PREVIEW_APPROVED: ${{ vars.RCAT_ALLOW_GATEWAY_PREVIEW }}
+    steps:
+      - name: Checkout trusted main source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Configure Node and pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Fail closed on missing credentials and invalid public origin
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "Missing CLOUDFLARE_API_TOKEN secret" >&2; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "Missing CLOUDFLARE_ACCOUNT_ID secret" >&2; exit 1; }
+          test -n "$CF_WORKERS_SUBDOMAIN" || { echo "Missing RCAT_CLOUDFLARE_WORKERS_SUBDOMAIN variable" >&2; exit 1; }
+          node --input-type=module -e '
+            const raw = process.env.VITE_CLOUDFLARE_PUBLIC_API_URL;
+            if (!raw) throw Error("Missing derived public standby URL");
+            const url = new URL(raw);
+            if (url.protocol !== "https:" || url.username || url.password ||
+                url.search || url.hash || url.pathname !== "/" ||
+                ["localhost", "127.0.0.1"].includes(url.hostname)) {
+              throw Error("Standby API URL must be an HTTPS origin without credentials, path, or query");
+            }
+          '
+          case "$TARGET" in
+            standby) ;;
+            gateway-preview)
+              test "$GATEWAY_PREVIEW_APPROVED" = "true" ||
+                { echo "Set RCAT_ALLOW_GATEWAY_PREVIEW=true only after operator review" >&2; exit 1; }
+              ;;
+            *) echo "Invalid target" >&2; exit 1 ;;
+          esac
+
+      - name: Install pinned project dependencies
+        run: pnpm install --frozen-lockfile --strict-peer-dependencies
+
+      - name: Test public standby and gateway invariants
+        run: node --test cloudflare/web-failover/worker.node-check.mjs
+
+      - name: Build independent CSR public standby
+        run: pnpm build
+
+      - name: Check CSR output without Vercel SSR cutover
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s dist/index.html
+          test ! -e dist/csr.html
+          test -d dist/assets
+          grep -q 'id="root"' dist/index.html
+          grep -q 'noindex' dist/index.html
+
+      - name: Deploy Workers.dev only (never assign a DNS route)
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$TARGET" in
+            standby) CF_ENV=standby; SERVICE=rcat-web-standby ;;
+            gateway-preview) CF_ENV=gateway; SERVICE=rcat-web-gateway ;;
+          esac
+          pnpm exec wrangler deploy --config cloudflare/web-failover/wrangler.toml --env "$CF_ENV"
+          echo "SERVICE=$SERVICE" >> "$GITHUB_ENV"
+
+      - name: Verify isolated Workers.dev health
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="https://$SERVICE.$CF_WORKERS_SUBDOMAIN.workers.dev"
+          for attempt in 1 2 3 4 5; do
+            if curl --fail --silent --show-error --max-time 15 "$URL/_rcat/failover-health" \
+                -o "$RUNNER_TEMP/rcat-cf-health.json"; then
+              break
+            fi
+            sleep 2
+          done
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            const data = JSON.parse(readFileSync(process.env.RUNNER_TEMP + "/rcat-cf-health.json", "utf8"));
+            const expected = process.env.TARGET === "standby" ? "standby" : "auto";
+            if (data.status !== "ok" || data.mode !== expected) throw Error("Incorrect Worker or mode");
+          '
+          if [[ "$TARGET" == "standby" ]]; then
+            curl --fail --silent --show-error --max-time 15 "$URL/news" -o "$RUNNER_TEMP/rcat-standby-news.html"
+            grep -q 'id="root"' "$RUNNER_TEMP/rcat-standby-news.html"
+          fi
+          echo "Validated isolated endpoint: $URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "No production DNS, Vercel, API Worker, or D1 changes made." >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,38 @@
+# Emergency, isolated frontend Workers only. Do not reuse or change the
+# canonical rcat-public-api-preview Worker / D1 production resources.
+name = "rcat-web-failover-scaffold"
+main = "worker.mjs"
+compatibility_date = "2026-10-29"
+workers_dev = true
+
+# Built with pnpm build (Vite client). DO NOT use the Vercel SSR cutover
+# build here: it renames dist/index.html to csr.html.
+[assets]
+directory = "../../dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = true
+
+# Public read-only CSR backup. Safe to validate on its own workers.dev URL.
+[env.standby]
+name = "rcat-web-standby"
+
+[env.standby.vars]
+FAILOVER_MODE = "standby"
+
+[[env.standby.services]]
+binding = "PUBLIC_API"
+service = "rcat-public-api-preview"
+
+# Gateway is intentionally NOT assigned a domain or route here.
+# Requires validated DNS-proxied Vercel origin and a separate operator-approved
+# www.rcat.ac.th/* Worker Route. Route-mode fetch(request) goes to Vercel.
+[env.gateway]
+name = "rcat-web-gateway"
+
+[env.gateway.vars]
+FAILOVER_MODE = "auto"
+
+[[env.gateway.services]]
+binding = "PUBLIC_API"
+service = "rcat-public-api-preview"

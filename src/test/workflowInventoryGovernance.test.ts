@@ -14,6 +14,8 @@ const expectedWorkflows = [
   "apps-script-production-release.yml",
   "apps-script-production-rollback.yml",
   "ci.yml",
+  "cloudflare-web-failover-check.yml",
+  "cloudflare-web-standby.yml",
   "dependency-status-sync.yml",
   "image-production-worker.yml",
   "maintenance-recovery.yml",
@@ -28,7 +30,7 @@ const expectedWorkflows = [
 describe("workflow inventory governance", () => {
   it("keeps the active workflow surface intentionally bounded", () => {
     expect(workflowFiles).toEqual(expectedWorkflows);
-    expect(workflowFiles).toHaveLength(12);
+    expect(workflowFiles).toHaveLength(14);
   });
 
   it("does not restore retired branch-mutating, phase-specific, or duplicate workflows", () => {
