@@ -9,6 +9,9 @@ import { pathToFileURL } from "node:url";
 export const VERCEL_ORIGIN = "https://new-wwwrcatacth-rcat-it-dev-team.vercel.app";
 export const STANDBY_ORIGIN = "https://rcat-web-standby.rcat-digital.workers.dev";
 
+// Vercel serves SSR HTML and the Admin/auth proxy; it does NOT expose the
+// Cloudflare-owned /api/public/* endpoints as same-origin Vercel APIs.
+// Existing Standby's PUBLIC_API Service Binding is the tested public read path.
 const specs = Object.freeze([
   {
     name: "Vercel SSR home",
@@ -26,8 +29,6 @@ const specs = Object.freeze([
     type: "html",
     marker: /data-rcat-ssr=["']true["']/i
   },
-  { name: "Vercel public home API", origin: VERCEL_ORIGIN, path: "/api/public/home", status: 200, type: "json" },
-  { name: "Vercel public shell API", origin: VERCEL_ORIGIN, path: "/api/public/shell", status: 200, type: "json" },
   { name: "Standby health", origin: STANDBY_ORIGIN, path: "/_rcat/failover-health", status: 200, type: "health" },
   { name: "Standby public CSR news", origin: STANDBY_ORIGIN, path: "/news", status: 200, type: "csr" },
   { name: "Standby public home API", origin: STANDBY_ORIGIN, path: "/api/public/home", status: 200, type: "json" },

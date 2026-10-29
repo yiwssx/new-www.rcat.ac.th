@@ -40,7 +40,7 @@ function fakeNetwork({ primaryFailure, wrongApi, redirectNews, exposePrivateStan
         : new Response("Read-only", { status: 503, headers: { "Cache-Control": "no-store" } });
     }
     if (url.pathname.startsWith("/api/public/")) {
-      return wrongApi && url.origin === VERCEL_ORIGIN
+      return wrongApi && url.origin === STANDBY_ORIGIN
         ? new Response("<!DOCTYPE html>", { headers: { "Content-Type": "text/html" } })
         : Response.json({ generatedAt: "2026-10-29T00:00:00Z", menu: [] });
     }
@@ -60,11 +60,14 @@ test("readiness covers exactly Vercel project alias and standby in GET-only mode
   const { mockFetch, calls } = fakeNetwork();
   const result = await checkOriginReadiness(mockFetch);
   assert.equal(result.passed, true);
-  assert.equal(result.checks.length, 10);
-  assert.equal(calls.length, 10);
-  assert.equal(calls.filter((x) => x.url.origin === VERCEL_ORIGIN).length, 4);
+  assert.equal(result.checks.length, 8);
+  assert.equal(calls.length, 8);
+  assert.equal(calls.filter((x) => x.url.origin === VERCEL_ORIGIN).length, 2);
   assert.equal(calls.filter((x) => x.url.origin === STANDBY_ORIGIN).length, 6);
   assert.ok(calls.every((x) => !x.url.search && !x.url.hash));
+  // Vercel SSR calls Cloudflare Public API internally; the Vercel deployment
+  // intentionally has no same-origin /api/public/* route.
+  assert.ok(calls.every((x) => x.url.origin !== VERCEL_ORIGIN || !x.url.pathname.startsWith("/api/public/")));
   const report = formatReadinessReport(result);
   assert.match(report, /preflight: PASS/);
   assert.match(report, /NOT a live SaaS\/O2O proof/);
@@ -85,10 +88,10 @@ test("detects canonical redirect from Vercel alias to the public hostname before
   assert.ok(result.checks.some((x) => x.name === "Vercel SSR news" && x.reason.includes("redirect")));
 });
 
-test("rejects Vercel public JSON returning an HTML login shell", async () => {
+test("rejects Cloudflare Standby public JSON returning an HTML login shell", async () => {
   const result = await checkOriginReadiness(fakeNetwork({ wrongApi: true }).mockFetch);
   assert.equal(result.passed, false);
-  assert.ok(result.checks.some((x) => x.name === "Vercel public home API" && !x.ok));
+  assert.ok(result.checks.some((x) => x.name === "Standby public home API" && !x.ok));
 });
 
 test("rejects standby accidentally exposing private/Admin routes", async () => {

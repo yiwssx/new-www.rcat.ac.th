@@ -1,6 +1,13 @@
 name: Cloudflare Emergency Failover Check
 
 on:
+  # A narrowly scoped post-merge live check of the origin preflight itself.
+  # Avoids repeated manual dispatch; no writes or domain/route changes.
+  push:
+    branches:
+      - main
+    paths:
+      - "cloudflare/web-failover/origin-readiness.mjs"
   pull_request:
     paths:
       - "cloudflare/web-failover/**"
@@ -58,7 +65,7 @@ jobs:
 
   origin-readiness:
     name: Live Vercel and standby preflight (read-only; no DNS)
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
