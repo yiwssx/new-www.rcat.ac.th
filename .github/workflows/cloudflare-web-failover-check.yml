@@ -35,6 +35,8 @@ jobs:
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
       - name: Verify routing, status and zero-write invariants
         run: node --test cloudflare/web-failover/worker.node-check.mjs
+      - name: Syntax-check isolated live smoke without network access
+        run: node --check cloudflare/web-failover/standby-smoke.mjs
       - name: Build standalone React/Vite CSR
         env:
           VITE_CLOUDFLARE_PUBLIC_API_URL: https://rcat-web-standby.rcat-digital.workers.dev
