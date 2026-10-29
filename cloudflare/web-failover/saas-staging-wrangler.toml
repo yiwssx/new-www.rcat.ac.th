@@ -1,0 +1,18 @@
+# Isolated Cloudflare for SaaS / O2O staging Worker — www is NEVER routed.
+# Deploys workers.dev only. Owner-side DNS and custom-hostname registration
+# must be completed separately and only for failover-test.rcat.ac.th.
+# No route, wildcard, zone ID, D1, Assets, TLS or DNS is declared here.
+name = "rcat-saas-gateway-staging"
+main = "saas-staging-worker.mjs"
+compatibility_date = "2026-10-29"
+workers_dev = true
+
+[vars]
+PUBLIC_HOSTNAME = "failover-test.rcat.ac.th"
+GATEWAY_TEST_ONLY = "true"
+RCAT_VERCEL_ORIGIN = "https://new-wwwrcatacth-rcat-it-dev-team.vercel.app"
+STANDBY_ORIGIN = "https://rcat-web-standby.rcat-digital.workers.dev"
+
+[[services]]
+binding = "STANDBY"
+service = "rcat-web-standby"
