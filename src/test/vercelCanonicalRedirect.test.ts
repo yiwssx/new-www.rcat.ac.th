@@ -22,6 +22,54 @@ describe("Vercel production canonical redirect", () => {
     expect(redirect?.toString()).toBe("https://www.rcat.ac.th/");
   });
 
+  it("accepts explicitly marked Gateway requests on the exact HTTPS Vercel project alias", () => {
+    for (const path of ["/", "/news?page=2", "/api/public/home", "/api/cms-auth/session", "/admin"]) {
+      expect(
+        getCanonicalProductionRedirect(
+          "https://new-wwwrcatacth-rcat-it-dev-team.vercel.app" + path,
+          "production",
+          "rcat-origin-v1"
+        )
+      ).toBeNull();
+    }
+  });
+
+  it("keeps 308 canonical redirect for ordinary visitors to the project alias", () => {
+    for (const marker of [undefined, null, "", "invalid", "rcat-origin-v2"]) {
+      expect(
+        getCanonicalProductionRedirect(
+          "https://new-wwwrcatacth-rcat-it-dev-team.vercel.app/news?page=2",
+          "production",
+          marker
+        )?.toString()
+      ).toBe("https://www.rcat.ac.th/news?page=2");
+    }
+  });
+
+  it("does not exempt arbitrary Vercel deployment hosts or non-HTTPS origin traffic", () => {
+    expect(
+      getCanonicalProductionRedirect(
+        "https://new-wwwrcatac-216tvtmj3-rcat-it-dev-team.vercel.app/news",
+        "production",
+        "rcat-origin-v1"
+      )?.toString()
+    ).toBe("https://www.rcat.ac.th/news");
+    expect(
+      getCanonicalProductionRedirect(
+        "http://new-wwwrcatacth-rcat-it-dev-team.vercel.app/news",
+        "production",
+        "rcat-origin-v1"
+      )?.toString()
+    ).toBe("https://www.rcat.ac.th/news");
+    expect(
+      getCanonicalProductionRedirect(
+        "https://new-wwwrcatacth-rcat-it-dev-team.vercel.app.evil.example/news",
+        "production",
+        "rcat-origin-v1"
+      )
+    ).toBeNull();
+  });
+
   it("does not redirect preview deployment hosts", () => {
     expect(
       getCanonicalProductionRedirect(
