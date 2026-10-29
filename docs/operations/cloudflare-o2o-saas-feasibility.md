@@ -46,7 +46,7 @@ After PR #768 corrected the stale PublicHome schema check, the post-merge `Emerg
 
 The original browser smoke waited only for `#root.textContent.length > 120` and immediately searched for the college name; an intermediate loading/navigation shell can already exceed 120 characters before the public page finishes hydrating. Direct independent Cloudflare Browser Rendering of the existing Standby `/news` with `networkidle2` returned fully rendered visible content including `วิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด`, college navigation and news. This supports a **test timing race**, not evidence of a broken live public page.
 
-The smoke now waits up to 25 seconds for **both** substantial `#root` text and real RCAT site text to exist, then reasserts visible `innerText` and still fails on browser page errors. It does not bypass the content check, length guard, network constraints or Admin protections. Require the post-merge **full Standby browser smoke to PASS** before this failure can be marked resolved.
+The smoke now waits up to 25 seconds for **both** substantial **visible `#root.innerText`** and real RCAT site text to exist, then reasserts `innerText` and still fails on browser page errors. It must **not** use `textContent` for the predicate, because the page embeds schema.org JSON-LD containing the college name inside hidden `<script>` tags; those can satisfy a `textContent` check without any visible hydrated content. It does not bypass the content check, length guard, network constraints or Admin protections. Require the post-merge **full Standby browser smoke to PASS** before this failure can be marked resolved.
 
 ## Standby post-deploy smoke regression — run 40845089770 (2026-10-29)
 
