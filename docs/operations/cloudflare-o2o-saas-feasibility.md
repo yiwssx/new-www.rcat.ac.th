@@ -40,6 +40,14 @@ Reference: https://developers.cloudflare.com/cloudflare-for-platforms/cloudflare
 - `cloudflare/web-failover/saas-gateway.node-check.mjs` tests primary 200, status 502/503/504, network failure and recovery, Public API JSON, cookie sanitization, write/auth preservation, redirect loops, and host allowlisting.
 - Existing Cloudflare CI checks Wrangler syntax and full Node tests. Do not add a second workflow.
 
+## Standby browser-hydration readiness guard (2026-10-29)
+
+After PR #768 corrected the stale PublicHome schema check, the post-merge `Emergency Cloudflare Web Standby` workflow run `40846248331` passed **health, CSR document, hashed JS, Public Home/Shell JSON, CORS, blocked Admin/Auth/sitemap, OPTIONS preflight**, but failed in the **Playwright browser hydration assertion** for `/` or `/news`.
+
+The original browser smoke waited only for `#root.textContent.length > 120` and immediately searched for the college name; an intermediate loading/navigation shell can already exceed 120 characters before the public page finishes hydrating. Direct independent Cloudflare Browser Rendering of the existing Standby `/news` with `networkidle2` returned fully rendered visible content including `วิทยาลัยเกษตรและเทคโนโลยีร้อยเอ็ด`, college navigation and news. This supports a **test timing race**, not evidence of a broken live public page.
+
+The smoke now waits up to 25 seconds for **both** substantial **visible `#root.innerText`** and real RCAT site text to exist, then reasserts `innerText` and still fails on browser page errors. It must **not** use `textContent` for the predicate, because the page embeds schema.org JSON-LD containing the college name inside hidden `<script>` tags; those can satisfy a `textContent` check without any visible hydrated content. It does not bypass the content check, length guard, network constraints or Admin protections. Require the post-merge **full Standby browser smoke to PASS** before this failure can be marked resolved.
+
 ## Standby post-deploy smoke regression — run 40845089770 (2026-10-29)
 
 The newly merged live origin preflight (run `40845089798`) **PASS 8/8**: two Vercel SSR, Standby health/CSR, two Standby-backed Public APIs and two Admin/Auth protection checks. That only verifies origin readiness, not the full browser hydration smoke or SaaS/O2O cutover.
