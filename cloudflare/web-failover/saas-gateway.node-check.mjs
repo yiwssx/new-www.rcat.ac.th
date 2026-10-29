@@ -170,7 +170,7 @@ test("Vercel origin network outage falls back for public page only and recovers"
 test("isolated workers.dev candidate fails closed on public GET/HEAD, API and writes", async () => {
   const { env, backupRequests } = fixture();
   let originCalls = 0;
-  const preview = "https://rcat-saas-gateway-candidate.rcat-digital.workers.dev";
+  const preview = "https://rcat-saas-gateway.rcat-digital.workers.dev";
   const attempts = [
     new Request(preview + "/news"),
     new Request(preview + "/api/public/home?lang=th"),
@@ -213,12 +213,12 @@ test("fails closed for invalid aliases, missing standby binding or credentials i
 test("health endpoint is safe on workers.dev and is not a live O2O proof", async () => {
   const { env } = fixture();
   const response = await handleSaasGatewayRequest(
-    new Request("https://rcat-saas-gateway-candidate.rcat-digital.workers.dev/_rcat/saas-health"),
+    new Request("https://rcat-saas-gateway.rcat-digital.workers.dev/_rcat/saas-health"),
     env
   );
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), {
-    service: "rcat-saas-gateway-candidate",
+    service: "rcat-saas-gateway",
     configured: true,
     status: "not-routed"
   });
@@ -226,7 +226,7 @@ test("health endpoint is safe on workers.dev and is not a live O2O proof", async
 
 test("SaaS Wrangler candidate does not create DNS, routes, certs or a new zone", () => {
   const text = readFileSync(new URL("./saas-gateway-wrangler.toml", import.meta.url), "utf8");
-  assert.match(text, /name = "rcat-saas-gateway-candidate"/);
+  assert.match(text, /name = "rcat-saas-gateway"/);
   assert.match(text, /service = "rcat-web-standby"/);
   assert.doesNotMatch(text, /^(?:routes?|zone_id|zone_name|custom_domain)\s*=/m);
   assert.doesNotMatch(text, /\[\[d1_databases\]\]|\[assets\]/);
