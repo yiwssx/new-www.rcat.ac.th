@@ -15,18 +15,29 @@ Traffic after approved cutover:
 
 Reference: https://developers.cloudflare.com/cloudflare-for-platforms/cloudflare-for-saas/start/getting-started/ and https://developers.cloudflare.com/cloudflare-for-platforms/cloudflare-for-saas/saas-customers/how-it-works/.
 
+## Provider SaaS Zone activated and isolated Gateway Candidate release (2026-10-29)
+
+- **Provider zone:** `rcat.dpdns.org` in our connected account is **ACTIVE** on Free Website; it is separate from the institution-owned authoritative `rcat.ac.th`. Never swap the institution's Nameservers with the pending duplicate Zone.
+- **SaaS allocation:** API `/custom_hostnames/quota` reports `allocated=50000, used=0, hard_cap=100000`; quota is **not a promise of 50,000 free hostnames**. Verify billing before accepting live traffic.
+- **Provider DNS:** `fallback.rcat.dpdns.org` is the existing Proxied originless `AAAA 100::` record. `edge.rcat.dpdns.org` is the existing Proxied CNAME pointing to it. No DNS modifications were required.
+- **SaaS fallback origin:** `fallback.rcat.dpdns.org` set via Cloudflare API on Zone `rcat.dpdns.org`, then GET independently verified `status=active`.
+- **Custom Hostname/SSL:** none created; `www.rcat.ac.th` is NOT a Custom Hostname on the SaaS provider. O2O pre-validation must NOT be assumed safe; see Cloudflare documentation on O2O validation limitations.
+- **Isolated candidate release:** `.github/workflows/cloudflare-saas-gateway-preview.yml` is a dedicated, scoped GitHub Action on reviewed `main` that deploys only `rcat-saas-gateway-candidate` to `workers.dev` via the already-tested `saas-gateway-wrangler.toml`. It shares the existing `cloudflare-web-standby` secret environment but does NOT run the public Standby release pipeline. It validates config scope, Node tests and Wrangler dry-run before upload.
+- **Mandatory post-deploy smoke:** `/_rcat/saas-health` must return 200 with `configured:true,status:not-routed`; ordinary `/news` MUST return 503 with `X-RCAT-Gateway: wrong-hostname`. These prove Service Binding/config and fail-closed host restrictions, **NOT** live primary↔backup routing.
+- **No cutover authorization:** neither the isolated deployment nor a successful preview permits `*/*`, production `www.rcat.ac.th` Custom Hostname, or changes to the authoritative `www` CNAME. Next, establish an approved O2O Hostname+TLS/cutover plan and prove SSR, public GET fallback, admin sessions, and rollback with real HTTPS before cutover.
+
 ## Verified current prerequisites
 
 | Item                                         | Observation (2026-10-29)                                                                               | Decision                                                                                                                  |
 | -------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
 | Account `rcat-digital`                       | Account `c2536d1093fd8a43002f514754bf02e7`                                                             | Keeps Standby and API                                                                                                     |
-| Active SaaS provider zone                    | **Not present**. Only `rcat.ac.th` status `pending` with non-authoritative nameservers `roan`/`serena` | **BLOCKED: obtain a separately owned active domain/zone; never activate the pending .ac.th zone**                         |
+| Active SaaS provider zone                    | **ACTIVE**: `rcat.dpdns.org` in own account, Free Website zone                                     | Provider zone/DNS verified. The separate `rcat.ac.th` duplicate zone remains Pending. |
 | Existing authoritative `rcat.ac.th`          | Managed externally with original nameservers `maria`/`kirk`                                            | No access/no changes allowed                                                                                              |
-| SaaS feature                                 | GET fallback-origin on pending zone returned HTTP 401 feature unavailable/permission denied            | **Not verified enabled**. Do not attempt custom-hostname or billing activation on pending zone                            |
+| SaaS feature                                 | Enabled: quota API reports `allocated=50000, used=0`; fallback origin `active`                   | Zone preconditions met; validate actual billing before production traffic.            |
 | Cloudflare Standby                           | `https://rcat-web-standby.rcat-digital.workers.dev` exists and has local `PUBLIC_API` binding          | Already deployed, do not mutate production API/D1                                                                         |
 | Vercel project                               | `new-www.rcat.ac.th` in team `rcat-it-dev-team`                                                        | Keep production SSR                                                                                                       |
 | Vercel project alias                         | `new-wwwrcatacth-rcat-it-dev-team.vercel.app` is attached to last known READY production deployment    | Candidate origin ONLY. Must verify HTTP redirects, Host handling, cookies, paths and Vercel Pause behavior BEFORE traffic |
-| SSL and Custom Hostname for `www.rcat.ac.th` | Not provisioned in a provider zone                                                                     | **BLOCKED**                                                                                                               |
+| SSL and Custom Hostname for `www.rcat.ac.th` | Not provisioned in `rcat.dpdns.org`                                                          | **BLOCKED until safe O2O/SSL validation and owner authorization.**                   |
 | Public DNS/CNAME change                      | Not authorized / not performed                                                                         | **BLOCKED**                                                                                                               |
 
 ## Implemented code — tests only, no changes to live site
