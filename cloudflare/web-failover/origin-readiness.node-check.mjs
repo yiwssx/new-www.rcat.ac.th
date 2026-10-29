@@ -16,7 +16,10 @@ function fakeNetwork({ primaryFailure, wrongApi, redirectNews, exposePrivateStan
     assert.ok([VERCEL_ORIGIN, STANDBY_ORIGIN].includes(url.origin), "No www.rcat.ac.th or arbitrary domain fetch");
     assert.equal(options.method, "GET", "No mutating request");
     assert.equal(options.redirect, "manual", "No hidden redirects");
-    assert.equal(options.headers.Accept, url.pathname.startsWith("/api/") || url.pathname.startsWith("/_rcat/") ? "application/json" : "text/html");
+    assert.equal(
+      options.headers.Accept,
+      url.pathname.startsWith("/api/public/") || url.pathname.startsWith("/_rcat/") ? "application/json" : "text/html"
+    );
 
     if (networkFailure && url.pathname === "/news" && url.origin === VERCEL_ORIGIN) {
       throw new Error("Origin connect timeout");
