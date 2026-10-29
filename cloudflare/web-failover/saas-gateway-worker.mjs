@@ -79,6 +79,10 @@ export async function handleSaasGatewayRequest(request, env, fetchOrigin = fetch
     out.headers.delete("Host");
     out.headers.delete("X-Forwarded-Host");
     out.headers.delete("Forwarded");
+    // Explicit routing marker: Vercel production middleware accepts the
+    // project alias instead of redirecting Gateway traffic back to www.
+    // This does not authorize any Admin/API request; normal auth and WAF apply.
+    out.headers.set("X-RCAT-Origin-Bridge", "rcat-origin-v1");
     // Vercel receives the original cookies/Authorization for its Admin APIs;
     // standby never does. Cloudflare sets its own upstream client-IP headers.
     const primary = await fetchOrigin(out, {
