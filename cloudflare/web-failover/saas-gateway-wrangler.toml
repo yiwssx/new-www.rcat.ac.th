@@ -1,0 +1,21 @@
+# CLOUDLFARE FOR SAAS / O2O GATEWAY CANDIDATE — NOT FOR PRODUCTION DEPLOY.
+# The connected rcat-digital account currently has only a PENDING rcat.ac.th
+# zone. This file is NOT a valid SaaS setup until a distinct independently
+# owned ACTIVE provider zone and custom-hostname+certificate exist.
+#
+# This file creates NO routes, domains, DNS records, SaaS custom hostnames, or
+# certificates. Deployment alone must not be interpreted as cutover approval.
+name = "rcat-saas-gateway-candidate"
+main = "saas-gateway-worker.mjs"
+compatibility_date = "2026-10-29"
+workers_dev = true
+
+[vars]
+PUBLIC_HOSTNAME = "www.rcat.ac.th"
+RCAT_VERCEL_ORIGIN = "https://new-wwwrcatacth-rcat-it-dev-team.vercel.app"
+STANDBY_ORIGIN = "https://rcat-web-standby.rcat-digital.workers.dev"
+
+# Both Workers are in OUR rcat-digital account, so this binding is permitted.
+[[services]]
+binding = "STANDBY"
+service = "rcat-web-standby"

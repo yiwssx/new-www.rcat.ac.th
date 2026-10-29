@@ -1,0 +1,67 @@
+# RCAT O2O/SaaS Gateway feasibility and safe owner-side execution
+
+**Date:** 2026-10-29 · **Tracker:** #760 · **Safety:** NO PRODUCTION DNS/ROUTE/NAME-SERVER CHANGES.
+
+## Decision and architecture
+
+Use Cloudflare for SaaS with Orange-to-Orange (O2O) if, and only if, an independently owned **active provider zone**, SaaS feature eligibility, custom hostname + certificate validation, and end-to-end primary-origin proof are established. The original `rcat.ac.th` zone remains authoritative in the external organization account; no registrar transfer, zone takeover, or nameserver change.
+
+Traffic after approved cutover:
+
+1. Browser requests `https://www.rcat.ac.th/`.
+2. Authoritative Cloudflare zone retains existing DNS ownership but updates the proxied `www` CNAME to the **future validated SaaS provider target**. The target **is not known yet**. Do not point `www` to a `workers.dev` endpoint.
+3. The SaaS provider zone is in our separate Cloudflare account. Its Worker handles custom-hostname requests, forwards healthy traffic to a **verified Vercel project-level alias**, and switches public read-only GET/HEAD to a local Cloudflare Standby Service Binding when Vercel returns 502/503/504 or fails at the network layer.
+4. This still calls Vercel for the primary SSR/Admin and does not remove its Fluid CPU consumption while healthy. Only public CSR pages/API GET remain available during Vercel downtime.
+
+Reference: https://developers.cloudflare.com/cloudflare-for-platforms/cloudflare-for-saas/start/getting-started/ and https://developers.cloudflare.com/cloudflare-for-platforms/cloudflare-for-saas/saas-customers/how-it-works/.
+
+## Verified current prerequisites
+
+| Item                                         | Observation (2026-10-29)                                                                               | Decision                                                                                                                  |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| Account `rcat-digital`                       | Account `c2536d1093fd8a43002f514754bf02e7`                                                             | Keeps Standby and API                                                                                                     |
+| Active SaaS provider zone                    | **Not present**. Only `rcat.ac.th` status `pending` with non-authoritative nameservers `roan`/`serena` | **BLOCKED: obtain a separately owned active domain/zone; never activate the pending .ac.th zone**                         |
+| Existing authoritative `rcat.ac.th`          | Managed externally with original nameservers `maria`/`kirk`                                            | No access/no changes allowed                                                                                              |
+| SaaS feature                                 | GET fallback-origin on pending zone returned HTTP 401 feature unavailable/permission denied            | **Not verified enabled**. Do not attempt custom-hostname or billing activation on pending zone                            |
+| Cloudflare Standby                           | `https://rcat-web-standby.rcat-digital.workers.dev` exists and has local `PUBLIC_API` binding          | Already deployed, do not mutate production API/D1                                                                         |
+| Vercel project                               | `new-www.rcat.ac.th` in team `rcat-it-dev-team`                                                        | Keep production SSR                                                                                                       |
+| Vercel project alias                         | `new-wwwrcatacth-rcat-it-dev-team.vercel.app` is attached to last known READY production deployment    | Candidate origin ONLY. Must verify HTTP redirects, Host handling, cookies, paths and Vercel Pause behavior BEFORE traffic |
+| SSL and Custom Hostname for `www.rcat.ac.th` | Not provisioned in a provider zone                                                                     | **BLOCKED**                                                                                                               |
+| Public DNS/CNAME change                      | Not authorized / not performed                                                                         | **BLOCKED**                                                                                                               |
+
+## Implemented code — tests only, no changes to live site
+
+- `cloudflare/web-failover/saas-gateway-worker.mjs` wraps the existing well-tested `gateway-worker.mjs` for SaaS use.
+- Vercel-primary requests go to **explicit project alias** (not `www.rcat.ac.th` to avoid an infinite O2O proxy loop).
+- Original request method, path, query, cookies and Authorization are preserved to the Vercel alias (required for current Admin/CMS). Forwarded and Host spoofing headers are stripped.
+- Public GET/HEAD fallback uses `env.STANDBY.fetch()` **internal Service Binding**, because SaaS Gateway and Standby would both run in our own Cloudflare account; the binding never crosses accounts. Only Accept/path/query are sent on backup.
+- Protects against canonical redirect loops returning to the exact same public URL; prevents accidental 200 on loop.
+- `cloudflare/web-failover/saas-gateway-wrangler.toml` contains **no route, DNS, zone, custom domain, D1 or assets**; it is a candidate configuration, not an active SaaS setup.
+- `cloudflare/web-failover/saas-gateway.node-check.mjs` tests primary 200, status 502/503/504, network failure and recovery, Public API JSON, cookie sanitization, write/auth preservation, redirect loops, and host allowlisting.
+- Existing Cloudflare CI checks Wrangler syntax and full Node tests. Do not add a second workflow.
+
+## Remaining owner-side steps (not safe to execute yet)
+
+1. **Provider zone:** obtain the name and proof of control of a domain **separate from `rcat.ac.th`** and add it to the connected Cloudflare account. Wait until its zone is `active`. Do not buy/register a domain or create an account subscription without the user's explicit choice.
+2. **SaaS capability:** check Cloudflare for SaaS is enabled on that active zone and assess included custom hostname quota, billing, and TLS capabilities. Do not infer entitlement from Free plan or from the pending zone.
+3. **Originless fallback:** configure the provider-zone fallback origin as documented by Cloudflare (e.g. `fallback.<separate-owned-domain>` as a proxied originless record), configure the SaaS CNAME target e.g. `edge.<separate-owned-domain>` and attach a **limited Worker Route** for approved custom hostnames. These are placeholders **not copy/paste production DNS**.
+4. **SSL and custom hostname:** provision `www.rcat.ac.th` as SaaS custom hostname, validate ownership and certificate issuance **without routing production prematurely**. The authorized domain account operator may need a TXT validation record or HTTP token as well as a later CNAME update; do not promise that one DNS record change will always be sufficient. Verify `custom_hostname.status=active` and `ssl.status=active`.
+5. **Vercel proxy test:** Validate project alias directly, then via a safely scoped test hostname for SSR canonical, `Set-Cookie` domain/`SameSite`/Secure, Admin Login and logout, redirect Location, HTTPS SNI and preserved Host expectations, `/.well-known/vercel/*`, `/.well-known/acme-challenge/*`, browser assets, and CDN caching. Vercel does not recommend stacking proxies; see https://vercel.com/docs/security/reverse-proxy and https://vercel.com/kb/guide/can-i-use-a-proxy-on-top-of-my-vercel-deployment. **Do not assume custom-hostname proxying is working just because HTTP 200 exists.**
+6. **Failover test:** primary returns 503 or network error → public pages and `/api/public/*` read-only work. Protected routes and non-idempotent requests must never retry against standby. Recover to primary; monitor costs. Keep test away from production writes.
+7. **Domain owner cutover:** after explicit user and domain operator approvals, operator updates `www` CNAME from its Vercel target to the verified provider SaaS CNAME target. Existing .ac.th zone/nameservers remain unchanged. DNS rollback: restore **the exact original record**, including orange-cloud proxy mode and TTL, recorded in the change request. Verify SSL, www redirects, SSR and admin immediately.
+
+## Activation guardrails
+
+- **Do not attach this candidate to a production route** before the custom hostname, certificate, Vercel primary alias, auth proxy, origin headers, and end-to-end tests all pass.
+- Vercel Hobby deployments can still be paused due to quotas. Cloudflare gateway does not prevent Vercel pauses or replace its SSR/CMS; it only makes public read-only content available when primary is unavailable.
+- Do not confuse CNAME-to-standby with automatic failover; CNAME is not a health-aware load balancer.
+- Standby and the Public API / D1 still share Cloudflare availability. Consider shared Cloudflare outage outside scope.
+- Rollback plans must not depend on a bot modifying the external domain operator's zone.
+
+## Current deliverable status
+
+**Code preparation:** completed on a separate PR subject to CI and peer verification.
+
+**Actual SaaS/O2O readiness:** BLOCKED (no active independently-owned provider zone; custom hostname/TLS/route absent; Vercel proxy not validated). **No DNS change performed.** Leave Issue #760 open.
+
+This is a feasibility-stage candidate, not permission for production activation.
