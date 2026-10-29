@@ -33,7 +33,20 @@ Proxy status: Proxied (orange cloud)
 TTL: Auto
 ```
 
-Do **NOT** change apex `rcat.ac.th`, nameservers, MX, TXT/SPF/DMARC, any Admin/API domain, or any other record. Do not create `failover-test`. The owner's only responsibility is the DNS record and, if the provider identifies a conflicting CAA/DNSSEC configuration, its authoritative DNS correction. The owner does not manage Gateway Worker, Cloudflare for SaaS, or the Provider SSL.
+Do **NOT** change apex `rcat.ac.th`, nameservers, MX, TXT/SPF/DMARC, any Admin/API domain, or any other record. Do not create `failover-test`. The owner's responsibility is the www DNS record, checking/adding the apex edge redirect below if absent, and any authoritative CAA/DNSSEC correction needed for certificate issuance. The owner does not manage Gateway Worker, Cloudflare for SaaS, or the Provider SSL.
+
+## Apex redirect required for protection of both website addresses
+
+The current apex `rcat.ac.th` redirect is assigned in Vercel. If Vercel is paused, visitors to the apex can still see the pause page **even when www Failover is working**. The authoritative Cloudflare operator must **check existing edge redirect rules**, and if no suitable rule exists, create one Cloudflare **Single Redirect** (no Worker, no apex DNS or Nameserver change):
+
+- Match expression: `(http.host eq "rcat.ac.th")`
+- Dynamic target expression: `concat("https://www.rcat.ac.th", http.request.uri.path)`
+- HTTP status: `301` (permanent); **Preserve query string: Enabled**
+- Scope: the apex hostname only; never redirect `www` back to the apex.
+- Precondition: existing apex DNS is Proxied (orange cloud), so the edge redirect runs without relying on Vercel.
+- If an equivalent Cloudflare edge redirect already exists, **do not create a duplicate**.
+
+This redirect is part of the minimal **domain-operator configuration**, not a new staging test. Official reference: https://developers.cloudflare.com/fundamentals/manage-domains/redirect-domain/
 
 ## Go-live acceptance — one controlled production activation, no intentional Vercel outage
 
