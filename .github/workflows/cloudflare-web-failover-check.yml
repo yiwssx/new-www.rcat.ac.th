@@ -40,6 +40,10 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - name: Show exact Prettier diff for production handoff
+        run: |
+          pnpm exec prettier --write docs/operations/rcat-production-o2o-handoff.md
+          git diff -- docs/operations/rcat-production-o2o-handoff.md
       - name: Verify routing, status and zero-write invariants
         run: node --test cloudflare/web-failover/worker.node-check.mjs cloudflare/web-failover/gateway.node-check.mjs cloudflare/web-failover/saas-gateway.node-check.mjs cloudflare/web-failover/saas-staging.node-check.mjs cloudflare/web-failover/origin-readiness.node-check.mjs
       - name: Syntax-check isolated live smoke without network access
