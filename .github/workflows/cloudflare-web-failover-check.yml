@@ -1,0 +1,51 @@
+name: Cloudflare Emergency Failover Check
+
+on:
+  pull_request:
+    paths:
+      - "cloudflare/web-failover/**"
+      - ".github/workflows/cloudflare-web-failover-check.yml"
+      - ".github/workflows/cloudflare-web-standby.yml"
+      - "docs/operations/cloudflare-web-failover-emergency.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cf-failover-check-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Offline unit tests and Wrangler dry run (no deployment)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - name: Verify routing, status and zero-write invariants
+        run: node --test cloudflare/web-failover/worker.node-check.mjs
+      - name: Build standalone React/Vite CSR
+        env:
+          VITE_CLOUDFLARE_PUBLIC_API_URL: https://rcat-web-standby.rcat-digital.workers.dev
+          VITE_PUBLIC_IMAGE_DELIVERY_BASE_URL: https://rcat-image-production.rcat-digital.workers.dev
+          VITE_PUBLIC_IMAGE_DELIVERY_INTENTS: portrait,carousel,intro-gate
+        run: pnpm build
+      - name: Check static CSR bootstrap and offline Wrangler bundling
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s dist/index.html
+          test -d dist/assets
+          test ! -e dist/csr.html
+          pnpm exec wrangler deploy --config cloudflare/web-failover/wrangler.toml --env standby --dry-run
