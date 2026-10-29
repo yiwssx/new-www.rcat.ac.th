@@ -1,12 +1,12 @@
-# CLOUDFLARE FOR SAAS / O2O GATEWAY — ISOLATED WORKERS.DEV PREVIEW ONLY.
+# CLOUDFLARE FOR SAAS / O2O PRODUCTION GATEWAY — PROVIDER ACCOUNT ONLY.
 # rcat.dpdns.org is the independently active SaaS provider zone; its fallback
-# origin is active, but www.rcat.ac.th Custom Hostname/TLS is NOT provisioned.
-# Deploying this host-locked candidate to workers.dev is safe before cutover;
+# origin is active. www.rcat.ac.th registration and certificate are managed by API.
+# Deploying this host-locked Worker to workers.dev cannot itself switch www DNS;
 # its public paths MUST continue to return 503 on workers.dev.
 #
 # This file creates NO routes, domains, DNS records, SaaS custom hostnames,
-# certificates, D1 bindings or Vercel changes. This is NOT a production cutover.
-name = "rcat-saas-gateway-candidate"
+# certificates, D1 bindings or Vercel changes. Owner DNS cutover is separate.
+name = "rcat-saas-gateway"
 main = "saas-gateway-worker.mjs"
 compatibility_date = "2026-10-29"
 workers_dev = true
