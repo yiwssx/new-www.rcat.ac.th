@@ -2,6 +2,35 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { STANDBY_ORIGIN, VERCEL_ORIGIN, checkOriginReadiness, formatReadinessReport } from "./origin-readiness.mjs";
+import { assertPublicApiContract } from "./public-api-contract.mjs";
+
+function homeFixture() {
+  return {
+    generatedAt: "2026-10-29T00:00:00Z",
+    visitorStats: {},
+    carouselSlides: [],
+    externalServices: [],
+    latestNews: [],
+    latestAnnouncements: [],
+    procurementItems: [],
+    jobOpportunityItems: [],
+    achievementItems: [],
+    programItems: [],
+    documentItems: [],
+    eventItems: [],
+    media: []
+  };
+}
+
+function shellFixture() {
+  return {
+    generatedAt: "2026-10-29T00:00:00Z",
+    menu: [],
+    siteSettings: {},
+    homepageSettings: {},
+    displaySettings: {}
+  };
+}
 
 function fakeNetwork({ primaryFailure, wrongApi, redirectNews, exposePrivateStandby, networkFailure } = {}) {
   const calls = [];
@@ -40,9 +69,16 @@ function fakeNetwork({ primaryFailure, wrongApi, redirectNews, exposePrivateStan
         : new Response("Read-only", { status: 503, headers: { "Cache-Control": "no-store" } });
     }
     if (url.pathname.startsWith("/api/public/")) {
-      return wrongApi && url.origin === STANDBY_ORIGIN
-        ? new Response("<!DOCTYPE html>", { headers: { "Content-Type": "text/html" } })
-        : Response.json({ generatedAt: "2026-10-29T00:00:00Z", menu: [] });
+      if (wrongApi && url.origin === STANDBY_ORIGIN) {
+        return new Response("<!DOCTYPE html>", { headers: { "Content-Type": "text/html" } });
+      }
+      if (url.pathname === "/api/public/home") {
+        return Response.json(homeFixture());
+      }
+      if (url.pathname === "/api/public/shell") {
+        return Response.json(shellFixture());
+      }
+      throw new Error("Unexpected public path");
     }
     if (url.origin === STANDBY_ORIGIN) {
       return new Response('<!doctype html><meta name="robots" content="noindex"><div id="root"></div>', {
@@ -120,4 +156,23 @@ test("body validation rejects stale plain-text or 2xx partial content", async ()
     result.checks.find((x) => x.name === "Vercel SSR home").reason,
     "invalid origin response or content-type"
   );
+});
+
+test("public-home contract deliberately has no menu; public-shell requires a menu", () => {
+  assert.doesNotThrow(() => assertPublicApiContract("/api/public/home", homeFixture()));
+  assert.doesNotThrow(() => assertPublicApiContract("/api/public/shell", shellFixture()));
+  assert.throws(() => assertPublicApiContract("/api/public/shell", homeFixture()), /missing menu/);
+  assert.throws(() => assertPublicApiContract("/api/public/home", shellFixture()), /missing visitorStats/);
+});
+
+test("read-only preflight rejects a malformed home snapshot even when HTTP 200 JSON is returned", async () => {
+  const network = fakeNetwork();
+  const result = await checkOriginReadiness(async (url, options) => {
+    if (url === STANDBY_ORIGIN + "/api/public/home") {
+      return Response.json({ generatedAt: "2026-10-29T00:00:00Z", menu: [] });
+    }
+    return network.mockFetch(url, options);
+  });
+  assert.equal(result.passed, false);
+  assert.ok(result.checks.some((item) => item.name === "Standby public home API" && !item.ok));
 });

@@ -40,6 +40,16 @@ Reference: https://developers.cloudflare.com/cloudflare-for-platforms/cloudflare
 - `cloudflare/web-failover/saas-gateway.node-check.mjs` tests primary 200, status 502/503/504, network failure and recovery, Public API JSON, cookie sanitization, write/auth preservation, redirect loops, and host allowlisting.
 - Existing Cloudflare CI checks Wrangler syntax and full Node tests. Do not add a second workflow.
 
+## Standby post-deploy smoke regression — run 40845089770 (2026-10-29)
+
+The newly merged live origin preflight (run `40845089798`) **PASS 8/8**: two Vercel SSR, Standby health/CSR, two Standby-backed Public APIs and two Admin/Auth protection checks. That only verifies origin readiness, not the full browser hydration smoke or SaaS/O2O cutover.
+
+**Separate issue found:** the automatically triggered `Emergency Cloudflare Web Standby` workflow run `40845089770` successfully deployed the Workers.dev Standby, verified health, CSR HTML and its hashed JS asset, but its post-deploy script `cloudflare/web-failover/standby-smoke.mjs` failed with `/api/public/home missing menu`. This is a **stale test assumption**, not evidence that a menu is missing from the correct endpoint: the `PublicHomeSnapshotContract` no longer contains `menu`; `menu` is a required field in the distinct `PublicShellSnapshotContract` served by `/api/public/shell`.
+
+The fix uses `cloudflare/web-failover/public-api-contract.mjs` as a shared strict validator in both the full Standby post-deploy browser smoke and live origin preflight. It checks the actual homepage feed arrays/visitorStats on `/api/public/home` and menu/settings on `/api/public/shell`, plus a valid `generatedAt` on both. Offline tests explicitly assert that a home payload **without** `menu` is valid but a shell payload without menu is invalid. It retains read-only HTTP GET, CORS and Admin/Auth protections. Do **not** paper over the failure with a generic 200-only check.
+
+After merging, verify the isolated Standby deploy workflow has all checks **PASS**, and verify the live origin preflight remains **8/8 PASS**. This fix does not alter DNS, CMS, D1, Vercel project settings or the user's Cloudflare SaaS subscription.
+
 ## Production canonical redirect blocker (2026-10-29, manual preflight #40840782026)
 
 GitHub Actions **Cloudflare Emergency Failover Check** run `40840782026` showed **4/4 Vercel project-alias probes returned an unexpected redirect**, whereas all **6/6 Cloudflare Standby probes passed**, as did offline tests and Wrangler dry-run.
