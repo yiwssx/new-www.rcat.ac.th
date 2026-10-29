@@ -300,3 +300,82 @@ test("Gateway package contains no D1/Assets/Service Binding or automatic route",
   assert.match(config, /name = "rcat-web-gateway"/);
   assert.doesNotMatch(config, /(?:\[\[services\]\]|\[\[d1_databases\]\]|\[assets\]|(?:^|\n)\s*(?:routes?|custom_domain)\s*=)/i);
 });
+
+
+test("test-only hostname simulates 503 and recovers to primary without touching www", async () => {
+  const testEnv = {
+    ...validEnv,
+    PUBLIC_HOSTNAME: "failover-test.rcat.ac.th",
+    GATEWAY_TEST_ONLY: "true",
+    TEST_SIMULATE_503: "true"
+  };
+  const backup = makeBackup();
+  let primaryCalls = 0;
+  const origin = async () => {
+    primaryCalls++;
+    return new Response("vercel-healthy", { status: 200 });
+  };
+  const testUrl = "https://failover-test.rcat.ac.th/news";
+  const duringFailure = await handleGatewayRequest(
+    new Request(testUrl),
+    testEnv,
+    origin,
+    backup.fetchBackup
+  );
+  assert.equal(duringFailure.status, 200);
+  assert.equal(duringFailure.headers.get("X-RCAT-Failover"), "primary-simulated-503");
+  assert.equal(primaryCalls, 0);
+  assert.equal(backup.calls.length, 1);
+
+  const afterRecovery = await handleGatewayRequest(
+    new Request(testUrl),
+    { ...testEnv, TEST_SIMULATE_503: "false" },
+    origin,
+    backup.fetchBackup
+  );
+  assert.equal(afterRecovery.status, 200);
+  assert.equal(await afterRecovery.text(), "vercel-healthy");
+  assert.equal(primaryCalls, 1);
+  assert.equal(backup.calls.length, 1);
+
+  const misconfigured = await handleGatewayRequest(
+    new Request(testUrl),
+    { ...testEnv, GATEWAY_TEST_ONLY: "false" },
+    origin,
+    backup.fetchBackup
+  );
+  assert.equal(misconfigured.status, 503);
+  assert.equal(primaryCalls, 1);
+});
+
+test("test-only simulation cannot disable origin requests on production www", async () => {
+  const backup = makeBackup();
+  let originCalls = 0;
+  const response = await handleGatewayRequest(
+    new Request(LIVE_HOST + "/news"),
+    { ...validEnv, GATEWAY_TEST_ONLY: "true", TEST_SIMULATE_503: "true" },
+    async () => {
+      originCalls++;
+      return new Response("real-vercel-healthy", { status: 200 });
+    },
+    backup.fetchBackup
+  );
+  assert.equal(await response.text(), "real-vercel-healthy");
+  assert.equal(originCalls, 1);
+  assert.equal(backup.calls.length, 0);
+});
+
+test("test-only simulation refuses API writes even on its own hostname", async () => {
+  const backup = makeBackup();
+  const response = await handleGatewayRequest(
+    new Request("https://failover-test.rcat.ac.th/api/public/collect", {
+      method: "POST",
+      body: "{}"
+    }),
+    { ...validEnv, PUBLIC_HOSTNAME: "failover-test.rcat.ac.th", GATEWAY_TEST_ONLY: "true", TEST_SIMULATE_503: "true" },
+    primary(200),
+    backup.fetchBackup
+  );
+  assert.equal(response.status, 503);
+  assert.equal(backup.calls.length, 0);
+});
