@@ -86,7 +86,7 @@ function fakeNetwork({
       if (url.pathname === "/_rcat/saas-health") {
         return Response.json(
           {
-            service: "rcat-saas-gateway-candidate",
+            service: "rcat-saas-gateway",
             configured: !candidateUnconfigured,
             status: "not-routed"
           },
