@@ -9,6 +9,7 @@ import { pathToFileURL } from "node:url";
 
 export const VERCEL_ORIGIN = "https://new-wwwrcatacth-rcat-it-dev-team.vercel.app";
 export const STANDBY_ORIGIN = "https://rcat-web-standby.rcat-digital.workers.dev";
+export const SAAS_CANDIDATE_ORIGIN = "https://rcat-saas-gateway-candidate.rcat-digital.workers.dev";
 
 // Vercel serves SSR HTML and the Admin/auth proxy; it does NOT expose the
 // Cloudflare-owned /api/public/* endpoints as same-origin Vercel APIs.
@@ -41,10 +42,31 @@ const specs = Object.freeze([
     path: "/api/cms-auth/session",
     status: 503,
     type: "blocked"
+  },
+  {
+    name: "SaaS candidate health (isolated, not routed)",
+    origin: SAAS_CANDIDATE_ORIGIN,
+    path: "/_rcat/saas-health",
+    status: 200,
+    type: "candidate-health"
+  },
+  {
+    name: "SaaS candidate blocks public page",
+    origin: SAAS_CANDIDATE_ORIGIN,
+    path: "/news",
+    status: 503,
+    type: "candidate-blocked"
+  },
+  {
+    name: "SaaS candidate blocks public API",
+    origin: SAAS_CANDIDATE_ORIGIN,
+    path: "/api/public/home",
+    status: 503,
+    type: "candidate-blocked"
   }
 ]);
 
-const ALLOWED_ORIGINS = new Set([VERCEL_ORIGIN, STANDBY_ORIGIN]);
+const ALLOWED_ORIGINS = new Set([VERCEL_ORIGIN, STANDBY_ORIGIN, SAAS_CANDIDATE_ORIGIN]);
 
 function allowedUrl(origin, path) {
   assert.ok(ALLOWED_ORIGINS.has(origin), "Unexpected probe origin");
@@ -59,7 +81,8 @@ async function checkOne(spec, fetchImpl) {
   const url = allowedUrl(spec.origin, spec.path);
   let response;
   try {
-    const headers = { Accept: spec.type === "json" || spec.type === "health" ? "application/json" : "text/html" };
+    const wantsJson = ["json", "health", "candidate-health"].includes(spec.type) || spec.path.startsWith("/api/public/");
+    const headers = { Accept: wantsJson ? "application/json" : "text/html" };
     if (spec.origin === VERCEL_ORIGIN) {
       // Opt-in origin access only on the exact Vercel project alias. This
       // marker bypasses the SSR canonical 308, not Admin auth or the Edge WAF.
@@ -86,7 +109,7 @@ async function checkOne(spec, fetchImpl) {
 
   const contentType = response.headers.get("content-type") ?? "";
   try {
-    if (spec.type === "json" || spec.type === "health") {
+    if (["json", "health", "candidate-health"].includes(spec.type)) {
       assert.match(contentType, /application\/json/i, "JSON expected");
       const payload = await response.json();
       assert.ok(payload && typeof payload === "object" && !Array.isArray(payload), "JSON object expected");
@@ -99,6 +122,13 @@ async function checkOne(spec, fetchImpl) {
           { service: "rcat-web-failover", mode: "standby", status: "ok" }
         );
       }
+      if (spec.type === "candidate-health") {
+        assert.deepEqual(
+          { service: payload.service, configured: payload.configured, status: payload.status },
+          { service: "rcat-saas-gateway-candidate", configured: true, status: "not-routed" }
+        );
+        assert.match(response.headers.get("cache-control") ?? "", /no-store/i, "Candidate health must not be cached");
+      }
     } else if (spec.type === "html" || spec.type === "csr") {
       assert.match(contentType, /text\/html/i, "HTML expected");
       // A capped HTML probe must not dump private response bodies into CI logs.
@@ -109,8 +139,13 @@ async function checkOne(spec, fetchImpl) {
         assert.match(html, /id=["']root["']/i, "CSR root missing");
         assert.match(html, /noindex/i, "Standby CSR must be noindex");
       }
-    } else if (spec.type === "blocked") {
-      assert.match(response.headers.get("cache-control") ?? "", /no-store/i, "Protected standby must not be cached");
+    } else if (spec.type === "blocked" || spec.type === "candidate-blocked") {
+      assert.match(response.headers.get("cache-control") ?? "", /no-store/i, "Blocked responses must not be cached");
+      if (spec.type === "candidate-blocked") {
+        assert.equal(response.headers.get("x-rcat-gateway"), "wrong-hostname", "Candidate hostname guard missing");
+        assert.match(response.headers.get("x-robots-tag") ?? "", /noindex/i, "Candidate must not be indexed");
+        assert.equal(response.headers.get("set-cookie"), null, "Blocked candidate must not set cookies");
+      }
       await response.body?.cancel();
     }
   } catch {
@@ -138,7 +173,7 @@ export function formatReadinessReport(result) {
     "",
     result.passed ? "**External origin preflight: PASS**" : "**External origin preflight: BLOCKED**",
     "",
-    "This is NOT a live SaaS/O2O proof. Provider zone, SSL, domain ownership, Vercel proxy auth/cookies and cutover remain separate gates.",
+    "This is NOT a live SaaS/O2O proof. Candidate workers.dev is intentionally unrouted; custom hostname/SSL, O2O, proxy auth/cookies, failover and cutover remain separate gates.",
     "No production DNS, Vercel, Cloudflare routes, APIs or data were changed."
   );
   return lines.join("\n") + "\n";
