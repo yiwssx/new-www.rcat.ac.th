@@ -116,9 +116,18 @@ if (browserEnabled) {
         timeout: 25_000
       });
       assert.equal(nav?.status(), 200, "Browser navigation " + path);
-      await page.waitForFunction(() => (document.querySelector("#root")?.textContent?.trim().length ?? 0) > 120, null, {
-        timeout: 25_000
-      });
+      // A >120-character loading/navigation shell can appear before React
+      // finishes loading public content. Wait for meaningful visible site text,
+      // not just the first nonempty DOM snapshot at domcontentloaded.
+      await page.waitForFunction(
+        () => {
+          const root = document.querySelector("#root");
+          const text = root?.textContent?.trim() ?? "";
+          return text.length > 120 && /วิทยาลัย|เกษตร|RCAT|ข่าว/i.test(text);
+        },
+        null,
+        { timeout: 25_000 }
+      );
       const body = (await page.locator("#root").innerText()).trim();
       assert.match(body, /วิทยาลัย|เกษตร|RCAT|ข่าว/i, "Expected public site text after hydration");
       assert.deepEqual(uncaught, [], "Browser page errors on " + path);
