@@ -1,3 +1,4 @@
+/* global URL, fetch, AbortSignal, document */
 // Live, read-only public standby smoke. Never sends mutations to the API or D1.
 // Intended for the isolated *.workers.dev standby, not www production.
 
