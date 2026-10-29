@@ -60,7 +60,7 @@ describe("pnpm manifest toolchain policy", () => {
         }
       }
     }
-    expect(setupCount).toBe(16);
+    expect(setupCount).toBe(18);
     expect(exceptionCount).toBe(3);
   });
 });
