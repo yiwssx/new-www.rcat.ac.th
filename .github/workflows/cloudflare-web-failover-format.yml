@@ -1,0 +1,54 @@
+name: Temporary Emergency Failover Formatter
+
+on:
+  pull_request:
+    paths:
+      - "cloudflare/web-failover/**"
+      - "docs/operations/cloudflare-web-failover-emergency.md"
+      - ".github/workflows/cloudflare-web-failover-format.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    # SECURITY: never check out or write fork PRs; this job only formats the
+    # fixed owner-controlled emergency branch and will be removed after use.
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'emergency/cloudflare-web-failover-20261029'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          persist-credentials: true
+      - uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - name: Format only emergency project files
+        run: |
+          pnpm exec prettier --write \
+            cloudflare/web-failover/worker.mjs \
+            cloudflare/web-failover/worker.node-check.mjs \
+            docs/operations/cloudflare-web-failover-emergency.md \
+            .github/workflows/cloudflare-web-standby.yml \
+            .github/workflows/cloudflare-web-failover-check.yml \
+            .github/workflows/cloudflare-web-failover-format.yml
+      - name: Commit deterministic formatting to trusted branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "No formatting change"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- cloudflare/web-failover/worker.mjs cloudflare/web-failover/worker.node-check.mjs docs/operations/cloudflare-web-failover-emergency.md .github/workflows/cloudflare-web-standby.yml .github/workflows/cloudflare-web-failover-check.yml .github/workflows/cloudflare-web-failover-format.yml
+          git commit -m "style(operations): format Cloudflare emergency fallback files (#760)"
+          git push origin HEAD:emergency/cloudflare-web-failover-20261029
