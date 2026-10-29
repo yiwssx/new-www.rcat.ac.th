@@ -1,3 +1,5 @@
+> **RETIRED — 2026-10-30.** The project owner canceled all SaaS/O2O tests and cutover plans. This document is retained only as a historical record. Do not perform the DNS, SSL, route, simulation, or deployment instructions below. The institutional website remains on Vercel.
+
 # RCAT O2O/SaaS Gateway feasibility and safe owner-side execution
 
 **Date:** 2026-10-29 · **Tracker:** #760 · **Safety:** NO PRODUCTION DNS/ROUTE/NAME-SERVER CHANGES.
