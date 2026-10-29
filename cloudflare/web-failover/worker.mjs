@@ -5,7 +5,8 @@
 // A workers.dev hostname has no underlying route origin and cannot validate gateway mode.
 
 const FAILOVER_STATUSES = new Set([502, 503, 504]);
-const PRIVATE_PATH = /^\/(?:api(?:\/|$)|admin(?:\/|$)|login\/?$|activate-account\/?$|reset-password\/?$|sitemap\.xml$|_rcat(?:\/|$))/i;
+const PRIVATE_PATH =
+  /^\/(?:api(?:\/|$)|admin(?:\/|$)|login\/?$|activate-account\/?$|reset-password\/?$|sitemap\.xml$|_rcat(?:\/|$))/i;
 const ASSET_EXTENSION = /\.(?:js|mjs|css|map|png|jpe?g|webp|avif|gif|svg|ico|woff2?|ttf|eot|pdf|webmanifest)$/i;
 
 function notAvailable(reason, wantsJson = false) {
@@ -48,7 +49,7 @@ async function publicReadResponse(request, env) {
     "Cache-Control": "no-store",
     "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
-    "Vary": "Origin"
+    Vary: "Origin"
   });
   if (origin) cors.set("Access-Control-Allow-Origin", origin);
 
@@ -56,16 +57,19 @@ async function publicReadResponse(request, env) {
   if (request.method !== "GET" && request.method !== "HEAD") {
     return notAvailable("standby-read-only", true);
   }
-  if (!env.PUBLIC_API || typeof env.PUBLIC_API.fetch !== "function") return notAvailable("public-api-unconfigured", true);
+  if (!env.PUBLIC_API || typeof env.PUBLIC_API.fetch !== "function")
+    return notAvailable("public-api-unconfigured", true);
 
   try {
     // No Origin, cookies, Authorization, or user-supplied privileged headers
     // are forwarded; PUBLIC_API receives only a public GET/HEAD and Accept.
     const backendUrl = new URL(url.pathname + url.search, "https://rcat-public-api-preview.rcat-digital.workers.dev");
-    const upstream = await env.PUBLIC_API.fetch(new Request(backendUrl.toString(), {
-      method: request.method,
-      headers: { Accept: "application/json" }
-    }));
+    const upstream = await env.PUBLIC_API.fetch(
+      new Request(backendUrl.toString(), {
+        method: request.method,
+        headers: { Accept: "application/json" }
+      })
+    );
     const headers = new Headers(upstream.headers);
     headers.delete("Set-Cookie");
     headers.delete("Access-Control-Allow-Origin");
@@ -121,9 +125,12 @@ export async function handleRequest(request, env, fetchPrimary = fetch) {
 
   if (url.pathname === "/_rcat/failover-health") {
     if (request.method !== "GET") return notAvailable("method-not-allowed");
-    return Response.json({ service: "rcat-web-failover", mode, status: "ok" }, {
-      headers: { "Cache-Control": "no-store" }
-    });
+    return Response.json(
+      { service: "rcat-web-failover", mode, status: "ok" },
+      {
+        headers: { "Cache-Control": "no-store" }
+      }
+    );
   }
 
   if (mode === "standby") {

@@ -13,9 +13,9 @@ Incident tracker: [#760](https://github.com/yiwssx/new-www.rcat.ac.th/issues/760
 
 ## Two distinct Cloudflare Workers
 
-| Mode | Worker name | Purpose | DNS/production changes from deploy |
-| --- | --- | --- | --- |
-| `standby` | `rcat-web-standby` | Public read-only CSR assets + public API GET proxy | None; workers.dev only |
+| Mode      | Worker name        | Purpose                                                              | DNS/production changes from deploy                         |
+| --------- | ------------------ | -------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `standby` | `rcat-web-standby` | Public read-only CSR assets + public API GET proxy                   | None; workers.dev only                                     |
 | `gateway` | `rcat-web-gateway` | Route-level proxy to Vercel with standby assets on eligible failures | None; route must be attached separately after verification |
 
 Both use `cloudflare/web-failover/worker.mjs`; config at `cloudflare/web-failover/wrangler.toml`. Both bind `PUBLIC_API` to existing production Worker `rcat-public-api-preview`; this is a read-only API contract, not an authorization bypass for Admin.
