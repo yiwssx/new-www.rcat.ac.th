@@ -10,8 +10,22 @@ export const VERCEL_ORIGIN = "https://new-wwwrcatacth-rcat-it-dev-team.vercel.ap
 export const STANDBY_ORIGIN = "https://rcat-web-standby.rcat-digital.workers.dev";
 
 const specs = Object.freeze([
-  { name: "Vercel SSR home", origin: VERCEL_ORIGIN, path: "/", status: 200, type: "html", marker: /data-rcat-ssr=["']true["']/i },
-  { name: "Vercel SSR news", origin: VERCEL_ORIGIN, path: "/news", status: 200, type: "html", marker: /data-rcat-ssr=["']true["']/i },
+  {
+    name: "Vercel SSR home",
+    origin: VERCEL_ORIGIN,
+    path: "/",
+    status: 200,
+    type: "html",
+    marker: /data-rcat-ssr=["']true["']/i
+  },
+  {
+    name: "Vercel SSR news",
+    origin: VERCEL_ORIGIN,
+    path: "/news",
+    status: 200,
+    type: "html",
+    marker: /data-rcat-ssr=["']true["']/i
+  },
   { name: "Vercel public home API", origin: VERCEL_ORIGIN, path: "/api/public/home", status: 200, type: "json" },
   { name: "Vercel public shell API", origin: VERCEL_ORIGIN, path: "/api/public/shell", status: 200, type: "json" },
   { name: "Standby health", origin: STANDBY_ORIGIN, path: "/_rcat/failover-health", status: 200, type: "health" },
@@ -19,7 +33,13 @@ const specs = Object.freeze([
   { name: "Standby public home API", origin: STANDBY_ORIGIN, path: "/api/public/home", status: 200, type: "json" },
   { name: "Standby public shell API", origin: STANDBY_ORIGIN, path: "/api/public/shell", status: 200, type: "json" },
   { name: "Standby blocks Admin", origin: STANDBY_ORIGIN, path: "/admin", status: 503, type: "blocked" },
-  { name: "Standby blocks private API", origin: STANDBY_ORIGIN, path: "/api/cms-auth/session", status: 503, type: "blocked" }
+  {
+    name: "Standby blocks private API",
+    origin: STANDBY_ORIGIN,
+    path: "/api/cms-auth/session",
+    status: 503,
+    type: "blocked"
+  }
 ]);
 
 const ALLOWED_ORIGINS = new Set([VERCEL_ORIGIN, STANDBY_ORIGIN]);
@@ -98,12 +118,7 @@ export async function checkOriginReadiness(fetchImpl = fetch) {
 }
 
 export function formatReadinessReport(result) {
-  const lines = [
-    "### RCAT O2O — read-only external origin preflight",
-    "",
-    "| Probe | Result |",
-    "| --- | --- |"
-  ];
+  const lines = ["### RCAT O2O — read-only external origin preflight", "", "| Probe | Result |", "| --- | --- |"];
   for (const check of result.checks) {
     // Names and messages are fixed by local code, not remote server bodies.
     lines.push("| " + check.name + " | " + (check.ok ? "PASS" : "FAIL: " + check.reason) + " |");

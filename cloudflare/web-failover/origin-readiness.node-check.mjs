@@ -1,12 +1,7 @@
 /* global URL, Response */
 import test from "node:test";
 import assert from "node:assert/strict";
-import {
-  STANDBY_ORIGIN,
-  VERCEL_ORIGIN,
-  checkOriginReadiness,
-  formatReadinessReport
-} from "./origin-readiness.mjs";
+import { STANDBY_ORIGIN, VERCEL_ORIGIN, checkOriginReadiness, formatReadinessReport } from "./origin-readiness.mjs";
 
 function fakeNetwork({ primaryFailure, wrongApi, redirectNews, exposePrivateStandby, networkFailure } = {}) {
   const calls = [];
@@ -81,9 +76,7 @@ test("detects Vercel-paused origin without triggering any fallback traffic write
 test("detects canonical redirect from Vercel alias to the public hostname before it can loop", async () => {
   const result = await checkOriginReadiness(fakeNetwork({ redirectNews: true }).mockFetch);
   assert.equal(result.passed, false);
-  assert.ok(
-    result.checks.some((x) => x.name === "Vercel SSR news" && x.reason.includes("redirect"))
-  );
+  assert.ok(result.checks.some((x) => x.name === "Vercel SSR news" && x.reason.includes("redirect")));
 });
 
 test("rejects Vercel public JSON returning an HTML login shell", async () => {
@@ -114,5 +107,8 @@ test("body validation rejects stale plain-text or 2xx partial content", async ()
     return network.mockFetch(url, options);
   });
   assert.equal(result.passed, false);
-  assert.equal(result.checks.find((x) => x.name === "Vercel SSR home").reason, "invalid origin response or content-type");
+  assert.equal(
+    result.checks.find((x) => x.name === "Vercel SSR home").reason,
+    "invalid origin response or content-type"
+  );
 });

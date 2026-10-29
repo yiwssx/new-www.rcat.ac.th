@@ -45,6 +45,7 @@ Reference: https://developers.cloudflare.com/cloudflare-for-platforms/cloudflare
 **New work (Issue #760):** `cloudflare/web-failover/origin-readiness.mjs` is a **read-only** external probe for the exact existing Vercel project alias and Cloudflare Standby. It does not depend on an active SaaS zone or touch `www.rcat.ac.th`.
 
 Checks include:
+
 - Vercel project-alias HTML homepage and news SSR (HTTP 200, correct content type and SSR marker).
 - Vercel read-only `/api/public/home` and `/api/public/shell` JSON.
 - Standby health, CSR HTML/noindex, public read APIs, and deliberate HTTP 503 protection of `/admin` and the private auth API.
