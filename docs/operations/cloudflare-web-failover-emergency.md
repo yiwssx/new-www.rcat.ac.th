@@ -22,7 +22,7 @@ Both use `cloudflare/web-failover/worker.mjs`; config at `cloudflare/web-failove
 
 ## Stage 0 — Prepare access WITHOUT changing www
 
-1. Verify Vercel's current www production service and the Cloudflare zone authority for `rcat.ac.th`. Cloudflare Workers Routes require an orange-cloud DNS record. If the zone is not under Cloudflare, do not move nameservers until every existing A/AAAA/CNAME/MX/TXT/SRV record and subdomain is inventoried and migrated with rollback.
+1. Verify Vercel's current www production service and the authoritative Cloudflare zone for `rcat.ac.th` (**currently administered outside this connected account**). Domain governance prohibits changing nameservers, transferring registry management, or migrating the DNS zone. Use only the existing approved zone/account and its delegated operator when route work is authorized. The standby Workers.dev build needs no DNS change.
 2. Ensure Cloudflare Workers access is authorized in the same account as `rcat-public-api-preview` (service bindings cannot target an unrelated account).
 3. Reuse or verify the existing GitHub repository/environment secrets `CLOUDFLARE_API_TOKEN` (minimal Workers Scripts write/read permissions) and `CLOUDFLARE_ACCOUNT_ID`. Never commit either value. Restrict the token to the correct account and do not grant D1 write permission for this task.
 4. The GitHub Actions variable `RCAT_CLOUDFLARE_WORKERS_SUBDOMAIN` defaults to `rcat-digital` based on existing Worker endpoints; verify this against the account and override if necessary. The workflow builds the standby client to call `https://rcat-web-standby.<verified-subdomain>.workers.dev`, where public API GET is safely bridged through `PUBLIC_API`.
@@ -48,7 +48,7 @@ Set `RCAT_ALLOW_GATEWAY_PREVIEW=true` only with operator approval and use the sa
 
 Test the gateway via a temporary proxied hostname that Vercel accepts and whose SSL/Host redirect behavior is verified. Attach a Worker Route to that test hostname only. Inspect Vercel response status, redirects, authentication cookie forwarding, original Host preservation, 502/503/504 fallback, protected API behavior, and route rollback. Keep public read-only test traffic away from D1 writes.
 
-On approved production cutover, ensure `www.rcat.ac.th` is a verified Vercel custom domain with a valid proxied DNS origin and SSL. Attach a **Cloudflare Worker Route** `www.rcat.ac.th/*` to `rcat-web-gateway`. Do **not** attach a Worker Custom Domain to www or overwrite the Vercel CNAME: the Gateway Route must sit **in front of** the existing Vercel origin. This operation changes live traffic and is not automated by the workflow.
+Only if the authorized operator of the **existing authoritative Cloudflare zone** grants suitable privileges and approves the change, verify `www.rcat.ac.th` is the existing Vercel custom domain with a valid proxied DNS origin and SSL; then that operator can attach a **Cloudflare Worker Route** `www.rcat.ac.th/*` to `rcat-web-gateway`. Do **not** attach a Worker Custom Domain to www or overwrite the Vercel CNAME: the Gateway Route must sit **in front of** the existing Vercel origin. This operation changes live traffic and is not automated by the workflow.
 
 Gateway behavior:
 
@@ -59,7 +59,7 @@ Gateway behavior:
 
 ### Emergency manual cutover WITHOUT auto gateway
 
-If Vercel is already paused and gateway preview is not verified, the operator may instead attach `www.rcat.ac.th/*` **directly to `rcat-web-standby`** on the Cloudflare zone (requires proxied DNS). This places the read-only public CSR website online and bypasses Vercel. The correct rollback is to remove this route, restoring the original Vercel-origin routing. Treat this as degraded operation only. No DNS record replacement is required if the proxied Vercel record already exists.
+If Vercel is already paused and gateway preview is not verified, **only the authorized operator of the existing authoritative Cloudflare zone** may instead attach `www.rcat.ac.th/*` **directly to `rcat-web-standby`** on the Cloudflare zone (requires proxied DNS). This places the read-only public CSR website online and bypasses Vercel. The correct rollback is to remove this route, restoring the original Vercel-origin routing. Treat this as degraded operation only. No DNS record replacement is required if the proxied Vercel record already exists.
 
 ## Rollback and limitations
 
@@ -76,4 +76,11 @@ Code-ready requires passing unit tests and build on PR. Cloudflare-ready require
 
 ## Current DNS inventory note (2026-10-29)
 
-Connected Cloudflare account `admin@rcat.ac.th` was initially missing zone `rcat.ac.th`. A new **pending** full zone was created for preparation only; its nameservers are `roan.ns.cloudflare.com` and `serena.ns.cloudflare.com`. The Cloudflare zone reports **original authoritative nameservers** `maria.ns.cloudflare.com` and `kirk.ns.cloudflare.com`, indicating an **existing Cloudflare zone in a different account**. Its 17 scanned records include Google MX and CNAMEs, while the scanned `www` address records resolve to Cloudflare IP addresses, not reliable Vercel origin addresses. **Do not activate the pending zone or change registrar nameservers.** Prefer acquiring operator access to the authoritative Cloudflare zone, or perform an independently audited DNS migration only after all records and origin targets have been verified.
+Connected Cloudflare account `admin@rcat.ac.th` was initially missing zone `rcat.ac.th`. A new **pending** full zone was created for preparation only; its nameservers are `roan.ns.cloudflare.com` and `serena.ns.cloudflare.com`. The Cloudflare zone reports **original authoritative nameservers** `maria.ns.cloudflare.com` and `kirk.ns.cloudflare.com`, indicating an **existing Cloudflare zone in a different account**. Its 17 scanned records include Google MX and CNAMEs, while the scanned `www` address records resolve to Cloudflare IP addresses, not reliable Vercel origin addresses. **Do not activate the pending zone or change registrar nameservers.** **Institutional restriction confirmed:** Do not attempt any zone migration, registrar transfer, nameserver replacement, or alternate-zone activation. The pending zone is inert and must never be used as the www traffic origin. Any eventual same-hostname routing requires the explicitly authorized operator of the existing `maria`/`kirk` Cloudflare zone; if that access is not available, provide the verified independent `workers.dev` emergency public URL and do not claim automatic failover for `www.rcat.ac.th`.
+
+## Institutionally enforced domain governance (confirmed by owner)
+
+- `rcat.ac.th` is an institution-controlled `.ac.th` domain administered through an authorized government-recognized domain-management organization. **Do not change** delegation, nameservers, registrant/registrar, DNS zone ownership, or any authoritative records as part of this emergency work.
+- Creating a Cloudflare Worker on the `rcat-digital.workers.dev` hostname is independent of this protected domain and is allowed by project scope.
+- A Cloudflare Workers Route for `www.rcat.ac.th/*` can only be configured **inside the existing authoritative Cloudflare account/zone**, by its approved administrator; the separately connected Workers account cannot install that route merely by knowing the URL.
+- If the organization cannot provide access/approval to that existing Cloudflare zone, **automatic failover on the unchanged `www.rcat.ac.th` URL is blocked**. Escalate availability to the Vercel plan/support and offer the independent Workers.dev public standby URL after smoke tests. Do not imply that an inactive Cloudflare zone enables a live failover.
