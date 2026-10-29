@@ -1,0 +1,11 @@
+# Install in the EXISTING authoritative rcat.ac.th Cloudflare account only.
+# All gateway calls to standby use HTTPS, never service bindings (cross-account).
+# This config deliberately contains NO domain, route, D1 or secrets.
+name = "rcat-web-gateway"
+main = "gateway-worker.mjs"
+compatibility_date = "2026-10-29"
+workers_dev = true
+
+[vars]
+PUBLIC_HOSTNAME = "www.rcat.ac.th"
+STANDBY_ORIGIN = "https://rcat-web-standby.rcat-digital.workers.dev"
