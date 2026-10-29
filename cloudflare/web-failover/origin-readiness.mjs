@@ -81,7 +81,8 @@ async function checkOne(spec, fetchImpl) {
   const url = allowedUrl(spec.origin, spec.path);
   let response;
   try {
-    const wantsJson = ["json", "health", "candidate-health"].includes(spec.type) || spec.path.startsWith("/api/public/");
+    const wantsJson =
+      ["json", "health", "candidate-health"].includes(spec.type) || spec.path.startsWith("/api/public/");
     const headers = { Accept: wantsJson ? "application/json" : "text/html" };
     if (spec.origin === VERCEL_ORIGIN) {
       // Opt-in origin access only on the exact Vercel project alias. This
