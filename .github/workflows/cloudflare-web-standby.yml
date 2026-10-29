@@ -89,7 +89,7 @@ jobs:
         run: pnpm install --frozen-lockfile --strict-peer-dependencies
 
       - name: Test public standby and gateway invariants
-        run: node --test cloudflare/web-failover/worker.node-check.mjs
+        run: node --test cloudflare/web-failover/worker.node-check.mjs cloudflare/web-failover/gateway.node-check.mjs
 
       - name: Build independent CSR public standby
         run: pnpm build
@@ -109,13 +109,19 @@ jobs:
         run: |
           set -euo pipefail
           case "$TARGET" in
-            standby) CF_ENV=standby; SERVICE=rcat-web-standby ;;
-            gateway-preview) CF_ENV=gateway; SERVICE=rcat-web-gateway ;;
+            standby)
+              SERVICE=rcat-web-standby
+              pnpm exec wrangler deploy --config cloudflare/web-failover/wrangler.toml --env standby
+              ;;
+            gateway-preview)
+              SERVICE=rcat-web-gateway
+              pnpm exec wrangler deploy --config cloudflare/web-failover/gateway-wrangler.toml
+              ;;
           esac
-          pnpm exec wrangler deploy --config cloudflare/web-failover/wrangler.toml --env "$CF_ENV"
           echo "SERVICE=$SERVICE" >> "$GITHUB_ENV"
 
       - name: Verify isolated Workers.dev health
+        if: ${{ env.TARGET == 'standby' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -139,6 +145,14 @@ jobs:
           fi
           echo "Validated isolated endpoint: $URL" >> "$GITHUB_STEP_SUMMARY"
           echo "No production DNS, Vercel, API Worker, or D1 changes made." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Record gateway preview safely (no DNS, no public traffic)
+        if: ${{ env.TARGET == 'gateway-preview' }}
+        shell: bash
+        run: |
+          echo "Gateway Worker uploaded; isolated workers.dev host may still be protected by Cloudflare Access." >> "$GITHUB_STEP_SUMMARY"
+          echo "NOT a Vercel failover test. No DNS route is attached." >> "$GITHUB_STEP_SUMMARY"
+          echo "The authorized domain account must separately deploy and test the same gateway-worker.mjs." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Install Chromium for real public standby browser smoke
         if: ${{ env.TARGET == 'standby' }}
