@@ -32,7 +32,7 @@ Both use `cloudflare/web-failover/worker.mjs`; config at `cloudflare/web-failove
 
 After the reviewed PR merges into `main`, open GitHub Actions → **Emergency Cloudflare Web Standby** → Run workflow (`main`, target=`standby`). This workflow deliberately has no push/schedule trigger and no DNS API permission.
 
-Workflow gates: strict pnpm install, `node --test cloudflare/web-failover/worker.test.mjs`, `pnpm build`, validate `dist/index.html` with `#root`, Wrangler deploy `--env standby`, HTTP smoke of `/_rcat/failover-health` and `/news`. **Never run the Vercel SSR cutover build** for standby; it renames index.html to csr.html.
+Workflow gates: strict pnpm install, `node --test cloudflare/web-failover/worker.node-check.mjs`, `pnpm build`, validate `dist/index.html` with `#root`, Wrangler deploy `--env standby`, HTTP smoke of `/_rcat/failover-health` and `/news`. **Never run the Vercel SSR cutover build** for standby; it renames index.html to csr.html.
 
 Verify the exact deployed URL in the action summary, then use a real browser to check:
 
