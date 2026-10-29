@@ -88,7 +88,7 @@ jobs:
           const previewSources = new Set([
             "cloudflare/web-failover/saas-gateway-worker.mjs",
             "cloudflare/web-failover/saas-gateway-wrangler.toml",
-            "cloudflare/web-failover/saas-gateway.node-check.mjs cloudflare/web-failover/saas-staging.node-check.mjs"
+            "cloudflare/web-failover/saas-gateway.node-check.mjs"
           ]);
           const stagingSources = new Set([
             "cloudflare/web-failover/saas-staging-worker.mjs",
@@ -145,7 +145,7 @@ jobs:
         run: pnpm install --frozen-lockfile --strict-peer-dependencies
 
       - name: Test public standby and gateway invariants
-        run: node --test cloudflare/web-failover/worker.node-check.mjs cloudflare/web-failover/gateway.node-check.mjs cloudflare/web-failover/saas-gateway.node-check.mjs
+        run: node --test cloudflare/web-failover/worker.node-check.mjs cloudflare/web-failover/gateway.node-check.mjs cloudflare/web-failover/saas-gateway.node-check.mjs cloudflare/web-failover/saas-staging.node-check.mjs
 
       - name: Build independent CSR public standby
         run: pnpm build
