@@ -24,14 +24,14 @@
 
 **Preconditions:** confirm the owner's authoritative DNS zone uses the existing kirk/maria Cloudflare nameservers. Save the full current `www` DNS record (type, target, proxy status, TTL) before replacing it. Confirm the owner has approved a change window, understands O2O certificate activation can briefly interrupt HTTPS, and has the rollback record ready.
 
-| Field | New value |
-| --- | --- |
-| Zone | `rcat.ac.th` (authoritative owner's account ONLY) |
-| Type | `CNAME` |
-| Name | `www` |
-| Target | `edge.rcat.dpdns.org` |
-| Proxy status | **Proxied (orange cloud)** |
-| TTL | Auto |
+```text
+Zone: rcat.ac.th (authoritative owner's account ONLY)
+Type: CNAME
+Name: www
+Target: edge.rcat.dpdns.org
+Proxy status: Proxied (orange cloud)
+TTL: Auto
+```
 
 Do **NOT** change apex `rcat.ac.th`, nameservers, MX, TXT/SPF/DMARC, any Admin/API domain, or any other record. Do not create `failover-test`. The owner's only responsibility is the DNS record and, if the provider identifies a conflicting CAA/DNSSEC configuration, its authoritative DNS correction. The owner does not manage Gateway Worker, Cloudflare for SaaS, or the Provider SSL.
 
