@@ -167,19 +167,27 @@ test("Vercel origin network outage falls back for public page only and recovers"
   assert.equal(backupRequests.length, 1);
 });
 
-test("workers.dev or unrelated hostname never proxies primary or backup", async () => {
+test("isolated workers.dev candidate fails closed on public GET/HEAD, API and writes", async () => {
   const { env, backupRequests } = fixture();
   let originCalls = 0;
-  const resp = await handleSaasGatewayRequest(
-    new Request("https://rcat-saas-gateway-candidate.rcat-digital.workers.dev/news"),
-    env,
-    async () => {
+  const preview = "https://rcat-saas-gateway-candidate.rcat-digital.workers.dev";
+  const attempts = [
+    new Request(preview + "/news"),
+    new Request(preview + "/api/public/home?lang=th"),
+    new Request(preview + "/news", { method: "HEAD" }),
+    new Request(preview + "/api/public/home", { method: "POST", body: "not-allowed" }),
+    new Request("https://unrelated.example/news")
+  ];
+  for (const request of attempts) {
+    const response = await handleSaasGatewayRequest(request, env, async () => {
       originCalls++;
-      return new Response("insecure");
-    }
-  );
-  assert.equal(resp.status, 503);
-  assert.equal(resp.headers.get("X-RCAT-Gateway"), "wrong-hostname");
+      return new Response("unexpected origin access");
+    });
+    assert.equal(response.status, 503, request.url + " " + request.method);
+    assert.equal(response.headers.get("X-RCAT-Gateway"), "wrong-hostname");
+    assert.equal(response.headers.get("Cache-Control"), "no-store");
+    assert.equal(response.headers.get("Set-Cookie"), null);
+  }
   assert.equal(originCalls, 0);
   assert.equal(backupRequests.length, 0);
 });
