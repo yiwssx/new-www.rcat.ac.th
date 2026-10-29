@@ -34,9 +34,11 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile --strict-peer-dependencies
       - name: Verify routing, status and zero-write invariants
-        run: node --test cloudflare/web-failover/worker.node-check.mjs cloudflare/web-failover/gateway.node-check.mjs cloudflare/web-failover/saas-gateway.node-check.mjs
+        run: node --test cloudflare/web-failover/worker.node-check.mjs cloudflare/web-failover/gateway.node-check.mjs cloudflare/web-failover/saas-gateway.node-check.mjs cloudflare/web-failover/origin-readiness.node-check.mjs
       - name: Syntax-check isolated live smoke without network access
-        run: node --check cloudflare/web-failover/standby-smoke.mjs
+        run: |
+          node --check cloudflare/web-failover/standby-smoke.mjs
+          node --check cloudflare/web-failover/origin-readiness.mjs
       - name: Build standalone React/Vite CSR
         env:
           VITE_CLOUDFLARE_PUBLIC_API_URL: https://rcat-web-standby.rcat-digital.workers.dev
@@ -53,3 +55,20 @@ jobs:
           pnpm exec wrangler deploy --config cloudflare/web-failover/wrangler.toml --env standby --dry-run
           pnpm exec wrangler deploy --config cloudflare/web-failover/gateway-wrangler.toml --dry-run
           pnpm exec wrangler deploy --config cloudflare/web-failover/saas-gateway-wrangler.toml --dry-run
+
+  origin-readiness:
+    name: Live Vercel and standby preflight (read-only; no DNS)
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+      - name: Inspect Vercel project alias and existing Cloudflare standby without writes
+        run: node cloudflare/web-failover/origin-readiness.mjs
