@@ -24,13 +24,13 @@ Both use `cloudflare/web-failover/worker.mjs`; config at `cloudflare/web-failove
 
 1. Verify Vercel's current www production service and the Cloudflare zone authority for `rcat.ac.th`. Cloudflare Workers Routes require an orange-cloud DNS record. If the zone is not under Cloudflare, do not move nameservers until every existing A/AAAA/CNAME/MX/TXT/SRV record and subdomain is inventoried and migrated with rollback.
 2. Ensure Cloudflare Workers access is authorized in the same account as `rcat-public-api-preview` (service bindings cannot target an unrelated account).
-3. Add GitHub repository/environment secrets `CLOUDFLARE_API_TOKEN` (minimal Workers Scripts write/read permissions) and `CLOUDFLARE_ACCOUNT_ID`. Never commit either value. Restrict the token to the correct account and do not grant D1 write permission for this task.
-4. Add GitHub Actions variable `RCAT_CLOUDFLARE_WORKERS_SUBDOMAIN` (e.g. `rcat-digital`, verify against the actual account). The workflow builds the standby client to call `https://rcat-web-standby.<verified-subdomain>.workers.dev`, where public API GET is safely bridged through `PUBLIC_API`.
+3. Reuse or verify the existing GitHub repository/environment secrets `CLOUDFLARE_API_TOKEN` (minimal Workers Scripts write/read permissions) and `CLOUDFLARE_ACCOUNT_ID`. Never commit either value. Restrict the token to the correct account and do not grant D1 write permission for this task.
+4. The GitHub Actions variable `RCAT_CLOUDFLARE_WORKERS_SUBDOMAIN` defaults to `rcat-digital` based on existing Worker endpoints; verify this against the account and override if necessary. The workflow builds the standby client to call `https://rcat-web-standby.<verified-subdomain>.workers.dev`, where public API GET is safely bridged through `PUBLIC_API`.
 5. Protect the `cloudflare-web-standby` GitHub Environment with reviewers as appropriate. `RCAT_ALLOW_GATEWAY_PREVIEW` must remain unset until explicitly reviewing gateway deployment.
 
 ## Stage 1 — Deploy public standby; no DNS changes
 
-After the reviewed PR merges into `main`, open GitHub Actions → **Emergency Cloudflare Web Standby** → Run workflow (`main`, target=`standby`). This workflow deliberately has no push/schedule trigger and no DNS API permission.
+After the reviewed PR merges into `main`, **a push event automatically deploys only the isolated `rcat-web-standby` workers.dev Worker**. You may also open GitHub Actions → **Emergency Cloudflare Web Standby** → Run workflow (`main`, target=`standby`) to redeploy manually. Neither path adds any DNS records or Worker Routes; no scheduled deployment exists.
 
 Workflow gates: strict pnpm install, `node --test cloudflare/web-failover/worker.node-check.mjs`, `pnpm build`, validate `dist/index.html` with `#root`, Wrangler deploy `--env standby`, HTTP smoke of `/_rcat/failover-health` and `/news`. **Never run the Vercel SSR cutover build** for standby; it renames index.html to csr.html.
 
@@ -73,3 +73,7 @@ If Vercel is already paused and gateway preview is not verified, the operator ma
 ## Acceptance and tracking
 
 Code-ready requires passing unit tests and build on PR. Cloudflare-ready requires verified workers.dev smoke and public read behavior. Production-ready additionally requires approved DNS-route configuration, simulated failure, healthy-origin pass-through, return-from-failure, cost monitoring, and rollback verification. The current task must not be marked complete for automated failover until those live checks pass.
+
+## Current DNS inventory note (2026-10-29)
+
+Connected Cloudflare account `admin@rcat.ac.th` was initially missing zone `rcat.ac.th`. A new **pending** full zone was created for preparation only; its nameservers are `roan.ns.cloudflare.com` and `serena.ns.cloudflare.com`. The Cloudflare zone reports **original authoritative nameservers** `maria.ns.cloudflare.com` and `kirk.ns.cloudflare.com`, indicating an **existing Cloudflare zone in a different account**. Its 17 scanned records include Google MX and CNAMEs, while the scanned `www` address records resolve to Cloudflare IP addresses, not reliable Vercel origin addresses. **Do not activate the pending zone or change registrar nameservers.** Prefer acquiring operator access to the authoritative Cloudflare zone, or perform an independently audited DNS migration only after all records and origin targets have been verified.
