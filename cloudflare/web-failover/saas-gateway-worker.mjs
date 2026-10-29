@@ -1,9 +1,9 @@
 /* global URL, Request, Response, Headers, fetch */
-// Cloudflare for SaaS / Orange-to-Orange gateway candidate.
+// Cloudflare for SaaS / Orange-to-Orange production gateway.
 // This file is NOT a Worker Route in the authoritative rcat.ac.th account.
-// It MAY be deployed as an isolated workers.dev preview on the independently
-// ACTIVE rcat.dpdns.org provider account before Custom Hostname/TLS cutover.
-// On workers.dev it rejects every normal public request with HTTP 503;
+// Deploying this module to our provider account does not itself route www.
+// The authoritative DNS operator alone controls the later CNAME switch.
+// On workers.dev it rejects normal public requests with HTTP 503;
 // only its read-only health probe can return 200. A production zone Route
 // remains prohibited until owner-approved O2O and TLS tests are complete.
 // No DNS, nameserver, D1, Vercel or production-route mutations are made here.
@@ -49,7 +49,7 @@ export async function handleSaasGatewayRequest(request, env, fetchOrigin = fetch
   if (inbound.pathname === "/_rcat/saas-health" && request.method === "GET") {
     return Response.json(
       {
-        service: "rcat-saas-gateway-candidate",
+        service: "rcat-saas-gateway",
         configured: Boolean(
           exactHttpsOrigin(env?.RCAT_VERCEL_ORIGIN, VERIFIED_PROJECT_ALIAS) &&
           exactHttpsOrigin(env?.STANDBY_ORIGIN, STANDBY_HOST) &&
