@@ -21,8 +21,7 @@ on:
         options:
           - standby
           - gateway-preview
-          - saas-gateway-preview
-          - saas-staging-preview
+          - saas-gateway-production
 
 permissions:
   contents: read
@@ -90,24 +89,31 @@ jobs:
             "cloudflare/web-failover/saas-gateway-wrangler.toml",
             "cloudflare/web-failover/saas-gateway.node-check.mjs"
           ]);
+          const readinessSources = new Set([
+            "cloudflare/web-failover/origin-readiness.mjs",
+            "cloudflare/web-failover/origin-readiness.node-check.mjs"
+          ]);
           const stagingSources = new Set([
             "cloudflare/web-failover/saas-staging-worker.mjs",
             "cloudflare/web-failover/saas-staging-wrangler.toml",
             "cloudflare/web-failover/saas-staging.node-check.mjs"
           ]);
-          const approvedPreviewRelease = (event.head_commit?.message || "").includes("[saas-gateway-preview]");
+          const approvedPreviewRelease = (event.head_commit?.message || "").includes("[saas-gateway-production]");
           const saasChanged = files.some((file) => previewSources.has(file));
           const stagingChanged = files.some((file) => stagingSources.has(file));
           const standbyChanged = files.some(
             (file) => file.startsWith("cloudflare/web-failover/") &&
-              !previewSources.has(file) && !stagingSources.has(file)
+              !previewSources.has(file) && !stagingSources.has(file) && !readinessSources.has(file)
           );
-          // Select a single isolated deployment; mixed changes default to Standby.
+          // Readiness checks are read-only and do not require Standby deployment.
+          // A reviewed release that also changes origin-readiness MUST still select
+          // the SaaS Gateway rather than unnecessarily redeploying Standby.
+          // Mixed gateway + actual standby runtime changes still default to Standby.
           // Never attach production DNS or a zone route from this workflow.
           const selected = stagingChanged && !saasChanged && !standbyChanged
             ? "saas-staging-preview"
             : (approvedPreviewRelease || saasChanged) && !standbyChanged && !stagingChanged
-              ? "saas-gateway-preview"
+              ? "saas-gateway-production"
               : "standby";
           appendFileSync(process.env.GITHUB_ENV, "TARGET=" + selected + "\n");
           console.log("Selected isolated deployment target: " + selected);
@@ -136,8 +142,8 @@ jobs:
               test "$GATEWAY_PREVIEW_APPROVED" = "true" ||
                 { echo "Set RCAT_ALLOW_GATEWAY_PREVIEW=true only after operator review" >&2; exit 1; }
               ;;
-            saas-gateway-preview) ;;
-            saas-staging-preview) ;;
+            saas-gateway-production) ;;
+            saas-staging-preview) echo "Retired SaaS staging target is forbidden" >&2; exit 1 ;;
             *) echo "Invalid target" >&2; exit 1 ;;
           esac
 
@@ -160,15 +166,15 @@ jobs:
           grep -q 'id="root"' dist/index.html
           grep -q 'noindex' dist/index.html
 
-      - name: Check SaaS candidate never configures DNS, Routes, TLS or D1
-        if: ${{ env.TARGET == 'saas-gateway-preview' }}
+      - name: Check production SaaS Gateway never configures DNS, Routes, TLS or D1
+        if: ${{ env.TARGET == 'saas-gateway-production' }}
         shell: bash
         run: |
           set -euo pipefail
           node --input-type=module -e '
             import { readFileSync } from "node:fs";
             const text = readFileSync("cloudflare/web-failover/saas-gateway-wrangler.toml", "utf8");
-            if (!/^name = "rcat-saas-gateway-candidate"$/m.test(text) ||
+            if (!/^name = "rcat-saas-gateway"$/m.test(text) ||
                 !/^workers_dev = true$/m.test(text) ||
                 !/^service = "rcat-web-standby"$/m.test(text) ||
                 /^(?:route|routes|zone_id|zone_name|custom_domain)\s*=/m.test(text) ||
@@ -210,8 +216,8 @@ jobs:
               SERVICE=rcat-web-gateway
               pnpm exec wrangler deploy --config cloudflare/web-failover/gateway-wrangler.toml
               ;;
-            saas-gateway-preview)
-              SERVICE=rcat-saas-gateway-candidate
+            saas-gateway-production)
+              SERVICE=rcat-saas-gateway
               pnpm exec wrangler deploy --config cloudflare/web-failover/saas-gateway-wrangler.toml
               ;;
             saas-staging-preview)
@@ -247,12 +253,12 @@ jobs:
           echo "Validated isolated endpoint: $URL" >> "$GITHUB_STEP_SUMMARY"
           echo "No production DNS, Vercel, API Worker, or D1 changes made." >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Verify isolated SaaS Gateway candidate health and host blocking
-        if: ${{ env.TARGET == 'saas-gateway-preview' }}
+      - name: Verify production SaaS Gateway health and host blocking
+        if: ${{ env.TARGET == 'saas-gateway-production' }}
         shell: bash
         run: |
           set -euo pipefail
-          URL="https://rcat-saas-gateway-candidate.$CF_WORKERS_SUBDOMAIN.workers.dev"
+          URL="https://rcat-saas-gateway.$CF_WORKERS_SUBDOMAIN.workers.dev"
           for attempt in 1 2 3 4 5; do
             if curl --fail --silent --show-error --max-time 15 \
               "$URL/_rcat/saas-health" -o "$RUNNER_TEMP/saas-gateway-health.json"; then
@@ -263,7 +269,7 @@ jobs:
           node --input-type=module -e '
             import { readFileSync } from "node:fs";
             const health = JSON.parse(readFileSync(process.env.RUNNER_TEMP + "/saas-gateway-health.json", "utf8"));
-            if (health.service !== "rcat-saas-gateway-candidate" ||
+            if (health.service !== "rcat-saas-gateway" ||
                 health.configured !== true || health.status !== "not-routed") {
               throw Error("SaaS candidate Service Binding or not-routed guard missing");
             }
