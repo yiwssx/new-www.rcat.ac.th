@@ -115,11 +115,9 @@ if (browserEnabled) {
         timeout: 25_000
       });
       assert.equal(nav?.status(), 200, "Browser navigation " + path);
-      await page.waitForFunction(
-        () => (document.querySelector("#root")?.textContent?.trim().length ?? 0) > 120,
-        null,
-        { timeout: 25_000 }
-      );
+      await page.waitForFunction(() => (document.querySelector("#root")?.textContent?.trim().length ?? 0) > 120, null, {
+        timeout: 25_000
+      });
       const body = (await page.locator("#root").innerText()).trim();
       assert.match(body, /วิทยาลัย|เกษตร|RCAT|ข่าว/i, "Expected public site text after hydration");
       assert.deepEqual(uncaught, [], "Browser page errors on " + path);
