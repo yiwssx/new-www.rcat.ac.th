@@ -57,10 +57,16 @@ async function checkOne(spec, fetchImpl) {
   const url = allowedUrl(spec.origin, spec.path);
   let response;
   try {
+    const headers = { Accept: spec.type === "json" || spec.type === "health" ? "application/json" : "text/html" };
+    if (spec.origin === VERCEL_ORIGIN) {
+      // Opt-in origin access only on the exact Vercel project alias. This
+      // marker bypasses the SSR canonical 308, not Admin auth or the Edge WAF.
+      headers["X-RCAT-Origin-Bridge"] = "rcat-origin-v1";
+    }
     response = await fetchImpl(url.href, {
       method: "GET",
       redirect: "manual",
-      headers: { Accept: spec.type === "json" || spec.type === "health" ? "application/json" : "text/html" },
+      headers,
       signal: AbortSignal.timeout(12_000)
     });
   } catch {
