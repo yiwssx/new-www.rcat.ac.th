@@ -1,10 +1,11 @@
-# CLOUDLFARE FOR SAAS / O2O GATEWAY CANDIDATE — NOT FOR PRODUCTION DEPLOY.
-# The connected rcat-digital account currently has only a PENDING rcat.ac.th
-# zone. This file is NOT a valid SaaS setup until a distinct independently
-# owned ACTIVE provider zone and custom-hostname+certificate exist.
+# CLOUDFLARE FOR SAAS / O2O GATEWAY — ISOLATED WORKERS.DEV PREVIEW ONLY.
+# rcat.dpdns.org is the independently active SaaS provider zone; its fallback
+# origin is active, but www.rcat.ac.th Custom Hostname/TLS is NOT provisioned.
+# Deploying this host-locked candidate to workers.dev is safe before cutover;
+# its public paths MUST continue to return 503 on workers.dev.
 #
-# This file creates NO routes, domains, DNS records, SaaS custom hostnames, or
-# certificates. Deployment alone must not be interpreted as cutover approval.
+# This file creates NO routes, domains, DNS records, SaaS custom hostnames,
+# certificates, D1 bindings or Vercel changes. This is NOT a production cutover.
 name = "rcat-saas-gateway-candidate"
 main = "saas-gateway-worker.mjs"
 compatibility_date = "2026-10-29"
