@@ -6,6 +6,10 @@ on:
       - main
     paths:
       - "cloudflare/web-failover/**"
+      # Readiness-only changes are checked by the existing offline + live
+      # failover workflow; they must not redeploy an unchanged public Standby.
+      - "!cloudflare/web-failover/origin-readiness.mjs"
+      - "!cloudflare/web-failover/origin-readiness.node-check.mjs"
       - ".github/workflows/cloudflare-web-standby.yml"
   workflow_dispatch:
     inputs:
