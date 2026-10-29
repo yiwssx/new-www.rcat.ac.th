@@ -89,6 +89,10 @@ jobs:
             "cloudflare/web-failover/saas-gateway-wrangler.toml",
             "cloudflare/web-failover/saas-gateway.node-check.mjs"
           ]);
+          const readinessSources = new Set([
+            "cloudflare/web-failover/origin-readiness.mjs",
+            "cloudflare/web-failover/origin-readiness.node-check.mjs"
+          ]);
           const stagingSources = new Set([
             "cloudflare/web-failover/saas-staging-worker.mjs",
             "cloudflare/web-failover/saas-staging-wrangler.toml",
@@ -99,9 +103,12 @@ jobs:
           const stagingChanged = files.some((file) => stagingSources.has(file));
           const standbyChanged = files.some(
             (file) => file.startsWith("cloudflare/web-failover/") &&
-              !previewSources.has(file) && !stagingSources.has(file)
+              !previewSources.has(file) && !stagingSources.has(file) && !readinessSources.has(file)
           );
-          // Select a single isolated deployment; mixed changes default to Standby.
+          // Readiness checks are read-only and do not require Standby deployment.
+          // A reviewed release that also changes origin-readiness MUST still select
+          // the SaaS Gateway rather than unnecessarily redeploying Standby.
+          // Mixed gateway + actual standby runtime changes still default to Standby.
           // Never attach production DNS or a zone route from this workflow.
           const selected = stagingChanged && !saasChanged && !standbyChanged
             ? "saas-staging-preview"
