@@ -20,6 +20,10 @@ name = "rcat-web-standby"
 [env.standby.vars]
 FAILOVER_MODE = "standby"
 
+[[env.standby.services]]
+binding = "PUBLIC_API"
+service = "rcat-public-api-preview"
+
 # Gateway is intentionally NOT assigned a domain or route here.
 # Requires validated DNS-proxied Vercel origin and a separate operator-approved
 # www.rcat.ac.th/* Worker Route. Route-mode fetch(request) goes to Vercel.
@@ -28,3 +32,7 @@ name = "rcat-web-gateway"
 
 [env.gateway.vars]
 FAILOVER_MODE = "auto"
+
+[[env.gateway.services]]
+binding = "PUBLIC_API"
+service = "rcat-public-api-preview"
