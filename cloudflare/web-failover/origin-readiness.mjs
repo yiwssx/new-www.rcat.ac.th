@@ -9,7 +9,7 @@ import { pathToFileURL } from "node:url";
 
 export const VERCEL_ORIGIN = "https://new-wwwrcatacth-rcat-it-dev-team.vercel.app";
 export const STANDBY_ORIGIN = "https://rcat-web-standby.rcat-digital.workers.dev";
-export const SAAS_CANDIDATE_ORIGIN = "https://rcat-saas-gateway-candidate.rcat-digital.workers.dev";
+export const SAAS_CANDIDATE_ORIGIN = "https://rcat-saas-gateway.rcat-digital.workers.dev";
 
 // Vercel serves SSR HTML and the Admin/auth proxy; it does NOT expose the
 // Cloudflare-owned /api/public/* endpoints as same-origin Vercel APIs.
@@ -126,7 +126,7 @@ async function checkOne(spec, fetchImpl) {
       if (spec.type === "candidate-health") {
         assert.deepEqual(
           { service: payload.service, configured: payload.configured, status: payload.status },
-          { service: "rcat-saas-gateway-candidate", configured: true, status: "not-routed" }
+          { service: "rcat-saas-gateway", configured: true, status: "not-routed" }
         );
         assert.match(response.headers.get("cache-control") ?? "", /no-store/i, "Candidate health must not be cached");
       }
