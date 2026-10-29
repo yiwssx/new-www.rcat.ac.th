@@ -40,6 +40,21 @@ Reference: https://developers.cloudflare.com/cloudflare-for-platforms/cloudflare
 - `cloudflare/web-failover/saas-gateway.node-check.mjs` tests primary 200, status 502/503/504, network failure and recovery, Public API JSON, cookie sanitization, write/auth preservation, redirect loops, and host allowlisting.
 - Existing Cloudflare CI checks Wrangler syntax and full Node tests. Do not add a second workflow.
 
+## Independent live origin readiness, without a SaaS zone
+
+**New work (Issue #760):** `cloudflare/web-failover/origin-readiness.mjs` is a **read-only** external probe for the exact existing Vercel project alias and Cloudflare Standby. It does not depend on an active SaaS zone or touch `www.rcat.ac.th`.
+
+Checks include:
+- Vercel project-alias HTML homepage and news SSR (HTTP 200, correct content type and SSR marker).
+- Vercel read-only `/api/public/home` and `/api/public/shell` JSON.
+- Standby health, CSR HTML/noindex, public read APIs, and deliberate HTTP 503 protection of `/admin` and the private auth API.
+- Any unexpected redirect from the Vercel project alias is an explicit failure: avoid silently returning users to `www.rcat.ac.th` and a potential O2O loop.
+- It does **not** test Admin login/logout, authenticated user sessions, Vercel `Set-Cookie` or the future SaaS hostname. A PASS is **not permission to change DNS**.
+
+To run the check against real services without credentials, use the existing GitHub Actions workflow **Cloudflare Emergency Failover Check → Run workflow** on `main`. The `Live Vercel and standby preflight (read-only; no DNS)` job is enabled **only for manual workflow_dispatch**. It reports concise pass/fail statuses in the job summary, logs no server bodies or auth tokens, and sends GETs only to the hardcoded Vercel/standby HTTPS origins. Any non-200 / redirect / unexpected content / network failure fails closed. Do not confuse this with a Gateway/O2O end-to-end test.
+
+CI on PRs continues to run **deterministic offline tests** only; an external Vercel outage must not falsely turn all unrelated code PRs red.
+
 ## Remaining owner-side steps (not safe to execute yet)
 
 1. **Provider zone:** obtain the name and proof of control of a domain **separate from `rcat.ac.th`** and add it to the connected Cloudflare account. Wait until its zone is `active`. Do not buy/register a domain or create an account subscription without the user's explicit choice.
@@ -60,7 +75,7 @@ Reference: https://developers.cloudflare.com/cloudflare-for-platforms/cloudflare
 
 ## Current deliverable status
 
-**Code preparation:** completed on a separate PR subject to CI and peer verification.
+**Code preparation:** PR #764 merged with CI PASS. Subsequent read-only origin preflight is an independent follow-up tracked in Issue #760.
 
 **Actual SaaS/O2O readiness:** BLOCKED (no active independently-owned provider zone; custom hostname/TLS/route absent; Vercel proxy not validated). **No DNS change performed.** Leave Issue #760 open.
 
