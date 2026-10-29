@@ -14,7 +14,6 @@ const expectedWorkflows = [
   "apps-script-production-release.yml",
   "apps-script-production-rollback.yml",
   "ci.yml",
-  "cloudflare-web-failover-check.yml",
   "cloudflare-web-standby.yml",
   "dependency-status-sync.yml",
   "image-production-worker.yml",
@@ -30,7 +29,17 @@ const expectedWorkflows = [
 describe("workflow inventory governance", () => {
   it("keeps the active workflow surface intentionally bounded", () => {
     expect(workflowFiles).toEqual(expectedWorkflows);
-    expect(workflowFiles).toHaveLength(14);
+    expect(workflowFiles).toHaveLength(13);
+  });
+
+  it("keeps retired SaaS failover workflow manual and strictly non-deploying", () => {
+    const retired = readWorkflow("cloudflare-web-standby.yml");
+    expect(retired).toContain("workflow_dispatch:");
+    expect(retired).not.toMatch(/^  (?:push|pull_request|schedule|workflow_run):/m);
+    expect(retired).not.toMatch(/secrets\.|wrangler\s+deploy|cloudflare\.request|GATEWAY_TEST_ONLY/);
+    expect(retired).not.toContain("saas-staging-preview");
+    expect(retired).not.toContain("saas-gateway-preview");
+    expect(workflowFiles).not.toContain("cloudflare-web-failover-check.yml");
   });
 
   it("does not restore retired branch-mutating, phase-specific, or duplicate workflows", () => {
