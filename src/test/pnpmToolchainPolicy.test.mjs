@@ -60,7 +60,9 @@ describe("pnpm manifest toolchain policy", () => {
         }
       }
     }
-    expect(setupCount).toBe(18);
+    // The owner's 2026-10-30 SaaS/O2O retirement removed two
+    // experimental setup steps without changing the production exceptions.
+    expect(setupCount).toBe(16);
     expect(exceptionCount).toBe(3);
   });
 });
