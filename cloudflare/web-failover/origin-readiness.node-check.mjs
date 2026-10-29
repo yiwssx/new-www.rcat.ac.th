@@ -11,6 +11,12 @@ function fakeNetwork({ primaryFailure, wrongApi, redirectNews, exposePrivateStan
     assert.ok([VERCEL_ORIGIN, STANDBY_ORIGIN].includes(url.origin), "No www.rcat.ac.th or arbitrary domain fetch");
     assert.equal(options.method, "GET", "No mutating request");
     assert.equal(options.redirect, "manual", "No hidden redirects");
+    // Explicit origin bridge bypasses the production 308 only on Vercel;
+    // never send that marker to the public Cloudflare standby.
+    assert.equal(
+      options.headers["X-RCAT-Origin-Bridge"] ?? null,
+      url.origin === VERCEL_ORIGIN ? "rcat-origin-v1" : null
+    );
     assert.equal(
       options.headers.Accept,
       url.pathname.startsWith("/api/public/") || url.pathname.startsWith("/_rcat/") ? "application/json" : "text/html"
