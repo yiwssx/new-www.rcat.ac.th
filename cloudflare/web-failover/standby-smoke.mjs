@@ -122,7 +122,9 @@ if (browserEnabled) {
       await page.waitForFunction(
         () => {
           const root = document.querySelector("#root");
-          const text = root?.textContent?.trim() ?? "";
+          // innerText excludes JSON-LD scripts and hidden loading markup.
+          // textContent can falsely match the college name in schema.org SEO data.
+          const text = root?.innerText?.trim() ?? "";
           return text.length > 120 && /วิทยาลัย|เกษตร|RCAT|ข่าว/i.test(text);
         },
         null,
