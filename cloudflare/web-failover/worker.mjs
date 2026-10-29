@@ -1,3 +1,4 @@
+/* global URL, Request, Response, Headers, fetch */
 // Emergency RCAT public-site standby and optional route-level failover.
 // No DNS, project-domain, D1, or production Worker mutations occur on deployment.
 // In gateway mode this MUST run as a Cloudflare Route over the existing Vercel origin.
