@@ -1,0 +1,58 @@
+name: Temporary O2O Origin Readiness Formatter
+
+on:
+  pull_request:
+    paths:
+      - "cloudflare/web-failover/origin-readiness.mjs"
+      - "cloudflare/web-failover/origin-readiness.node-check.mjs"
+      - ".github/workflows/cloudflare-web-failover-check.yml"
+      - "docs/operations/cloudflare-o2o-saas-feasibility.md"
+      - ".github/workflows/o2o-origin-readiness-format-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'ops/o2o-readonly-origin-preflight-760'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          persist-credentials: true
+      - uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --strict-peer-dependencies
+      - name: Normalize new read-only origin readiness files and existing CI YAML
+        run: |
+          pnpm exec prettier --write \
+            cloudflare/web-failover/origin-readiness.mjs \
+            cloudflare/web-failover/origin-readiness.node-check.mjs \
+            .github/workflows/cloudflare-web-failover-check.yml \
+            docs/operations/cloudflare-o2o-saas-feasibility.md
+      - name: Commit Prettier output on the known branch
+        shell: bash
+        env:
+          HUSKY: "0"
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "No formatting changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- \
+            cloudflare/web-failover/origin-readiness.mjs \
+            cloudflare/web-failover/origin-readiness.node-check.mjs \
+            .github/workflows/cloudflare-web-failover-check.yml \
+            docs/operations/cloudflare-o2o-saas-feasibility.md
+          git commit -m "style(operations): format read-only origin readiness gate (#760)"
+          git push origin HEAD:ops/o2o-readonly-origin-preflight-760
