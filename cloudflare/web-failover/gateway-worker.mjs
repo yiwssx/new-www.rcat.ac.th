@@ -4,6 +4,7 @@
 // This script MUST NOT be assigned to www until its operator completes the runbook.
 
 const PUBLIC_HOST = "www.rcat.ac.th";
+const TEST_HOST = "failover-test.rcat.ac.th";
 const EXPECTED_STANDBY = "https://rcat-web-standby.rcat-digital.workers.dev";
 const RETRYABLE = new Set([502, 503, 504]);
 const ASSET_EXT = /\.(?:js|mjs|css|map|png|jpe?g|webp|avif|gif|svg|ico|woff2?|ttf|eot|pdf|webmanifest)$/i;
@@ -152,13 +153,24 @@ export async function handleGatewayRequest(request, env, fetchPrimary = fetch, f
     });
   }
 
-  // workers.dev preview must NOT try to fetch itself as a production origin.
-  // Only the exact approved www host is eligible for Route mode.
-  if (url.protocol !== "https:" || url.hostname !== PUBLIC_HOST || env.PUBLIC_HOSTNAME !== PUBLIC_HOST) {
+  // workers.dev preview must NOT fetch itself as the primary origin.
+  // A test hostname is explicitly opt-in and cannot be enabled on www.
+  const production = url.hostname === PUBLIC_HOST && env.PUBLIC_HOSTNAME === PUBLIC_HOST;
+  const testHost =
+    url.hostname === TEST_HOST &&
+    env.PUBLIC_HOSTNAME === TEST_HOST &&
+    env.GATEWAY_TEST_ONLY === "true";
+  if (url.protocol !== "https:" || (!production && !testHost)) {
     return errorResponse("gateway-not-routed");
   }
 
   const type = classify(request);
+  if (testHost && env.TEST_SIMULATE_503 === "true") {
+    return type === "public-page" || type === "public-api"
+      ? backupFetch(request, env, type, "primary-simulated-503", fetchBackup)
+      : errorResponse("primary-simulated-503", type === "private");
+  }
+
   let primary;
   try {
     // Do not set an arbitrary timeout on CMS writes. The 10s GET/HEAD deadline
