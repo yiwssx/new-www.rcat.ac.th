@@ -35,7 +35,7 @@ describe("workflow inventory governance", () => {
   it("keeps retired SaaS failover workflow manual and strictly non-deploying", () => {
     const retired = readWorkflow("cloudflare-web-standby.yml");
     expect(retired).toContain("workflow_dispatch:");
-    expect(retired).not.toMatch(/^  (?:push|pull_request|schedule|workflow_run):/m);
+    expect(retired).not.toMatch(/^ {2}(?:push|pull_request|schedule|workflow_run):/m);
     expect(retired).not.toMatch(/secrets\.|wrangler\s+deploy|cloudflare\.request|GATEWAY_TEST_ONLY/);
     expect(retired).not.toContain("saas-staging-preview");
     expect(retired).not.toContain("saas-gateway-preview");
