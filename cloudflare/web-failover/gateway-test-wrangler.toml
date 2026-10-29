@@ -1,0 +1,18 @@
+# OPTIONAL ONLY in the authoritative rcat.ac.th Cloudflare account.
+# Before connecting the test route, add failover-test.rcat.ac.th as a Vercel
+# domain and confirm it has an orange-cloud DNS record with a valid origin.
+# No routes or DNS are created by deploying this config.
+name = "rcat-web-gateway-test"
+main = "gateway-worker.mjs"
+compatibility_date = "2026-10-29"
+workers_dev = true
+
+[vars]
+PUBLIC_HOSTNAME = "failover-test.rcat.ac.th"
+STANDBY_ORIGIN = "https://rcat-web-standby.rcat-digital.workers.dev"
+GATEWAY_TEST_ONLY = "true"
+
+# First test the response when the primary is unavailable. Once verified,
+# change to "false", redeploy and confirm Vercel receives healthy requests.
+# This setting CANNOT simulate failures on the production www hostname.
+TEST_SIMULATE_503 = "true"
