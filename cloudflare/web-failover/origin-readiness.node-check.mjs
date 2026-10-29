@@ -232,7 +232,11 @@ test("blocks if SaaS Candidate is intercepted by Cloudflare Access", async () =>
 });
 
 test("blocks if SaaS Candidate is misconfigured or accidentally serves public traffic", async () => {
-  for (const scenario of [{ candidateUnconfigured: true }, { candidatePublicLeak: true }, { candidateBadGuard: true }]) {
+  for (const scenario of [
+    { candidateUnconfigured: true },
+    { candidatePublicLeak: true },
+    { candidateBadGuard: true }
+  ]) {
     const result = await checkOriginReadiness(fakeNetwork(scenario).mockFetch);
     assert.equal(result.passed, false);
     assert.ok(result.checks.some((x) => x.name.startsWith("SaaS candidate") && !x.ok));
