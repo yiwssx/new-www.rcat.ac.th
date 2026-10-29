@@ -3,6 +3,7 @@
 // Never reaches www.rcat.ac.th, changes DNS, sends credentials, or simulates
 // errors against the real Vercel deployment.
 import assert from "node:assert/strict";
+import { assertPublicApiContract } from "./public-api-contract.mjs";
 import { appendFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
@@ -89,6 +90,9 @@ async function checkOne(spec, fetchImpl) {
       assert.match(contentType, /application\/json/i, "JSON expected");
       const payload = await response.json();
       assert.ok(payload && typeof payload === "object" && !Array.isArray(payload), "JSON object expected");
+      if (spec.type === "json") {
+        assertPublicApiContract(spec.path, payload);
+      }
       if (spec.type === "health") {
         assert.deepEqual(
           { service: payload.service, mode: payload.mode, status: payload.status },
