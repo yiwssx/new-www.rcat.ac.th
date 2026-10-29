@@ -84,3 +84,15 @@ Connected Cloudflare account `admin@rcat.ac.th` was initially missing zone `rcat
 - Creating a Cloudflare Worker on the `rcat-digital.workers.dev` hostname is independent of this protected domain and is allowed by project scope.
 - A Cloudflare Workers Route for `www.rcat.ac.th/*` can only be configured **inside the existing authoritative Cloudflare account/zone**, by its approved administrator; the separately connected Workers account cannot install that route merely by knowing the URL.
 - If the organization cannot provide access/approval to that existing Cloudflare zone, **automatic failover on the unchanged `www.rcat.ac.th` URL is blocked**. Escalate availability to the Vercel plan/support and offer the independent Workers.dev public standby URL after smoke tests. Do not imply that an inactive Cloudflare zone enables a live failover.
+
+## After-deploy live smoke (2026-10-29)
+
+A successful Cloudflare Wrangler upload and a 200 response from the Worker health endpoint do **not** demonstrate that the React application hydrated or that the Public API returned usable data. The `Emergency Cloudflare Web Standby` GitHub workflow now runs `cloudflare/web-failover/standby-smoke.mjs` after deployment. Its read-only checks cover:
+
+- `/_rcat/failover-health` status and standby mode;
+- `/news` CSR HTML, `noindex`, and the real content-hashed JavaScript asset;
+- `/api/public/home` and `/api/public/shell` JSON/CORS through the existing service binding;
+- `/admin`, `/api/cms-auth/session`, and `/sitemap.xml` returning 503;
+- GET-only API CORS preflight and Chromium hydration on `/` and `/news`.
+
+The smoke script rejects any base URL outside the isolated `rcat-web-standby.*.workers.dev` hostname, so it must not be run against `www.rcat.ac.th`. A failing smoke leaves the last uploaded standalone Worker available for investigation but **does not certify standby readiness**. The GitHub Actions job must conclude success before marking the live browser/API verification complete in Issue #760.
