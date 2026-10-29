@@ -3,6 +3,7 @@
 // Intended for the isolated *.workers.dev standby, not www production.
 
 import assert from "node:assert/strict";
+import { assertPublicApiContract } from "./public-api-contract.mjs";
 
 const base = process.env.STANDBY_BASE_URL?.trim() ?? "";
 const browserEnabled = process.env.RUN_BROWSER_SMOKE === "true";
@@ -84,7 +85,7 @@ for (const path of ["/api/public/home", "/api/public/shell"]) {
   assert.equal(response.headers.get("x-rcat-failover"), "standby-public-api");
   const payload = await response.json();
   assert.equal(typeof payload.generatedAt, "string", path + " missing generatedAt");
-  assert.ok(Array.isArray(payload.menu), path + " missing menu");
+  assertPublicApiContract(path, payload);
   console.log("PASS " + path + " (public data + CORS)");
 }
 
