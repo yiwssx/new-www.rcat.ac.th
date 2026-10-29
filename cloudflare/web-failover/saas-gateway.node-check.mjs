@@ -38,6 +38,7 @@ test("healthy SSR is fetched through Vercel project alias without DNS recursion"
     assert.equal(request.url, VERCEL + "/news?page=3");
     assert.equal(request.headers.get("cookie"), "session=x");
     assert.equal(request.headers.get("Host"), null);
+    assert.equal(request.headers.get("X-RCAT-Origin-Bridge"), "rcat-origin-v1");
     assert.equal(init.redirect, "manual");
     return new Response("<html>SSR OK</html>", { status: 200, headers: { "Content-Type": "text/html" } });
   });
