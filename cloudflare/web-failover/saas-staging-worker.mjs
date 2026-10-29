@@ -24,12 +24,7 @@ function exactOrigin(raw, expected) {
     if (typeof raw !== "string") return false;
     const url = new URL(raw);
     return (
-      url.origin === expected &&
-      url.pathname === "/" &&
-      !url.username &&
-      !url.password &&
-      !url.search &&
-      !url.hash
+      url.origin === expected && url.pathname === "/" && !url.username && !url.password && !url.search && !url.hash
     );
   } catch {
     return false;
@@ -39,10 +34,10 @@ function exactOrigin(raw, expected) {
 function configured(env) {
   return Boolean(
     env?.PUBLIC_HOSTNAME === TEST_HOST &&
-      env?.GATEWAY_TEST_ONLY === "true" &&
-      exactOrigin(env?.RCAT_VERCEL_ORIGIN, VERCEL_ORIGIN) &&
-      exactOrigin(env?.STANDBY_ORIGIN, STANDBY_ORIGIN) &&
-      typeof env?.STANDBY?.fetch === "function"
+    env?.GATEWAY_TEST_ONLY === "true" &&
+    exactOrigin(env?.RCAT_VERCEL_ORIGIN, VERCEL_ORIGIN) &&
+    exactOrigin(env?.STANDBY_ORIGIN, STANDBY_ORIGIN) &&
+    typeof env?.STANDBY?.fetch === "function"
   );
 }
 
