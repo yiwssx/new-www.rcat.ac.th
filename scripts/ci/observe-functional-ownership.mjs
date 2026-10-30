@@ -1,6 +1,7 @@
 import { appendFileSync, lstatSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { auditSourceImportGraph, formatSourceGraphAudit, loadSourceModules } from "./audit-functional-imports.mjs";
 
 // Explicit, reviewable *candidate* owners; this is not a transitive dependency graph.
 // A hit is useful for comparing outcomes against full E2E, never for skipping tests.
@@ -123,7 +124,17 @@ if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.m
     plan = null;
   }
   const observation = observeFunctionalOwnership(plan, process.env.GITHUB_EVENT_NAME, regularFile);
-  const report = formatFunctionalOwnershipReport(observation);
+  let report = formatFunctionalOwnershipReport(observation);
+  if (observation.mode === "candidate-only") {
+    try {
+      const sources = plan.changedPaths.filter((path) => path.startsWith("src/"));
+      const graph = auditSourceImportGraph(loadSourceModules(), sources, FUNCTIONAL_OWNER_CANDIDATES);
+      report += "\n" + formatSourceGraphAudit(graph);
+    } catch (error) {
+      // Optional graph observations must never weaken or override mandatory full E2E.
+      console.warn("Non-blocking source import audit:", error instanceof Error ? error.message : String(error));
+    }
+  }
   console.log(report);
   if (process.env.GITHUB_STEP_SUMMARY) {
     try {
