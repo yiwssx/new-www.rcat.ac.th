@@ -194,6 +194,12 @@ jobs:
       - name: Validate production Playwright suite discovery
         run: pnpm exec playwright test --config playwright.production.config.ts --list
       - run: pnpm exec playwright install --with-deps chromium
+      # Issue #782: non-gating, exact-branch source-only dual-run evidence. The
+      # required Full E2E below still runs on the same checked-out merge tree.
+      - name: Observe isolated source-only candidate E2E (non-gating canary)
+        env:
+          CI_PLAN: ${{ needs.impact.outputs.plan }}
+        run: node scripts/ci/dual-run-functional-canary.mjs
       - name: Run changed Playwright specs when safe, or full Functional E2E
         env:
           CI_PLAN: ${{ needs.impact.outputs.plan }}
