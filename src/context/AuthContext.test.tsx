@@ -108,7 +108,15 @@ function AuthState() {
       >
         login
       </button>
-      <button onClick={() => void auth.logout().catch(() => undefined)}>logout</button>
+      <button
+        onClick={() =>
+          void auth.logout().catch((currentError) => {
+            setError(currentError instanceof Error ? currentError.message : "error");
+          })
+        }
+      >
+        logout
+      </button>
       <button
         onClick={() =>
           void auth.refreshSession().catch((currentError) => {
@@ -297,6 +305,32 @@ describe("CMS AuthProvider", () => {
       expect(screen.getByText("status:unauthenticated")).toBeInTheDocument();
       expect(queryClient.getQueryData(["admin-users"])).toBeUndefined();
     });
+  });
+
+  it("treats an already-expired server session as a successful local logout", async () => {
+    cmsAuthMock.logout.mockRejectedValueOnce(new CmsAuthError(401));
+    renderAuth();
+    await screen.findByText("status:authenticated");
+
+    fireEvent.click(screen.getByRole("button", { name: "logout" }));
+
+    await waitFor(() => expect(screen.getByText("status:unauthenticated")).toBeInTheDocument());
+    expect(screen.queryByText("ข้อมูลยืนยันตัวตนไม่ถูกต้องหรือเซสชันหมดอายุ")).not.toBeInTheDocument();
+    expect(FakeBroadcastChannel.messages).toEqual(["logged-out"]);
+  });
+
+  it("keeps the current authenticated user after a one-off background 401", async () => {
+    renderAuth();
+    await screen.findByText("status:authenticated");
+    cmsAuthMock.getSession.mockClear();
+    cmsAuthMock.getSession.mockRejectedValueOnce(new CmsAuthError(401));
+
+    fireEvent.click(screen.getByRole("button", { name: "refresh" }));
+
+    await waitFor(() => expect(cmsAuthMock.getSession).toHaveBeenCalledTimes(2));
+    expect(screen.getByText("status:authenticated")).toBeInTheDocument();
+    expect(screen.getByText("user:user-1")).toBeInTheDocument();
+    expect(FakeBroadcastChannel.messages).toEqual([]);
   });
 
   it("clears Session and protected cache and broadcasts Logout for the global expiry event", async () => {
@@ -583,7 +617,11 @@ describe("CMS AuthProvider", () => {
 
   it("clears on a true keepalive 401 but preserves authenticated UI for temporary failures", async () => {
     const expiredView = await renderAuthenticatedWithFakeTimers();
-    cmsAuthMock.getSession.mockRejectedValueOnce(new CmsAuthError(401));
+    cmsAuthMock.getSession
+      .mockRejectedValueOnce(new CmsAuthError(401))
+      .mockRejectedValueOnce(new CmsAuthError(401))
+      .mockRejectedValueOnce(new CmsAuthError(401))
+      .mockRejectedValueOnce(new CmsAuthError(401));
     fireEvent.input(document.body);
     await act(async () => {
       await vi.advanceTimersByTimeAsync(CMS_SESSION_KEEPALIVE_INTERVAL_MS);
