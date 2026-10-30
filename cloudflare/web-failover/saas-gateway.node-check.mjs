@@ -318,3 +318,22 @@ test("public pages and anonymous reads do not rewrite Origin or disable failover
   );
   assert.equal(result.status, 200);
 });
+
+test("browser-declared cross-site login stays blocked even with a forged trusted Origin", async () => {
+  const { env, backupRequests } = fixture();
+  const response = await handleSaasGatewayRequest(
+    new Request(PUB + "/api/cms-auth/login", {
+      method: "POST",
+      headers: { Origin: PUB, "Sec-Fetch-Site": "cross-site" },
+      body: "{}"
+    }),
+    env,
+    async (request) => {
+      assert.equal(request.headers.get("Origin"), PUB);
+      assert.equal(request.headers.get("Sec-Fetch-Site"), "cross-site");
+      return Response.json({ error: "cross-site denied" }, { status: 403 });
+    }
+  );
+  assert.equal(response.status, 403);
+  assert.equal(backupRequests.length, 0);
+});
