@@ -103,10 +103,28 @@ export async function handleSaasGatewayRequest(request, env, fetchOrigin = fetch
     }
     // Vercel receives the original cookies/Authorization for its Admin APIs;
     // standby never does. Cloudflare sets its own upstream client-IP headers.
-    const primary = await fetchOrigin(out, {
+    let primary = await fetchOrigin(out, {
       redirect: "manual",
       signal: options?.signal
     });
+
+    // A session/capability GET is idempotent. A single intermittent 401 from
+    // the upstream read path must be confirmed once before the browser can
+    // interpret it as a revoked session. Never retry writes, password login,
+    // logout, unauthenticated GETs, or other private/public requests.
+    const originalCookies = original.headers.get("Cookie") || "";
+    const hasSessionCookie = /(?:^|;\\s*)__Host-rcat_cms_session=[A-Za-z0-9_-]{43}(?:;|$)/.test(originalCookies);
+    const capabilityRead =
+      pathname.pathname === "/api/admin-proxy" &&
+      pathname.searchParams.size === 1 &&
+      pathname.searchParams.get("path") === "/api/admin/capabilities";
+    const sessionRead = pathname.pathname === "/api/cms-auth/session" && !pathname.search;
+    if (primary.status === 401 && original.method === "GET" && hasSessionCookie && (sessionRead || capabilityRead)) {
+      primary = await fetchOrigin(new Request(out), {
+        redirect: "manual",
+        signal: options?.signal
+      });
+    }
 
     // If the Vercel project alias canonicalizes to the public hostname at the
     // identical path, the browser would repeat the same O2O request forever.
