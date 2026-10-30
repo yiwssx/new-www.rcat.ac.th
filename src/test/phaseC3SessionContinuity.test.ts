@@ -17,7 +17,7 @@ describe("Phase C3 CMS session continuity", () => {
     expect(authContext).toContain("confirmAuthorization401?: boolean");
     expect(authContext).toContain("readCmsAuthorizationStateWithBounded401Confirmation");
     expect(authContext).toContain("refreshSession({ force: true, retryAuthorization401: true })");
-    expect(authContext).toContain("refreshSession({ retryAuthorization401: true })");
+    expect(authContext).not.toContain("refreshRequestRef.current?.promise ?? refreshSession(");
     // Session validation must complete before any capability request is allowed to start.
     expect(authContext).toContain(
       "const user = await getCmsSession();\n  const capabilityPayload = await getCmsCapabilities();"

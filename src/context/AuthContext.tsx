@@ -139,7 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const { user, capabilityPayload } = options.confirmAuthorization401
             ? await readCmsAuthorizationStateWithBounded401Confirmation()
-            : options.retryAuthorization401
+            : options.retryAuthorization401 || backgroundRefresh
               ? await readCmsAuthorizationStateWithBounded401Retry()
               : await readCmsAuthorizationState();
 
@@ -243,6 +243,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     try {
       await logoutCmsSession();
+    } catch (error) {
+      // Already-expired sessions do not need a second login to sign out locally.
+      if (!(error instanceof CmsAuthError && error.status === 401)) {
+        throw error;
+      }
     } finally {
       clearSession({ broadcast: true });
     }
@@ -315,7 +320,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // the authoritative Session/capability GETs before clearing global state.
       // Reuse an in-flight auth refresh when present; otherwise allow one bounded
       // 401 retry on those idempotent reads. Mutations are never replayed.
-      const confirmationSource = refreshRequestRef.current?.promise ?? refreshSession({ retryAuthorization401: true });
+      // Force a fresh authoritative check. An in-flight keepalive may be the
+      // failing request that raised this event, not independent confirmation.
+      const confirmationSource = refreshSession({ force: true, retryAuthorization401: true });
       const confirmationPromise = confirmationSource
         .then((nextSession) => {
           if (nextSession) {
@@ -326,7 +333,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           clearSession({ broadcast: true });
         })
         .catch(() => {
-          clearSession({ broadcast: true });
+          // A transient 5xx/network failure does not prove session expiration.
+          clearCmsSessionNotice();
         });
 
       sessionExpiryConfirmationRef.current = confirmationPromise;

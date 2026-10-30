@@ -135,6 +135,21 @@ describe("CMS transient expiry confirmation", () => {
     expect(FakeBroadcastChannel.messages).toEqual([]);
   });
 
+  it("does not log out or leave a stale expiry notice when confirmation fails with 503", async () => {
+    renderAuth();
+    await screen.findByText("status:authenticated");
+    cmsAuthMock.getSession.mockClear();
+    cmsAuthMock.getSession.mockRejectedValueOnce(new CmsAuthError(503));
+
+    act(() => notifyCmsSessionExpired());
+
+    await waitFor(() => expect(cmsAuthMock.getSession).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(window.sessionStorage.getItem(CMS_SESSION_NOTICE_KEY)).toBeNull());
+    expect(screen.getByText("status:authenticated")).toBeInTheDocument();
+    expect(screen.getByText("user:user-1")).toBeInTheDocument();
+    expect(FakeBroadcastChannel.messages).toEqual([]);
+  });
+
   it("fails closed after the bounded Session confirmation also returns 401", async () => {
     renderAuth();
     await screen.findByText("status:authenticated");

@@ -337,3 +337,64 @@ test("browser-declared cross-site login stays blocked even with a forged trusted
   assert.equal(response.status, 403);
   assert.equal(backupRequests.length, 0);
 });
+
+test("idempotent CMS Session and capability reads confirm one transient upstream 401", async () => {
+  for (const path of ["/api/cms-auth/session", "/api/admin-proxy?path=%2Fapi%2Fadmin%2Fcapabilities"]) {
+    const { env, backupRequests } = fixture();
+    const cookie = "__Host-rcat_cms_session=" + "A".repeat(43);
+    let calls = 0;
+    const response = await handleSaasGatewayRequest(
+      new Request(PUB + path, { headers: { Cookie: cookie } }),
+      env,
+      async (request) => {
+        calls++;
+        assert.equal(request.method, "GET");
+        assert.equal(request.headers.get("Cookie"), cookie);
+        assert.equal(request.url, VERCEL + path);
+        return calls === 1 ? Response.json({ error: "expired" }, { status: 401 }) : Response.json({ ok: true });
+      }
+    );
+    assert.equal(response.status, 200);
+    assert.equal(calls, 2);
+    assert.equal(backupRequests.length, 0);
+  }
+});
+
+test("persistent upstream Session 401 stays denied after exactly one confirmation", async () => {
+  const { env, backupRequests } = fixture();
+  let calls = 0;
+  const response = await handleSaasGatewayRequest(
+    new Request(PUB + "/api/cms-auth/session", {
+      headers: { Cookie: "__Host-rcat_cms_session=" + "A".repeat(43) }
+    }),
+    env,
+    async () => {
+      calls++;
+      return Response.json({ error: "expired" }, { status: 401 });
+    }
+  );
+  assert.equal(response.status, 401);
+  assert.equal(calls, 2);
+  assert.equal(backupRequests.length, 0);
+});
+
+test("anonymous, malformed Session, logout and all other private requests never retry a 401", async () => {
+  const validCookie = "__Host-rcat_cms_session=" + "A".repeat(43);
+  const attempts = [
+    new Request(PUB + "/api/cms-auth/session"),
+    new Request(PUB + "/api/cms-auth/session", { headers: { Cookie: "__Host-rcat_cms_session=bad" } }),
+    new Request(PUB + "/api/cms-auth/logout", { method: "POST", headers: { Cookie: validCookie }, body: "{}" }),
+    new Request(PUB + "/api/admin-proxy?path=%2Fapi%2Fadmin%2Fusers", { headers: { Cookie: validCookie } })
+  ];
+  for (const request of attempts) {
+    const { env, backupRequests } = fixture();
+    let calls = 0;
+    const response = await handleSaasGatewayRequest(request, env, async () => {
+      calls++;
+      return Response.json({ error: "expired" }, { status: 401 });
+    });
+    assert.equal(response.status, 401);
+    assert.equal(calls, 1, request.url);
+    assert.equal(backupRequests.length, 0);
+  }
+});
