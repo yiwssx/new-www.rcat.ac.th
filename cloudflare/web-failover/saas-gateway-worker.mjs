@@ -97,7 +97,8 @@ export async function handleSaasGatewayRequest(request, env, fetchOrigin = fetch
       pathname.pathname.startsWith("/api/cms-auth/") ||
       pathname.pathname === "/api/admin-proxy" ||
       pathname.pathname.startsWith("/api/admin-proxy/");
-    if (restrictedApi && browserOrigin === `https://${PUBLIC_HOST}`) {
+    const fetchSite = out.headers.get("Sec-Fetch-Site")?.toLowerCase();
+    if (restrictedApi && browserOrigin === `https://${PUBLIC_HOST}` && fetchSite !== "cross-site") {
       out.headers.set("Origin", VERIFIED_PROJECT_ALIAS);
     }
     // Vercel receives the original cookies/Authorization for its Admin APIs;
