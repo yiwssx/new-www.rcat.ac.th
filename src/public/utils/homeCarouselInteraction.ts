@@ -47,5 +47,6 @@ export function getLoopedCarouselIndex(index: number, slideCount: number) {
     return 0;
   }
 
+  // JavaScript remainder can be negative; normalize into the visible slide range.
   return ((index % slideCount) + slideCount) % slideCount;
 }
