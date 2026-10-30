@@ -54,10 +54,7 @@ export function formatCanaryResult(choice, exitCode) {
     text.push("- Candidate specs: " + choice.specs.join(", "));
     text.push("- Candidate exit status: " + (exitCode === null ? "unknown" : String(exitCode)));
   }
-  text.push(
-    "- This result cannot prove coverage completeness, satisfy quality, or skip any browser test.",
-    ""
-  );
+  text.push("- This result cannot prove coverage completeness, satisfy quality, or skip any browser test.", "");
   return text.join("\n");
 }
 
