@@ -231,3 +231,109 @@ test("SaaS Wrangler candidate does not create DNS, routes, certs or a new zone",
   assert.doesNotMatch(text, /^(?:routes?|zone_id|zone_name|custom_domain)\s*=/m);
   assert.doesNotMatch(text, /\[\[d1_databases\]\]|\[assets\]/);
 });
+
+test("trusted WWW browser login POST gets Vercel-alias Origin without losing body or cookies", async () => {
+  const { env, backupRequests } = fixture();
+  const body = JSON.stringify({ identifier: "example@example.invalid", password: "not-a-secret" });
+  let upstreamCalls = 0;
+  const response = await handleSaasGatewayRequest(
+    new Request(PUB + "/api/cms-auth/login", {
+      method: "POST",
+      headers: {
+        Origin: PUB,
+        "Sec-Fetch-Site": "same-origin",
+        Cookie: "__Host-rcat_cms_csrf=test",
+        "Content-Type": "application/json"
+      },
+      body
+    }),
+    env,
+    async (request) => {
+      upstreamCalls++;
+      assert.equal(request.url, VERCEL + "/api/cms-auth/login");
+      assert.equal(request.headers.get("Origin"), VERCEL);
+      assert.equal(request.headers.get("Sec-Fetch-Site"), "same-origin");
+      assert.equal(request.headers.get("Cookie"), "__Host-rcat_cms_csrf=test");
+      assert.equal(request.headers.get("Host"), null);
+      assert.equal(request.headers.get("X-Forwarded-Host"), null);
+      assert.equal(request.method, "POST");
+      assert.equal(await request.text(), body);
+      return Response.json({ ok: true });
+    }
+  );
+  assert.equal(response.status, 200);
+  assert.equal(upstreamCalls, 1);
+  assert.equal(backupRequests.length, 0);
+});
+
+test("trusted WWW admin-proxy requests get the same restricted upstream Origin handling", async () => {
+  const { env, backupRequests } = fixture();
+  const response = await handleSaasGatewayRequest(
+    new Request(PUB + "/api/admin-proxy?path=%2Fapi%2Fadmin%2Fsettings", {
+      method: "POST",
+      headers: { Origin: PUB, "Content-Type": "application/json" },
+      body: JSON.stringify({ test: true })
+    }),
+    env,
+    async (request) => {
+      assert.equal(request.headers.get("Origin"), VERCEL);
+      assert.equal(request.url, VERCEL + "/api/admin-proxy?path=%2Fapi%2Fadmin%2Fsettings");
+      return new Response(null, { status: 204 });
+    }
+  );
+  assert.equal(response.status, 204);
+  assert.equal(backupRequests.length, 0);
+});
+
+test("foreign, null, and cross-site browser Origins are never promoted to trusted Origin", async () => {
+  for (const origin of ["https://attacker.example", "null", "http://www.rcat.ac.th"]) {
+    const { env, backupRequests } = fixture();
+    const result = await handleSaasGatewayRequest(
+      new Request(PUB + "/api/cms-auth/login", {
+        method: "POST",
+        headers: { Origin: origin, "Sec-Fetch-Site": "cross-site", "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier: "example@example.invalid" })
+      }),
+      env,
+      async (request) => {
+        assert.equal(request.headers.get("Origin"), origin);
+        assert.equal(request.headers.get("Sec-Fetch-Site"), "cross-site");
+        return Response.json({ error: "request denied by edge security policy" }, { status: 403 });
+      }
+    );
+    assert.equal(result.status, 403, origin);
+    assert.equal(backupRequests.length, 0);
+  }
+});
+
+test("public pages and anonymous reads do not rewrite Origin or disable failover", async () => {
+  const { env } = fixture();
+  const result = await handleSaasGatewayRequest(
+    new Request(PUB + "/news", { headers: { Origin: PUB } }),
+    env,
+    async (request) => {
+      assert.equal(request.headers.get("Origin"), PUB);
+      return new Response("SSR OK", { status: 200 });
+    }
+  );
+  assert.equal(result.status, 200);
+});
+
+test("browser-declared cross-site login stays blocked even with a forged trusted Origin", async () => {
+  const { env, backupRequests } = fixture();
+  const response = await handleSaasGatewayRequest(
+    new Request(PUB + "/api/cms-auth/login", {
+      method: "POST",
+      headers: { Origin: PUB, "Sec-Fetch-Site": "cross-site" },
+      body: "{}"
+    }),
+    env,
+    async (request) => {
+      assert.equal(request.headers.get("Origin"), PUB);
+      assert.equal(request.headers.get("Sec-Fetch-Site"), "cross-site");
+      return Response.json({ error: "cross-site denied" }, { status: 403 });
+    }
+  );
+  assert.equal(response.status, 403);
+  assert.equal(backupRequests.length, 0);
+});

@@ -86,6 +86,21 @@ export async function handleSaasGatewayRequest(request, env, fetchOrigin = fetch
     // project alias instead of redirecting Gateway traffic back to www.
     // This does not authorize any Admin/API request; normal auth and WAF apply.
     out.headers.set("X-RCAT-Origin-Bridge", "rcat-origin-v1");
+    // Vercel's WAF and CMS login validate Origin against the *upstream* Host.
+    // In O2O that Host is our pinned Vercel project alias, whereas a genuine
+    // browser same-origin write supplies https://www.rcat.ac.th as Origin.
+    // Preserve Origin for all other origins: Vercel must continue to reject
+    // cross-site writes. Never suppress Origin or weaken the auth/CSRF checks.
+    const browserOrigin = out.headers.get("Origin");
+    const restrictedApi =
+      pathname.pathname === "/api/cms-auth" ||
+      pathname.pathname.startsWith("/api/cms-auth/") ||
+      pathname.pathname === "/api/admin-proxy" ||
+      pathname.pathname.startsWith("/api/admin-proxy/");
+    const fetchSite = out.headers.get("Sec-Fetch-Site")?.toLowerCase();
+    if (restrictedApi && browserOrigin === `https://${PUBLIC_HOST}` && fetchSite !== "cross-site") {
+      out.headers.set("Origin", VERIFIED_PROJECT_ALIAS);
+    }
     // Vercel receives the original cookies/Authorization for its Admin APIs;
     // standby never does. Cloudflare sets its own upstream client-IP headers.
     const primary = await fetchOrigin(out, {
