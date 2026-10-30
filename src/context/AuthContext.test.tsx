@@ -384,7 +384,9 @@ describe("CMS AuthProvider", () => {
     vi.stubGlobal("BroadcastChannel", FakeBroadcastChannel);
     renderAuth();
     await screen.findByText("user:user-1");
-    cmsAuthMock.getSession.mockRejectedValueOnce(new CmsAuthError(401));
+    cmsAuthMock.getSession
+      .mockRejectedValueOnce(new CmsAuthError(401))
+      .mockRejectedValueOnce(new CmsAuthError(401));
 
     act(() => FakeBroadcastChannel.emit("logged-out"));
 
@@ -481,7 +483,9 @@ describe("CMS AuthProvider", () => {
     renderAuth();
     await screen.findByText("status:authenticated");
     const waiter = cmsStepUpCoordinator.request("password");
-    cmsAuthMock.getSession.mockRejectedValueOnce(new CmsAuthError(401));
+    cmsAuthMock.getSession
+      .mockRejectedValueOnce(new CmsAuthError(401))
+      .mockRejectedValueOnce(new CmsAuthError(401));
     let rejection: unknown;
 
     await act(async () => {
