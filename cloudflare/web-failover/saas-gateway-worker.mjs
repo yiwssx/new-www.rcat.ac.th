@@ -113,7 +113,7 @@ export async function handleSaasGatewayRequest(request, env, fetchOrigin = fetch
     // interpret it as a revoked session. Never retry writes, password login,
     // logout, unauthenticated GETs, or other private/public requests.
     const originalCookies = original.headers.get("Cookie") || "";
-    const hasSessionCookie = /(?:^|;\\s*)__Host-rcat_cms_session=[A-Za-z0-9_-]{43}(?:;|$)/.test(originalCookies);
+    const hasSessionCookie = /(?:^|;\s*)__Host-rcat_cms_session=[A-Za-z0-9_-]{43}(?:;|$)/.test(originalCookies);
     const capabilityRead =
       pathname.pathname === "/api/admin-proxy" &&
       pathname.searchParams.size === 1 &&
