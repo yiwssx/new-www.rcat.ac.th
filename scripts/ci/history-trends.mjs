@@ -21,9 +21,7 @@ function elapsedSeconds(run) {
   const start = Date.parse(run.created_at ?? "");
   const end = Date.parse(run.updated_at ?? "");
   const elapsed = (end - start) / 1000;
-  return Number.isFinite(start) && Number.isFinite(end) && elapsed >= 0 && elapsed < 7200
-    ? Math.ceil(elapsed)
-    : null;
+  return Number.isFinite(start) && Number.isFinite(end) && elapsed >= 0 && elapsed < 7200 ? Math.ceil(elapsed) : null;
 }
 
 export function summarizeWorkflowHistory(runs, excludedRunId = "") {
