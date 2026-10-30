@@ -1,5 +1,6 @@
 import { appendFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
+import { formatWorkflowHistorySummary, readWorkflowHistory } from "./history-trends.mjs";
 
 const OBSERVED_STEPS = new Map([
   [
@@ -150,6 +151,16 @@ async function main() {
       wallSeconds: result.wallSeconds
     })
   );
+
+  // Historical comparisons are optional telemetry; a GitHub API error must not
+  // turn a passing/failing required quality gate into an unrelated verdict.
+  try {
+    const trends = await readWorkflowHistory(repository, token, runId);
+    appendFileSync(summaryFile, formatWorkflowHistorySummary(trends));
+    console.log("RCAT CI lifecycle cohorts recorded:", JSON.stringify(trends));
+  } catch (error) {
+    console.warn("Non-blocking CI history telemetry:", error instanceof Error ? error.message : String(error));
+  }
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
