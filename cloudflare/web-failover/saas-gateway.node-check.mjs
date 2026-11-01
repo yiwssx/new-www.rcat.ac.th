@@ -285,6 +285,69 @@ test("trusted WWW admin-proxy requests get the same restricted upstream Origin h
   assert.equal(backupRequests.length, 0);
 });
 
+test("trusted WWW media uploads retain authenticated body and CSRF through the Vercel proxy", async () => {
+  const { env, backupRequests } = fixture();
+  const body = JSON.stringify({
+    resource: "startMediaUpload",
+    payload: { name: "fixture.png", totalBytes: 3 }
+  });
+  const response = await handleSaasGatewayRequest(
+    new Request(PUB + "/api/apps-script-proxy", {
+      method: "POST",
+      headers: {
+        Origin: PUB,
+        "Sec-Fetch-Site": "same-origin",
+        Cookie: "__Host-rcat_cms_session=fixture; __Host-rcat_cms_csrf=test",
+        "X-RCAT-CSRF-Token": "test",
+        "Content-Type": "application/json"
+      },
+      body
+    }),
+    env,
+    async (request) => {
+      assert.equal(request.url, VERCEL + "/api/apps-script-proxy");
+      assert.equal(request.headers.get("Origin"), VERCEL);
+      assert.equal(request.headers.get("Sec-Fetch-Site"), "same-origin");
+      assert.equal(request.headers.get("Cookie"), "__Host-rcat_cms_session=fixture; __Host-rcat_cms_csrf=test");
+      assert.equal(request.headers.get("X-RCAT-CSRF-Token"), "test");
+      assert.equal(request.headers.get("Host"), null);
+      assert.equal(request.headers.get("X-Forwarded-Host"), null);
+      assert.equal(request.method, "POST");
+      assert.equal(await request.text(), body);
+      return Response.json({ uploadComplete: false, nextByte: 0 });
+    }
+  );
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { uploadComplete: false, nextByte: 0 });
+  assert.equal(backupRequests.length, 0);
+});
+
+test("media uploads from untrusted or cross-site Origins never get origin promotion", async () => {
+  const cases = [
+    { origin: "https://attacker.example", fetchSite: "cross-site" },
+    { origin: PUB, fetchSite: "cross-site" },
+    { origin: "null", fetchSite: "same-origin" }
+  ];
+  for (const { origin, fetchSite } of cases) {
+    const { env, backupRequests } = fixture();
+    const response = await handleSaasGatewayRequest(
+      new Request(PUB + "/api/apps-script-proxy", {
+        method: "POST",
+        headers: { Origin: origin, "Sec-Fetch-Site": fetchSite, "Content-Type": "application/json" },
+        body: JSON.stringify({ resource: "startMediaUpload", payload: {} })
+      }),
+      env,
+      async (request) => {
+        assert.equal(request.headers.get("Origin"), origin);
+        assert.equal(request.headers.get("Sec-Fetch-Site"), fetchSite);
+        return Response.json({ error: "cross-origin request is not allowed" }, { status: 403 });
+      }
+    );
+    assert.equal(response.status, 403, origin + " " + fetchSite);
+    assert.equal(backupRequests.length, 0);
+  }
+});
+
 test("foreign, null, and cross-site browser Origins are never promoted to trusted Origin", async () => {
   for (const origin of ["https://attacker.example", "null", "http://www.rcat.ac.th"]) {
     const { env, backupRequests } = fixture();
