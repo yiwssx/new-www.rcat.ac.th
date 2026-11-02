@@ -4,9 +4,11 @@ Status: **ACTIVE / P0** · Incident [#786](https://github.com/yiwssx/new-www.rca
 Related www SaaS/O2O workstream: [#760](https://github.com/yiwssx/new-www.rcat.ac.th/issues/760)
 
 ## Scope and non-negotiable constraints
+
 This is **not RMS-only**. The objective is to protect **all DNS records/subdomains in the active institutional zone**, including apex, website, email, all applications and new hostnames, plus the separate SaaS provider zone. Do **not** touch the authoritative nameservers, production www CNAME, SaaS gateway, RMS/PDF/IoT/Radio origin, firewall or Apache while diagnosing the AnyFlip problem.
 
 Confirmed owner configuration:
+
 - Authoritative rcat.ac.th NS = kirk/maria, domain-owner account. Domain owner only changed www CNAME to edge.rcat.dpdns.org (Proxied) for O2O, and subsequently added AnyFlip A = 202.29.239.145 DNS-only. These facts are accepted and must not be repeatedly questioned.
 - Provider rcat.dpdns.org uses roan/serena in another account, with exact SaaS custom hostname www.rcat.ac.th; there is no provider wildcard.
 - Older DNS-only names remain pointed to 202.29.239.145; AnyFlip unexpectedly returns Cloudflare anycast IP. Cloudflare IP equality with www alone cannot prove a shared origin or Gateway.
@@ -15,10 +17,12 @@ Confirmed owner configuration:
 ## Monitoring architecture — two distinct coverage levels
 
 ### Public baseline (enabled without owner credentials)
+
 Run: node scripts/check-critical-dns.mjs
 Baseline file: scripts/dns-monitor.json
 
 Validates independent public resolvers for **all names/types confirmed so far**:
+
 - Authoritative NS + root A presence, Google Workspace MX, SPF TXT
 - www A presence
 - rms/pdf/iot/radio A exact 202.29.239.145 and absence of AAAA
@@ -28,6 +32,7 @@ Validates independent public resolvers for **all names/types confirmed so far**:
 The root Vercel addresses and proxied www/provider IPs are deliberately not pinned to fixed IP values, because they can rotate. No checks mutate configuration. New names can be registered in this baseline, but **public DNS cannot enumerate all zone records**, so this level is intentionally labeled PARTIAL. The baseline covers DNS integrity, not full HTTP/TLS/functional health.
 
 ### Full authoritative zone inventory (requires read-only owner account)
+
 Run: node scripts/check-authoritative-zone-inventory.mjs
 
 The authoritative Cloudflare **owner's ACTIVE rcat.ac.th Zone ID** and scoped DNS:Read token must be supplied. The **pending duplicate rcat.ac.th zone in the provider account must never be used**; the provider zone is independent and not authoritative for institutional records.
@@ -41,6 +46,7 @@ To export a complete approved baseline on a trusted machine without changing DNS
 Review the entire active zone, validate the expected change set, and store the approved snapshot as config/authoritative-zone-dns-baseline.json (never store the API token). The snapshot includes the hostname, type, whether proxied, TTL for DNS-only records, priority, and **SHA-256 of the record content** rather than plain-text contents. Each subsequent run fetches **every page of records** and fails if an existing record changed, a record disappeared or any new record appeared.
 
 When these are provisioned in GitHub:
+
 - secret RCAT_AUTH_DNS_READ_TOKEN
 - variable RCAT_AUTH_DNS_ZONE_ID
 - approved baseline file config/authoritative-zone-dns-baseline.json
@@ -56,6 +62,7 @@ When these are provisioned in GitHub:
 - **Coverage gate:** until access to the REAL authoritative owner account and an approved snapshot is available, public DNS checks must remain explicitly partial; full-zone monitoring cannot be claimed complete.
 
 ## Implementation checkpoints
+
 - [x] Inventory publicly verified institutional apex, application, mail, and provider records; label incomplete scope explicitly.
 - [x] Add cross-project DNS drift tests and a read-only public baseline checker.
 - [x] Implement full authoritative DNS record enumeration with digest-based drift comparison.
@@ -67,4 +74,5 @@ When these are provisioned in GitHub:
 - [ ] Record CI results / merge / operator validation in both repos and close Incident #786.
 
 ## Release/rollback criteria
+
 Changes in this workstream are diagnostics and CI only. No live DNS changes are made. A failed public DNS drift check may indicate data divergence or independent resolver outage; confirm authoritative answers before a DNS correction. Never use account-level 'enforce DNS-only', turn off all proxy records, or change the .ac.th nameservers as a workaround.
