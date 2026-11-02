@@ -7,6 +7,7 @@ test('whole-zone inventory detects added, removed and modified record/proxy valu
   const proxy = fingerprintRecords([{ name:'rms.rcat.ac.th', type:'A', content:'202.29.239.145', proxied:true, ttl:1 }]);
   assert.equal(diffInventory(proxy,old).changed,true);
   assert.equal(diffInventory(old,old).changed,false);
+  assert.equal(diffInventory(old.concat(old),old).changed,true);
   assert.equal(diffInventory([],old).changed,true);
   assert.equal(diffInventory(fingerprintRecords([{name:'new.rcat.ac.th',type:'A',content:'203.0.113.14',proxied:false,ttl:300}]),old).changed,true);
 });
