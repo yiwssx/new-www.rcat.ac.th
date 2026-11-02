@@ -1,79 +1,39 @@
-# Institutional DNS integrity — cross-project workstream
+# RCAT SaaS/O2O and institutional service isolation — cross-project tracker
 
-Status: **ACTIVE / P0 — monitoring merged, AnyFlip DNS unresolved** · Incident [#786](https://github.com/yiwssx/new-www.rcat.ac.th/issues/786)
-Related www SaaS/O2O workstream: [#760](https://github.com/yiwssx/new-www.rcat.ac.th/issues/760)
+**Status: ACTIVE / P0 — monitoring merged, AnyFlip public access not recovered.**
+Incident: [#786](https://github.com/yiwssx/new-www.rcat.ac.th/issues/786) · SaaS/O2O: [#760](https://github.com/yiwssx/new-www.rcat.ac.th/issues/760).
 
-## Scope and non-negotiable constraints
+## Scope and operator decision (2026-11-02)
 
-This is **not RMS-only**. The objective is to protect **all DNS records/subdomains in the active institutional zone**, including apex, website, email, all applications and new hostnames, plus the separate SaaS provider zone. Do **not** touch the authoritative nameservers, production www CNAME, SaaS gateway, RMS/PDF/IoT/Radio origin, firewall or Apache while diagnosing the AnyFlip problem.
+This workstream now covers **our controllable projects only**: the `www` SaaS/O2O Gateway, AnyFlip application and reverse-proxy diagnostics, and read-only public DNS/HTTP/TLS checks of registered RCAT services. **Do not pursue, request access to, edit, compare snapshots from, or make closure dependent on the institutional domain-holder's DNS zone/account.**
 
-Confirmed owner configuration:
+Accepted infrastructure facts remain unchanged. The owner made the agreed `www` CNAME change; AnyFlip was created later with the same intended direct-to-RMS A record configuration as older applications. We will not repeatedly request reconfirmation. The appearance of Cloudflare anycast IPs for AnyFlip is a confirmed symptom, **not proof the `www` SaaS Gateway serves that hostname**.
 
-- Authoritative rcat.ac.th NS = kirk/maria, domain-owner account. Domain owner only changed www CNAME to edge.rcat.dpdns.org (Proxied) for O2O, and subsequently added AnyFlip A = 202.29.239.145 DNS-only. These facts are accepted and must not be repeatedly questioned.
-- Provider rcat.dpdns.org uses roan/serena in another account, with exact SaaS custom hostname www.rcat.ac.th; there is no provider wildcard.
-- Older DNS-only names remain pointed to 202.29.239.145; AnyFlip unexpectedly returns Cloudflare anycast IP. Cloudflare IP equality with www alone cannot prove a shared origin or Gateway.
-- Root DNS TTL expiry re-queries authority; it does not replace an origin. ICMP TTL=64 is unrelated.
+Protect production: no changes to DNS/NS, Vercel application, institutional reverse proxies, RMS, PDF, IoT, Radio, firewall, or TLS certificates without a separate scoped plan.
 
-## Monitoring architecture — two distinct coverage levels
+## Architecture and monitoring
 
-### Public baseline (enabled without owner credentials)
+- `scripts/dns-monitor.json`: explicitly registered public-service baseline for `rcat.ac.th` apex, `www`, Google Workspace MX/SPF, `rms`, `pdf`, `iot`, `radio`, `anyflip`, provider NS, edge and fallback.
+- `scripts/check-critical-dns.mjs`: external read-only verification from independent DNS-over-HTTPS resolvers. No credentials, provider account changes, or full-zone enumeration. **New subdomains must be added explicitly**; public DNS cannot enumerate all possible names.
+- `cloudflare/web-failover/saas-gateway.node-check.mjs`: fail-closed test for sibling institutional hostnames. Their requests must return HTTP 503 without calling the Vercel primary or standby.
+- Existing `Production Verification` six-hour cadence runs the public-service DNS guard and Node tests; no duplicate scheduled workflow.
+- `anyflip-downloader/scripts/diagnose-public-dns.sh` (merged): compare public name routing and directly addressed RMS origin using host-preserving `curl --resolve`. It is read-only.
 
-Run: node scripts/check-critical-dns.mjs
-Baseline file: scripts/dns-monitor.json
+The previously proposed owner-zone API audit and baseline are **deliberately removed from this project**, not deferred or blocked.
 
-Validates independent public resolvers for **all names/types confirmed so far**:
+## Current verified state
 
-- Authoritative NS + root A presence, Google Workspace MX, SPF TXT
-- www A presence
-- rms/pdf/iot/radio A exact 202.29.239.145 and absence of AAAA
-- anyflip A expected 202.29.239.145 and absence of AAAA (KNOWN incident #786 warning until fixed; enable RCAT_ANYFLIP_DNS_STRICT=true afterwards)
-- provider NS plus edge and fallback A presence
+- [x] [new-www PR #787](https://github.com/yiwssx/new-www.rcat.ac.th/pull/787) merged into `main` (commit `8d5dcd65343204ada3d2d7d928eb2f713c0e26dc`).
+- [x] [AnyFlip PR #63](https://github.com/yiwssx/anyflip-downloader/pull/63) merged into `main` (commit `6548b6b5d8cfb6cd133a87fd377cd04e9e27fabf`).
+- [x] [CI #4985](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/41459412694) succeeded in all required lanes, including E2E, unit, integration and quality.
+- [x] External DNS checks passed for listed services except `anyflip` A/AAAA drift.
+- [x] Subsequent external HTTPS probe showed `www` responding but AnyFlip still hanging after TLS. Do not report it as repaired.
+- [x] Owner-zone API/snapshot dependency removed; fail-closed gateway sibling-host tests expanded (this PR).
+- [ ] Review and merge this PR after CI passes.
+- [ ] Verify live gateway routes and custom-hostname inventory in **our own** SaaS provider account.
+- [ ] Complete AnyFlip public-path restoration through the reachable application and reverse-proxy infrastructure, with operator-controlled access only.
+- [ ] Confirm health from an authorized external vantage point; verify `www`, RMS and other applications remain unaffected; close Incident #786.
 
-The root Vercel addresses and proxied www/provider IPs are deliberately not pinned to fixed IP values, because they can rotate. No checks mutate configuration. New names can be registered in this baseline, but **public DNS cannot enumerate all zone records**, so this level is intentionally labeled PARTIAL. The baseline covers DNS integrity, not full HTTP/TLS/functional health.
+## Acceptance and rollback
 
-### Full authoritative zone inventory (requires read-only owner account)
-
-Run: node scripts/check-authoritative-zone-inventory.mjs
-
-The authoritative Cloudflare **owner's ACTIVE rcat.ac.th Zone ID** and scoped DNS:Read token must be supplied. The **pending duplicate rcat.ac.th zone in the provider account must never be used**; the provider zone is independent and not authoritative for institutional records.
-
-To export a complete approved baseline on a trusted machine without changing DNS:
-
-    export RCAT_AUTH_DNS_ZONE_ID='<real-active-rcat.ac.th-zone-id>'
-    export RCAT_AUTH_DNS_READ_TOKEN='<scoped-owner-account-dns-read-token>'
-    node scripts/check-authoritative-zone-inventory.mjs capture /tmp/rcat-authoritative-zone-snapshot.json
-
-Review the entire active zone, validate the expected change set, and store the approved snapshot as config/authoritative-zone-dns-baseline.json (never store the API token). The snapshot includes the hostname, type, whether proxied, TTL for DNS-only records, priority, and **SHA-256 of the record content** rather than plain-text contents. Each subsequent run fetches **every page of records** and fails if an existing record changed, a record disappeared or any new record appeared.
-
-When these are provisioned in GitHub:
-
-- secret RCAT_AUTH_DNS_READ_TOKEN
-- variable RCAT_AUTH_DNS_ZONE_ID
-- approved baseline file config/authoritative-zone-dns-baseline.json
-
-...the existing Production Verification workflow will enforce full-zone drift detection on its existing 6-hour cadence. If credentials are missing it emits an explicit COVERAGE INCOMPLETE warning rather than claiming to have audited the whole zone. If token is supplied without an approved snapshot the full-zone job fails closed. An approved baseline change must be committed through a reviewed PR after intentional DNS changes.
-
-## Current repository changes (2026-11-02)
-
-- Website/central DNS PR [#787](https://github.com/yiwssx/new-www.rcat.ac.th/pull/787) **MERGED** (squash `8d5dcd65343204ada3d2d7d928eb2f713c0e26dc`). Existing six-hour Production Verification workflow owns the publicly verified subset and optional exhaustive ACTIVE-zone inventory.
-- AnyFlip diagnostic PR [yiwssx/anyflip-downloader#63](https://github.com/yiwssx/anyflip-downloader/pull/63) **MERGED** (squash `6548b6b5d8cfb6cd133a87fd377cd04e9e27fabf`), read-only diagnostic and runbook.
-- Verification: [GitHub CI #4985](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/41459412694) **SUCCESS**, including all unit, integration, functional E2E, build, static, governance, worker jobs. Independent DNS Node tests 11/11 passed. Live DNS checks PASS except known AnyFlip A/AAAA drift.
-- Independent Vercel status reported account-level deployment blocked on PR #787, unrelated to these diagnostics. DNS check scripts require no Vercel site deployment.
-- **Coverage gate (verified 2026-11-02)**: connected Cloudflare account contains only a PENDING rcat.ac.th duplicate using roan/serena. Actual authority remains maria/kirk in the owner's separate account. Until actual ACTIVE-zone scoped read access and an approved baseline are supplied, coverage is PARTIAL; never claim the inventory protects all records.
-
-## Implementation checkpoints
-
-- [x] Inventory publicly verified institutional apex, application, mail, and provider records; label incomplete scope explicitly.
-- [x] Add cross-project DNS drift tests and a read-only public baseline checker.
-- [x] Implement full authoritative DNS record enumeration with digest-based drift comparison.
-- [x] Integrate checks into the existing Production Verification 6-hour cadence; no parallel scheduler.
-- [ ] Obtain access to actual domain-owner Active Zone via scoped Cloudflare DNS:Read credential; connected provider account alone cannot audit it.
-- [ ] Capture and approve real full-zone snapshot, then turn on full inventory enforcement.
-- [ ] Diagnose and resolve AnyFlip-only DNS/public path without changing institutional records.
-- [ ] Verify AnyFlip public HTTPS /healthz and all existing institutional DNS/HTTP paths; only then enable strict AnyFlip DNS check.
-- [x] Record successful CI and merge both cross-project PRs (#787 and anyflip #63).
-- [ ] Complete full owner-zone baseline, fix AnyFlip public DNS/HTTPS, independently verify all critical services, then close Incident #786.
-
-## Release/rollback criteria
-
-Changes in this workstream are diagnostics and CI only. No live DNS changes are made. A failed public DNS drift check may indicate data divergence or independent resolver outage; confirm authoritative answers before a DNS correction. Never use account-level 'enforce DNS-only', turn off all proxy records, or change the .ac.th nameservers as a workaround.
+No DNS/NS or host routing mutations are performed by these changes. The incident closes when AnyFlip's public HTTPS/health endpoint works, existing institutional applications remain healthy, and the `www` SaaS Gateway remains scoped to `www`. All actions must be read-only until a scoped intervention is justified. Vercel deployment status is independent from these monitoring/code tests.
