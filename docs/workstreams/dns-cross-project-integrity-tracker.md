@@ -1,6 +1,6 @@
 # Institutional DNS integrity — cross-project workstream
 
-Status: **ACTIVE / P0** · Incident [#786](https://github.com/yiwssx/new-www.rcat.ac.th/issues/786)
+Status: **ACTIVE / P0 — monitoring merged, AnyFlip DNS unresolved** · Incident [#786](https://github.com/yiwssx/new-www.rcat.ac.th/issues/786)
 Related www SaaS/O2O workstream: [#760](https://github.com/yiwssx/new-www.rcat.ac.th/issues/760)
 
 ## Scope and non-negotiable constraints
@@ -55,11 +55,11 @@ When these are provisioned in GitHub:
 
 ## Current repository changes (2026-11-02)
 
-- Website/central DNS PR: [#787](https://github.com/yiwssx/new-www.rcat.ac.th/pull/787), branch `fix/dns-o2o-anyflip-rms-guard-20261102`; includes the existing six-hour workflow, a publicly verified subset and an optional exhaustive ACTIVE-zone inventory.
-- AnyFlip diagnostic PR: [yiwssx/anyflip-downloader#63](https://github.com/yiwssx/anyflip-downloader/pull/63), same branch name; read-only diagnostic script and incident runbook.
-- Offline unit tests: 11 passing on implementation code. The CI initially failed because native `node:test` files were discovered by Vitest; they have now been renamed to `.node-check.mjs` and run only via `node --test` in the existing workflow. Recheck PR CI before merge.
-- Vercel's status API separately reports account deployment blocked for PR #787; this is NOT evidence of a DNS regression and no deployment is requested by the changes.
-- **Coverage gate:** until access to the REAL authoritative owner account and an approved snapshot is available, public DNS checks must remain explicitly partial; full-zone monitoring cannot be claimed complete.
+- Website/central DNS PR [#787](https://github.com/yiwssx/new-www.rcat.ac.th/pull/787) **MERGED** (squash `8d5dcd65343204ada3d2d7d928eb2f713c0e26dc`). Existing six-hour Production Verification workflow owns the publicly verified subset and optional exhaustive ACTIVE-zone inventory.
+- AnyFlip diagnostic PR [yiwssx/anyflip-downloader#63](https://github.com/yiwssx/anyflip-downloader/pull/63) **MERGED** (squash `6548b6b5d8cfb6cd133a87fd377cd04e9e27fabf`), read-only diagnostic and runbook.
+- Verification: [GitHub CI #4985](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/41459412694) **SUCCESS**, including all unit, integration, functional E2E, build, static, governance, worker jobs. Independent DNS Node tests 11/11 passed. Live DNS checks PASS except known AnyFlip A/AAAA drift.
+- Independent Vercel status reported account-level deployment blocked on PR #787, unrelated to these diagnostics. DNS check scripts require no Vercel site deployment.
+- **Coverage gate (verified 2026-11-02)**: connected Cloudflare account contains only a PENDING rcat.ac.th duplicate using roan/serena. Actual authority remains maria/kirk in the owner's separate account. Until actual ACTIVE-zone scoped read access and an approved baseline are supplied, coverage is PARTIAL; never claim the inventory protects all records.
 
 ## Implementation checkpoints
 
@@ -71,7 +71,8 @@ When these are provisioned in GitHub:
 - [ ] Capture and approve real full-zone snapshot, then turn on full inventory enforcement.
 - [ ] Diagnose and resolve AnyFlip-only DNS/public path without changing institutional records.
 - [ ] Verify AnyFlip public HTTPS /healthz and all existing institutional DNS/HTTP paths; only then enable strict AnyFlip DNS check.
-- [ ] Record CI results / merge / operator validation in both repos and close Incident #786.
+- [x] Record successful CI and merge both cross-project PRs (#787 and anyflip #63).
+- [ ] Complete full owner-zone baseline, fix AnyFlip public DNS/HTTPS, independently verify all critical services, then close Incident #786.
 
 ## Release/rollback criteria
 
