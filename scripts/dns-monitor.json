@@ -7,10 +7,7 @@
       "name": "rcat.ac.th",
       "type": "NS",
       "policy": "exact",
-      "expected": [
-        "kirk.ns.cloudflare.com",
-        "maria.ns.cloudflare.com"
-      ],
+      "expected": ["kirk.ns.cloudflare.com", "maria.ns.cloudflare.com"],
       "severity": "critical",
       "owner": "institution"
     },
@@ -40,9 +37,7 @@
       "name": "rcat.ac.th",
       "type": "TXT",
       "policy": "contains",
-      "expected": [
-        "v=spf1 include:_spf.google.com ~all"
-      ],
+      "expected": ["v=spf1 include:_spf.google.com ~all"],
       "severity": "critical",
       "owner": "institution"
     },
@@ -58,9 +53,7 @@
       "name": "rms.rcat.ac.th",
       "type": "A",
       "policy": "exact",
-      "expected": [
-        "202.29.239.145"
-      ],
+      "expected": ["202.29.239.145"],
       "severity": "critical",
       "owner": "institution"
     },
@@ -76,9 +69,7 @@
       "name": "pdf.rcat.ac.th",
       "type": "A",
       "policy": "exact",
-      "expected": [
-        "202.29.239.145"
-      ],
+      "expected": ["202.29.239.145"],
       "severity": "critical",
       "owner": "institution"
     },
@@ -94,9 +85,7 @@
       "name": "iot.rcat.ac.th",
       "type": "A",
       "policy": "exact",
-      "expected": [
-        "202.29.239.145"
-      ],
+      "expected": ["202.29.239.145"],
       "severity": "critical",
       "owner": "institution"
     },
@@ -112,9 +101,7 @@
       "name": "radio.rcat.ac.th",
       "type": "A",
       "policy": "exact",
-      "expected": [
-        "202.29.239.145"
-      ],
+      "expected": ["202.29.239.145"],
       "severity": "critical",
       "owner": "institution"
     },
@@ -130,9 +117,7 @@
       "name": "anyflip.rcat.ac.th",
       "type": "A",
       "policy": "exact",
-      "expected": [
-        "202.29.239.145"
-      ],
+      "expected": ["202.29.239.145"],
       "severity": "warning",
       "owner": "incident-786"
     },
@@ -148,10 +133,7 @@
       "name": "rcat.dpdns.org",
       "type": "NS",
       "policy": "exact",
-      "expected": [
-        "roan.ns.cloudflare.com",
-        "serena.ns.cloudflare.com"
-      ],
+      "expected": ["roan.ns.cloudflare.com", "serena.ns.cloudflare.com"],
       "severity": "critical",
       "owner": "o2o-provider"
     },
