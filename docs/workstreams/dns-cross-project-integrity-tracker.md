@@ -47,6 +47,14 @@ When these are provisioned in GitHub:
 
 ...the existing Production Verification workflow will enforce full-zone drift detection on its existing 6-hour cadence. If credentials are missing it emits an explicit COVERAGE INCOMPLETE warning rather than claiming to have audited the whole zone. If token is supplied without an approved snapshot the full-zone job fails closed. An approved baseline change must be committed through a reviewed PR after intentional DNS changes.
 
+## Current repository changes (2026-11-02)
+
+- Website/central DNS PR: [#787](https://github.com/yiwssx/new-www.rcat.ac.th/pull/787), branch `fix/dns-o2o-anyflip-rms-guard-20261102`; includes the existing six-hour workflow, a publicly verified subset and an optional exhaustive ACTIVE-zone inventory.
+- AnyFlip diagnostic PR: [yiwssx/anyflip-downloader#63](https://github.com/yiwssx/anyflip-downloader/pull/63), same branch name; read-only diagnostic script and incident runbook.
+- Offline unit tests: 11 passing on implementation code; GitHub PR CI and required checks must be verified before merge.
+- Vercel's status API separately reports account deployment blocked for PR #787; this is NOT evidence of a DNS regression and no deployment is requested by the changes.
+- **Coverage gate:** until access to the REAL authoritative owner account and an approved snapshot is available, public DNS checks must remain explicitly partial; full-zone monitoring cannot be claimed complete.
+
 ## Implementation checkpoints
 - [x] Inventory publicly verified institutional apex, application, mail, and provider records; label incomplete scope explicitly.
 - [x] Add cross-project DNS drift tests and a read-only public baseline checker.
