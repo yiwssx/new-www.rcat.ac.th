@@ -1,6 +1,6 @@
 /**
  * Cross-project read-only DNS drift guard. Covers all *verified* public records
- * in dns-monitor.json. Full zone enumeration uses the separate owner API audit.
+ * in dns-monitor.json. No external DNS-zone account access is required.
  */
 import { appendFileSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -64,7 +64,7 @@ export async function runDnsGuard({
   const summary = [
     "## Cross-project RCAT DNS drift monitoring",
     "",
-    "> Publicly verified subset only. Full-zone enumeration requires owner Cloudflare API read access and an approved inventory.",
+    "> Registered public-service inventory only; names not listed are not automatically discovered.",
     "",
     "| Resolver | Host | Type | Status |",
     "| --- | --- | --- | --- |"
