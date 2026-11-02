@@ -57,7 +57,7 @@ When these are provisioned in GitHub:
 
 - Website/central DNS PR: [#787](https://github.com/yiwssx/new-www.rcat.ac.th/pull/787), branch `fix/dns-o2o-anyflip-rms-guard-20261102`; includes the existing six-hour workflow, a publicly verified subset and an optional exhaustive ACTIVE-zone inventory.
 - AnyFlip diagnostic PR: [yiwssx/anyflip-downloader#63](https://github.com/yiwssx/anyflip-downloader/pull/63), same branch name; read-only diagnostic script and incident runbook.
-- Offline unit tests: 11 passing on implementation code; GitHub PR CI and required checks must be verified before merge.
+- Offline unit tests: 11 passing on implementation code. The CI initially failed because native `node:test` files were discovered by Vitest; they have now been renamed to `.node-check.mjs` and run only via `node --test` in the existing workflow. Recheck PR CI before merge.
 - Vercel's status API separately reports account deployment blocked for PR #787; this is NOT evidence of a DNS regression and no deployment is requested by the changes.
 - **Coverage gate:** until access to the REAL authoritative owner account and an approved snapshot is available, public DNS checks must remain explicitly partial; full-zone monitoring cannot be claimed complete.
 
