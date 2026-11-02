@@ -38,10 +38,21 @@ export async function fetchFullZone({ zoneId, token, fetchImpl = fetch }) {
   throw Error('DNS inventory exceeds 100 pages (fail closed)');
 }
 export function diffInventory(current, approved) {
-  const expected = new Set(approved.map((r) => JSON.stringify(r)));
-  const actual = new Set(current.map((r) => JSON.stringify(r)));
-  const missing = approved.filter((r) => !actual.has(JSON.stringify(r)));
-  const added = current.filter((r) => !expected.has(JSON.stringify(r)));
+  // Compare multisets: a duplicate A/TXT/MX record must not disappear unnoticed.
+  const subtract = (left, right) => {
+    const counts = new Map();
+    for (const r of right) {
+      const key = JSON.stringify(r);
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
+    return left.filter((r) => {
+      const key = JSON.stringify(r), remaining = counts.get(key) || 0;
+      if (remaining) { counts.set(key, remaining - 1); return false; }
+      return true;
+    });
+  };
+  const missing = subtract(approved, current);
+  const added = subtract(current, approved);
   return { changed: Boolean(missing.length || added.length), missing, added };
 }
 export async function runInventory({ env = process.env, fetchImpl = fetch, command = process.argv[2],
