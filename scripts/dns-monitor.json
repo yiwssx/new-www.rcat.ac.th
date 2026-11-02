@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "coverage": "PUBLICLY_VERIFIED_SUBSET_NOT_FULL_ZONE",
-  "description": "Read-only monitor of VERIFIED public hostnames. Complete zone coverage requires owner-account DNS API inventory, never inferred from public DNS.",
+  "coverage": "REGISTERED_PUBLIC_SERVICE_INVENTORY",
+  "description": "Read-only external DNS checks for the explicitly registered institutional service inventory (including apex, mail, public applications and SaaS O2O). New services are added through reviewed changes; no credential or cross-account zone audit required.",
   "checks": [
     {
       "name": "rcat.ac.th",
