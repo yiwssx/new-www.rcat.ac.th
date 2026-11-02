@@ -33,6 +33,11 @@ on:
       - "scripts/check-production-auth-security-events.mjs"
       - "scripts/p6c-production-reliability-smoke.mjs"
       - "scripts/check-p6c-recovery-reliability.mjs"
+      - "scripts/check-critical-dns.mjs"
+      - "scripts/check-critical-dns.test.mjs"
+      - "scripts/check-authoritative-zone-inventory.mjs"
+      - "scripts/check-authoritative-zone-inventory.test.mjs"
+      - "scripts/dns-monitor.json"
       - "config/p6c-recovery-readiness.json"
       - "docs/operations/p6c-recovery-reliability.md"
   workflow_dispatch:
@@ -49,6 +54,7 @@ on:
           - reliability
           - auth-anomaly
           - observability
+          - dns
       base_url:
         description: "HTTPS site URL for manual browser smoke"
         required: false
@@ -388,6 +394,30 @@ jobs:
         env:
           P6B_CSP_EXPECTED_MARKER: p6b-enforced-v1
         run: node scripts/p6b-csp-production-smoke.mjs
+
+  dns-guard:
+    name: Institutional DNS & all-record inventory
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      ((github.event_name == 'schedule' && github.event.schedule == '7 */6 * * *') ||
+       github.event_name == 'push' ||
+       (github.event_name == 'workflow_dispatch' && (inputs.operation == 'all' || inputs.operation == 'dns')))
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+      - name: Unit-test non-destructive DNS checks
+        run: node --test scripts/check-critical-dns.test.mjs scripts/check-authoritative-zone-inventory.test.mjs
+      - name: Verify publicly known institutional, mail, website and provider DNS
+        run: node scripts/check-critical-dns.mjs
+      - name: Compare every authoritative DNS record with approved full-zone baseline when permitted
+        env:
+          RCAT_AUTH_DNS_READ_TOKEN: ${{ secrets.RCAT_AUTH_DNS_READ_TOKEN }}
+          RCAT_AUTH_DNS_ZONE_ID: ${{ vars.RCAT_AUTH_DNS_ZONE_ID }}
+        run: node scripts/check-authoritative-zone-inventory.mjs
 
   reliability:
     name: Public Recovery Baseline
