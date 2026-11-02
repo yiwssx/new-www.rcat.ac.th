@@ -176,6 +176,12 @@ test("isolated workers.dev candidate fails closed on public GET/HEAD, API and wr
     new Request(preview + "/api/public/home?lang=th"),
     new Request(preview + "/news", { method: "HEAD" }),
     new Request(preview + "/api/public/home", { method: "POST", body: "not-allowed" }),
+    new Request("https://anyflip.rcat.ac.th/healthz"),
+    new Request("https://anyflip.rcat.ac.th/"),
+    new Request("https://rms.rcat.ac.th/"),
+    new Request("https://pdf.rcat.ac.th/"),
+    new Request("https://iot.rcat.ac.th/"),
+    new Request("https://radio.rcat.ac.th/"),
     new Request("https://unrelated.example/news")
   ];
   for (const request of attempts) {
