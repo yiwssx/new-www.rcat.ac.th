@@ -34,9 +34,9 @@ on:
       - "scripts/p6c-production-reliability-smoke.mjs"
       - "scripts/check-p6c-recovery-reliability.mjs"
       - "scripts/check-critical-dns.mjs"
-      - "scripts/check-critical-dns.test.mjs"
+      - "scripts/check-critical-dns.node-check.mjs"
       - "scripts/check-authoritative-zone-inventory.mjs"
-      - "scripts/check-authoritative-zone-inventory.test.mjs"
+      - "scripts/check-authoritative-zone-inventory.node-check.mjs"
       - "scripts/dns-monitor.json"
       - "config/p6c-recovery-readiness.json"
       - "docs/operations/p6c-recovery-reliability.md"
@@ -410,7 +410,7 @@ jobs:
         with:
           node-version-file: .node-version
       - name: Unit-test non-destructive DNS checks
-        run: node --test scripts/check-critical-dns.test.mjs scripts/check-authoritative-zone-inventory.test.mjs
+        run: node --test scripts/check-critical-dns.node-check.mjs scripts/check-authoritative-zone-inventory.node-check.mjs
       - name: Verify publicly known institutional, mail, website and provider DNS
         run: node scripts/check-critical-dns.mjs
       - name: Compare every authoritative DNS record with approved full-zone baseline when permitted
