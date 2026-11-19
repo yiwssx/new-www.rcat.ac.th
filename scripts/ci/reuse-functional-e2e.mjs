@@ -53,7 +53,7 @@ export async function trustedPrE2E({ repo, mainSha, beforeSha, get }) {
     const headSha = pr.head?.sha;
     const mergedAt = time(pr.merged_at);
     if (
-      pr.merged !== true ||
+      pr.state !== "closed" ||
       pr.merge_commit_sha !== mainSha ||
       pr.base?.ref !== "main" ||
       pr.base?.sha !== beforeSha ||
