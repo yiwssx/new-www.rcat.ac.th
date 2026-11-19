@@ -24,11 +24,17 @@ export function selectStaticQualityCommands(plan, eventName, regularFileExists) 
     commands: [["lint:strict"]]
   };
 
+  const trustedDocsEvent =
+    (eventName === "pull_request" && plan?.verifiedIntegration === true) ||
+    (eventName === "push" &&
+      plan?.verifiedPush === true &&
+      plan?.verifiedIntegration === false &&
+      plan?.reasons?.includes("verified-main-docs-only-range"));
+
   if (
-    eventName !== "pull_request" ||
+    !trustedDocsEvent ||
     plan?.mode !== "affected" ||
     plan.gateReady !== true ||
-    plan.verifiedIntegration !== true ||
     plan.version !== 1 ||
     !Array.isArray(plan.changedPaths) ||
     plan.changedPaths.length === 0 ||
@@ -55,7 +61,7 @@ export function selectStaticQualityCommands(plan, eventName, regularFileExists) 
 
   return {
     mode: "docs-only",
-    reason: "verified-pr-changed-existing-documents",
+    reason: eventName === "push" ? "verified-main-docs-only-range" : "verified-pr-changed-existing-documents",
     commands: []
   };
 }
