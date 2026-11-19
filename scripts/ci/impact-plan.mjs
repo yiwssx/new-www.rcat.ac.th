@@ -91,6 +91,18 @@ export function createImpactPlan(entries, map = defaultImpactMap) {
   validateMap(map);
   const paths = resolveChangedPaths(entries);
   if (!paths) return fullPlan(map, [], "empty-or-invalid-change-set");
+  // For deleted or renamed source, the transitive consumer graph is not attested.
+  // Keep the full regression plan rather than guessing what became unreachable.
+  for (const entry of entries) {
+    if (entry === null || typeof entry !== "object") continue;
+    if (entry.status !== "deleted" && entry.status !== "renamed") continue;
+    for (const path of [entry.path, entry.previousPath]) {
+      if (typeof path !== "string") continue;
+      if (path === "README.md" || path === "CHANGELOG.md" || path === "CONTRIBUTING.md") continue;
+      if (path.startsWith("docs/")) continue;
+      return fullPlan(map, paths, "destructive-source-or-contract-change");
+    }
+  }
 
   const lanes = new Set(["static-quality"]);
   const areas = new Set();

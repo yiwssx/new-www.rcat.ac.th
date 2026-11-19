@@ -45,6 +45,39 @@
       "lanes": ["static-quality", "unit", "build", "governance", "functional"]
     },
     {
+      "id": "backend-private-observability-and-retention",
+      "exact": ["cloudflare/public-api/src/db/d1QueryUsage.ts", "cloudflare/public-api/src/analyticsRetention.ts"],
+      "areas": ["backend", "data-internal"],
+      "lanes": ["static-quality", "unit", "integration", "worker", "governance"]
+    },
+    {
+      "id": "backend-public-response-consumer",
+      "exact": [
+        "cloudflare/public-api/src/routes/publicHome.ts",
+        "cloudflare/public-api/src/routes/publicContent.ts",
+        "cloudflare/public-api/src/routes/publicDocuments.ts",
+        "cloudflare/public-api/src/routes/publicEvents.ts",
+        "cloudflare/public-api/src/routes/publicPrograms.ts",
+        "cloudflare/public-api/src/routes/publicSearch.ts",
+        "cloudflare/public-api/src/routes/publicShell.ts"
+      ],
+      "areas": ["backend", "public", "api-contract"],
+      "lanes": ["static-quality", "unit", "integration", "build", "governance", "worker", "functional"]
+    },
+    {
+      "id": "backend-admin-menu-crud-consumers",
+      "exact": ["cloudflare/public-api/src/routes/adminMenuMutations.ts"],
+      "areas": ["backend", "admin", "public", "crud-contract"],
+      "lanes": ["static-quality", "unit", "integration", "build", "governance", "worker", "functional"]
+    },
+    {
+      "id": "schema-and-migration-cross-consumers",
+      "exact": ["cloudflare/public-api/src/db/schema.ts"],
+      "prefix": ["cloudflare/public-api/migrations/"],
+      "areas": ["database", "shared"],
+      "full": true
+    },
+    {
       "id": "worker-source-unknown-contract-impact",
       "prefix": ["cloudflare/public-api/src/"],
       "full": true,
@@ -98,6 +131,23 @@
       "prefix": ["src/shared/", "src/services/", "src/features/cms-settings/"],
       "full": true,
       "areas": ["shared"]
+    },
+    {
+      "id": "frontend-cms-features",
+      "prefix": [
+        "src/features/cms-carousel/",
+        "src/features/cms-dashboard/",
+        "src/features/cms-documents/",
+        "src/features/cms-events/",
+        "src/features/cms-media/",
+        "src/features/cms-content/",
+        "src/features/cms-navigation/",
+        "src/features/cms-external-services/",
+        "src/features/organization-admin/",
+        "src/features/admin-pagination/"
+      ],
+      "areas": ["frontend", "admin"],
+      "lanes": ["static-quality", "unit", "integration", "build", "functional"]
     },
     {
       "id": "docs",
