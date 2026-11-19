@@ -91,25 +91,22 @@ export function createImpactPlan(entries, map = defaultImpactMap) {
   validateMap(map);
   const paths = resolveChangedPaths(entries);
   if (!paths) return fullPlan(map, [], "empty-or-invalid-change-set");
-  // Deletions and renames can break imports, routes, database contracts and callers.
-  // Until consumer reachability is verified, preserve the full safety net for source changes.
-  const destructiveSourceChange = entries.some(
-    (entry) =>
-      entry &&
-      typeof entry === "object" &&
-      (entry.status === "deleted" || entry.status === "renamed") &&
-      [entry.path, entry.previousPath]
-        .filter((path) => typeof path === "string")
-        .some(
-          (path) =>
-            path !== "README.md" &&
-            path !== "CHANGELOG.md" &&
-            path !== "CONTRIBUTING.md" &&
-            !path.startsWith("docs/")
-        )
-  );
-  if (destructiveSourceChange) return fullPlan(map, paths, "destructive-source-or-contract-change");
+  // Deletions and renames may break downstream consumers or database contracts.
+  // Until their reachability is verified, require full regression for source changes.
+  for (const entry of entries) {
+    if (!entry || typeof entry !== "object") continue;
+    if (entry.status !== "deleted" && entry.status !== "renamed") continue;
 
+    const changed = [entry.path, entry.previousPath].filter((path) => typeof path === "string");
+    const docsOnly = changed.every(
+      (path) =>
+        path === "README.md" ||
+        path === "CHANGELOG.md" ||
+        path === "CONTRIBUTING.md" ||
+        path.startsWith("docs/")
+    );
+    if (!docsOnly) return fullPlan(map, paths, "destructive-source-or-contract-change");
+  }
 
   const lanes = new Set(["static-quality"]);
   const areas = new Set();
