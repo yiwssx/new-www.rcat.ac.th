@@ -1,5 +1,6 @@
 import { createImpactPlan, defaultImpactMap } from "./impact-plan.mjs";
 import { isAllowlistedMainSource, isSafeMainDocument } from "./detect-impact.mjs";
+import { makeReader, trustedPrE2E } from "./reuse-functional-e2e.mjs";
 
 export function validateQualityGate(plan, results, impactStatus, preflightStatus, eventName) {
   const errors = [];
@@ -42,14 +43,40 @@ export function validateQualityGate(plan, results, impactStatus, preflightStatus
   let verifiedScopedPush = false;
   if (sourceSafe) {
     const expected = createImpactPlan(sourceEntries);
-    const expectedReasons = [...expected.reasons, "verified-main-scoped-impact-range"];
+    const proof = plan.reuseFunctional;
+    const proofShape =
+      proof &&
+      /^[0-9a-f]{40}$/i.test(proof.treeSha ?? "") &&
+      proof.mainSha === plan.checkoutSha &&
+      proof.beforeSha === plan.beforeSha &&
+      /^[0-9a-f]{40}$/i.test(proof.prHeadSha ?? "") &&
+      [proof.prNumber, proof.prRunId, proof.runAttempt, proof.e2eJobId, proof.qualityJobId].every(
+        (value) => Number.isInteger(value) && value > 0
+      );
+    const reusable = Boolean(
+      proofShape &&
+      expected.requiredLanes.includes("functional") &&
+      sourceEntries.some((entry) => isAllowlistedMainSource(entry.path))
+    );
+    const expectedRequired = reusable
+      ? expected.requiredLanes.filter((lane) => lane !== "functional")
+      : expected.requiredLanes;
+    const expectedSkipped = reusable
+      ? [...expected.skippedLanes, "functional"]
+      : expected.skippedLanes;
+    const expectedReasons = [
+      ...expected.reasons,
+      "verified-main-scoped-impact-range",
+      ...(reusable ? ["reused-pr-full-e2e-identical-tree"] : [])
+    ];
     verifiedScopedPush =
       expected.mode === "affected" &&
+      (!proof || reusable) &&
       sourceEntries.some((entry) => isAllowlistedMainSource(entry.path)) &&
       JSON.stringify(plan.changedPaths) === JSON.stringify(expected.changedPaths) &&
       JSON.stringify(plan.areas) === JSON.stringify(expected.areas) &&
-      JSON.stringify(plan.requiredLanes) === JSON.stringify(expected.requiredLanes) &&
-      JSON.stringify(plan.skippedLanes) === JSON.stringify(expected.skippedLanes) &&
+      JSON.stringify(plan.requiredLanes) === JSON.stringify(expectedRequired) &&
+      JSON.stringify(plan.skippedLanes) === JSON.stringify(expectedSkipped) &&
       JSON.stringify(plan.reasons) === JSON.stringify(expectedReasons);
   }
 
@@ -141,6 +168,9 @@ export function formatQualityGateSummary({ plan, results, impactStatus, prefligh
     `- Change-impact job: ${safeText(impactStatus)}`,
     `- Dependency preflight: ${safeText(preflightStatus)}`,
     `- Reasons: ${reasons}`,
+    ...(plan?.reuseFunctional
+      ? [`- Full Functional E2E: **REUSED** successful PR #${safeText(plan.reuseFunctional.prNumber)} / CI run ${safeText(plan.reuseFunctional.prRunId)} on identical Git tree ${safeText(plan.reuseFunctional.treeSha)}`]
+      : []),
     "",
     "| Lane | Planned | Observed | Match |",
     "| --- | --- | --- | --- |"
@@ -182,6 +212,18 @@ if (process.argv[1] && process.argv[1].endsWith("/quality-gate.mjs")) {
         process.env.CI_PREFLIGHT_STATUS,
         process.env.GITHUB_EVENT_NAME
       );
+      if (plan.reuseFunctional) {
+        const get = makeReader(process.env.GITHUB_REPOSITORY, process.env.GITHUB_TOKEN);
+        const verified = await trustedPrE2E({
+          repo: process.env.GITHUB_REPOSITORY,
+          mainSha: plan.checkoutSha,
+          beforeSha: plan.beforeSha,
+          get
+        });
+        if (!verified || JSON.stringify(verified) !== JSON.stringify(plan.reuseFunctional)) {
+          errors.push("Prior Full E2E evidence could not be independently verified");
+        }
+      }
       console.log("RCAT CI lanes:", JSON.stringify({ mode: plan.mode, required: plan.requiredLanes, results }));
       if (process.env.GITHUB_STEP_SUMMARY) {
         try {
