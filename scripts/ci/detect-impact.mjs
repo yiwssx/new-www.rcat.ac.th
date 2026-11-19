@@ -19,7 +19,6 @@ export function isSafeMainDocument(path) {
   );
 }
 
-
 export function parseChangedFiles(output) {
   if (!output || !output.endsWith("\0")) {
     throw new Error("Incomplete or empty git diff");
@@ -111,6 +110,7 @@ export function selectCIPlan({
       reasons: [...plan.reasons, "verified-main-docs-only-range"]
     };
   }
+
   if (eventName !== "pull_request") {
     return allLanes("full-source-validation:" + String(eventName || "unknown"));
   }
@@ -185,6 +185,7 @@ function selectFromCheckout(env) {
       return allLanes("git-push-diff-unavailable:" + (error instanceof Error ? error.name : "unknown"));
     }
   }
+
   if (env.GITHUB_EVENT_NAME !== "pull_request") {
     return selectCIPlan({ eventName: env.GITHUB_EVENT_NAME });
   }
