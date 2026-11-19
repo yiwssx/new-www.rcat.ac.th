@@ -83,7 +83,12 @@ describe("verified CI impact detection", () => {
   it.each([
     { changes: [{ status: "modified", path: "src/public/pages/PublicNewsPage.tsx" }] },
     { changes: [{ status: "modified", path: "README.md" }, { status: "modified", path: "src/theme.ts" }] },
-    { changes: [{ status: "modified", path: "docs/guide.md" }, { status: "modified", path: ".github/workflows/ci.yml" }] },
+    {
+      changes: [
+        { status: "modified", path: "docs/guide.md" },
+        { status: "modified", path: ".github/workflows/ci.yml" }
+      ]
+    },
     { changes: [{ status: "deleted", path: "README.md" }] },
     { changes: [{ status: "renamed", path: "docs/new.md", previousPath: "docs/old.md" }] },
     { changes: [{ status: "added", path: "docs/script.js" }] },
