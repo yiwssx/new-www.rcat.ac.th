@@ -32,7 +32,19 @@ describe("P3 selective Static Quality", () => {
     expect(result.commands).toEqual([]);
   });
 
-  it.each(["push", "workflow_dispatch", "merge_group"])("keeps full checks for %s", (eventName) => {
+  it("avoids ESLint on a verified main docs-only push while keeping Prettier in the workflow", () => {
+    const plan = {
+      ...docsPlan,
+      verifiedIntegration: false,
+      verifiedPush: true,
+      reasons: [...docsPlan.reasons, "verified-main-docs-only-range"]
+    };
+    expect(selectStaticQualityCommands(plan, "push", exists).commands).toEqual([]);
+    expect(selectStaticQualityCommands({ ...plan, verifiedPush: false }, "push", exists).mode).toBe("full");
+    expect(selectStaticQualityCommands(plan, "push", () => false).mode).toBe("full");
+  });
+
+  it.each(["push", "workflow_dispatch", "merge_group"])("keeps full checks for %s without a verified docs push", (eventName) => {
     expect(selectStaticQualityCommands(docsPlan, eventName, exists).mode).toBe("full");
   });
 
