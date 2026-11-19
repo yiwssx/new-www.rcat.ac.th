@@ -61,7 +61,9 @@ export async function trustedPrE2E({ repo, mainSha, beforeSha, get }) {
       pr.number < 1 ||
       !SHA.test(headSha || "") ||
       !Number.isFinite(mergedAt)
-    ) return null;
+    ) {
+      return null;
+    }
     const main = await get(`/git/commits/${mainSha}`);
     const head = await get(`/git/commits/${headSha}`);
     if (
@@ -72,13 +74,17 @@ export async function trustedPrE2E({ repo, mainSha, beforeSha, get }) {
       !Array.isArray(main.parents) ||
       main.parents.length !== 1 ||
       main.parents[0].sha !== beforeSha
-    ) return null;
+    ) {
+      return null;
+    }
     const comparison = await get(`/compare/${beforeSha}...${headSha}`);
     if (
       comparison.status !== "ahead" ||
       comparison.behind_by !== 0 ||
       comparison.merge_base_commit?.sha !== beforeSha
-    ) return null;
+    ) {
+      return null;
+    }
     const list = await get(`/actions/runs?event=pull_request&head_sha=${headSha}&per_page=30`);
     if (!Array.isArray(list.workflow_runs) || list.workflow_runs.length > 30) return null;
     for (const run of list.workflow_runs) {
@@ -95,12 +101,16 @@ export async function trustedPrE2E({ repo, mainSha, beforeSha, get }) {
         !Number.isFinite(time(run.created_at)) ||
         !Number.isFinite(time(run.updated_at)) ||
         time(run.updated_at) > mergedAt
-      ) continue;
+      ) {
+        continue;
+      }
       const result = await get(`/actions/runs/${run.id}/jobs?per_page=100`);
       if (!Array.isArray(result.jobs) || result.total_count > 100) continue;
-      if (!["Change Impact", "Functional E2E", "quality"].every((name) =>
+      const requiredJobs = ["Change Impact", "Functional E2E", "quality"];
+      const allPassed = requiredJobs.every((name) =>
         passedJob(result.jobs, name, headSha, run.run_attempt, mergedAt)
-      )) continue;
+      );
+      if (!allPassed) continue;
       return {
         mainSha,
         beforeSha,
@@ -128,7 +138,9 @@ export async function maybeReuseE2E(plan, { repo, token, get } = {}) {
     !Array.isArray(plan.changedEntries) ||
     plan.changedEntries.length === 0 ||
     plan.reuseFunctional
-  ) return plan;
+  ) {
+    return plan;
+  }
   const request = get ?? (token ? makeReader(repo, token) : null);
   if (!request) return plan;
   const evidence = await trustedPrE2E({
