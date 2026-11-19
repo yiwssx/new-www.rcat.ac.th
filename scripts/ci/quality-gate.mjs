@@ -1,5 +1,5 @@
-import { defaultImpactMap } from "./impact-plan.mjs";
-import { isSafeMainDocument } from "./detect-impact.mjs";
+import { createImpactPlan, defaultImpactMap } from "./impact-plan.mjs";
+import { isAllowlistedMainSource, isSafeMainDocument } from "./detect-impact.mjs";
 
 export function validateQualityGate(plan, results, impactStatus, preflightStatus, eventName) {
   const errors = [];
@@ -19,6 +19,40 @@ export function validateQualityGate(plan, results, impactStatus, preflightStatus
 
   const required = new Set(plan.requiredLanes);
   const skipped = new Set(plan.skippedLanes);
+  const sourceEntries = plan.changedEntries;
+  const sourceSafe =
+    eventName === "push" &&
+    plan.mode === "affected" &&
+    plan.gateReady === true &&
+    plan.verifiedPush === true &&
+    plan.verifiedIntegration === false &&
+    /^[0-9a-f]{40}$/i.test(plan.beforeSha ?? "") &&
+    /^[0-9a-f]{40}$/i.test(plan.checkoutSha ?? "") &&
+    plan.beforeSha !== plan.checkoutSha &&
+    Array.isArray(sourceEntries) &&
+    sourceEntries.length > 0 &&
+    sourceEntries.length <= 60 &&
+    sourceEntries.every(
+      (entry) =>
+        (entry.status === "added" || entry.status === "modified") &&
+        typeof entry.path === "string" &&
+        (isAllowlistedMainSource(entry.path) || isSafeMainDocument(entry.path))
+    );
+
+  let verifiedScopedPush = false;
+  if (sourceSafe) {
+    const expected = createImpactPlan(sourceEntries);
+    const expectedReasons = [...expected.reasons, "verified-main-scoped-impact-range"];
+    verifiedScopedPush =
+      expected.mode === "affected" &&
+      sourceEntries.some((entry) => isAllowlistedMainSource(entry.path)) &&
+      JSON.stringify(plan.changedPaths) === JSON.stringify(expected.changedPaths) &&
+      JSON.stringify(plan.areas) === JSON.stringify(expected.areas) &&
+      JSON.stringify(plan.requiredLanes) === JSON.stringify(expected.requiredLanes) &&
+      JSON.stringify(plan.skippedLanes) === JSON.stringify(expected.skippedLanes) &&
+      JSON.stringify(plan.reasons) === JSON.stringify(expectedReasons);
+  }
+
   const verifiedDocsPush =
     eventName === "push" &&
     plan.mode === "affected" &&
@@ -59,8 +93,8 @@ export function validateQualityGate(plan, results, impactStatus, preflightStatus
     errors.push("Selective plan is not backed by a verified integrated PR tree");
   }
 
-  if (eventName === "push" && plan.mode !== "full" && !verifiedDocsPush) {
-    errors.push("Only verified documentation-only main pushes may use selective validation");
+  if (eventName === "push" && plan.mode !== "full" && !verifiedDocsPush && !verifiedScopedPush) {
+    errors.push("Only verified documentation or allowlisted source main pushes may use selective validation");
   }
 
   if (eventName !== "pull_request" && eventName !== "push" && plan.mode !== "full") {
