@@ -77,7 +77,7 @@ describe("verified CI impact detection", () => {
 
     const source = selectCIPlan({
       ...inputs,
-      changes: [{ status: "modified", path: "src/theme.ts" }]
+      changes: [{ status: "modified", path: "src/types.ts" }]
     });
     expect(source.mode).toBe("full");
     expect(selectCIPlan({ ...inputs, verifiedAncestor: false }).mode).toBe("full");
