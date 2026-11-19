@@ -18,10 +18,14 @@ permissions:
   contents: read
 
 jobs:
-  # Detect PR changes against the synthetic merge commit; main always runs full CI.
+  # PRs test the synthetic merge; main selects trusted impact and may reuse an identical-tree PR E2E.
   impact:
     name: Change Impact
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
     outputs:
       plan: ${{ steps.detect.outputs.plan }}
       require_dependencies: ${{ steps.detect.outputs.require_dependencies }}
@@ -36,9 +40,10 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - name: Calculate verified PR impact or fail closed to full checks
+      - name: Calculate verified change impact or fail closed to full checks
         id: detect
         env:
+          GITHUB_TOKEN: ${{ github.token }}
           CI_PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: node scripts/ci/detect-impact.mjs
 
@@ -194,12 +199,6 @@ jobs:
       - name: Validate production Playwright suite discovery
         run: pnpm exec playwright test --config playwright.production.config.ts --list
       - run: pnpm exec playwright install --with-deps chromium
-      # Issue #782: non-gating, exact-branch source-only dual-run evidence. The
-      # required Full E2E below still runs on the same checked-out merge tree.
-      - name: Observe isolated source-only candidate E2E (non-gating canary)
-        env:
-          CI_PLAN: ${{ needs.impact.outputs.plan }}
-        run: node scripts/ci/dual-run-functional-canary.mjs
       - name: Run changed Playwright specs when safe, or full Functional E2E
         env:
           CI_PLAN: ${{ needs.impact.outputs.plan }}
@@ -212,6 +211,7 @@ jobs:
     permissions:
       contents: read
       actions: read
+      pull-requests: read
     needs:
       - impact
       - dependency-preflight
@@ -230,6 +230,7 @@ jobs:
       - name: Verify planned CI lanes and justified skips
         env:
           CI_PLAN: ${{ needs.impact.outputs.plan }}
+          GITHUB_TOKEN: ${{ github.token }}
           CI_IMPACT_STATUS: ${{ needs.impact.result }}
           CI_PREFLIGHT_STATUS: ${{ needs.dependency-preflight.result }}
           CI_RESULTS: >-

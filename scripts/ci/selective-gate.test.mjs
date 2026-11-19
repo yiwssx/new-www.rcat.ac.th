@@ -185,6 +185,58 @@ describe("verified CI impact detection", () => {
     }
   });
 
+  it("accepts an identical-tree FULL PR E2E reuse only with traceable evidence", () => {
+    const main = selectCIPlan({
+      eventName: "push",
+      beforeSha: BASE_SHA,
+      eventSha: EVENT_SHA,
+      checkoutSha: EVENT_SHA,
+      pushRef: "refs/heads/main",
+      verifiedAncestor: true,
+      changes: [{ status: "modified", path: "src/public/pages/PublicNewsPage.tsx" }],
+      fileIsRegular: () => true
+    });
+    const evidence = {
+      mainSha: EVENT_SHA,
+      beforeSha: BASE_SHA,
+      treeSha: "c".repeat(40),
+      prNumber: 793,
+      prHeadSha: "d".repeat(40),
+      prRunId: 44457051682,
+      runAttempt: 1,
+      e2eJobId: 135334848910,
+      qualityJobId: 135336876762
+    };
+    const reused = {
+      ...main,
+      requiredLanes: main.requiredLanes.filter((lane) => lane !== "functional"),
+      skippedLanes: [...main.skippedLanes, "functional"],
+      reasons: [...main.reasons, "reused-pr-full-e2e-identical-tree"],
+      reuseFunctional: evidence
+    };
+    expect(validateQualityGate(reused, laneResults(reused), "success", "success", "push")).toEqual([]);
+    for (const forged of [
+      { ...reused, reuseFunctional: { ...evidence, mainSha: BASE_SHA } },
+      { ...reused, reuseFunctional: { ...evidence, treeSha: "invalid" } },
+      { ...reused, reuseFunctional: { ...evidence, prRunId: 0 } },
+      { ...reused, reasons: main.reasons },
+      { ...reused, requiredLanes: ["static-quality"] },
+      { ...reused, skippedLanes: main.skippedLanes }
+    ]) {
+      expect(validateQualityGate(forged, laneResults(reused), "success", "success", "push")).not.toEqual([]);
+    }
+    const report = formatQualityGateSummary({
+      plan: reused,
+      results: laneResults(reused),
+      impactStatus: "success",
+      preflightStatus: "success",
+      eventName: "push",
+      errors: []
+    });
+    expect(report).toContain("REUSED");
+    expect(report).toContain("44457051682");
+  });
+
   it("always runs full checks for push main and manual executions", () => {
     for (const eventName of ["push", "workflow_dispatch", "merge_group"]) {
       const plan = selectCIPlan({ eventName });
