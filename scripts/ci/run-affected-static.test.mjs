@@ -44,9 +44,12 @@ describe("P3 selective Static Quality", () => {
     expect(selectStaticQualityCommands(plan, "push", () => false).mode).toBe("full");
   });
 
-  it.each(["push", "workflow_dispatch", "merge_group"])("keeps full checks for %s without a verified docs push", (eventName) => {
-    expect(selectStaticQualityCommands(docsPlan, eventName, exists).mode).toBe("full");
-  });
+  it.each(["push", "workflow_dispatch", "merge_group"])(
+    "keeps full checks for %s without a verified docs push",
+    (eventName) => {
+      expect(selectStaticQualityCommands(docsPlan, eventName, exists).mode).toBe("full");
+    }
+  );
 
   it.each([
     { ...docsPlan, mode: "full" },
