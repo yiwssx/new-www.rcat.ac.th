@@ -1,15 +1,6 @@
 {
   "version": 1,
-  "lanes": [
-    "dependencies",
-    "static-quality",
-    "unit",
-    "integration",
-    "build",
-    "governance",
-    "worker",
-    "functional"
-  ],
+  "lanes": ["dependencies", "static-quality", "unit", "integration", "build", "governance", "worker", "functional"],
   "rules": [
     {
       "id": "critical-runtime-config",
@@ -28,16 +19,9 @@
         "src/test/setup.ts",
         "config/ci-impact-map.json"
       ],
-      "prefix": [
-        ".github/workflows/",
-        ".github/actions/",
-        "scripts/ci/",
-        "api/"
-      ],
+      "prefix": [".github/workflows/", ".github/actions/", "scripts/ci/", "api/"],
       "full": true,
-      "areas": [
-        "infrastructure"
-      ]
+      "areas": ["infrastructure"]
     },
     {
       "id": "cms-auth",
@@ -49,62 +33,22 @@
         "src/admin/pages/AccountSecurityPage.tsx",
         "src/admin/pages/ResetPasswordPage.tsx"
       ],
-      "prefix": [
-        "server/cmsAuth/",
-        "src/features/cms-auth/"
-      ],
-      "areas": [
-        "admin",
-        "auth"
-      ],
-      "lanes": [
-        "static-quality",
-        "unit",
-        "integration",
-        "build",
-        "governance",
-        "functional"
-      ]
+      "prefix": ["server/cmsAuth/", "src/features/cms-auth/"],
+      "areas": ["admin", "auth"],
+      "lanes": ["static-quality", "unit", "integration", "build", "governance", "functional"]
     },
     {
       "id": "theme-design",
-      "exact": [
-        "src/theme.ts",
-        "src/styles.css"
-      ],
-      "prefix": [
-        "src/design-system/"
-      ],
-      "areas": [
-        "public",
-        "admin",
-        "design"
-      ],
-      "lanes": [
-        "static-quality",
-        "unit",
-        "build",
-        "governance",
-        "functional"
-      ]
+      "exact": ["src/theme.ts", "src/styles.css"],
+      "prefix": ["src/design-system/"],
+      "areas": ["public", "admin", "design"],
+      "lanes": ["static-quality", "unit", "build", "governance", "functional"]
     },
     {
       "id": "backend-private-observability-and-retention",
-      "exact": [
-        "cloudflare/public-api/src/db/d1QueryUsage.ts",
-        "cloudflare/public-api/src/analyticsRetention.ts"
-      ],
-      "areas": [
-        "backend",
-        "data-internal"
-      ],
-      "lanes": [
-        "static-quality",
-        "unit",
-        "integration",
-        "worker",
-        "governance"
-      ]
+      "exact": ["cloudflare/public-api/src/db/d1QueryUsage.ts", "cloudflare/public-api/src/analyticsRetention.ts"],
+      "areas": ["backend", "data-internal"],
+      "lanes": ["static-quality", "unit", "integration", "worker", "governance"]
     },
     {
       "id": "backend-public-response-consumer",
@@ -117,185 +61,76 @@
         "cloudflare/public-api/src/routes/publicSearch.ts",
         "cloudflare/public-api/src/routes/publicShell.ts"
       ],
-      "areas": [
-        "backend",
-        "public",
-        "api-contract"
-      ],
-      "lanes": [
-        "static-quality",
-        "unit",
-        "integration",
-        "build",
-        "governance",
-        "worker",
-        "functional"
-      ]
+      "areas": ["backend", "public", "api-contract"],
+      "lanes": ["static-quality", "unit", "integration", "build", "governance", "worker", "functional"]
     },
     {
       "id": "backend-admin-menu-crud-consumers",
-      "exact": [
-        "cloudflare/public-api/src/routes/adminMenuMutations.ts"
-      ],
-      "areas": [
-        "backend",
-        "admin",
-        "public",
-        "crud-contract"
-      ],
-      "lanes": [
-        "static-quality",
-        "unit",
-        "integration",
-        "build",
-        "governance",
-        "worker",
-        "functional"
-      ]
+      "exact": ["cloudflare/public-api/src/routes/adminMenuMutations.ts"],
+      "areas": ["backend", "admin", "public", "crud-contract"],
+      "lanes": ["static-quality", "unit", "integration", "build", "governance", "worker", "functional"]
     },
     {
       "id": "schema-and-migration-cross-consumers",
-      "exact": [
-        "cloudflare/public-api/src/db/schema.ts"
-      ],
-      "prefix": [
-        "cloudflare/public-api/migrations/"
-      ],
-      "areas": [
-        "database",
-        "shared"
-      ],
+      "exact": ["cloudflare/public-api/src/db/schema.ts"],
+      "prefix": ["cloudflare/public-api/migrations/"],
+      "areas": ["database", "shared"],
       "full": true
     },
     {
       "id": "worker-source-unknown-contract-impact",
-      "prefix": [
-        "cloudflare/public-api/src/"
-      ],
+      "prefix": ["cloudflare/public-api/src/"],
       "full": true,
-      "areas": [
-        "shared"
-      ]
+      "areas": ["shared"]
     },
     {
       "id": "worker-tests",
-      "prefix": [
-        "cloudflare/public-api/test/"
-      ],
-      "areas": [
-        "worker"
-      ],
-      "lanes": [
-        "static-quality",
-        "unit",
-        "integration",
-        "worker"
-      ]
+      "prefix": ["cloudflare/public-api/test/"],
+      "areas": ["worker"],
+      "lanes": ["static-quality", "unit", "integration", "worker"]
     },
     {
       "id": "worker-d1",
-      "prefix": [
-        "cloudflare/public-api/"
-      ],
-      "areas": [
-        "worker"
-      ],
-      "lanes": [
-        "static-quality",
-        "unit",
-        "integration",
-        "worker",
-        "governance"
-      ]
+      "prefix": ["cloudflare/public-api/"],
+      "areas": ["worker"],
+      "lanes": ["static-quality", "unit", "integration", "worker", "governance"]
     },
     {
       "id": "integration-tests",
-      "prefix": [
-        "src/test/integration/"
-      ],
-      "areas": [
-        "integration"
-      ],
-      "lanes": [
-        "static-quality",
-        "integration"
-      ]
+      "prefix": ["src/test/integration/"],
+      "areas": ["integration"],
+      "lanes": ["static-quality", "integration"]
     },
     {
       "id": "unit-tests",
-      "prefix": [
-        "src/test/"
-      ],
-      "areas": [
-        "unit"
-      ],
-      "lanes": [
-        "static-quality",
-        "unit"
-      ]
+      "prefix": ["src/test/"],
+      "areas": ["unit"],
+      "lanes": ["static-quality", "unit"]
     },
     {
       "id": "functional-tests",
-      "prefix": [
-        "tests/functional/",
-        "tests/production/"
-      ],
-      "areas": [
-        "functional"
-      ],
-      "lanes": [
-        "static-quality",
-        "functional"
-      ]
+      "prefix": ["tests/functional/", "tests/production/"],
+      "areas": ["functional"],
+      "lanes": ["static-quality", "functional"]
     },
     {
       "id": "public",
-      "prefix": [
-        "src/public/",
-        "src/features/public-"
-      ],
-      "areas": [
-        "public"
-      ],
-      "lanes": [
-        "static-quality",
-        "unit",
-        "build",
-        "governance",
-        "functional"
-      ]
+      "prefix": ["src/public/", "src/features/public-"],
+      "areas": ["public"],
+      "lanes": ["static-quality", "unit", "build", "governance", "functional"]
     },
     {
       "id": "admin",
-      "prefix": [
-        "src/admin/",
-        "src/features/admin-"
-      ],
-      "areas": [
-        "admin"
-      ],
-      "lanes": [
-        "static-quality",
-        "unit",
-        "integration",
-        "build",
-        "functional"
-      ]
+      "prefix": ["src/admin/", "src/features/admin-"],
+      "areas": ["admin"],
+      "lanes": ["static-quality", "unit", "integration", "build", "functional"]
     },
     {
       "id": "shared",
-      "exact": [
-        "src/types.ts"
-      ],
-      "prefix": [
-        "src/shared/",
-        "src/services/",
-        "src/features/cms-settings/"
-      ],
+      "exact": ["src/types.ts"],
+      "prefix": ["src/shared/", "src/services/", "src/features/cms-settings/"],
       "full": true,
-      "areas": [
-        "shared"
-      ]
+      "areas": ["shared"]
     },
     {
       "id": "frontend-cms-features",
@@ -311,51 +146,21 @@
         "src/features/organization-admin/",
         "src/features/admin-pagination/"
       ],
-      "areas": [
-        "frontend",
-        "admin"
-      ],
-      "lanes": [
-        "static-quality",
-        "unit",
-        "integration",
-        "build",
-        "functional"
-      ]
+      "areas": ["frontend", "admin"],
+      "lanes": ["static-quality", "unit", "integration", "build", "functional"]
     },
     {
       "id": "docs",
-      "exact": [
-        "README.md",
-        "CHANGELOG.md",
-        "CONTRIBUTING.md"
-      ],
-      "prefix": [
-        "docs/"
-      ],
-      "areas": [
-        "documentation"
-      ],
-      "lanes": [
-        "static-quality"
-      ]
+      "exact": ["README.md", "CHANGELOG.md", "CONTRIBUTING.md"],
+      "prefix": ["docs/"],
+      "areas": ["documentation"],
+      "lanes": ["static-quality"]
     },
     {
       "id": "calendar-source-related",
-      "exact": [
-        "src/utils/calendar.ts"
-      ],
-      "areas": [
-        "admin"
-      ],
-      "lanes": [
-        "static-quality",
-        "unit",
-        "integration",
-        "build",
-        "governance",
-        "functional"
-      ]
+      "exact": ["src/utils/calendar.ts"],
+      "areas": ["admin"],
+      "lanes": ["static-quality", "unit", "integration", "build", "governance", "functional"]
     },
     {
       "id": "critical-remaining",
@@ -370,9 +175,7 @@
         "src/"
       ],
       "full": true,
-      "areas": [
-        "unknown"
-      ]
+      "areas": ["unknown"]
     }
   ]
 }
