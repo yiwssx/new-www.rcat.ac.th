@@ -39,8 +39,8 @@ describe("CI impact plan classifier", () => {
     expect(createImpactPlan(["src/admin/pages/LoginPage.tsx"]).areas).toContain("auth");
   });
 
-  it("checks D1 and Worker changes without a mandatory React frontend build", () => {
-    const plan = createImpactPlan(["cloudflare/public-api/migrations/0031_update.sql"]);
+  it("keeps private backend work off the React frontend build lane", () => {
+    const plan = createImpactPlan(["cloudflare/public-api/src/db/d1QueryUsage.ts"]);
     expect(plan.requiredLanes).toContain("worker");
     expect(plan.requiredLanes).toContain("integration");
     expect(plan.requiredLanes).not.toContain("build");
@@ -86,7 +86,9 @@ describe("CI impact plan classifier", () => {
   });
 
   it("expands admin menu create/update/delete route changes across consumers", () => {
-    const plan = createImpactPlan([{ status: "modified", path: "cloudflare/public-api/src/routes/adminMenuMutations.ts" }]);
+    const plan = createImpactPlan([
+      { status: "modified", path: "cloudflare/public-api/src/routes/adminMenuMutations.ts" }
+    ]);
     expect(plan.mode).toBe("affected");
     expect(plan.areas).toEqual(["admin", "backend", "crud-contract", "public"]);
     expect(plan.requiredLanes).toContain("worker");
@@ -130,10 +132,11 @@ describe("CI impact plan classifier", () => {
     expect(plan.reasons).toContain("destructive-source-or-contract-change");
   });
 
-  it("classifies both old and new paths for renames", () => {
+  it("tracks old and new rename paths while requiring full source regression", () => {
     const plan = createImpactPlan([{ status: "renamed", path: "src/theme.ts", previousPath: "docs/old-theme.md" }]);
     expect(plan.changedPaths).toEqual(["docs/old-theme.md", "src/theme.ts"]);
-    expect(plan.areas).toContain("design");
+    expect(plan.mode).toBe("full");
+    expect(plan.reasons).toContain("destructive-source-or-contract-change");
   });
 
   it("fails closed if rename metadata is absent", () => {
