@@ -59,6 +59,77 @@ describe("CI impact plan classifier", () => {
     expect(plan.requiredLanes).not.toContain("worker");
   });
 
+  it("uses only frontend lanes for a CMS interface module", () => {
+    const plan = createImpactPlan([{ status: "modified", path: "src/features/cms-carousel/normalization.ts" }]);
+    expect(plan.mode).toBe("affected");
+    expect(plan.areas).toEqual(["admin", "frontend"]);
+    expect(plan.requiredLanes).toEqual(["static-quality", "unit", "integration", "build", "functional"]);
+    expect(plan.requiredLanes).not.toContain("worker");
+    expect(plan.requiredLanes).not.toContain("dependencies");
+  });
+
+  it("selects backend-only lanes for internal D1 usage observability", () => {
+    const plan = createImpactPlan([{ status: "modified", path: "cloudflare/public-api/src/db/d1QueryUsage.ts" }]);
+    expect(plan.mode).toBe("affected");
+    expect(plan.requiredLanes).toEqual(["static-quality", "unit", "integration", "governance", "worker"]);
+    expect(plan.requiredLanes).not.toContain("build");
+    expect(plan.requiredLanes).not.toContain("functional");
+  });
+
+  it("expands public API response changes to both backend and frontend consumers", () => {
+    const plan = createImpactPlan([{ status: "modified", path: "cloudflare/public-api/src/routes/publicHome.ts" }]);
+    expect(plan.mode).toBe("affected");
+    expect(plan.areas).toEqual(["api-contract", "backend", "public"]);
+    expect(plan.requiredLanes).toContain("worker");
+    expect(plan.requiredLanes).toContain("build");
+    expect(plan.requiredLanes).toContain("functional");
+  });
+
+  it("expands admin menu create/update/delete route changes across consumers", () => {
+    const plan = createImpactPlan([{ status: "modified", path: "cloudflare/public-api/src/routes/adminMenuMutations.ts" }]);
+    expect(plan.mode).toBe("affected");
+    expect(plan.areas).toEqual(["admin", "backend", "crud-contract", "public"]);
+    expect(plan.requiredLanes).toContain("worker");
+    expect(plan.requiredLanes).toContain("functional");
+  });
+
+  it("unions frontend and backend lanes for mixed changes rather than choosing either side", () => {
+    const plan = createImpactPlan([
+      { status: "added", path: "src/features/cms-carousel/normalization.ts" },
+      { status: "modified", path: "cloudflare/public-api/src/routes/publicHome.ts" }
+    ]);
+    expect(plan.mode).toBe("affected");
+    expect(plan.requiredLanes).toContain("worker");
+    expect(plan.requiredLanes).toContain("functional");
+    expect(plan.requiredLanes).toContain("integration");
+  });
+
+  it.each([
+    "cloudflare/public-api/migrations/0001_setup.sql",
+    "cloudflare/public-api/src/db/schema.ts",
+    "cloudflare/public-api/src/auth/adminAccess.ts",
+    "cloudflare/public-api/src/routes/cmsAuthInternal.ts",
+    "src/types.ts"
+  ])("fails closed to all lanes for cross-cutting or sensitive source: %s", (path) => {
+    const plan = createImpactPlan([{ status: "modified", path }]);
+    expect(plan.mode).toBe("full");
+    expect(plan.requiredLanes).toEqual(defaultImpactMap.lanes);
+  });
+
+  it.each([
+    { status: "deleted", path: "src/features/cms-carousel/normalization.ts" },
+    {
+      status: "renamed",
+      path: "src/features/cms-carousel/normalization-new.ts",
+      previousPath: "src/features/cms-carousel/normalization.ts"
+    },
+    { status: "deleted", path: "cloudflare/public-api/src/routes/publicHome.ts" }
+  ])("preserves full regression for deleted and renamed source: %j", (change) => {
+    const plan = createImpactPlan([change]);
+    expect(plan.mode).toBe("full");
+    expect(plan.reasons).toContain("destructive-source-or-contract-change");
+  });
+
   it("classifies both old and new paths for renames", () => {
     const plan = createImpactPlan([{ status: "renamed", path: "src/theme.ts", previousPath: "docs/old-theme.md" }]);
     expect(plan.changedPaths).toEqual(["docs/old-theme.md", "src/theme.ts"]);
