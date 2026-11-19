@@ -107,9 +107,7 @@ export async function trustedPrE2E({ repo, mainSha, beforeSha, get }) {
       const result = await get(`/actions/runs/${run.id}/jobs?per_page=100`);
       if (!Array.isArray(result.jobs) || result.total_count > 100) continue;
       const requiredJobs = ["Change Impact", "Functional E2E", "quality"];
-      const allPassed = requiredJobs.every((name) =>
-        passedJob(result.jobs, name, headSha, run.run_attempt, mergedAt)
-      );
+      const allPassed = requiredJobs.every((name) => passedJob(result.jobs, name, headSha, run.run_attempt, mergedAt));
       if (!allPassed) continue;
       return {
         mainSha,
