@@ -171,7 +171,8 @@ export function formatQualityGateSummary({ plan, results, impactStatus, prefligh
   ];
   if (plan?.reuseFunctional) {
     const { prNumber, prRunId, treeSha } = plan.reuseFunctional;
-    lines.splice(9, 0, `- Full E2E: **REUSED** PR #${safeText(prNumber)}, run ${safeText(prRunId)}, tree ${safeText(treeSha)}`);
+    const note = `- Full E2E: **REUSED** PR #${safeText(prNumber)}, run ${safeText(prRunId)}`;
+    lines.splice(9, 0, note + `, tree ${safeText(treeSha)}`);
   }
 
   for (const lane of defaultImpactMap.lanes) {
