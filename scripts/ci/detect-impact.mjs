@@ -266,11 +266,6 @@ if (process.argv[1] && process.argv[1].endsWith("/detect-impact.mjs")) {
     "- Required lanes: " + plan.requiredLanes.join(", "),
     "- Skipped lanes: " + (plan.skippedLanes.join(", ") || "none"),
     "- Reasons: " + plan.reasons.join("; "),
-    ...(plan.reuseFunctional
-      ? ["- Full E2E: REUSED from PR #" + plan.reuseFunctional.prNumber +
-          " / run " + plan.reuseFunctional.prRunId +
-          " (identical Git tree " + plan.reuseFunctional.treeSha + ")"]
-      : []),
     "",
     "Uncertain git history, source/config changes, and unknown paths run the full suite."
   ].join("\n");
