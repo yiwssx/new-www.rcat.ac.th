@@ -26,7 +26,6 @@ export function isAllowlistedMainSource(path) {
   return Boolean(rule && !rule.full && TRUSTED_MAIN_SOURCE_RULES.has(rule.id));
 }
 
-
 export function isSafeMainDocument(path) {
   return (
     typeof path === "string" &&
