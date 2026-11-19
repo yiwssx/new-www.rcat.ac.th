@@ -1,8 +1,24 @@
 import { execFileSync } from "node:child_process";
-import { appendFileSync } from "node:fs";
+import { appendFileSync, lstatSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { createImpactPlan, defaultImpactMap } from "./impact-plan.mjs";
 
 const SHA_PATTERN = /^[0-9a-f]{40}$/i;
+const ROOT_DOCS = new Set(["README.md", "CHANGELOG.md", "CONTRIBUTING.md"]);
+const SAFE_DOCS = /^docs\/(?:[A-Za-z0-9._ -]+\/)*[A-Za-z0-9._ -]+\.(?:md|mdx)$/;
+const MAX_PUSH_DOCS = 60;
+
+export function isSafeMainDocument(path) {
+  return (
+    typeof path === "string" &&
+    !path.includes("\\") &&
+    !path.includes("\0") &&
+    !path.startsWith("/") &&
+    !path.split("/").some((part) => part === "." || part === ".." || part === "") &&
+    (ROOT_DOCS.has(path) || SAFE_DOCS.test(path))
+  );
+}
+
 
 export function parseChangedFiles(output) {
   if (!output || !output.endsWith("\0")) {
@@ -37,7 +53,64 @@ function allLanes(reason) {
   return { ...createImpactPlan([]), reasons: [reason], gateReady: false, verifiedIntegration: false };
 }
 
-export function selectCIPlan({ eventName, baseSha, eventSha, checkoutSha, firstParentSha, changes }) {
+export function selectCIPlan({
+  eventName,
+  baseSha,
+  beforeSha,
+  eventSha,
+  checkoutSha,
+  firstParentSha,
+  pushRef,
+  verifiedAncestor,
+  fileIsRegular,
+  changes
+}) {
+  if (eventName === "push") {
+    const verifiedRange =
+      pushRef === "refs/heads/main" &&
+      [beforeSha, eventSha, checkoutSha].every((value) => SHA_PATTERN.test(value ?? "")) &&
+      beforeSha !== "0".repeat(40) &&
+      beforeSha !== eventSha &&
+      eventSha === checkoutSha &&
+      verifiedAncestor === true;
+
+    if (
+      !verifiedRange ||
+      !Array.isArray(changes) ||
+      changes.length === 0 ||
+      changes.length > MAX_PUSH_DOCS ||
+      typeof fileIsRegular !== "function" ||
+      !changes.every(
+        (entry) =>
+          (entry.status === "modified" || entry.status === "added") &&
+          isSafeMainDocument(entry.path) &&
+          fileIsRegular(entry.path)
+      )
+    ) {
+      return allLanes("unverified-or-non-documentation-main-push");
+    }
+
+    const plan = createImpactPlan(changes);
+    if (
+      plan.mode !== "affected" ||
+      plan.areas.length !== 1 ||
+      plan.areas[0] !== "documentation" ||
+      plan.requiredLanes.length !== 1 ||
+      plan.requiredLanes[0] !== "static-quality"
+    ) {
+      return allLanes("non-documentation-main-push-impact");
+    }
+
+    return {
+      ...plan,
+      gateReady: true,
+      verifiedIntegration: false,
+      verifiedPush: true,
+      beforeSha,
+      checkoutSha,
+      reasons: [...plan.reasons, "verified-main-docs-only-range"]
+    };
+  }
   if (eventName !== "pull_request") {
     return allLanes("full-source-validation:" + String(eventName || "unknown"));
   }
@@ -66,7 +139,52 @@ function git(...args) {
   return execFileSync("git", args, { encoding: "utf8", maxBuffer: 16 * 1024 * 1024 }).trim();
 }
 
+function isRegularFile(path) {
+  try {
+    const stat = lstatSync(resolve(path));
+    return stat.isFile() && !stat.isSymbolicLink();
+  } catch {
+    return false;
+  }
+}
+
 function selectFromCheckout(env) {
+  if (env.GITHUB_EVENT_NAME === "push") {
+    try {
+      const event = JSON.parse(readFileSync(env.GITHUB_EVENT_PATH, "utf8"));
+      const eventSha = env.GITHUB_SHA;
+      const checkoutSha = git("rev-parse", "HEAD");
+      const beforeSha = event.before;
+
+      if (
+        event.ref !== env.GITHUB_REF ||
+        event.after !== eventSha ||
+        !SHA_PATTERN.test(beforeSha ?? "") ||
+        !SHA_PATTERN.test(checkoutSha ?? "")
+      ) {
+        return allLanes("unverified-push-event-payload");
+      }
+
+      execFileSync("git", ["merge-base", "--is-ancestor", beforeSha, checkoutSha], { stdio: "ignore" });
+      const raw = execFileSync(
+        "git",
+        ["diff", "--name-status", "-z", "--no-ext-diff", "--no-renames", beforeSha, checkoutSha],
+        { encoding: "utf8", maxBuffer: 16 * 1024 * 1024 }
+      );
+      return selectCIPlan({
+        eventName: "push",
+        beforeSha,
+        eventSha,
+        checkoutSha,
+        pushRef: env.GITHUB_REF,
+        verifiedAncestor: true,
+        changes: parseChangedFiles(raw),
+        fileIsRegular: isRegularFile
+      });
+    } catch (error) {
+      return allLanes("git-push-diff-unavailable:" + (error instanceof Error ? error.name : "unknown"));
+    }
+  }
   if (env.GITHUB_EVENT_NAME !== "pull_request") {
     return selectCIPlan({ eventName: env.GITHUB_EVENT_NAME });
   }
@@ -123,7 +241,7 @@ if (process.argv[1] && process.argv[1].endsWith("/detect-impact.mjs")) {
     "- Skipped lanes: " + (plan.skippedLanes.join(", ") || "none"),
     "- Reasons: " + plan.reasons.join("; "),
     "",
-    "Uncertain git history and unknown paths run the full suite."
+    "Uncertain git history, source/config changes, and unknown paths run the full suite."
   ].join("\n");
 
   if (!process.env.GITHUB_OUTPUT || !process.env.GITHUB_STEP_SUMMARY) {
