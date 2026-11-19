@@ -59,7 +59,57 @@ describe("verified CI impact detection", () => {
     }
   );
 
-  it("always runs full checks for push main and manual executions", () => {
+  it("skips expensive lanes for a verified main push changing only Markdown", () => {
+    const plan = selectCIPlan({
+      eventName: "push",
+      beforeSha: BASE_SHA,
+      eventSha: EVENT_SHA,
+      checkoutSha: EVENT_SHA,
+      pushRef: "refs/heads/main",
+      verifiedAncestor: true,
+      changes: [
+        { status: "modified", path: "README.md" },
+        { status: "added", path: "docs/operations/new-guide.mdx" }
+      ],
+      fileIsRegular: () => true
+    });
+    expect(plan.mode).toBe("affected");
+    expect(plan.verifiedPush).toBe(true);
+    expect(plan.verifiedIntegration).toBe(false);
+    expect(plan.requiredLanes).toEqual(["static-quality"]);
+    expect(validateQualityGate(plan, laneResults(plan), "success", "success", "push")).toEqual([]);
+  });
+
+  it.each([
+    { changes: [{ status: "modified", path: "src/public/pages/PublicNewsPage.tsx" }] },
+    { changes: [{ status: "modified", path: "README.md" }, { status: "modified", path: "src/theme.ts" }] },
+    { changes: [{ status: "modified", path: "docs/guide.md" }, { status: "modified", path: ".github/workflows/ci.yml" }] },
+    { changes: [{ status: "deleted", path: "README.md" }] },
+    { changes: [{ status: "renamed", path: "docs/new.md", previousPath: "docs/old.md" }] },
+    { changes: [{ status: "added", path: "docs/script.js" }] },
+    { beforeSha: "0".repeat(40) },
+    { beforeSha: EVENT_SHA },
+    { pushRef: "refs/heads/feature" },
+    { checkoutSha: BASE_SHA },
+    { verifiedAncestor: false },
+    { fileIsRegular: () => false }
+  ])("fails closed for an unsafe or unverified main push: %j", (override) => {
+    const plan = selectCIPlan({
+      eventName: "push",
+      beforeSha: BASE_SHA,
+      eventSha: EVENT_SHA,
+      checkoutSha: EVENT_SHA,
+      pushRef: "refs/heads/main",
+      verifiedAncestor: true,
+      changes: [{ status: "modified", path: "docs/guide.md" }],
+      fileIsRegular: () => true,
+      ...override
+    });
+    expect(plan.mode).toBe("full");
+    expect(plan.requiredLanes).toEqual(defaultImpactMap.lanes);
+  });
+
+  it("defaults to full checks when push metadata is missing or for manual executions", () => {
     for (const eventName of ["push", "workflow_dispatch", "merge_group"]) {
       const plan = selectCIPlan({ eventName });
       expect(plan.mode).toBe("full");
@@ -117,7 +167,34 @@ describe("CI quality aggregation", () => {
     }
   });
 
-  it("rejects selective execution on a main push", () => {
+  it("rejects forged documentation-only push plans and preserves fail-closed quality", () => {
+    const valid = selectCIPlan({
+      eventName: "push",
+      beforeSha: BASE_SHA,
+      eventSha: EVENT_SHA,
+      checkoutSha: EVENT_SHA,
+      pushRef: "refs/heads/main",
+      verifiedAncestor: true,
+      changes: [{ status: "modified", path: "docs/guide.md" }],
+      fileIsRegular: () => true
+    });
+    for (const mutated of [
+      { ...valid, verifiedPush: false },
+      { ...valid, verifiedIntegration: true },
+      { ...valid, reasons: ["docs/guide.md:docs"] },
+      { ...valid, areas: ["public"] },
+      { ...valid, changedPaths: ["src/public/pages/News.tsx"] },
+      { ...valid, requiredLanes: ["static-quality", "build"] }
+    ]) {
+      expect(validateQualityGate(mutated, laneResults(valid), "success", "success", "push")).not.toEqual([]);
+    }
+    const failed = laneResults(valid);
+    failed["static-quality"] = "failure";
+    expect(validateQualityGate(valid, failed, "success", "success", "push")).not.toEqual([]);
+    expect(validateQualityGate(valid, laneResults(valid), "failure", "success", "push")).not.toEqual([]);
+  });
+
+  it("rejects PR-selective execution on a main push", () => {
     const plan = planFor([{ path: "docs/a.md", status: "modified" }]);
     expect(validateQualityGate(plan, laneResults(plan), "success", "success", "push")).not.toEqual([]);
   });
