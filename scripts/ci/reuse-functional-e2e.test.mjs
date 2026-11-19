@@ -15,29 +15,33 @@ const apiPaths = {
   jobs: "/actions/runs/44457051682/jobs?per_page=100"
 };
 const all = {
-  [apiPaths.prs]: [{
-    number: 793,
-    state: "closed",
-    merged_at: MERGED,
-    merge_commit_sha: MAIN,
-    base: { sha: BASE, ref: "main" },
-    head: { sha: HEAD }
-  }],
+  [apiPaths.prs]: [
+    {
+      number: 793,
+      state: "closed",
+      merged_at: MERGED,
+      merge_commit_sha: MAIN,
+      base: { sha: BASE, ref: "main" },
+      head: { sha: HEAD }
+    }
+  ],
   [apiPaths.main]: { sha: MAIN, tree: { sha: TREE }, parents: [{ sha: BASE }] },
   [apiPaths.head]: { sha: HEAD, tree: { sha: TREE } },
   [apiPaths.compare]: { status: "ahead", behind_by: 0, merge_base_commit: { sha: BASE } },
   [apiPaths.runs]: {
-    workflow_runs: [{
-      id: 44457051682,
-      event: "pull_request",
-      path: ".github/workflows/ci.yml",
-      head_sha: HEAD,
-      status: "completed",
-      conclusion: "success",
-      run_attempt: 1,
-      created_at: "2026-11-19T04:15:25Z",
-      updated_at: "2026-11-19T04:21:52Z"
-    }]
+    workflow_runs: [
+      {
+        id: 44457051682,
+        event: "pull_request",
+        path: ".github/workflows/ci.yml",
+        head_sha: HEAD,
+        status: "completed",
+        conclusion: "success",
+        run_attempt: 1,
+        created_at: "2026-11-19T04:15:25Z",
+        updated_at: "2026-11-19T04:21:52Z"
+      }
+    ]
   },
   [apiPaths.jobs]: {
     total_count: 3,
@@ -98,7 +102,10 @@ describe("exact-tree Full Functional E2E reuse", () => {
   });
 
   it("fails closed on network/API errors", async () => {
-    const evidence = await trustedPrE2E({ ...settings, get: async () => { throw Error("offline"); } });
+    const offline = async () => {
+      throw new Error("offline");
+    };
+    const evidence = await trustedPrE2E({ ...settings, get: offline });
     expect(evidence).toBeNull();
   });
 
@@ -117,7 +124,8 @@ describe("exact-tree Full Functional E2E reuse", () => {
   });
 
   it("retains the required full E2E when prior job evidence is absent", async () => {
-    const result = await maybeReuseE2E(sourcePlan, { repo: settings.repo, get: reader({ [apiPaths.jobs]: { total_count: 0, jobs: [] } }) });
+    const unavailableJobs = reader({ [apiPaths.jobs]: { total_count: 0, jobs: [] } });
+    const result = await maybeReuseE2E(sourcePlan, { repo: settings.repo, get: unavailableJobs });
     expect(result).toBe(sourcePlan);
     expect(result.requiredLanes).toContain("functional");
   });
