@@ -8,6 +8,24 @@ const ROOT_DOCS = new Set(["README.md", "CHANGELOG.md", "CONTRIBUTING.md"]);
 const SAFE_DOCS = /^docs\/(?:[A-Za-z0-9._ -]+\/)*[A-Za-z0-9._ -]+\.(?:md|mdx)$/;
 const MAX_PUSH_DOCS = 60;
 
+const TRUSTED_MAIN_SOURCE_RULES = new Set([
+  "public",
+  "admin",
+  "theme-design",
+  "frontend-cms-features",
+  "backend-private-observability-and-retention",
+  "backend-public-response-consumer",
+  "backend-admin-menu-crud-consumers"
+]);
+
+export function isAllowlistedMainSource(path) {
+  if (typeof path !== "string") return false;
+  const rule = defaultImpactMap.rules.find(
+    (candidate) => candidate.exact?.includes(path) || candidate.prefix?.some((prefix) => path.startsWith(prefix))
+  );
+  return Boolean(rule && !rule.full && TRUSTED_MAIN_SOURCE_RULES.has(rule.id));
+}
+
 export function isSafeMainDocument(path) {
   return (
     typeof path === "string" &&
@@ -78,25 +96,27 @@ export function selectCIPlan({
       !Array.isArray(changes) ||
       changes.length === 0 ||
       changes.length > MAX_PUSH_DOCS ||
-      typeof fileIsRegular !== "function" ||
-      !changes.every(
-        (entry) =>
-          (entry.status === "modified" || entry.status === "added") &&
-          isSafeMainDocument(entry.path) &&
-          fileIsRegular(entry.path)
-      )
+      typeof fileIsRegular !== "function"
     ) {
-      return allLanes("unverified-or-non-documentation-main-push");
+      return allLanes("unverified-or-unbounded-main-push");
+    }
+
+    for (const entry of changes) {
+      if (entry.status !== "modified" && entry.status !== "added") {
+        return allLanes("destructive-main-push-requires-full");
+      }
+      if (!fileIsRegular(entry.path)) return allLanes("nonregular-main-push-file");
+      if (!isSafeMainDocument(entry.path) && !isAllowlistedMainSource(entry.path)) {
+        return allLanes("non-allowlisted-main-push-file");
+      }
     }
 
     const plan = createImpactPlan(changes);
-    if (
-      plan.mode !== "affected" ||
-      plan.areas.length !== 1 ||
-      plan.areas[0] !== "documentation" ||
-      plan.requiredLanes.length !== 1 ||
-      plan.requiredLanes[0] !== "static-quality"
-    ) {
+    if (plan.mode !== "affected") return allLanes("broad-main-push-impact");
+
+    const docsOnly = changes.every((entry) => isSafeMainDocument(entry.path));
+    const marker = docsOnly ? "verified-main-docs-only-range" : "verified-main-scoped-impact-range";
+    if (docsOnly && (plan.areas.length !== 1 || plan.areas[0] !== "documentation")) {
       return allLanes("non-documentation-main-push-impact");
     }
 
@@ -107,7 +127,8 @@ export function selectCIPlan({
       verifiedPush: true,
       beforeSha,
       checkoutSha,
-      reasons: [...plan.reasons, "verified-main-docs-only-range"]
+      ...(docsOnly ? {} : { changedEntries: changes }),
+      reasons: [...plan.reasons, marker]
     };
   }
 

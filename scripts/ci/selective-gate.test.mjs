@@ -77,7 +77,7 @@ describe("verified CI impact detection", () => {
 
     const source = selectCIPlan({
       ...inputs,
-      changes: [{ status: "modified", path: "src/theme.ts" }]
+      changes: [{ status: "modified", path: "src/types.ts" }]
     });
     expect(source.mode).toBe("full");
     expect(selectCIPlan({ ...inputs, verifiedAncestor: false }).mode).toBe("full");
@@ -86,6 +86,103 @@ describe("verified CI impact detection", () => {
 
     const forged = { ...docs, verifiedPush: false };
     expect(validateQualityGate(forged, laneResults(docs), "success", "success", "push")).not.toEqual([]);
+  });
+
+  it("uses frontend-only lanes for an allowlisted main source change", () => {
+    const input = {
+      eventName: "push",
+      beforeSha: BASE_SHA,
+      eventSha: EVENT_SHA,
+      checkoutSha: EVENT_SHA,
+      pushRef: "refs/heads/main",
+      verifiedAncestor: true,
+      fileIsRegular: () => true
+    };
+    const frontend = selectCIPlan({
+      ...input,
+      changes: [{ status: "modified", path: "src/public/pages/PublicNewsPage.tsx" }]
+    });
+    expect(frontend.mode).toBe("affected");
+    expect(frontend.requiredLanes).not.toContain("worker");
+    expect(frontend.requiredLanes).toContain("functional");
+    expect(validateQualityGate(frontend, laneResults(frontend), "success", "success", "push")).toEqual([]);
+
+    const backend = selectCIPlan({
+      ...input,
+      changes: [{ status: "modified", path: "cloudflare/public-api/src/db/d1QueryUsage.ts" }]
+    });
+    expect(backend.mode).toBe("affected");
+    expect(backend.requiredLanes).toContain("worker");
+    expect(backend.requiredLanes).not.toContain("functional");
+    expect(validateQualityGate(backend, laneResults(backend), "success", "success", "push")).toEqual([]);
+  });
+
+  it("expands backend API and mixed main source changes to frontend consumers", () => {
+    const plan = selectCIPlan({
+      eventName: "push",
+      beforeSha: BASE_SHA,
+      eventSha: EVENT_SHA,
+      checkoutSha: EVENT_SHA,
+      pushRef: "refs/heads/main",
+      verifiedAncestor: true,
+      fileIsRegular: () => true,
+      changes: [
+        { status: "added", path: "src/public/pages/PublicNewsPage.tsx" },
+        { status: "modified", path: "cloudflare/public-api/src/routes/publicHome.ts" }
+      ]
+    });
+    expect(plan.mode).toBe("affected");
+    expect(plan.requiredLanes).toContain("worker");
+    expect(plan.requiredLanes).toContain("functional");
+    expect(validateQualityGate(plan, laneResults(plan), "success", "success", "push")).toEqual([]);
+  });
+
+  it("keeps full main CI for unsafe CRUD, auth, schema and deleted sources", () => {
+    const input = {
+      eventName: "push",
+      beforeSha: BASE_SHA,
+      eventSha: EVENT_SHA,
+      checkoutSha: EVENT_SHA,
+      pushRef: "refs/heads/main",
+      verifiedAncestor: true,
+      fileIsRegular: () => true
+    };
+    for (const path of [
+      "cloudflare/public-api/src/auth/adminAccess.ts",
+      "cloudflare/public-api/src/db/schema.ts",
+      "cloudflare/public-api/migrations/0001_example.sql",
+      "src/types.ts"
+    ]) {
+      const plan = selectCIPlan({ ...input, changes: [{ status: "modified", path }] });
+      expect(plan.mode).toBe("full");
+    }
+    const deleted = selectCIPlan({
+      ...input,
+      changes: [{ status: "deleted", path: "src/public/pages/PublicNewsPage.tsx" }]
+    });
+    expect(deleted.mode).toBe("full");
+  });
+
+  it("rejects tampering with main source ownership and planned lanes", () => {
+    const original = selectCIPlan({
+      eventName: "push",
+      beforeSha: BASE_SHA,
+      eventSha: EVENT_SHA,
+      checkoutSha: EVENT_SHA,
+      pushRef: "refs/heads/main",
+      verifiedAncestor: true,
+      changes: [{ status: "modified", path: "src/public/pages/PublicNewsPage.tsx" }],
+      fileIsRegular: () => true
+    });
+    for (const altered of [
+      { ...original, changedEntries: [{ status: "modified", path: "src/types.ts" }] },
+      { ...original, changedPaths: ["src/shared/secret.ts"] },
+      { ...original, verifiedPush: false },
+      { ...original, requiredLanes: ["static-quality"] },
+      { ...original, reasons: [] }
+    ]) {
+      expect(validateQualityGate(altered, laneResults(original), "success", "success", "push")).not.toEqual([]);
+    }
   });
 
   it("always runs full checks for push main and manual executions", () => {
