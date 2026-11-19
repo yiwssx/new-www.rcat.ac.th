@@ -91,21 +91,17 @@ export function createImpactPlan(entries, map = defaultImpactMap) {
   validateMap(map);
   const paths = resolveChangedPaths(entries);
   if (!paths) return fullPlan(map, [], "empty-or-invalid-change-set");
-  // Deletions and renames may break downstream consumers or database contracts.
-  // Until their reachability is verified, require full regression for source changes.
+  // For deleted or renamed source, the transitive consumer graph is not attested.
+  // Keep the full regression plan rather than guessing what became unreachable.
   for (const entry of entries) {
-    if (!entry || typeof entry !== "object") continue;
+    if (entry === null || typeof entry !== "object") continue;
     if (entry.status !== "deleted" && entry.status !== "renamed") continue;
-
-    const changed = [entry.path, entry.previousPath].filter((path) => typeof path === "string");
-    const docsOnly = changed.every(
-      (path) =>
-        path === "README.md" ||
-        path === "CHANGELOG.md" ||
-        path === "CONTRIBUTING.md" ||
-        path.startsWith("docs/")
-    );
-    if (!docsOnly) return fullPlan(map, paths, "destructive-source-or-contract-change");
+    for (const path of [entry.path, entry.previousPath]) {
+      if (typeof path !== "string") continue;
+      if (path === "README.md" || path === "CHANGELOG.md" || path === "CONTRIBUTING.md") continue;
+      if (path.startsWith("docs/")) continue;
+      return fullPlan(map, paths, "destructive-source-or-contract-change");
+    }
   }
 
   const lanes = new Set(["static-quality"]);
