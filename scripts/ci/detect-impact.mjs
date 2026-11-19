@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { appendFileSync, lstatSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createImpactPlan, defaultImpactMap } from "./impact-plan.mjs";
+import { maybeReuseE2E } from "./reuse-functional-e2e.mjs";
 
 const SHA_PATTERN = /^[0-9a-f]{40}$/i;
 const ROOT_DOCS = new Set(["README.md", "CHANGELOG.md", "CONTRIBUTING.md"]);
@@ -252,7 +253,10 @@ export function formatImpactOutputs(plan) {
 }
 
 if (process.argv[1] && process.argv[1].endsWith("/detect-impact.mjs")) {
-  const plan = selectFromCheckout(process.env);
+  const plan = await maybeReuseE2E(selectFromCheckout(process.env), {
+    repo: process.env.GITHUB_REPOSITORY,
+    token: process.env.GITHUB_TOKEN
+  });
   const summary = [
     "### RCAT CI change impact",
     "",
@@ -262,6 +266,11 @@ if (process.argv[1] && process.argv[1].endsWith("/detect-impact.mjs")) {
     "- Required lanes: " + plan.requiredLanes.join(", "),
     "- Skipped lanes: " + (plan.skippedLanes.join(", ") || "none"),
     "- Reasons: " + plan.reasons.join("; "),
+    ...(plan.reuseFunctional
+      ? ["- Full E2E: REUSED from PR #" + plan.reuseFunctional.prNumber +
+          " / run " + plan.reuseFunctional.prRunId +
+          " (identical Git tree " + plan.reuseFunctional.treeSha + ")"]
+      : []),
     "",
     "Uncertain git history, source/config changes, and unknown paths run the full suite."
   ].join("\n");
