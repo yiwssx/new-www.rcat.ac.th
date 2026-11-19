@@ -59,6 +59,35 @@ describe("verified CI impact detection", () => {
     }
   );
 
+  it("accepts only trusted documentation-only main push ranges", () => {
+    const inputs = {
+      eventName: "push",
+      beforeSha: BASE_SHA,
+      eventSha: EVENT_SHA,
+      checkoutSha: EVENT_SHA,
+      pushRef: "refs/heads/main",
+      verifiedAncestor: true,
+      changes: [{ status: "modified", path: "README.md" }],
+      fileIsRegular: () => true
+    };
+    const docs = selectCIPlan(inputs);
+    expect(docs.mode).toBe("affected");
+    expect(docs.requiredLanes).toEqual(["static-quality"]);
+    expect(validateQualityGate(docs, laneResults(docs), "success", "success", "push")).toEqual([]);
+
+    const source = selectCIPlan({
+      ...inputs,
+      changes: [{ status: "modified", path: "src/theme.ts" }]
+    });
+    expect(source.mode).toBe("full");
+    expect(selectCIPlan({ ...inputs, verifiedAncestor: false }).mode).toBe("full");
+    expect(selectCIPlan({ ...inputs, beforeSha: EVENT_SHA }).mode).toBe("full");
+    expect(selectCIPlan({ ...inputs, fileIsRegular: () => false }).mode).toBe("full");
+
+    const forged = { ...docs, verifiedPush: false };
+    expect(validateQualityGate(forged, laneResults(docs), "success", "success", "push")).not.toEqual([]);
+  });
+
   it("always runs full checks for push main and manual executions", () => {
     for (const eventName of ["push", "workflow_dispatch", "merge_group"]) {
       const plan = selectCIPlan({ eventName });

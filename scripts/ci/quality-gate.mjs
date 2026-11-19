@@ -1,4 +1,5 @@
 import { defaultImpactMap } from "./impact-plan.mjs";
+import { isSafeMainDocument } from "./detect-impact.mjs";
 
 export function validateQualityGate(plan, results, impactStatus, preflightStatus, eventName) {
   const errors = [];
@@ -18,6 +19,28 @@ export function validateQualityGate(plan, results, impactStatus, preflightStatus
 
   const required = new Set(plan.requiredLanes);
   const skipped = new Set(plan.skippedLanes);
+  const verifiedDocsPush =
+    eventName === "push" &&
+    plan.mode === "affected" &&
+    plan.gateReady === true &&
+    plan.verifiedPush === true &&
+    plan.verifiedIntegration === false &&
+    /^[0-9a-f]{40}$/i.test(plan.beforeSha ?? "") &&
+    /^[0-9a-f]{40}$/i.test(plan.checkoutSha ?? "") &&
+    plan.beforeSha !== plan.checkoutSha &&
+    Array.isArray(plan.changedPaths) &&
+    plan.changedPaths.length > 0 &&
+    plan.changedPaths.length <= 60 &&
+    plan.changedPaths.every(isSafeMainDocument) &&
+    new Set(plan.changedPaths).size === plan.changedPaths.length &&
+    Array.isArray(plan.areas) &&
+    plan.areas.length === 1 &&
+    plan.areas[0] === "documentation" &&
+    Array.isArray(plan.reasons) &&
+    plan.reasons.includes("verified-main-docs-only-range") &&
+    required.size === 1 &&
+    required.has("static-quality") &&
+    skipped.size === defaultImpactMap.lanes.length - 1;
 
   if (
     required.size !== plan.requiredLanes.length ||
@@ -32,12 +55,16 @@ export function validateQualityGate(plan, results, impactStatus, preflightStatus
     errors.push("Full-impact plan must require every CI lane");
   }
 
-  if (plan.mode === "affected" && (!plan.gateReady || !plan.verifiedIntegration)) {
+  if (plan.mode === "affected" && (!plan.gateReady || (eventName === "pull_request" && !plan.verifiedIntegration))) {
     errors.push("Selective plan is not backed by a verified integrated PR tree");
   }
 
-  if (eventName !== "pull_request" && plan.mode !== "full") {
-    errors.push("Push and manual runs must perform full source validation");
+  if (eventName === "push" && plan.mode !== "full" && !verifiedDocsPush) {
+    errors.push("Only verified documentation-only main pushes may use selective validation");
+  }
+
+  if (eventName !== "pull_request" && eventName !== "push" && plan.mode !== "full") {
+    errors.push("Manual and unknown events must perform full validation");
   }
 
   if (plan.reasons.length === 0 || !plan.reasons.every((reason) => typeof reason === "string" && reason)) {
