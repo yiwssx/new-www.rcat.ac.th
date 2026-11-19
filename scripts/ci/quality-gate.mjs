@@ -58,17 +58,14 @@ export function validateQualityGate(plan, results, impactStatus, preflightStatus
       expected.requiredLanes.includes("functional") &&
       sourceEntries.some((entry) => isAllowlistedMainSource(entry.path))
     );
-    const expectedRequired = reusable
-      ? expected.requiredLanes.filter((lane) => lane !== "functional")
-      : expected.requiredLanes;
-    const expectedSkipped = reusable
-      ? [...expected.skippedLanes, "functional"]
-      : expected.skippedLanes;
-    const expectedReasons = [
-      ...expected.reasons,
-      "verified-main-scoped-impact-range",
-      ...(reusable ? ["reused-pr-full-e2e-identical-tree"] : [])
-    ];
+    const expectedRequired = [...expected.requiredLanes];
+    const expectedSkipped = [...expected.skippedLanes];
+    const expectedReasons = [...expected.reasons, "verified-main-scoped-impact-range"];
+    if (reusable) {
+      expectedRequired.splice(expectedRequired.indexOf("functional"), 1);
+      expectedSkipped.push("functional");
+      expectedReasons.push("reused-pr-full-e2e-identical-tree");
+    }
     verifiedScopedPush =
       expected.mode === "affected" &&
       (!proof || reusable) &&
@@ -168,13 +165,14 @@ export function formatQualityGateSummary({ plan, results, impactStatus, prefligh
     `- Change-impact job: ${safeText(impactStatus)}`,
     `- Dependency preflight: ${safeText(preflightStatus)}`,
     `- Reasons: ${reasons}`,
-    ...(plan?.reuseFunctional
-      ? [`- Full Functional E2E: **REUSED** successful PR #${safeText(plan.reuseFunctional.prNumber)} / CI run ${safeText(plan.reuseFunctional.prRunId)} on identical Git tree ${safeText(plan.reuseFunctional.treeSha)}`]
-      : []),
     "",
     "| Lane | Planned | Observed | Match |",
     "| --- | --- | --- | --- |"
   ];
+  if (plan?.reuseFunctional) {
+    const { prNumber, prRunId, treeSha } = plan.reuseFunctional;
+    lines.splice(9, 0, `- Full E2E: **REUSED** PR #${safeText(prNumber)}, run ${safeText(prRunId)}, tree ${safeText(treeSha)}`);
+  }
 
   for (const lane of defaultImpactMap.lanes) {
     const planned = required.has(lane) ? "success" : "skipped";
