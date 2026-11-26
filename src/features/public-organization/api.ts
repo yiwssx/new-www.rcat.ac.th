@@ -52,7 +52,7 @@ export interface PublicOrganizationDetail {
 
 /** Reuses the published-only Worker list for menu selectors and sitemap discovery. */
 export async function getPublicOrganizationIndex(options: PublicReadRequestOptions = {}) {
-  const payload = await getPublicJson("/api/public/organization", "organization", options);
+  const payload = await getPublicJson("/api/public/organization?view=index", "organization", options);
   if (!Array.isArray(payload.items)) throw new TypeError("invalid published organization index");
   return payload.items as PublicOrganizationUnit[];
 }
