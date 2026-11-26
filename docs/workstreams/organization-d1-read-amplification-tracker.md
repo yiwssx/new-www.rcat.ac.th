@@ -41,6 +41,8 @@ These are SQL comparisons, not a post-deployment traffic-weighted daily reductio
 
 Initial CI [45733005932](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/45733005932) passed Worker, Unit Tests, Integration Tests, Build, Dependencies and Governance. Static Quality failed on tracker Markdown formatting only; aggregate quality failed and E2E was cancelled. Tracker formatting simplified in this checkpoint. New implementation and tests require exact-head CI. Previous test-only head was `ec8a47a41663918e2cb30afff55256d7feb2576e`; check the current PR head and its run, not the superseded run.
 
+CI [45733700811](https://github.com/yiwssx/new-www.rcat.ac.th/actions/runs/45733700811) passed Static Quality, Worker, Build, Functional E2E, Integration Tests, Dependencies and Governance. Unit Tests reported 2,963 passed and one failed in `src/test/sitemap.test.mjs`: the assertion expected the old organization URL instead of the new `?view=index` URL. Fixed the exact URL assertion in `337e03be253b41c1ffd7b55f51eece8b52660f92`; no gate or test removed. Latest exact-head CI remains pending verification.
+
 Local checkout and pinned formatter/test runner remain unavailable in this session. Do not mark tests passed or merge on that basis. Preserve all public response contracts, ordering, publication windows, contact consent and RBAC. No production writes, schema migrations, deploy, UI redesign or paid upgrade. Independent of issue #594.
 
 Next: inspect exact-head CI, resolve failures without weakening gates, then prepare reviewed release candidate and preserve separate production approval. Record post-release daily read metrics only after actual deployment.
