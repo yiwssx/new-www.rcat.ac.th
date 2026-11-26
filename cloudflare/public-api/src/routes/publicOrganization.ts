@@ -1,4 +1,4 @@
-import { readPublishedOrganization } from "../db/organizationReadRepository";
+import { listPublishedOrganizationUnits, readPublishedOrganization } from "../db/organizationReadRepository";
 import { isValidOrganizationPublicSlug } from "../../../../shared/organizationContracts";
 import type { Env } from "../env";
 import { json, jsonError } from "../responses";
@@ -10,8 +10,10 @@ import { mapMediaAssetRowToPublicMediaAsset } from "../adapters/publicMediaAdapt
  * ASVS 8.2.3: expose only published organization chains, active assignments
  * and explicitly opted-in personnel contact fields. Never return raw D1 rows.
  */
-export async function publicOrganization(env: Env): Promise<Response> {
-  const organization = await readPublishedOrganization(env);
+export async function publicOrganization(env: Env, indexOnly = false): Promise<Response> {
+  const organization = indexOnly
+    ? { items: await listPublishedOrganizationUnits(env) }
+    : await readPublishedOrganization(env);
   return json(organization, {
     headers: { "Cache-Control": "public, max-age=60" }
   });
@@ -87,7 +89,7 @@ export async function publicOrganizationDetail(env: Env, slug: string): Promise<
   if (!isValidOrganizationPublicSlug(slug)) {
     return jsonError("not found", 404, { resource: "organization" });
   }
-  const organization = await readPublishedOrganization(env);
+  const organization = await readPublishedOrganization(env, slug);
   const result = selectPublishedOrganizationDetail(organization, slug);
   if (!result) return jsonError("not found", 404, { resource: "organization" });
   const photoIds = result.positions.flatMap((position) =>

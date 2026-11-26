@@ -50,6 +50,21 @@ afterEach(() => {
 });
 
 describe("Organization Chart published hierarchy reads", () => {
+  it("uses the parent index in both anchor and recursive steps even with the public search index", () => {
+    db.exec("CREATE INDEX idx_contents_public_search ON contents (status, type)");
+    addContent("root", "published");
+    addContent("child", "published");
+    addUnit("root");
+    addUnit("child", "root");
+    const plan = db
+      .prepare("EXPLAIN QUERY PLAN " + PUBLIC_ORGANIZATION_HIERARCHY_SQL)
+      .all("2026-10-09T14:00:00.000Z")
+      .map((row) => String(row.detail));
+    expect(plan.filter((step) => step.includes("idx_organization_units_parent_order"))).toHaveLength(2);
+    expect(plan.some((step) => step.includes("idx_contents_public_search"))).toBe(false);
+    expect(visibleIds()).toEqual(["root", "child"]);
+  });
+
   it("hides a published descendant when its parent is a draft", () => {
     addContent("root", "draft");
     addContent("child", "published");

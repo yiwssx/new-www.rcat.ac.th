@@ -256,7 +256,7 @@ export async function loadSitemapData(apiBaseUrl) {
     fetchJson(`${baseUrl}/api/public/content?kind=${encodeURIComponent(CONTENT_KINDS[0])}`),
     loadAnnouncementSnapshot(baseUrl),
     fetchJson(`${baseUrl}/api/public/content?kind=${encodeURIComponent(CONTENT_KINDS[2])}`),
-    fetchJson(`${baseUrl}/api/public/organization`)
+    fetchJson(`${baseUrl}/api/public/organization?view=index`)
   ]);
 
   const content = [

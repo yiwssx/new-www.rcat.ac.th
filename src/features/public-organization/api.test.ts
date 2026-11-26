@@ -11,7 +11,7 @@ describe("public Organization permalink facade", () => {
     const published = [{ contentId: "unit-1", slug: "ฝ่ายวิชาการ", title: "ฝ่ายวิชาการ" }];
     requestMock.mockResolvedValueOnce({ items: published });
     expect(await getPublicOrganizationIndex()).toEqual(published);
-    expect(requestMock).toHaveBeenCalledWith("/api/public/organization", "organization", {});
+    expect(requestMock).toHaveBeenCalledWith("/api/public/organization?view=index", "organization", {});
     requestMock.mockResolvedValueOnce({ items: null });
     await expect(getPublicOrganizationIndex()).rejects.toThrow(/invalid published organization index/);
   });

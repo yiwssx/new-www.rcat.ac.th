@@ -48,7 +48,7 @@ export async function routeRequest(request: Request, env: Env) {
     return cmsAuthResponse;
   }
 
-  const { pathname } = new URL(request.url);
+  const { pathname, searchParams } = new URL(request.url);
   const runtimeIncidentAdminResponse = await handleAdminRuntimeIncidents(request, env);
 
   if (runtimeIncidentAdminResponse) {
@@ -181,7 +181,7 @@ export async function routeRequest(request: Request, env: Env) {
   }
 
   if (pathname === "/api/public/organization") {
-    return publicOrganization(env);
+    return publicOrganization(env, searchParams.get("view") === "index");
   }
 
   if (pathname.startsWith("/api/public/organization/")) {
