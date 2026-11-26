@@ -3,11 +3,12 @@ import { DatabaseSync } from "node:sqlite";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import migrationSql from "../migrations/0020_organization_content_foundation.sql?raw";
 import qualificationsMigrationSql from "../migrations/0021_organization_education_qualifications.sql?raw";
-import { publicOrganizationDetail } from "../src/routes/publicOrganization";
+import { publicOrganization, publicOrganizationDetail } from "../src/routes/publicOrganization";
 import type { Env } from "../src/env";
 
 let db: DatabaseSync;
 let env: Env;
+let preparedSql: string[];
 
 function addContent(id: string, parent: string | null = null, status = "published", publishAt = "", unpublishAt = "") {
   db.prepare(
@@ -47,6 +48,7 @@ function assign(id: string, person: string, position: string, enabled = 1) {
 function database(): D1Database {
   return {
     prepare(sql: string) {
+      preparedSql.push(sql);
       let params: unknown[] = [];
       return {
         bind(...bindings: unknown[]) {
@@ -78,6 +80,7 @@ beforeEach(() => {
   `);
   db.exec(migrationSql);
   db.exec(qualificationsMigrationSql);
+  preparedSql = [];
   env = { DB: database() } as Env;
 });
 afterEach(() => db.close());
@@ -117,6 +120,39 @@ describe("published organization permalink", () => {
     expect(JSON.stringify(payload)).not.toContain("private@example.invalid");
     expect(JSON.stringify(payload)).not.toContain("0123456789");
     expect(response.headers.get("Cache-Control")).toContain("max-age=60");
+  });
+
+  it("skips personnel joins for index-only requests and preserves the legacy full response", async () => {
+    addContent("root");
+    addPosition("p1", "root");
+    const index = await publicOrganization(env, true);
+    const indexBody = await index.json();
+    expect(index.status).toBe(200);
+    expect(indexBody).toMatchObject({ items: [{ slug: "root" }] });
+    expect(indexBody).not.toHaveProperty("positions");
+    expect(preparedSql).toHaveLength(1);
+    expect(preparedSql[0]).not.toContain("JOIN organization_positions");
+
+    const full = await publicOrganization(env);
+    expect(await full.json()).toMatchObject({ items: [{ slug: "root" }], positions: [{ id: "p1" }] });
+  });
+
+  it("scopes position joins to the requested subtree without including siblings or ancestors", async () => {
+    addContent("root");
+    addContent("selected", "root");
+    addContent("child", "selected");
+    addContent("sibling", "root");
+    addPosition("root-pos", "root");
+    addPosition("selected-pos", "selected");
+    addPosition("child-pos", "child");
+    addPosition("sibling-pos", "sibling");
+
+    const response = await publicOrganizationDetail(env, "selected");
+    expect(response.status).toBe(200);
+    const payload = (await response.json()) as { positions: Array<{ id: string }> };
+    expect(payload.positions.map((position) => position.id)).toEqual(["selected-pos", "child-pos"]);
+    const positionSql = preparedSql.find((sql) => sql.includes("JOIN organization_positions"));
+    expect(positionSql).toContain("WHERE unit.in_scope = 1");
   });
 
   it("supports published Thai unit slugs under the same editor contract", async () => {
