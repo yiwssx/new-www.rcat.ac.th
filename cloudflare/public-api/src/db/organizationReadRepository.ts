@@ -1,5 +1,6 @@
 import { parseOrganizationChartLayout, type OrganizationChartLayout } from "../../../../shared/organizationChartLayout";
 import type { Env } from "../env";
+import { logD1QueryUsage } from "./d1QueryUsage";
 import { requireD1Database } from "./documentsRepository";
 
 /**
@@ -8,9 +9,11 @@ import { requireD1Database } from "./documentsRepository";
  * This prevents a
  * published child from leaking through an unpublished/draft ancestor.
  * Binding ?1 once ensures every layer uses the same visibility timestamp.
+ * CROSS JOIN intentionally fixes the indexed parent -> child -> content order.
+ * An ordinary JOIN allowed D1 to rescan published contents at each recursive step.
  */
 const PUBLIC_ORGANIZATION_CTE = `
-  WITH RECURSIVE eligible AS (
+  WITH RECURSIVE visible (content_id, parent_content_id, unit_kind, sort_order, chart_mode, chart_layout, slug, title, summary, depth) AS (
     SELECT
       unit.content_id,
       unit.parent_content_id,
@@ -20,9 +23,10 @@ const PUBLIC_ORGANIZATION_CTE = `
       COALESCE(json_extract(unit.settings_json, '$.chartLayout'), '{}') AS chart_layout,
       content.slug,
       content.title,
-      content.summary
+      content.summary,
+      0
     FROM organization_units AS unit
-    JOIN contents AS content ON content.id = unit.content_id
+    CROSS JOIN contents AS content ON content.id = unit.content_id
     WHERE content.type = 'organization'
       AND (
         content.status = 'published'
@@ -31,16 +35,30 @@ const PUBLIC_ORGANIZATION_CTE = `
       AND COALESCE(content.deleted_at, '') = ''
       AND (COALESCE(content.publish_at, '') = '' OR datetime(content.publish_at) <= datetime(?1))
       AND (COALESCE(content.unpublish_at, '') = '' OR datetime(content.unpublish_at) > datetime(?1))
-  ),
-  visible (content_id, parent_content_id, unit_kind, sort_order, chart_mode, chart_layout, slug, title, summary, depth) AS (
-    SELECT content_id, parent_content_id, unit_kind, sort_order, chart_mode, chart_layout, slug, title, summary, 0
-    FROM eligible
-    WHERE parent_content_id IS NULL
+      AND unit.parent_content_id IS NULL
     UNION ALL
-    SELECT child.content_id, child.parent_content_id, child.unit_kind, child.sort_order, child.chart_mode, child.chart_layout,
-           child.slug, child.title, child.summary, parent.depth + 1
-    FROM eligible AS child
-    JOIN visible AS parent ON parent.content_id = child.parent_content_id
+    SELECT
+      unit.content_id,
+      unit.parent_content_id,
+      unit.unit_kind,
+      unit.sort_order,
+      COALESCE(json_extract(unit.settings_json, '$.chartMode'), 'cards') AS chart_mode,
+      COALESCE(json_extract(unit.settings_json, '$.chartLayout'), '{}') AS chart_layout,
+      content.slug,
+      content.title,
+      content.summary,
+      parent.depth + 1
+    FROM visible AS parent
+    CROSS JOIN organization_units AS unit ON unit.parent_content_id = parent.content_id
+    CROSS JOIN contents AS content ON content.id = unit.content_id
+    WHERE content.type = 'organization'
+      AND (
+        content.status = 'published'
+        OR (content.status = 'scheduled' AND COALESCE(content.publish_at, '') <> '')
+      )
+      AND COALESCE(content.deleted_at, '') = ''
+      AND (COALESCE(content.publish_at, '') = '' OR datetime(content.publish_at) <= datetime(?1))
+      AND (COALESCE(content.unpublish_at, '') = '' OR datetime(content.unpublish_at) > datetime(?1))
   )
 `;
 
@@ -132,6 +150,7 @@ export async function listPublishedOrganizationUnits(env: Env): Promise<PublicOr
     .bind(new Date().toISOString())
     .all<PublicOrganizationUnitRow>();
 
+  logD1QueryUsage(env, "organization:hierarchy", result);
   return (result.results ?? []).map(mapPublicOrganizationUnit);
 }
 
@@ -239,6 +258,8 @@ export async function readPublishedOrganization(env: Env) {
     database.prepare(PUBLIC_ORGANIZATION_POSITIONS_SQL).bind(timestamp).all<PublicOrganizationPositionRow>()
   ]);
 
+  logD1QueryUsage(env, "organization:hierarchy", unitRows);
+  logD1QueryUsage(env, "organization:positions", positionRows);
   return {
     items: (unitRows.results ?? []).map(mapPublicOrganizationUnit),
     positions: mapPublicOrganizationPositions(positionRows.results ?? [])
