@@ -12,8 +12,9 @@ import { requireD1Database } from "./documentsRepository";
  * CROSS JOIN intentionally fixes the indexed parent -> child -> content order.
  * An ordinary JOIN allowed D1 to rescan published contents at each recursive step.
  */
-const PUBLIC_ORGANIZATION_CTE = `
-  WITH RECURSIVE visible (content_id, parent_content_id, unit_kind, sort_order, chart_mode, chart_layout, slug, title, summary, depth) AS (
+function publicOrganizationCte(scoped: boolean) {
+  return `
+  WITH RECURSIVE visible (content_id, parent_content_id, unit_kind, sort_order, chart_mode, chart_layout, slug, title, summary, depth${scoped ? ", in_scope" : ""}) AS (
     SELECT
       unit.content_id,
       unit.parent_content_id,
@@ -24,7 +25,7 @@ const PUBLIC_ORGANIZATION_CTE = `
       content.slug,
       content.title,
       content.summary,
-      0
+      0${scoped ? ", content.slug = ?2" : ""}
     FROM organization_units AS unit
     CROSS JOIN contents AS content ON content.id = unit.content_id
     WHERE content.type = 'organization'
@@ -47,7 +48,7 @@ const PUBLIC_ORGANIZATION_CTE = `
       content.slug,
       content.title,
       content.summary,
-      parent.depth + 1
+      parent.depth + 1${scoped ? ", parent.in_scope OR content.slug = ?2" : ""}
     FROM visible AS parent
     CROSS JOIN organization_units AS unit ON unit.parent_content_id = parent.content_id
     CROSS JOIN contents AS content ON content.id = unit.content_id
@@ -61,6 +62,9 @@ const PUBLIC_ORGANIZATION_CTE = `
       AND (COALESCE(content.unpublish_at, '') = '' OR datetime(content.unpublish_at) > datetime(?1))
   )
 `;
+}
+
+const PUBLIC_ORGANIZATION_CTE = publicOrganizationCte(false);
 
 export const PUBLIC_ORGANIZATION_HIERARCHY_SQL = `
   ${PUBLIC_ORGANIZATION_CTE}
@@ -71,8 +75,9 @@ export const PUBLIC_ORGANIZATION_HIERARCHY_SQL = `
 
 // ASVS 1.2.4 / 8.2.3: all current-time parameters are bound, and the public
 // projection enumerates columns rather than exposing entire personnel rows.
-export const PUBLIC_ORGANIZATION_POSITIONS_SQL = `
-  ${PUBLIC_ORGANIZATION_CTE}
+function publicOrganizationPositionsSql(scoped: boolean) {
+  return `
+  ${publicOrganizationCte(scoped)}
   SELECT
     position.id AS position_id,
     position.unit_content_id,
@@ -93,15 +98,20 @@ export const PUBLIC_ORGANIZATION_POSITIONS_SQL = `
     CASE WHEN person.show_public_email = 1 THEN person.public_email ELSE '' END AS public_email,
     CASE WHEN person.show_public_phone = 1 THEN person.public_phone ELSE '' END AS public_phone
   FROM visible AS unit
-  JOIN organization_positions AS position ON position.unit_content_id = unit.content_id
+  CROSS JOIN organization_positions AS position ON position.unit_content_id = unit.content_id
   LEFT JOIN organization_assignments AS assignment
     ON assignment.position_id = position.id
     AND assignment.enabled = 1
   LEFT JOIN personnel AS person ON person.id = assignment.personnel_id AND person.active = 1
+  ${scoped ? "WHERE unit.in_scope = 1" : ""}
   ORDER BY unit.depth ASC, unit.sort_order ASC, unit.content_id ASC,
            position.group_sort_order ASC, position.sort_order ASC, position.id ASC,
            assignment.sort_order ASC, assignment.id ASC
 `;
+}
+
+export const PUBLIC_ORGANIZATION_POSITIONS_SQL = publicOrganizationPositionsSql(false);
+export const PUBLIC_ORGANIZATION_DETAIL_POSITIONS_SQL = publicOrganizationPositionsSql(true);
 
 export interface PublicOrganizationUnitRow {
   content_id: string;
@@ -250,16 +260,20 @@ export function mapPublicOrganizationPositions(
  * Read both public projections against the same UTC instant. No N+1 queries.
  * Active/visible parent chains are enforced by the common recursive CTE.
  */
-export async function readPublishedOrganization(env: Env) {
+export async function readPublishedOrganization(env: Env, slug?: string) {
   const timestamp = new Date().toISOString();
   const database = requireD1Database(env);
+  const positionStatement =
+    slug === undefined
+      ? database.prepare(PUBLIC_ORGANIZATION_POSITIONS_SQL).bind(timestamp)
+      : database.prepare(PUBLIC_ORGANIZATION_DETAIL_POSITIONS_SQL).bind(timestamp, slug);
   const [unitRows, positionRows] = await Promise.all([
     database.prepare(PUBLIC_ORGANIZATION_HIERARCHY_SQL).bind(timestamp).all<PublicOrganizationUnitRow>(),
-    database.prepare(PUBLIC_ORGANIZATION_POSITIONS_SQL).bind(timestamp).all<PublicOrganizationPositionRow>()
+    positionStatement.all<PublicOrganizationPositionRow>()
   ]);
 
   logD1QueryUsage(env, "organization:hierarchy", unitRows);
-  logD1QueryUsage(env, "organization:positions", positionRows);
+  logD1QueryUsage(env, slug === undefined ? "organization:positions" : "organization:detail-positions", positionRows);
   return {
     items: (unitRows.results ?? []).map(mapPublicOrganizationUnit),
     positions: mapPublicOrganizationPositions(positionRows.results ?? [])
