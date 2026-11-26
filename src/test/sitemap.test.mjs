@@ -84,7 +84,7 @@ describe("runtime sitemap generation", () => {
       const data = await loadSitemapData("https://api.school.example/");
 
       expect(requestedUrls.some((url) => url.includes("/programs"))).toBe(false);
-      expect(requestedUrls).toContain("https://api.school.example/api/public/organization");
+      expect(requestedUrls).toContain("https://api.school.example/api/public/organization?view=index");
       expect(data.organization.map((unit) => unit.slug)).toEqual(["ฝ่ายวิชาการ"]);
       expect(requestedUrls).toContain("https://api.school.example/api/public/content?kind=news");
       expect(requestedUrls).toContain(
